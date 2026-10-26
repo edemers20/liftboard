@@ -188,7 +188,7 @@ function renderDayHTML(d,P){
   html+=`<div class="panel" style="margin-top:12px">${seg("today","Today",["Good","Normal","Rough"],D.today,1)}
     ${D.restSuggest?`<p class="flag">Reps dropped two sessions in a row. Rest a day first if you can.</p>`:D.autoRough?`<p class="adj"><b>Shortened</b> · reps dropped last session</p>`:""}
     ${d.id===P.nextId&&wk.upNext===d.id&&wk.missedNote?`<p class="adj"><b>Up next</b> · ${esc(wk.missedNote.why)}</p>`:""}
-    <div class="foot"><button class="btn${D.done?" primary":""}" id="doneBtn" type="button">${D.done?"✓ Done":"Mark day done"}</button></div></div>`;
+    <div class="foot"><button class="btn primary" id="doneBtn" type="button">${D.done?"✓ Done":"Mark day done"}</button></div></div>`;
   const rv=D.done&&(wk.review||{})[d.id];
   if(rv&&rv.items.length) html+=`<div class="panel"><h3>Next time</h3><div class="rev">${rv.items.map(r=>`<p><span class="tag ${r.tag}">${TAGTXT[r.tag]}</span><b>${esc(r.n)}</b> · ${r.w} lb · ${esc(r.why)}</p>`).join("")}</div>${rv.note?`<p class="adj">${esc(rv.note)}</p>`:""}</div>`;
   html+=`<div class="list" style="margin-top:12px">`;
