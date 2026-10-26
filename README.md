@@ -27,7 +27,9 @@ Data lives in the browser (`localStorage`) under `liftboard.v1`, `liftboard.week
 
 ## Deploy
 
-Import the repo in Vercel. It detects Vite automatically: build `npm run build`, output `dist`. Every push to a branch gets a preview URL.
+**GitHub Pages (default):** every push to `main` runs the tests, builds and publishes to `https://edemers20.github.io/liftboard/` via `.github/workflows/pages.yml`. One-time setup: repo **Settings → Pages → Source: GitHub Actions**.
+
+**Vercel (optional, later):** import the repo; it detects Vite. Use it when you want per-branch preview URLs or a backend.
 
 ## Next
 
