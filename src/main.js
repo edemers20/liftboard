@@ -164,7 +164,7 @@ function renderWeek(P){
       <p class="burn">+ steps ${r5(M.stepsK)}${M.nLift?` + lifting ${r5(M.liftDay)}`:""} + digestion ${r5(M.tef)}</p>`}
       ${wk.calibN?`<p class="burn">${M.calib>=0?"+":""}${r5(M.calib)} calibrated from ${wk.calibN} weigh-ins</p>`:""}
       <p class="burn">Baseline ${r5(M.tdee-M.cardioTotal/7).toLocaleString()} + this week's cardio ${r5(M.cardioTotal/7)} = <strong>${r5(M.tdee).toLocaleString()}</strong></p>
-      <p class="burn"><strong>${r5(M.intake).toLocaleString()}</strong> kcal/day to eat</p>
+      <p class="burn"><strong style="font-size:inherit">${r5(M.intake).toLocaleString()}</strong> kcal/day to eat</p>
       ${!build&&M.cardioTotal>M.cardioTarget+35?`<p class="burn" style="font-size:13px">+${r5((M.cardioTotal-M.cardioTarget)/7)} kcal/day more than planned, from extra activity</p>`:""}
     </div>
     ${build?"":`<div class="stats">
@@ -175,8 +175,8 @@ function renderWeek(P){
     </div>
     <div class="bar" role="img" aria-label="Share of weekly deficit by source">
       <i style="width:${pct(M.finK)}%;background:var(--cardio)"></i><i style="width:${pct(M.otherK+M.doneK)}%;background:var(--warn)"></i><i style="width:${pct(Math.max(0,M.target-M.cardioTotal))}%;background:var(--accent)"></i></div>
-    <div class="legend"><span style="--c:var(--cardio)">Finishers ${r5(M.finK)}</span><span style="--c:var(--warn)">Other activity ${r5(M.otherK+M.doneK)}</span><span style="--c:var(--accent)">Food ${r5(Math.max(0,M.target-M.cardioTotal))}</span></div>`}
-    ${M.nLift?`<p class="note">${M.nFin?`Remaining finishers: <strong>${M.m} min</strong> × ${M.nFin}`:"No finishers needed"}</p>`:""}
+    <div class="legend">${M.finK>0?`<span style="--c:var(--cardio)">Finishers ${r5(M.finK)}</span>`:""}<span style="--c:var(--warn)">Other activity ${r5(M.otherK+M.doneK)}</span><span style="--c:var(--accent)">Food ${r5(Math.max(0,M.target-M.cardioTotal))}</span></div>`}
+    ${M.nLift&&M.nFin?`<p class="note">Remaining finishers: <strong>${M.m} min</strong> × ${M.nFin}</p>`:""}
   </div>
   ${P.rules.length?`<div class="panel"><h3>This week's changes</h3><ul>${P.rules.map(n=>`<li>${n}</li>`).join("")}</ul></div>`:""}
   ${P.notes.length?`<div class="panel"><h3>Watch</h3><ul>${P.notes.map(n=>`<li>${n}</li>`).join("")}</ul></div>`:""}
