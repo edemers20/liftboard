@@ -343,7 +343,8 @@ function plan(){
   P.math={doneK,otherK,target,cardioTarget,finK,cardioTotal,food,cap,m,nFin:fins.length,bmr,base:baseM,stepsK,tef,liftDay,nLift,raw,calib,tdee,intake,useOura};
   /* Watch */
   const lb=num(wk.weight,150), pr=build?[0.7,0.9]:[0.8,1.0];
-  P.notes.push(`Protein ${r5(lb*pr[0])}–${r5(lb*pr[1])} g daily.`);
+  P.math.protein=[r5(lb*pr[0]),r5(lb*pr[1])];
+  P.notes.push(`Protein ${P.math.protein[0]}–${P.math.protein[1]} g daily.`);
   const floor=wk.sex==="Male"?1800:1500;
   if(intake<floor) P.notes.push(`Eating ~${r5(intake)} kcal/day is too low. Slow the rate.`);
   if(recomp&&num(wk.rate,0.5)>0.5) P.notes.push("Recomp caps loss at 0.5 lb/week.");

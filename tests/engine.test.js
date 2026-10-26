@@ -90,3 +90,7 @@ describe("week flow", () => {
 describe("toasts only fire on real changes", () => {
   it("no diff for a change that does nothing", () => { fresh(); const a = E.fx(E.plan()); E.wk.sore = "Legs"; expect(E.diffFx(a, E.fx(E.plan()))).toEqual([]); });
 });
+
+describe("your plan", () => {
+  it("exposes the protein range per lb of bodyweight", () => { expect(fresh({ weight: 138 }).math.protein).toEqual([110, 140]); });
+});
