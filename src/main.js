@@ -266,6 +266,11 @@ function setupToast(){
   L.push(`Goal: ${wk.mode} sets food and cardio on This week.`);
   toast(L,9000);
 }
+/* A day is complete when every visible lift has all its planned sets ticked */
+function dayComplete(id){
+  const d=DAYS.find(x=>x.id===id), P=plan(); if(!d) return false;
+  return d.slots.every((s,i)=>{ const A=P.days[id].slots[i]; if(s.cardio||A.skip) return true; const log=get(id,i).log||[]; return log.filter(x=>x.d).length>=A.sets; });
+}
 function bind(){
   const v=document.getElementById("view");
   const inProf=el=>wk.setupDone&&!!el.closest("#profileBox");
@@ -278,7 +283,9 @@ function bind(){
   v.querySelectorAll("input[data-set]").forEach(el=>{ el.oninput=()=>logSet(+el.dataset.i,+el.dataset.set,el.dataset.f,el.value); el.onchange=()=>render(); });
   v.querySelectorAll(".chk").forEach(b=>b.onclick=()=>{ const i=+b.dataset.i,k=+b.dataset.set, x=(get(cur,i).log||[])[k]||{};
     if(!x.w){ const ph=document.getElementById(`w-${cur}-${i}-${k}`).placeholder; if(+ph>0) logSet(i,k,"w",ph); }
-    logSet(i,k,"d",!x.d); if(!x.d) startRest(+b.dataset.rest); render(); });
+    logSet(i,k,"d",!x.d); if(!x.d) startRest(+b.dataset.rest);
+    if(!x.d&&!(wk.done||{})[cur]&&dayComplete(cur)){ const lines=markDone(cur); render(); toast(["All lifts logged · day marked done",...lines.slice(1)],6000); return; }
+    render(); });
   v.querySelectorAll(".addset").forEach(b=>b.onclick=()=>{ const i=+b.dataset.i, log=(get(cur,i).log||[]).slice(), A=plan().days[cur].slots[i]; while(log.length<A.sets) log.push({}); log.push({}); set(cur,i,"log",log); render(); });
   const db=document.getElementById("doneBtn"); if(db) db.onclick=()=>{ const lines=markDone(cur); render(); toast(lines,6000); };
   const nw=document.getElementById("newWeek"); if(nw) nw.onclick=()=>{ const lines=newWeek(); render(); toast(lines); };
