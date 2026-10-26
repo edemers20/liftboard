@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1f6f5c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Lift Board">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icon-180.png">
+<title>Lift Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>
+</head>
+<body>
+<div class="wrap">
+  <header><h1>Lift Board</h1></header>
+  <nav class="tabs" role="tablist" id="tabs"></nav>
+  <section id="view" aria-live="polite"></section>
+  <div class="foot" id="foot">
+    <button class="btn" id="resetDay" type="button">Reset day</button>
+    <span id="confirmBox" hidden><button class="btn danger" id="confirmReset" type="button">Yes, reset</button> <button class="btn" id="cancelReset" type="button">Cancel</button></span>
+    <span class="small" id="saved"></span>
+  </div>
+</div>
+<button type="button" id="rest" hidden></button>
+<div id="toast" role="status" aria-live="polite"></div>
+<div id="pop" role="dialog" hidden></div>
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>
