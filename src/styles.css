@@ -380,8 +380,8 @@ body.resting #profileBox #profSave,body.resting #setupSave{bottom:calc(66px + en
 #profSave:disabled{opacity:1;background:var(--surface);border-color:var(--line);color:var(--muted)}
 
 
-/* Colour families: purple = season/setup/week, green = lift days, pink = sports & activities */
-:root,.th-purple{--accent:#c8a7ff;--accent-fill:#7458a2;--accent-soft:#322c3d;--mint:#cab9ea;--accent-mid:#a17eda;--on-mint:#1f1c24;--bg:#161518;--surface:#212024;--card:#2c2a2f;--line:#353439;--muted:#a3a1a8;--fg:#ebeaed;--tx2:#d1cfd4;--tx3:#dedde1;--div:#3f3d43;--knob:#444348;--mint-rgb:202,185,234;--accent-rgb:200,167,255}
+/* Colour families: orange = season/setup/week, green = lift days, pink = sports & activities */
+:root,.th-orange{--accent:#fea06a;--accent-fill:#9d5324;--accent-soft:#3d2b21;--mint:#e9b69b;--accent-mid:#d5773e;--on-mint:#231c18;--bg:#181513;--surface:#24201d;--card:#2f2a27;--line:#393330;--muted:#a8a09c;--fg:#edeae8;--tx2:#d4cfcc;--tx3:#e1dddb;--div:#433d39;--knob:#48423f;--mint-rgb:233,182,155;--accent-rgb:254,160,106}
 .th-green{--accent:#6fd0b4;--accent-fill:#237a64;--accent-soft:#1e352e;--mint:#a0cfbf;--accent-mid:#3fa88c;--on-mint:#17201d;--bg:#131615;--surface:#1d2220;--card:#272d2b;--line:#303734;--muted:#9ca4a1;--fg:#e8ebea;--tx2:#ccd2d0;--tx3:#dbdfde;--div:#39403e;--knob:#3f4543;--mint-rgb:160,207,191;--accent-rgb:111,208,180}
 .th-pink{--accent:#fc96bf;--accent-fill:#9c4a6d;--accent-soft:#3d2930;--mint:#e9b1c5;--accent-mid:#d36c97;--on-mint:#231b1e;--bg:#181416;--surface:#241f21;--card:#2f292b;--line:#393335;--muted:#a89fa2;--fg:#ede9ea;--tx2:#d4cfd0;--tx3:#e1ddde;--div:#433c3f;--knob:#484244;--mint-rgb:233,177,197;--accent-rgb:252,150,191}
 #resetDay{border-color:transparent}

@@ -125,7 +125,7 @@ function dialCfg(el){
 }
 /* ---------- Rendering ---------- */
 function tabName(id){ if(id==="week") return "This week"; if(id==="zone2") return "Zone 2"; if(id==="season") return wk.setupDone?"Season":"Setup"; if(ACT[id]) return ACT[id].name; return DAYS.find(d=>d.id===id).tab; }
-const themeOf=id=>DAYS.some(d=>d.id===id)?"th-green":(ACT[id]||id==="zone2")?"th-pink":"th-purple";
+const themeOf=id=>DAYS.some(d=>d.id===id)?"th-green":(ACT[id]||id==="zone2")?"th-pink":"th-orange";
 function renderTabs(P){
   const t=document.getElementById("tabs");
   t.innerHTML=TABS().map(id=>{
@@ -346,7 +346,7 @@ function render(){
   if(!TABS().includes(cur)) cur="week";
   popN=0; for(const k in POP) delete POP[k];
   const P=plan(); renderTabs(P);
-  document.body.classList.remove("th-green","th-purple","th-pink"); document.body.classList.add(themeOf(cur)); { const m=document.querySelector('meta[name="theme-color"]'); if(m) m.content={"th-green":"#131615","th-purple":"#161518","th-pink":"#181416"}[themeOf(cur)]; }
+  document.body.classList.remove("th-green","th-orange","th-pink"); document.body.classList.add(themeOf(cur)); { const m=document.querySelector('meta[name="theme-color"]'); if(m) m.content={"th-green":"#131615","th-orange":"#181513","th-pink":"#181416"}[themeOf(cur)]; }
   const v=document.getElementById("view");
   document.getElementById("foot").hidden=!DAYS.some(d=>d.id===cur);
   v.innerHTML=cur==="week"?renderWeek(P):cur==="season"?renderSeason(P):(ACT[cur]||cur==="zone2")?renderAct(cur):renderDayHTML(DAYS.find(d=>d.id===cur),P);
