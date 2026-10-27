@@ -364,7 +364,7 @@ function coachText(id){
   if(id==="season"&&!wk.setupDone) return ["Setup","Fill in the rest of your details here. Your plan at the top updates as you go; save when it looks right."];
   if(id==="season") return ["Season","Your plan at a glance, plus season, goal, lift trends, past weeks and your profile."];
   if(id==="week") return ["This week","Check in once a week. Your schedule, how you're feeling and other activity reshape every lift day."];
-  if(DAYS.some(d=>d.id===id)) return ["Lift days","One exercise at a time. Tick each set and the app works out next time's weight."];
+  if(DAYS.some(d=>d.id===id)) return ["Lift Days","Use this tab to track your workout and see how previous lifts influence progressive overload."];
   if(id==="zone2") return ["Zone 2","One easy 45-minute session during your pre-season ramp. Log the minutes you actually did."];
   const A=ACT[id]; if(!A) return null;
   if(A.cls) return [A.name,"Log your classes here. They count toward this week's cardio."];

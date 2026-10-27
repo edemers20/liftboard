@@ -17,8 +17,8 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 h1{font-family:var(--display);font-weight:700;font-size:34px;letter-spacing:.01em;margin:0;line-height:1;text-transform:uppercase}
 .sub{color:var(--muted);margin:4px 0 0;font-size:14px}
 .tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);display:flex;gap:6px;overflow-x:auto;padding-block:8px;scrollbar-width:none}
-.tab{flex:0 0 auto;font-family:var(--display);font-weight:600;font-size:17px;letter-spacing:.04em;text-transform:uppercase;border:1px solid var(--line);background:var(--surface);color:var(--fg);padding:7px 13px;border-radius:999px;cursor:pointer}
-.tab[aria-selected="true"]{background:var(--accent-fill);border-color:var(--accent-fill);color:var(--on-accent)}
+.tab{flex:0 0 auto;font-family:var(--display);font-weight:600;font-size:17px;letter-spacing:.04em;text-transform:uppercase;border:1px solid transparent;background:var(--surface);color:var(--fg);padding:7px 13px;border-radius:999px;cursor:pointer}
+.tab[aria-selected="true"]{background:var(--accent-fill);border-color:transparent;color:var(--on-accent)}
 .tab.off{opacity:.45}
 button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .dayhead{display:flex;flex-direction:column;gap:4px}
