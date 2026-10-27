@@ -143,3 +143,6 @@ Per lift, from your last logged set:
 - **Two in-season sports:** a primary and an optional second sport. Support lifts cover both; the season sentence names both. Tapping a picked sport again makes it primary; tapping the primary removes it.
 - **Stretching:** optional cooldown block on lift days (lower, upper or full-body set), toggled in the Season card; never required to finish a day.
 - **Lifting days:** 0 is allowed and removes lift day tabs.
+- **Up to 7 of anything:** lift days and every activity go to 7 a week (in-season lifting stays capped at 3 full-body days). Days 6–7 add full-body sessions and run 1 set lighter on every lift.
+- **Packed weeks:** total sessions = lift days + all activity sessions + the ramp session. 10–12 adds 1 to recovery load, 13+ adds 2. 4+ spin classes add 2 instead of 1.
+- **Flags (Watch):** 6 or 7 lift days (rest-day warning), any sport or climbing at 6+ a week (near daily), 10+ sessions (stack activities on lift days), 14+ sessions (expect strength to hold, not climb).

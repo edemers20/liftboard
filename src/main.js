@@ -158,7 +158,7 @@ function profileHTML(withGoal,src){
   ${sports.length?G(`<div class="q"><span>Sports in season<small> · up to two. Tap a picked sport again to make it primary.</small></span><div class="seg sportseg">${[["","None"],...sports.map(a=>[a,ACT[a].name])].map(([a,l])=>{ const p=a&&src.mainSport===a, q=a&&src.sport2===a, on=a?p||q:!src.mainSport;
     return `<button type="button" data-sp="${a}" aria-pressed="${!!on}">${l}${p&&src.sport2?`<small class="prim">primary</small>`:""}</button>`; }).join("")}</div></div>
   ${withGoal&&hs?toggle("season","In-season",src.season,"In-season","Off-season"):""}`):""}
-  ${en("lift")?G(`${hdr("Lifting",["focus","days"])}${stepper("days","Lifting days",(src.season==="In-season"&&hs?[0,1,2,3]:[0,1,2,3,4,5]),"",src.days)}${String(src.days)==="0"?"":seg("focus","Focus",[["Lower","Lower body"],["Balanced","Balanced"],["Upper","Upper body"]],src.focus)}`):""}
+  ${en("lift")?G(`${hdr("Lifting",["focus","days"])}${stepper("days","Lifting days",(src.season==="In-season"&&hs?[0,1,2,3]:[0,1,2,3,4,5,6,7]),"",src.days)}${String(src.days)==="0"?"":seg("focus","Focus",[["Lower","Lower body"],["Balanced","Balanced"],["Upper","Upper body"]],src.focus)}`):""}
   ${withGoal?G(`${hdr("Goal",["mode"])}${seg("mode","Goal",["Deficit only","Recomp","Build"])}`):""}
   ${G(`${hdr("Bio Data",["sex","age","height","weight","bf","steps","oura"])}
   ${seg("sex","Sex",["Female","Male","Other"],src.sex)}
@@ -211,12 +211,12 @@ function renderWeek(P){
   const pct=v=>Math.min(100,v/tot*100).toFixed(1);
   const nd=P.days[P.nextId];
   const others=ACT_IDS.filter(a=>a!=="lift"&&enabled(a));
-  const acts=others.map(a=>stepper(a,ACT[a].name+" sessions",ACT[a].cls?[0,1,2,3]:[0,1,2,3,4,5])).join("");
+  const acts=others.map(a=>stepper(a,ACT[a].name+" sessions",[0,1,2,3,4,5,6,7])).join("");
   INFO.maint=M.useOura?`Your wearable's daily burn minus 7%, plus this week's cardio.`:`Resting ${r5(M.bmr)} + light movement ${r5(M.base-M.bmr)} + steps ${r5(M.stepsK)}${M.nLift?` + lifting ${r5(M.liftDay)}`:""} + digestion ${r5(M.tef)}${wk.calibN?`, ${M.calib>=0?"+":""}${r5(M.calib)} calibrated from ${wk.calibN} weigh-ins`:""}.`;
   return `<div class="dayhead"><h2>Weekly check-in</h2></div>
   ${nd&&nd.restSuggest?`<p class="flag">Reps dropped two sessions in a row. Take a rest day before ${DAYS.find(d=>d.id===P.nextId).tab}.</p>`:""}
   ${enabled("lift")?`<div class="panel">${hdr("Schedule",["days","time"])}
-    ${stepper("days","Lifting days",inS?[0,1,2,3]:[0,1,2,3,4,5])}
+    ${stepper("days","Lifting days",inS?[0,1,2,3]:[0,1,2,3,4,5,6,7])}
     ${stepper("time","Time per session",[30,45,60,75],"min")}</div>`:""}
   <div class="panel">${hdr("How you're doing",["ready","sore",...(fem()?["cycle"]:[]),"drink","load","wAvg"])}
     ${seg("ready","Readiness",["Normal","Low"])}
@@ -388,14 +388,14 @@ function renderAct(a){
   if(a==="zone2") return `<div class="dayhead"><h2>Zone 2</h2></div>
   <div class="list">${rows("zAct",1,45,perMin(CARDIO["Bike (steady)"].met),"Zone 2 session")}</div>`;
   const n=cnt(a), A=ACT[a];
-  if(A.noMin) return `<div class="dayhead"><h2>${A.name}</h2></div><div class="panel">${hdr("This week",[a])}${stepper(a,"Sessions",[0,1,2,3,4,5])}</div>`;
-  if(a==="yoga") return `<div class="dayhead"><h2>Yoga</h2></div><div class="panel" style="margin-top:12px">${hdr("This week",["yoga","ymin","heated"])}${stepper("yoga","Sessions",[0,1,2,3])}${stepper("ymin","Class length",[45,60,75,90],"min")}${toggle("heated","Heated")}</div>
+  if(A.noMin) return `<div class="dayhead"><h2>${A.name}</h2></div><div class="panel">${hdr("This week",[a])}${stepper(a,"Sessions",[0,1,2,3,4,5,6,7])}</div>`;
+  if(a==="yoga") return `<div class="dayhead"><h2>Yoga</h2></div><div class="panel" style="margin-top:12px">${hdr("This week",["yoga","ymin","heated"])}${stepper("yoga","Sessions",[0,1,2,3,4,5,6,7])}${stepper("ymin","Class length",[45,60,75,90],"min")}${toggle("heated","Heated")}</div>
   <div class="list" style="margin-top:12px">${rows("yAct",n,num(wk.ymin,60),perMin(YOGA_MET[wk.heated]||2.8),"Class")}</div>`;
-  if(a==="pilates") return `<div class="dayhead"><h2>Pilates</h2></div><div class="panel" style="margin-top:12px">${hdr("This week",["pilates",minKey("pilates")])}${stepper("pilates","Sessions",[0,1,2,3])}${stepper(minKey("pilates"),"Class length",[45,50,55,60],"min")}</div>
+  if(a==="pilates") return `<div class="dayhead"><h2>Pilates</h2></div><div class="panel" style="margin-top:12px">${hdr("This week",["pilates",minKey("pilates")])}${stepper("pilates","Sessions",[0,1,2,3,4,5,6,7])}${stepper(minKey("pilates"),"Class length",[45,50,55,60],"min")}</div>
   <div class="list" style="margin-top:12px">${rows(actKey("pilates"),n,plannedMin("pilates"),perMin(A.met),"Class")}</div>`;
-  if(a==="spin") return `<div class="dayhead"><h2>Spin</h2></div><div class="panel" style="margin-top:12px">${hdr("This week",["spin","spint"])}${stepper("spin","Sessions",[0,1,2,3])}${seg("spint","Intensity",["Hard","Really hard"])}</div>
+  if(a==="spin") return `<div class="dayhead"><h2>Spin</h2></div><div class="panel" style="margin-top:12px">${hdr("This week",["spin","spint"])}${stepper("spin","Sessions",[0,1,2,3,4,5,6,7])}${seg("spint","Intensity",["Hard","Really hard"])}</div>
   <div class="list" style="margin-top:12px">${rows("sAct",n,SPIN_MIN,perMin(SPIN_MET[wk.spint]||8.5),"Class")}</div>`;
-  return `<div class="dayhead"><h2>${A.name}</h2></div><div class="panel" style="margin-top:12px">${hdr("This week",[a,minKey(a)])}${stepper(a,"Sessions",[0,1,2,3,4,5])}
+  return `<div class="dayhead"><h2>${A.name}</h2></div><div class="panel" style="margin-top:12px">${hdr("This week",[a,minKey(a)])}${stepper(a,"Sessions",[0,1,2,3,4,5,6,7])}
    <div class="nums">${fld(minKey(a),"Planned min","numeric","","sm")}</div></div><div class="list" style="margin-top:12px">${rows(actKey(a),n,plannedMin(a),perMin(A.met),"Session",1)}</div>`;
 }
 function render(){
@@ -757,7 +757,7 @@ function renderTour(focus){
     body:card("Goal",tchips("mode",[["Deficit only","Deficit"],["Recomp","Recomp"],["Build","Build"]],wk.mode),1)},
    {tab:"This week",page:"This week",name:"Your week",title:"Your week adjusts itself",
     text:"Different factors combine to adjust your week; if anything changes, the week changes too.",
-    body:card("Schedule",`${tstep("days","Lifting days",inS?[0,1,2,3]:[0,1,2,3,4,5])}${tstep("time","Time per session",[30,45,60,75],"min")}${ttoggle("ss","Supersets")}`,1)
+    body:card("Schedule",`${tstep("days","Lifting days",inS?[0,1,2,3]:[0,1,2,3,4,5,6,7])}${tstep("time","Time per session",[30,45,60,75],"min")}${ttoggle("ss","Supersets")}`,1)
       +card("How you're doing",rowsH([["Readiness, soreness, drinks","Asked each week"]]))},
    {tab:"Day 1",page:"Day 1",name:"Lifting goals",title:"Specify lifting goals",
     text:"Hit the top or miss the bottom of your rep range to see future lifts adjust based on your goals.",

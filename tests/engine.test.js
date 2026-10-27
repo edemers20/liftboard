@@ -152,3 +152,21 @@ describe("two in-season sports and zero lift days", () => {
     expect(w.mainSport).toBe("tennis"); expect(w.sport2).toBe(""); expect(w.season).toBe("In-season");
   });
 });
+
+describe("up to 7 of anything", () => {
+  it.each(["Lower", "Upper", "Balanced"])("%s focus builds 6 and 7 unique lift days", f => {
+    for (const n of [6, 7]) { fresh({ focus: f, days: n }); const ids = E.split(); expect(ids.length).toBe(n); expect(new Set(ids).size).toBe(n); }
+  });
+  it("6th and 7th lift days run a set lighter and get flagged", () => {
+    const P = fresh({ focus: "Lower", days: 7 });
+    const d6 = E.DAYS[5], s6 = d6.slots.findIndex(s => s.main);
+    expect(P.days[d6.id].slots[s6].why.some(w => w.includes("days 6–7 of 7"))).toBe(true);
+    expect(P.notes.some(n => n.startsWith("7 lift days"))).toBe(true);
+  });
+  it("a packed week raises recovery load and warns", () => {
+    const P = fresh({ acts: { lift: true, pickle: true, yoga: true }, days: 4, pickle: "7", yoga: "2" });
+    expect(P.sessions).toBe(13);
+    expect(P.factors.some(f => f.includes("13 sessions"))).toBe(true);
+    expect(P.notes.some(n => n.includes("close to daily"))).toBe(true);
+  });
+});

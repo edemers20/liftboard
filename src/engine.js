@@ -217,14 +217,16 @@ if(!wk.mig3){
 function split(){
   if(!enabled("lift")) return [];
   if(String(wk.days)==="0") return [];
-  const n=Math.max(1,Math.min(5,+wk.days||3)), f=wk.focus;
+  const n=Math.max(1,Math.min(7,+wk.days||3)), f=wk.focus;
   if(inSeason()) return ["fa","fb","fc"].slice(0,Math.min(3,n));
   if(n===1) return ["fa"];
   if(n===2) return ["fa","fb"];
   if(n===3) return f==="Lower"?["d1","d2","d3"]:f==="Upper"?["d2","lf","x"]:["fa","fb","fc"];
   const four=f==="Upper"?["d2","d1","x","d3"]:["d1","d2","d3","x"];
   if(n===4) return four;
-  return [...four,f==="Lower"?"g2":f==="Upper"?"u3":"fa"];
+  /* 6–7 days add full-body sessions; plan() runs them lighter */
+  const five=[...four,f==="Lower"?"g2":f==="Upper"?"u3":"fa"], extra=["fa","fb","fc"].filter(x=>!five.includes(x));
+  return [...five,...extra].slice(0,n);
 }
 function syncDays(){ DAYS=split().map((id,i)=>({...ALL.find(t=>t.id===id),tab:`Day ${i+1}`})); }
 /* ---------- Decision tree ---------- */
@@ -240,6 +242,10 @@ function plan(){
   const sportWhy=sportOn.length===1?`${sportOn[0][1]} min ${ACT[sportOn[0][0]].name.toLowerCase()}`:`${sportTot} min of sport`;
   const cl=cnt("climb"), sp=cnt("spin"), yg=cnt("yoga");
   const hardSpin=sp>=2||(sp>=1&&wk.spint==="Really hard");
+  /* how many sessions of anything this week: lift days + every activity + the ramp session */
+  const actN=ACT_IDS.filter(a=>a!=="lift"&&enabled(a)).map(a=>[a,cnt(a)]).filter(x=>x[1]>0);
+  const sessions=DAYS.length+actN.reduce((t,x)=>t+x[1],0)+((hasSport()&&!inSeason()&&wk.ramp==="Yes")?1:0);
+  P.sessions=sessions;
   /* recovery load */
   const F=[], addF=(p,l)=>{ if(p>0) F.push([p,l]); };
   addF(wk.ready==="Low"?2:0,"low readiness");
@@ -247,7 +253,8 @@ function plan(){
   addF(wk.drink==="3+"?2:wk.drink==="1–2"?1:0,"drinking");
   if(fem()) addF(wk.cycle==="Period"||wk.cycle==="Luteal"?1:0,wk.cycle==="Period"?"period":"luteal phase");
   addF(legMin>=240?1:0,"heavy sport week");
-  addF(hardSpin?1:0,"hard spin");
+  addF(hardSpin?(sp>=4?2:1):0,sp>=4?`${sp}× spin`:"hard spin");
+  addF(sessions>=13?2:sessions>=10?1:0,`${sessions} sessions this week`);
   const S=F.reduce((a,x)=>a+x[0],0);
   P.score=S; P.factors=F.map(x=>x[1]);
   const fat=wk.fatigue||[], hard=x=>x&&x.drops>=2;
@@ -284,6 +291,7 @@ function plan(){
           const hit=loc==="Legs"?!s.upperMain:loc==="Upper body"?!!s.upperMain:true;
           if(hit){A.delta--;A.why.push("−1 · "+dayCause);}
         }
+        if(DAYS.indexOf(d)>=5){A.delta--;A.why.push(`−1 · ${DAYS.length===6?"day 6":"days 6–7"} of ${DAYS.length}`);}
         if(wk.time==75&&s.main){A.delta++;A.why.push("+1 · 75-min session");}
         if(build&&s.main){A.delta++;A.why.push("+1 · build");}
         if(legMin>=120&&s.uni){A.delta--;A.why.push("−1 · "+sportWhy);}
@@ -366,6 +374,12 @@ function plan(){
   if(!build&&food<0) P.notes.push(`Your activity covers the whole deficit. Eat ${r5(-food)} kcal/day above baseline so it doesn't cost muscle.`);
   if(fins.length&&m>cap&&cap>0) P.notes.push(`Finishers run ${m} min, past a normal ${cap}-min finisher.`);
   if(ramp&&sp&&wk.spint==="Really hard") P.notes.push("Keep spin easy during the ramp; hard classes don't build base.");
+  const nL=DAYS.length;
+  if(nL===7) P.notes.push("7 lift days leaves no rest day. Days 6 and 7 run lighter; drop one if anything aches.");
+  else if(nL===6) P.notes.push("6 lift days leaves one rest day. Day 6 runs lighter so recovery keeps up.");
+  actN.filter(([a,n])=>n>=6&&!ACT[a].cls).forEach(([a,n])=>P.notes.push(`${n}× ${ACT[a].name.toLowerCase()} is close to daily. Lift days already trim the overlap; keep one full day off.`));
+  if(sessions>=10) P.notes.push(`${sessions} sessions this week. Stack activities on lift days where you can so you still get a full rest day.`);
+  if(sessions>=14) P.notes.push("That's two a day on average. Expect strength to hold rather than climb this week.");
   /* Changes, by cause */
   const G={}, add=(why,txt)=>{const g=(G[why]=G[why]||[]); if(!g.includes(txt)) g.push(txt);};
   const loadLbl=`Recovery load ${S} (${P.factors.join(", ")})`;
