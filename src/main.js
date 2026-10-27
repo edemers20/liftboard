@@ -58,6 +58,9 @@ function hdr(title,keys,tag){ const id="p"+(++popN), t=tag||"h3";
 function ib(k){ const id="p"+(++popN); POP[id]=`<p>${INFO[k]}</p>`; return `<button type="button" class="ib" data-pop="${id}" aria-label="What this does" aria-expanded="false">i</button>`; }
 function seg(key,label,opts,val,solo){ const v=val!==undefined?val:wk[key];
   return `<div class="q"><span>${label}${solo?ib(key):""}</span><div class="seg" data-key="${key}">${opts.map(o=>{const [ov,ol]=Array.isArray(o)?o:[o,o];return `<button type="button" aria-pressed="${String(v)===String(ov)}" data-v="${ov}">${key==="time"?ol+" min":ol}</button>`;}).join("")}</div></div>`; }
+function stepper(key,label,vals,unit,val){ const v=String(val!==undefined?val:wk[key]), arr=vals.map(String); let i=arr.indexOf(v); if(i<0) i=0;
+  const b=(d,lab,sym)=>{ const j=i+d; return j<0||j>=arr.length?`<button type="button" disabled aria-label="${lab}">${sym}</button>`:`<button type="button" data-v="${arr[j]}" aria-label="${lab} to ${arr[j]}${unit?" "+unit:""}">${sym}</button>`; };
+  return `<div class="q"><span>${label}</span><div class="seg stepper" data-key="${key}">${b(-1,"Decrease","−")}<output aria-live="polite">${arr[i]}${unit?`<small> ${unit}</small>`:""}</output>${b(1,"Increase","+")}</div></div>`; }
 function fld(key,label,mode,ph,cls,val){ return `<label class="field${cls?" "+cls:""}" for="${key}"><span>${label}</span><input id="${key}" data-w="${key}" inputmode="${mode||"numeric"}" placeholder="${ph||""}" value="${esc((val!==undefined?val:wk[key])??"")}"></label>`; }
 
 function draftDirty(){ return !!draft&&Object.keys(draft).some(k=>JSON.stringify(draft[k])!==JSON.stringify(wk[k])); }
@@ -78,7 +81,7 @@ function planRows(P,touring){
   R.push({k:"Protein",v:`${M.protein[0]}–${M.protein[1]} g/day`,s:4});
   return R;
 }
-const planCtx=()=>[hasSport()?`${ACT[wk.mainSport].name} ${wk.season.toLowerCase()}`:"No main sport", wk.mode, enabled("lift")?wk.focus+" focus":""].filter(Boolean).join(" · ");
+const planCtx=()=>[hasSport()?`${ACT[wk.mainSport].name} ${wk.season.toLowerCase()}`:"No main sport", wk.mode, enabled("lift")?({Lower:"Lower body",Upper:"Upper body"}[wk.focus]||wk.focus)+" focus":""].filter(Boolean).join(" · ");
 /* Rows whose value changed since the last plan card was drawn get a mint marker */
 let planPrev=null;
 function planHTML(P,o={}){
@@ -108,7 +111,7 @@ function profileHTML(withGoal,src){
   <div class="seg">${ACT_IDS.map(a=>`<button type="button" class="actt" data-actt="${a}" aria-pressed="${en(a)}">${ACT[a].name}</button>`).join("")}</div>
   ${sports.length?seg("mainSport","Main sport",[["","None"],...sports.map(a=>[a,ACT[a].name])],src.mainSport):""}
   ${withGoal&&hs?seg("season","Season",["Off-season","In-season"]):""}
-  ${en("lift")?`${hdr("Lifting",["focus"])}${seg("focus","Focus",["Lower","Balanced","Upper"],src.focus)}`:""}
+  ${en("lift")?`${hdr("Lifting",["focus"])}${seg("focus","Focus",[["Lower","Lower body"],["Balanced","Balanced"],["Upper","Upper body"]],src.focus)}`:""}
   ${withGoal?`${hdr("Goal",["mode"])}${seg("mode","Goal",["Deficit only","Recomp","Build"])}`:""}
   ${hdr("Body",["sex","age","height","weight","bf","steps","oura"])}
   ${seg("sex","Sex",["Female","Male","Other"],src.sex)}
@@ -124,7 +127,7 @@ const moveHTML=()=>`  <details class="panel" id="moveBox"><summary><h3 style="di
       <div class="nums two"><button class="btn" id="moveCopy" type="button">Copy my data</button><button class="btn primary" id="moveLoad" type="button">Load</button></div>
     </div></details>`;
 function renderSeason(P){
-  if(!wk.setupDone) return `<div class="dayhead"><h2>Setup</h2></div>${planHTML(P,{pin:1})}<div class="panel">${profileHTML(true)}<button class="btn primary" id="setupSave" type="button">Save setup</button></div>${moveHTML()}`;
+  if(!wk.setupDone) return `<div class="dayhead"><h2>Setup</h2></div>${planHTML(P)}<div class="panel">${profileHTML(true)}<button class="btn primary" id="setupSave" type="button">Save setup</button></div>${moveHTML()}`;
   const inS=inSeason(), build=wk.mode==="Build", dl=deloadInfo();
   const fmt=t=>new Date(t).toLocaleDateString(undefined,{month:"short",day:"numeric"});
   const names=Object.keys(exHist).filter(n=>(exHist[n]||[]).length);
@@ -160,13 +163,13 @@ function renderWeek(P){
   const pct=v=>Math.min(100,v/tot*100).toFixed(1);
   const nd=P.days[P.nextId];
   const others=ACT_IDS.filter(a=>a!=="lift"&&enabled(a));
-  const acts=others.map(a=>seg(a,ACT[a].name+" sessions",ACT[a].cls?["0","1","2","3"]:["0","1","2","3","4","5"])).join("");
+  const acts=others.map(a=>stepper(a,ACT[a].name+" sessions",ACT[a].cls?[0,1,2,3]:[0,1,2,3,4,5])).join("");
   INFO.maint=M.useOura?`Your wearable's daily burn minus 7%, plus this week's cardio.`:`Resting ${r5(M.bmr)} + light movement ${r5(M.base-M.bmr)} + steps ${r5(M.stepsK)}${M.nLift?` + lifting ${r5(M.liftDay)}`:""} + digestion ${r5(M.tef)}${wk.calibN?`, ${M.calib>=0?"+":""}${r5(M.calib)} calibrated from ${wk.calibN} weigh-ins`:""}.`;
   return `<div class="dayhead"><h2>Weekly check-in</h2></div>
   ${nd&&nd.restSuggest?`<p class="flag">Reps dropped two sessions in a row. Take a rest day before ${DAYS.find(d=>d.id===P.nextId).tab}.</p>`:""}
   ${enabled("lift")?`<div class="panel">${hdr("Schedule",["days","time"])}
-    ${seg("days","Lifting days",inS?[1,2,3]:[1,2,3,4,5])}
-    ${seg("time","Time per session",[30,45,60,75])}</div>`:""}
+    ${stepper("days","Lifting days",inS?[1,2,3]:[1,2,3,4,5])}
+    ${stepper("time","Time per session",[30,45,60,75],"min")}</div>`:""}
   <div class="panel">${hdr("How you're doing",["ready","sore",...(fem()?["cycle"]:[]),"drink","load","wAvg"])}
     ${seg("ready","Readiness",["Normal","Low"])}
     ${seg("sore","Soreness",["None","Legs","Upper body","Everything"])}
@@ -283,11 +286,11 @@ function rows(key,n,pl,rate,label,noK){
 }
 function renderAct(a){
   const n=cnt(a), A=ACT[a];
-  if(a==="yoga") return `<div class="dayhead"><h2>Yoga</h2></div><div class="panel" style="margin-top:12px">${hdr("This week",["yoga","ymin","heated"])}${seg("yoga","Sessions",["0","1","2","3"])}${seg("ymin","Class length",["45","60","75","90"])}${seg("heated","Heated",["No","Yes"])}</div>
+  if(a==="yoga") return `<div class="dayhead"><h2>Yoga</h2></div><div class="panel" style="margin-top:12px">${hdr("This week",["yoga","ymin","heated"])}${stepper("yoga","Sessions",[0,1,2,3])}${stepper("ymin","Class length",[45,60,75,90],"min")}${seg("heated","Heated",["No","Yes"])}</div>
   <div class="list" style="margin-top:12px">${rows("yAct",n,num(wk.ymin,60),perMin(YOGA_MET[wk.heated]||2.8),"Class")}</div>`;
-  if(a==="spin") return `<div class="dayhead"><h2>Spin</h2></div><div class="panel" style="margin-top:12px">${hdr("This week",["spin","spint"])}${seg("spin","Sessions",["0","1","2","3"])}${seg("spint","Intensity",["Hard","Really hard"])}</div>
+  if(a==="spin") return `<div class="dayhead"><h2>Spin</h2></div><div class="panel" style="margin-top:12px">${hdr("This week",["spin","spint"])}${stepper("spin","Sessions",[0,1,2,3])}${seg("spint","Intensity",["Hard","Really hard"])}</div>
   <div class="list" style="margin-top:12px">${rows("sAct",n,SPIN_MIN,perMin(SPIN_MET[wk.spint]||8.5),"Class")}</div>`;
-  return `<div class="dayhead"><h2>${A.name}</h2></div><div class="panel" style="margin-top:12px">${hdr("This week",[a,minKey(a)])}${seg(a,"Sessions",["0","1","2","3","4","5"])}
+  return `<div class="dayhead"><h2>${A.name}</h2></div><div class="panel" style="margin-top:12px">${hdr("This week",[a,minKey(a)])}${stepper(a,"Sessions",[0,1,2,3,4,5])}
    <div class="nums">${fld(minKey(a),"Planned min","numeric","","sm")}</div></div><div class="list" style="margin-top:12px">${rows(actKey(a),n,plannedMin(a),perMin(A.met),"Session",1)}</div>`;
 }
 function render(){
@@ -368,7 +371,7 @@ function setupDone(){
   const P=plan(), R=planRows(P).filter(r=>["Split","Eat","Cardio","Protein"].includes(r.k)).map(r=>[r.k,r.v,r.k==="Eat"]);
   const first=DAYS[0];
   showDone({eyebrow:"Setup saved",title:"Your plan is ready",body:`<p class="pctx">${esc(planCtx())}</p>${dRows(R)}`,
-    cta:first?`Start ${first.tab}`:"See this week",onCta:()=>goTab(first?first.id:"week")});
+    cta:"See this week",onCta:()=>goTab("week")});
 }
 function dayDone(id,sets){
   const d=DAYS.find(x=>x.id===id), rv=(wk.review||{})[id]||{items:[]}, c=t=>rv.items.filter(x=>x.tag===t).length;
@@ -401,7 +404,7 @@ function bind(){
   const ps=document.getElementById("profSave"); if(ps) ps.onclick=()=>{ const d=draft; draft=null; const a=fx(plan()); Object.assign(wk,d); if(!enabled(wk.mainSport)){ wk.mainSport=""; } if(!wk.mainSport) wk.season="Off-season"; save(); const b=fx(plan()); render(); toast(["Profile saved",...diffFx(a,b)]); };
   v.querySelectorAll(".actt").forEach(b=>{ if(inProf(b)) b.onclick=()=>{ const a=b.dataset.actt, cur0={...(wk.acts||{}),...((draft&&draft.acts)||{})}; stage("acts",{...cur0,[a]:!cur0[a]}); }; });
   v.querySelectorAll(".actt").forEach(b=>{ if(!inProf(b)) b.onclick=()=>change(()=>{ const a=b.dataset.actt; wk.acts={...(wk.acts||{}),[a]:!enabled(a)}; if(!enabled(wk.mainSport)) { wk.mainSport=""; wk.season="Off-season"; } }); });
-  const ss=document.getElementById("setupSave"); if(ss) ss.onclick=()=>{ wk.setupDone=true; wk.weekStart=wk.weekStart||Date.now(); cur="season"; save(); render(); window.scrollTo(0,0); setupDone(); };
+  const ss=document.getElementById("setupSave"); if(ss) ss.onclick=()=>{ wk.setupDone=true; wk.weekStart=wk.weekStart||Date.now(); cur="week"; save(); render(); window.scrollTo(0,0); setupDone(); };
   const rt=document.getElementById("replayTour"); if(rt) rt.onclick=openTour;
   const mc=document.getElementById("moveCopy"); if(mc) mc.onclick=async()=>{ const data=JSON.stringify({v:1,slots:storage.getItem(KEY),wk:storage.getItem(KEY2),hist:storage.getItem(KEY3)}); const t=document.getElementById("moveTxt"); t.value=data; t.select(); try{ await navigator.clipboard.writeText(data); toast(["Copied","Paste it into Lift Board on the other device."]); }catch(e){ toast(["Selected","Copy the text in the box."]); } };
   const ml=document.getElementById("moveLoad"); if(ml) ml.onclick=()=>{ try{ const o=JSON.parse(document.getElementById("moveTxt").value); if(!o||o.v!==1||!o.wk) throw 0; storage.setItem(KEY,o.slots||"{}"); storage.setItem(KEY2,o.wk); storage.setItem(KEY3,o.hist||"{}"); location.reload(); }catch(e){ toast(["Couldn't load","Paste the full text from Copy my data."]); } };
@@ -441,7 +444,7 @@ function bind(){
 /* ---------- Guided tour: first run, before setup. Controls write real settings;
    a replay after setup runs on a snapshot that is restored on close. ---------- */
 let tour=null;
-function openTour(){ closePop(); tour={i:0,snap:wk.setupDone?JSON.stringify(wk):null,added:{}}; planPrev=null; renderTour("open"); }
+function openTour(){ closePop(); tour={i:-1,snap:wk.setupDone?JSON.stringify(wk):null,added:{}}; planPrev=null; renderTour("open"); }
 function closeTour(){
   const t=tour; if(!t) return; tour=null;
   const el=document.getElementById("tour"); el.classList.add("out");
@@ -469,22 +472,38 @@ function renderTour(focus){
   const tin=(k,l)=>`<label class="field" for="t-${k}"><span>${l}</span><input id="t-${k}" data-tw="${k}" inputmode="decimal" value="${esc(wk[k]??"")}"></label>`;
   const inc=incFor("Hip Thrust (Barbell)",{main:1},140);
   const S=[
-   {tab:"Season",page:"Season",name:"Season",title:"Your season sets the split",
-    text:"Pick your main sport. Off-season builds strength; in-season moves to full-body days, holds weights and adds support work for that sport.",
+   {tab:"Season",page:"Season",name:"Season",title:"Your split",
+    text:"Pick your main sport and specify if you're in- or off-season. This determines the cadence for progressive overload and any accessory work.",
     body:card("Season",`${lbl("Main sport")}${tchips("sport",[["","None"],...SPORTS.map(a=>[a,ACT[a].name])],hasSport()?wk.mainSport:"",3)}${hasSport()?`${lbl("Season")}${tchips("season",[["Off-season","Off-season"],["In-season","In-season"]],wk.season)}`:""}`,1)+card("Goal",rowsH([["Goal",wk.mode]]))},
-   {tab:"Season",page:"Season",name:"Goal",title:"Pick a goal, the math follows",
-    text:`Deficit, recomp or build sets your food target and how much cardio fills the gap. Extra ${sw} sessions shift both.`,
+   {tab:"Season",page:"Season",name:"Goal",title:"Pick a goal",
+    text:"The goal, combined with your body settings, structures the cardio portion of lift days.",
     body:card("Goal",tchips("mode",[["Deficit only","Deficit"],["Recomp","Recomp"],["Build","Build"]],wk.mode),1)},
    {tab:"This week",page:"This week",name:"Check-in",title:"Your week adjusts itself",
-    text:"Readiness, soreness, drinks, cycle phase and a heavy sport week add up. Past a threshold, sets drop or the day gets shorter.",
+    text:"Different factors combine to adjust the rest of the week's plan.",
     body:card("How you're doing",`${lbl("Example")}${rowsH([["Readiness","Low"],["Soreness","Legs"],["Drinking","1–2 nights"],["This week","Main lifts −1 set, weights held",1]])}`,1)},
-   {tab:"Day 1",page:"Day 1",name:"Lifting",title:"Log sets, get the next weight",
-    text:"Focus decides where extra sets land. Hit the top of the range and the weight goes up; miss the bottom twice and it rebuilds.",
-    body:card("Lifting focus",`${tchips("focus",[["Lower","Lower"],["Balanced","Balanced"],["Upper","Upper"]],wk.focus)}${rowsH([["Hip thrust · 4 × 6–10","140 lb × 10"],["Next time",inS?"140 lb · Hold":`${140+inc} lb · Up`,1]])}`,1)},
+   {tab:"Day 1",page:"Day 1",name:"Lifting",title:"Built-in progressive overload",
+    text:"Your plan dictates where extra sets go. Hit the top or miss the bottom of your rep range to see future lifts adjust.",
+    body:card("Lifting focus",`${tchips("focus",[["Lower","Lower body"],["Balanced","Balanced"],["Upper","Upper body"]],wk.focus)}${rowsH([["Hip thrust · 4 × 6–10","140 lb × 10"],["Next time",inS?"140 lb · Hold":`${140+inc} lb · Up`,1]])}`,1)},
    {tab:"Season",page:"Profile",name:"Body",title:"Your body sets the numbers",
     text:"Sex, height and weight change your metabolism, protein target and how big each weight jump is.",
     body:card("Body",`${tchips("sex",[["Female","Female"],["Male","Male"],["Other","Other"]],wk.sex)}<div class="nums two">${tin("height","Height (in)")}${tin("weight","Weight (lb)")}</div>`,1)}
   ];
+  if(i<0){
+    el.innerHTML=`<div class="twelcome" role="dialog" aria-modal="true" aria-labelledby="tTitle">
+      <span class="plab">Lift Board</span>
+      <h2 id="tTitle" tabindex="-1">Welcome!</h2>
+      <p>Thanks for trying this little program. I've never built anything for anyone else before. I hope you enjoy it.</p>
+      <p class="wsig">Emma</p>
+      <button type="button" class="tb" id="tNext">Take the tour</button>
+      <button type="button" class="tskip" id="tSkip">${tour.snap?"Close":"Skip tour"}</button>
+    </div>`;
+    el.hidden=false; document.body.classList.add("touring");
+    el.classList.toggle("step",!!focus); el.classList.toggle("opening",focus==="open");
+    el.querySelector("#tSkip").onclick=closeTour;
+    el.querySelector("#tNext").onclick=()=>{ tour.i=0; renderTour(true); };
+    if(focus) el.querySelector("#tTitle").focus({preventScroll:true});
+    return;
+  }
   const s=S[i], last=i===S.length-1;
   const tabs=["Season","This week","Day 1",...(sportN&&!ACT[wk.mainSport].noMin?[sportN]:[])];
   el.innerHTML=`<div class="tscroll"><div class="tbody">
@@ -498,14 +517,14 @@ function renderTour(focus){
     <div class="ttop"><span class="plab">${i+1} of ${S.length} · ${s.name}</span><button type="button" class="tskip" id="tSkip">${tour.snap?"Close":"Skip tour"}</button></div>
     <p class="ttitle" id="tTitle" tabindex="-1">${s.title}</p>
     <p class="ttext">${s.text}</p>
-    <div class="tbtns${i?" two":""}">${i?`<button type="button" class="tb ghost" id="tBack">Back</button>`:""}<button type="button" class="tb" id="tNext">${!last?"Next":tour.snap?"Done":"Finish setup"}</button></div>
+    <div class="tbtns two"><button type="button" class="tb ghost" id="tBack">Back</button><button type="button" class="tb" id="tNext">${!last?"Next":tour.snap?"Done":"Finish setup"}</button></div>
   </div>`;
   el.hidden=false; document.body.classList.add("touring");
   el.classList.toggle("step",!!focus); el.classList.toggle("opening",focus==="open");
   el.querySelectorAll("[data-tk]").forEach(b=>b.onclick=()=>tourSet(b.dataset.tk,b.dataset.v));
   el.querySelectorAll("[data-tw]").forEach(x=>x.onchange=()=>{ wk[x.dataset.tw]=x.value; save(); renderTour(); });
   el.querySelector("#tSkip").onclick=closeTour;
-  const go=d=>{ tour.i+=d; renderTour(true); el.querySelector(".tscroll").scrollTop=0; };
+  const go=d=>{ tour.i+=d; renderTour(true); const sc=el.querySelector(".tscroll"); if(sc) sc.scrollTop=0; };
   const bk=el.querySelector("#tBack"); if(bk) bk.onclick=()=>go(-1);
   el.querySelector("#tNext").onclick=()=>last?closeTour():go(1);
   if(focus) el.querySelector("#tTitle").focus({preventScroll:true});

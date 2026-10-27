@@ -284,3 +284,22 @@ body.resting #sheet{bottom:calc(66px + env(safe-area-inset-bottom,0px))}
 .inset .burn strong{font-size:inherit}
 textarea{font:13px var(--mono);color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%;box-sizing:border-box;resize:vertical}
 #moveBox .btn{min-height:44px}
+/* stepper for small numeric choices */
+.seg.stepper{display:inline-grid;grid-template-columns:44px minmax(64px,auto) 44px;align-items:center;gap:0;width:max-content;background:var(--bg);border-radius:12px;padding:2px}
+.seg.stepper button{width:44px;height:44px;padding:0;border:0;border-radius:10px;background:transparent;color:var(--fg);font:500 22px/1 var(--mono);display:flex;align-items:center;justify-content:center}
+.seg.stepper button:not(:disabled):hover{background:var(--surface)}
+.seg.stepper button:disabled{color:var(--line);cursor:default}
+.seg.stepper output{font:600 18px var(--mono);text-align:center;font-variant-numeric:tabular-nums;padding:0 4px}
+.seg.stepper output small{font-size:12px;font-weight:500;color:var(--muted)}
+/* welcome */
+.twelcome{position:absolute;inset:0;box-sizing:border-box;max-width:640px;margin:0 auto;padding:calc(48px + env(safe-area-inset-top,0px)) 24px calc(32px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;justify-content:center;gap:16px}
+.twelcome h2{margin:0;font-family:var(--display);font-weight:700;font-size:52px;line-height:1;text-transform:uppercase;outline:none}
+.twelcome p{margin:0;font-size:17px;line-height:1.5;color:#c9d3cf;max-width:34ch}
+.twelcome .wsig{color:var(--mint);font-weight:600}
+.twelcome .tb{margin-top:16px}
+.twelcome .tskip{align-self:center;margin:0}
+#tour.step .twelcome > *,#tour.opening .twelcome > *{animation:lbIn .4s var(--ease) both}
+#tour .twelcome > :nth-child(2){animation-delay:60ms}
+#tour .twelcome > :nth-child(3){animation-delay:140ms}
+#tour .twelcome > :nth-child(4){animation-delay:220ms}
+#tour .twelcome > :nth-child(5),#tour .twelcome > :nth-child(6){animation-delay:300ms}
