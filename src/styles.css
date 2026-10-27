@@ -26,7 +26,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .dayhead p{margin:0;color:var(--muted);font-size:14px;max-width:62ch}
 .list{display:flex;flex-direction:column;gap:10px}
 .slot{background:var(--surface);border:1px solid transparent;border-radius:12px;padding:12px;display:grid;gap:10px}
-.slot.cardio{background:var(--surface);border-color:var(--line)}
+.slot.cardio{background:var(--surface);border-color:transparent}
 .slot.ss{border-left:3px solid var(--accent)}
 .slot.skip{opacity:.5}
 .slot.skip select,.slot.skip .nums{display:none}
@@ -47,7 +47,7 @@ select{font-weight:600;font-size:16px;appearance:none;background-image:linear-gr
 @media (max-width:420px){.slot .nums:has(input[data-k="hit"]){grid-template-columns:repeat(2,minmax(0,1fr))}}
 .nums.two{grid-template-columns:repeat(2,minmax(0,1fr))}
 .nums label,.field{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;font-weight:600}
-.nums input,.field input{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:15px;padding:7px 8px}
+.nums input,.field input{border-color:transparent;font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:15px;padding:7px 8px}
 .note{font-size:13px;color:var(--muted);margin:0}
 .panel{background:var(--surface);border:1px solid transparent;border-radius:12px;padding:12px;display:grid;gap:10px}
 #view{display:flex;flex-direction:column;gap:10px}
@@ -58,8 +58,8 @@ select{font-weight:600;font-size:16px;appearance:none;background-image:linear-gr
 .q > span{font-weight:600;font-size:14px}
 .q small{color:var(--muted);font-size:12px;font-weight:400}
 .seg{display:flex;flex-wrap:wrap;gap:6px}
-.seg button{font:inherit;font-size:14px;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:8px;padding:6px 11px;cursor:pointer}
-.seg button[aria-pressed="true"]{background:var(--accent-fill);border-color:var(--accent-fill);color:var(--on-accent);font-weight:600}
+.seg button{font:inherit;font-size:14px;border:1px solid transparent;background:var(--bg);color:var(--fg);border-radius:8px;padding:6px 11px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent-fill);border-color:transparent;color:var(--on-accent);font-weight:600}
 .stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .stat{background:var(--bg);border-radius:10px;padding:10px}
 .stat .k{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:600}
@@ -384,3 +384,5 @@ body.resting #profileBox #profSave,body.resting #setupSave{bottom:calc(66px + en
 :root,.th-purple{--accent:#c8a7ff;--accent-fill:#7458a2;--accent-soft:#322c3d;--mint:#cab9ea;--accent-mid:#a17eda;--on-mint:#1f1c24;--bg:#161518;--surface:#212024;--card:#2c2a2f;--line:#353439;--muted:#a3a1a8;--fg:#ebeaed;--tx2:#d1cfd4;--tx3:#dedde1;--div:#3f3d43;--knob:#444348;--mint-rgb:202,185,234;--accent-rgb:200,167,255}
 .th-green{--accent:#6fd0b4;--accent-fill:#237a64;--accent-soft:#1e352e;--mint:#a0cfbf;--accent-mid:#3fa88c;--on-mint:#17201d;--bg:#131615;--surface:#1d2220;--card:#272d2b;--line:#303734;--muted:#9ca4a1;--fg:#e8ebea;--tx2:#ccd2d0;--tx3:#dbdfde;--div:#39403e;--knob:#3f4543;--mint-rgb:160,207,191;--accent-rgb:111,208,180}
 .th-pink{--accent:#fc96bf;--accent-fill:#9c4a6d;--accent-soft:#3d2930;--mint:#e9b1c5;--accent-mid:#d36c97;--on-mint:#231b1e;--bg:#181416;--surface:#241f21;--card:#2f292b;--line:#393335;--muted:#a89fa2;--fg:#ede9ea;--tx2:#d4cfd0;--tx3:#e1ddde;--div:#433c3f;--knob:#484244;--mint-rgb:233,177,197;--accent-rgb:252,150,191}
+#resetDay{border-color:transparent}
+#newWeek{border-color:transparent}

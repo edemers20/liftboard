@@ -230,7 +230,7 @@ function renderWeek(P){
   </div>
   ${P.rules.length?`<div class="panel">${hdr("This week's changes",["changes"])}<ul>${P.rules.map(n=>`<li>${n}</li>`).join("")}</ul></div>`:""}
   ${P.notes.length?`<div class="panel">${hdr("Watch",["watch"])}<ul>${P.notes.map(n=>`<li>${n}</li>`).join("")}</ul></div>`:""}
-  <button class="btn" id="newWeek" type="button">Start new week</button>`;
+  <button class="btn primary" id="newWeek" type="button">Start new week</button>`;
 }
 /* ---------- Day: one focused exercise at a time ---------- */
 const exDone=(d,D,i)=>{ const s=d.slots[i], A=D.slots[i]; if(A.skip) return true; if(D.done) return true; const st=get(d.id,i); return s.cardio?!!st.cdone:(st.log||[]).filter(x=>x.d).length>=A.sets; };
