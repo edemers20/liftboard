@@ -379,12 +379,8 @@ input.dialin{cursor:pointer;caret-color:transparent}
 body.resting #profileBox #profSave,body.resting #setupSave{bottom:calc(66px + env(safe-area-inset-bottom,0px))}
 #profSave:disabled{opacity:1;background:var(--surface);border-color:var(--line);color:var(--muted)}
 
-/* Colour families: green = season/setup/week, pink = lift days, orange = sports & activities */
-.th-green{--accent:#6fd0b4;--accent-fill:#237a64;--accent-soft:#1d3530;--mint:#9fcfc1;--mint-rgb:159,207,193;--accent-rgb:111,208,180;--accent-mid:#3fa88c;--on-mint:#17201d}
-.th-lift{--accent:#fc96bf;--accent-fill:#9c4a6d;--accent-soft:#3d2930;--mint:#e9b1c5;--mint-rgb:233,177,197;--accent-rgb:252,150,191;--accent-mid:#d36c97;--on-mint:#231b1e}
-.th-sport{--accent:#fea06a;--accent-fill:#9d5324;--accent-soft:#3d2b21;--mint:#e9b69b;--mint-rgb:233,182,155;--accent-rgb:254,160,106;--accent-mid:#d5773e;--on-mint:#231c18}
 
-/* Neutral tints per colour family */
-.th-green{--bg:#111715;--surface:#1a2320;--card:#232e2a;--line:#2c3833;--muted:#97a6a0;--fg:#e6ece9;--tx2:#c9d3cf;--tx3:#d9e0dd;--div:#34423d;--knob:#3a4743}
-.th-lift{--bg:#1b1316;--surface:#2a1c21;--card:#36262c;--line:#412f36;--muted:#af9ca3;--fg:#efe8ea;--tx2:#d7cdd1;--tx3:#e3dcde;--div:#4c373f;--knob:#513d44}
-.th-sport{--bg:#1c130f;--surface:#2a1e17;--card:#36271f;--line:#413127;--muted:#af9e95;--fg:#efe9e6;--tx2:#d7cec9;--tx3:#e3ddd9;--div:#4d3a2f;--knob:#513f36}
+/* Colour families: purple = season/setup/week, green = lift days, pink = sports & activities */
+:root,.th-purple{--accent:#c8a7ff;--accent-fill:#7458a2;--accent-soft:#322c3d;--mint:#cab9ea;--accent-mid:#a17eda;--on-mint:#1f1c24;--bg:#161518;--surface:#212024;--card:#2c2a2f;--line:#353439;--muted:#a3a1a8;--fg:#ebeaed;--tx2:#d1cfd4;--tx3:#dedde1;--div:#3f3d43;--knob:#444348;--mint-rgb:202,185,234;--accent-rgb:200,167,255}
+.th-green{--accent:#6fd0b4;--accent-fill:#237a64;--accent-soft:#1e352e;--mint:#a0cfbf;--accent-mid:#3fa88c;--on-mint:#17201d;--bg:#131615;--surface:#1d2220;--card:#272d2b;--line:#303734;--muted:#9ca4a1;--fg:#e8ebea;--tx2:#ccd2d0;--tx3:#dbdfde;--div:#39403e;--knob:#3f4543;--mint-rgb:160,207,191;--accent-rgb:111,208,180}
+.th-pink{--accent:#fc96bf;--accent-fill:#9c4a6d;--accent-soft:#3d2930;--mint:#e9b1c5;--accent-mid:#d36c97;--on-mint:#231b1e;--bg:#181416;--surface:#241f21;--card:#2f292b;--line:#393335;--muted:#a89fa2;--fg:#ede9ea;--tx2:#d4cfd0;--tx3:#e1ddde;--div:#433c3f;--knob:#484244;--mint-rgb:233,177,197;--accent-rgb:252,150,191}
