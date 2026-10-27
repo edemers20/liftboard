@@ -177,6 +177,8 @@ body.touring{overflow:hidden}
 button,.tab,.seg button,.btn,.chk,select,input{transition:background-color .2s ease,border-color .2s ease,color .2s ease,box-shadow .2s ease,transform .12s ease}
 button:active:not(:disabled),.tab:active{transform:scale(.97)}
 #view.enter{animation:lbIn .32s var(--ease) both}
+#view.enter.fwd{animation:lbFwd .34s var(--ease) both}
+#view.enter.back{animation:lbBack .34s var(--ease) both}
 #pop.in{animation:lbPop .18s ease-out both;transform-origin:top center}
 #pop.out{animation:lbPopOut .14s ease-in both}
 .chk.pop{animation:lbCheck .32s ease-out}
@@ -331,10 +333,10 @@ input.dialin{cursor:pointer;caret-color:transparent}
 .wi.on small{color:var(--mint)}
 /* setup / profile groups */
 .pgroups{display:grid;gap:0}
-.pgroup{display:grid;gap:12px;padding:18px 0}
+.pgroup{display:grid;gap:14px;padding:24px 0}
 .pgroup:first-child{padding-top:2px}
 .pgroup:last-child{padding-bottom:4px}
-.pgroup + .pgroup{border-top:1px solid var(--line)}
+.pgroup + .pgroup{border-top:1px solid #34423d}
 .twelcome .tbtns{margin-top:16px}
 .twelcome .tbtns .tb{margin-top:0}
 /* optional exercises and finished days */
@@ -343,3 +345,19 @@ input.dialin{cursor:pointer;caret-color:transparent}
 .exrow.opt .exname{color:#c9d3cf}
 .exrow .why{grid-column:1;font-size:12px;color:var(--muted);margin-top:2px}
 #doneBtn:disabled{opacity:1;cursor:default;transform:none}
+
+@keyframes lbFwd{from{opacity:0;transform:translateX(28px)}to{opacity:1;transform:none}}
+@keyframes lbBack{from{opacity:0;transform:translateX(-28px)}to{opacity:1;transform:none}}
+.tab{transition:background-color .25s ease,border-color .25s ease,color .25s ease,transform .12s ease}
+.tab[aria-selected="true"]{animation:lbPress .25s var(--ease)}
+/* confirm sheet */
+#confirm{position:fixed;inset:0;z-index:70}
+#confirm .ddim{position:absolute;inset:0;background:rgba(0,0,0,.6);animation:lbFade .2s ease both}
+.csheet{position:absolute;left:max(12px,env(safe-area-inset-left,0px));right:max(12px,env(safe-area-inset-right,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));max-width:616px;margin:0 auto;box-sizing:border-box;background:var(--card);color:#fff;border:1px solid rgba(255,255,255,.06);border-radius:20px;box-shadow:0 -10px 40px rgba(0,0,0,.5);padding:18px 18px 18px;display:grid;gap:10px;animation:lbSheet .3s var(--ease) both}
+#confirm.out .ddim{animation:lbFadeOut .2s ease-in both}
+#confirm.out .csheet{animation:lbSheetOut .2s ease-in both}
+.csheet h2{margin:0;font-family:var(--display);font-weight:400;font-size:26px;line-height:1.05;letter-spacing:.03em;text-transform:uppercase;outline:none}
+.csheet p{margin:0 0 6px;font-size:14px;color:#c9d3cf}
+.tb.danger{background:#c96a48;color:#fff}
+.season-foot{justify-content:space-between}
+#resetProfile{color:#ec8b68;border-color:transparent;background:transparent}

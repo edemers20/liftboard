@@ -188,7 +188,7 @@ function renderSeason(P){
     <div class="q"><span>Avg lift kcal</span>${fld("liftK","","numeric","","sm")}</div></div>`:""}
   <details class="panel" id="profileBox"${wk.openBase?" open":""}><summary><h3 style="display:inline">Profile</h3> <span class="small">${esc(wk.sex)} · ${esc(wk.weight)} lb · ${esc(wk.height)} in</span></summary><div style="display:grid;gap:12px;margin-top:12px">${profileHTML(false,{...wk,...(draft||{})})}<button class="btn primary" id="profSave" type="button"${draftDirty()?"":" disabled"}>Save changes</button></div></details>
   ${moveHTML()}
-  <div class="foot"><button class="btn" id="replayTour" type="button">Replay tour</button></div>`;
+  <div class="foot season-foot"><button class="btn" id="replayTour" type="button">Replay tour</button><button class="btn" id="resetProfile" type="button">Reset profile</button></div>`;
 }
 function renderWeek(P){
   const M=P.math, inS=inSeason(), build=wk.mode==="Build", tot=Math.max(M.target,1);
@@ -347,7 +347,9 @@ function render(){
   const v=document.getElementById("view");
   document.getElementById("foot").hidden=!DAYS.some(d=>d.id===cur);
   v.innerHTML=cur==="week"?renderWeek(P):cur==="season"?renderSeason(P):(ACT[cur]||cur==="zone2")?renderAct(cur):renderDayHTML(DAYS.find(d=>d.id===cur),P);
-  if(cur!==lastCur){ v.classList.remove("enter"); void v.offsetWidth; v.classList.add("enter"); lastCur=cur; }
+  if(cur!==lastCur){ const T=TABS(), dir=lastCur==null?"":T.indexOf(cur)>=T.indexOf(lastCur)?"fwd":"back";
+    v.classList.remove("enter","fwd","back"); void v.offsetWidth; v.classList.add("enter"); if(dir) v.classList.add(dir); lastCur=cur;
+    const tb=document.querySelector('.tab[aria-selected="true"]'); if(tb&&tb.scrollIntoView) tb.scrollIntoView({block:"nearest",inline:"nearest",behavior:"smooth"}); }
   if(fxOnce.seg){ const b=v.querySelector(`.seg[data-key="${fxOnce.seg[0]}"] button[data-v="${CSS.escape(fxOnce.seg[1])}"]`); if(b) b.classList.add("pressed"); }
   fxOnce={};
   bind();
@@ -390,6 +392,19 @@ function logSet(i,k,f,val){ const st=get(cur,i); const log=(st.log||[]).slice();
 let restT=null;
 function startRest(sec){ const bar=document.getElementById("rest"); clearInterval(restT); let t=sec; const tick=()=>{ bar.hidden=false; bar.textContent=`Rest ${Math.floor(t/60)}:${String(t%60).padStart(2,"0")} · tap to skip`; if(t--<=0){clearInterval(restT); bar.textContent="Go"; setTimeout(()=>bar.hidden=true,2500);} }; tick(); restT=setInterval(tick,1000); }
 new MutationObserver(()=>document.body.classList.toggle("resting",!document.getElementById("rest").hidden)).observe(document.getElementById("rest"),{attributes:true,attributeFilter:["hidden"]});
+/* ---------- "Are you sure?" sheet for anything destructive ---------- */
+function askSure({title,text,ok,onOk}){
+  const el=document.getElementById("confirm"), back=document.activeElement; closePop();
+  el.innerHTML=`<div class="ddim" data-no></div><section class="csheet" role="alertdialog" aria-modal="true" aria-labelledby="cTitle" aria-describedby="cText">
+    <span class="plab">Are you sure?</span><h2 id="cTitle" tabindex="-1">${esc(title)}</h2><p id="cText">${esc(text)}</p>
+    <div class="tbtns two"><button type="button" class="tb ghost" data-no>Cancel</button><button type="button" class="tb danger" id="cOk">${esc(ok)}</button></div></section>`;
+  el.hidden=false; el.classList.remove("out");
+  const close=go=>{ el.classList.add("out"); setTimeout(()=>{ el.hidden=true; el.innerHTML=""; el.classList.remove("out"); if(go) onOk(); else back&&back.focus&&back.focus({preventScroll:true}); },200); };
+  el.querySelectorAll("[data-no]").forEach(b=>b.onclick=()=>close(false));
+  el.querySelector("#cOk").onclick=()=>close(true);
+  el.onkeydown=e=>{ if(e.key==="Escape"){ e.stopPropagation(); close(false); } };
+  el.querySelector("[data-no].tb").focus({preventScroll:true});
+}
 /* ---------- Completion screens: short, closable sheets ---------- */
 let doneCta=null;
 const CHECK=`<span class="dcheck" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 28 28"><path d="M7 14.5l4.5 4.5L21 9.5"/></svg></span>`;
@@ -455,7 +470,10 @@ function bind(){
   const ss=document.getElementById("setupSave"); if(ss) ss.onclick=()=>{ wk.setupDone=true; wk.weekStart=wk.weekStart||Date.now(); cur="week"; save(); render(); window.scrollTo(0,0); setupDone(); };
   const rt=document.getElementById("replayTour"); if(rt) rt.onclick=openTour;
   const mc=document.getElementById("moveCopy"); if(mc) mc.onclick=async()=>{ const data=JSON.stringify({v:1,slots:storage.getItem(KEY),wk:storage.getItem(KEY2),hist:storage.getItem(KEY3)}); const t=document.getElementById("moveTxt"); t.value=data; t.select(); try{ await navigator.clipboard.writeText(data); toast(["Copied","Paste it into Lift Board on the other device."]); }catch(e){ toast(["Selected","Copy the text in the box."]); } };
-  const ml=document.getElementById("moveLoad"); if(ml) ml.onclick=()=>{ try{ const o=JSON.parse(document.getElementById("moveTxt").value); if(!o||o.v!==1||!o.wk) throw 0; storage.setItem(KEY,o.slots||"{}"); storage.setItem(KEY2,o.wk); storage.setItem(KEY3,o.hist||"{}"); location.reload(); }catch(e){ toast(["Couldn't load","Paste the full text from Copy my data."]); } };
+  const ml=document.getElementById("moveLoad"); if(ml) ml.onclick=()=>{ let o; try{ o=JSON.parse(document.getElementById("moveTxt").value); if(!o||o.v!==1||!o.wk) throw 0; }catch(e){ toast(["Couldn't load","Paste the full text from Copy my data."]); return; }
+    const go=()=>{ storage.setItem(KEY,o.slots||"{}"); storage.setItem(KEY2,o.wk); storage.setItem(KEY3,o.hist||"{}"); location.reload(); };
+    if(wk.setupDone) askSure({title:"Replace your data",text:"Everything on this device is replaced with the pasted data.",ok:"Replace",onOk:go}); else go(); };
+  const rp=document.getElementById("resetProfile"); if(rp) rp.onclick=()=>askSure({title:"Reset profile",text:"This erases your setup, logs and lift history on this device and starts over from the welcome screen. Copy your data first if you want to keep it.",ok:"Erase and start over",onOk:()=>{ [KEY,KEY2,KEY3,KEY+".tab"].forEach(k=>{ try{ localStorage.removeItem(k); }catch(e){} }); location.hash=""; location.reload(); }});
   v.querySelectorAll(".exrow[data-ex]").forEach(b=>b.onclick=()=>{ const i=+b.dataset.ex; wk.active={...(wk.active||{}),[cur]:i}; save(); render(); planSheet(cur,i); });
   v.querySelectorAll(".cdone").forEach(b=>b.onclick=()=>{ const i=+b.dataset.i, A=plan().days[cur].slots[i], st=get(cur,i); if(!st.act&&A.min) set(cur,i,"act",String(A.min)); set(cur,i,"cdone",true); fxOnce.slot=`${cur}-${i}`;
     const d=DAYS.find(x=>x.id===cur), n=nextIdx(d,plan().days[cur],i); if(n!=null){ wk.active={...(wk.active||{}),[cur]:n}; save(); } render(); if(n!=null) planSheet(cur,n); });
@@ -471,12 +489,13 @@ function bind(){
     render(); if(finished) nextSheet(cur,i); });
   v.querySelectorAll(".addset").forEach(b=>b.onclick=()=>{ const i=+b.dataset.i, log=(get(cur,i).log||[]).slice(), A=plan().days[cur].slots[i]; while(log.length<A.sets) log.push({}); log.push({}); set(cur,i,"log",log); render(); });
   const db=document.getElementById("doneBtn"); if(db) db.onclick=()=>{ const id=cur; if((wk.done||{})[id]) return; const n=setsLogged(id); markDone(id); render(); dayDone(id,n); };
-  const nw=document.getElementById("newWeek"); if(nw) nw.onclick=()=>{ const P=plan(), s={lifts:DAYS.filter(d=>(wk.done||{})[d.id]).length,planned:DAYS.length,cardio:r5(P.math.cardioTotal)}; newWeek(); render(); weekDone(s); };
+  const nw=document.getElementById("newWeek"); if(nw) nw.onclick=()=>askSure({title:"Start a new week",text:"This closes out the week: it saves this week's numbers to history and resets the check-in and day logs.",ok:"Start new week",onOk:()=>{ const P=plan(), s={lifts:DAYS.filter(d=>(wk.done||{})[d.id]).length,planned:DAYS.length,cardio:r5(P.math.cardioTotal)}; newWeek(); render(); weekDone(s); }});
   v.querySelectorAll(".seg[data-key]").forEach(g=>g.querySelectorAll("button").forEach(b=>b.onclick=()=>{
     const k=g.dataset.key, raw=b.dataset.v; fxOnce.seg=[k,raw];
     if(inProf(g)){ stage(k,raw); return; }
     if(!wk.setupDone){ wk[k]=(k==="days"||k==="time")?+raw:raw; if(k==="mainSport"&&!raw) wk.season="Off-season"; save(); render(); return; }
     if(k==="today"){ const Pa=plan(); wk.today={...(wk.today||{}),[cur]:raw}; save(); const Pb=plan(); render(); toast(dayDiff(Pa,Pb,cur)); return; }
+    if(k==="season"&&Object.keys(wk.done||{}).length&&!b.dataset.sure){ askSure({title:`Switch to ${raw.toLowerCase()}`,text:"Your split changes, so days already marked done this week are cleared. Your lift history stays.",ok:"Switch",onOk:()=>{ b.dataset.sure=1; b.click(); }}); return; }
     if(k==="ramp"){ change(()=>{ wk.ramp=raw; }); if(raw==="Yes") toast(["Pre-season ramp","One 45-min zone 2 session added. It has its own Zone 2 tab."],6000); return; }
     change(()=>{
       wk[k]=(k==="days"||k==="time")?+raw:raw;
@@ -598,7 +617,7 @@ window.addEventListener("pagehide",()=>{ if(tour&&tour.snap){ const o=JSON.parse
 function resetConfirm(on){ document.getElementById("confirmBox").hidden=!on; document.getElementById("resetDay").hidden=on; }
 document.getElementById("rest").onclick=()=>{clearInterval(restT);document.getElementById("rest").hidden=true;};
 document.getElementById("toast").onclick=()=>{document.getElementById("toast").classList.remove("show");};
-document.getElementById("resetDay").onclick=()=>resetConfirm(true);
+document.getElementById("resetDay").onclick=()=>{ const d=DAYS.find(x=>x.id===cur); askSure({title:`Reset ${d?d.tab:"this day"}`,text:"Clears every set you've logged today and reopens the day if it was marked done.",ok:"Reset day",onOk:()=>document.getElementById("confirmReset").click()}); };
 document.getElementById("cancelReset").onclick=()=>resetConfirm(false);
 document.getElementById("confirmReset").onclick=()=>{ if((wk.done||{})[cur]) markDone(cur); delete slots[cur]; save(); render(); resetConfirm(false); toast(["Day reset","Logs cleared and the day is open again."]); };
 render();
