@@ -102,3 +102,14 @@ describe("pilates", () => {
     expect(b.math.otherK - a.math.otherK).toBeGreaterThan(0);
   });
 });
+
+describe("rep targets", () => {
+  it("suggests a rep target alongside the weight", () => {
+    const P = fresh({ focus: "Lower", days: 3 });
+    const d = E.DAYS[0], s = d.slots[0], n = E.exName(d, s, 0), [lo] = [8];
+    E.exHist[n] = [{ w: 135, r: 8 }];
+    const t = E.suggest(d, s, 0, false, P);
+    expect(t.w).toBe(135);
+    expect(t.r).toBeGreaterThan(0);
+  });
+});

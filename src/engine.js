@@ -407,11 +407,12 @@ function suggest(d,s,i,useLog,P){
   const prev=now?h[h.length-1]:h[h.length-2];
   const [lo,hi]=range(s.reps), top=isIso(s)?hi+3:hi;
   const D=(P&&P.days[d.id])||{};
-  if(wk.deload==="Yes") return {w:roundW(n,last.w*0.9),why:"deload, easy reps"};
-  if(last.r>=top){ if(inSeason()) return {w:last.w,why:"same weight in-season"}; if(D.cutD) return {w:last.w,why:"same weight, "+D.dayCause}; return {w:last.w+incFor(n,s,last.w),why:`~${lo} reps`}; }
-  if(last.r>=lo) return {w:last.w,why:`${Math.min(top,last.r+1)} reps`};
-  if(prev&&prev.w===last.w&&prev.r<lo) return {w:roundW(n,last.w*0.9),why:"rebuild"};
-  return {w:last.w,why:"repeat"};
+  /* r = the rep target for today's sets, shown in the reps field and used if a set is ticked without one */
+  if(wk.deload==="Yes") return {w:roundW(n,last.w*0.9),r:lo,why:"deload, easy reps"};
+  if(last.r>=top){ if(inSeason()) return {w:last.w,r:top,why:"same weight in-season"}; if(D.cutD) return {w:last.w,r:top,why:"same weight, "+D.dayCause}; return {w:last.w+incFor(n,s,last.w),r:lo,why:`~${lo} reps`}; }
+  if(last.r>=lo) return {w:last.w,r:Math.min(top,last.r+1),why:`${Math.min(top,last.r+1)} reps`};
+  if(prev&&prev.w===last.w&&prev.r<lo) return {w:roundW(n,last.w*0.9),r:lo,why:"rebuild"};
+  return {w:last.w,r:lo,why:"repeat"};
 }
 
 function review(d,s,i,P){
