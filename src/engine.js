@@ -141,7 +141,7 @@ let DAYS=[];
 /* ---------- State ---------- */
 const KEY="liftboard.v1", KEY2="liftboard.week.v2", KEY3="liftboard.hist.v1";
 const DEF={setupDone:false,sex:"Female",age:30,height:64,weight:150,bf:"",steps:8000,liftK:150,oura:"",
- acts:{lift:true},mainSport:"",focus:"Balanced",
+ acts:{lift:true},mainSport:"",sport2:"",stretch:"No",stretchDone:{},focus:"Balanced",
  mode:"Recomp",rate:0.5,share:25,season:"Off-season",ramp:"No",zAct:[],
  days:3,time:60,ss:"Yes",ready:"Normal",sore:"None",cycle:"Not tracking",drink:"0",
  heated:"No",spint:"Hard",done:{},donePlan:{},today:{},wAvg:"",deload:"No",
@@ -169,6 +169,12 @@ const fem=()=>wk.sex!=="Male";
 const enabled=a=>!!(wk.acts||{})[a];
 const cnt=a=>enabled(a)?(parseInt(wk[a])||0):0;
 const hasSport=()=>!!wk.mainSport&&enabled(wk.mainSport);
+/* up to two sports drive the season: the primary (mainSport) and an optional second */
+const seasonSports=()=>[wk.mainSport,wk.sport2].filter((a,i,arr)=>a&&enabled(a)&&arr.indexOf(a)===i);
+function fixSports(w){ const en=a=>!!((w.acts||{})[a]);
+  if(w.mainSport&&!en(w.mainSport)){ w.mainSport=w.sport2&&en(w.sport2)?w.sport2:""; w.sport2=""; }
+  if(w.sport2&&(!en(w.sport2)||w.sport2===w.mainSport||!w.mainSport)) w.sport2="";
+  if(!w.mainSport) w.season="Off-season"; return w; }
 const inSeason=()=>hasSport()&&wk.season==="In-season";
 const plannedMin=a=>num(wk[minKey(a)],ACT[a].min||60);
 function exName(d,s,i){ const st=get(d.id,i); const c=st.choice??s.opts[0]; return c===CUSTOM?(st.custom||"Custom exercise"):c; }
@@ -210,6 +216,7 @@ if(!wk.mig3){
 /* ---------- Split ---------- */
 function split(){
   if(!enabled("lift")) return [];
+  if(String(wk.days)==="0") return [];
   const n=Math.max(1,Math.min(5,+wk.days||3)), f=wk.focus;
   if(inSeason()) return ["fa","fb","fc"].slice(0,Math.min(3,n));
   if(n===1) return ["fa"];
@@ -261,7 +268,7 @@ function plan(){
     d.slots.forEach((s,i)=>{
       const A={delta:0,why:[],skip:"",steady:false};
       const base=s.sets+(d.full&&!inS&&!s.cardio&&!s.support?1:0);
-      if(s.support&&!(inS&&s.sp.includes(wk.mainSport))){A.skip="hidden"; D.slots.push(A); return;}
+      if(s.support&&!(inS&&seasonSports().some(a=>s.sp.includes(a)))){A.skip="hidden"; D.slots.push(A); return;}
       if(!s.cardio){
         if(deload){ A.sets=Math.max(1,Math.ceil(base*0.6)); A.why.push(`${A.sets} sets · deload week`); D.slots.push(A); return; }
         if(wk.time==30&&!s.main&&i!==keep30){A.skip="Trimmed for a 30-min session";}
@@ -467,13 +474,15 @@ function dayDiff(Pa,Pb,id){
   if(B.today==="Good"&&A.today!=="Good") out.push("Push your top set on main lifts");
   return out.length?[`Today: ${B.today}`,...out]:[`Today: ${B.today} · no change to the plan`];
 }
+const UNI_RE=/single|bulgarian|split squat|lunge|step-up|copenhagen|side plank|suitcase|cossack|single-arm|one-arm|side-lying|kneeling single/i;
+const sideDefault=n=>{ const h=(exHist[n]||[]).slice().reverse().find(x=>x.side); return h&&h.side==="Left"?"Right":"Left"; };
 /** Mark a day done: logs history, detects fatigue, stores the next-time review. Returns toast lines. */
 function markDone(dayId){
   wk.done=wk.done||{};
   if(wk.done[dayId]){
     /* reopening a day takes back the history it wrote, so finishing it again doesn't double-count */
     const t=(wk.doneT||{})[dayId]; if(t) Object.keys(exHist).forEach(n=>{ exHist[n]=exHist[n].filter(x=>x.t!==t); });
-    delete wk.done[dayId]; if(wk.review) delete wk.review[dayId]; if(wk.doneT) delete wk.doneT[dayId]; save(); return []; }
+    delete wk.done[dayId]; if(wk.review) delete wk.review[dayId]; if(wk.doneT) delete wk.doneT[dayId]; if(wk.wt&&wk.wt[dayId]) delete wk.wt[dayId].end; save(); return []; }
   const stamp=Date.now();
   const d=DAYS.find(x=>x.id===dayId); let drops=0;
   const P0=plan(), items=[];
@@ -481,9 +490,10 @@ function markDone(dayId){
   d.slots.forEach((s,i)=>{ if(s.cardio) return; const L=lastSet(get(dayId,i).log); if(!L) return; const n=exName(d,s,i), h=exHist[n]||[], pv=h[h.length-1];
     const rv=items.find(x=>x.n===n);
     if((pv&&wk.deload!=="Yes"&&L.w>=pv.w&&L.r<=pv.r-2)||(rv&&rv.tag==="collapse")) drops++;
-    h.push({w:L.w,r:L.r,t:stamp,season:inSeason()?"In-season":"Off-season"}); exHist[n]=h.slice(-24); });
+    const sd=get(dayId,i).side||sideDefault(n); h.push({w:L.w,r:L.r,t:stamp,season:inSeason()?"In-season":"Off-season",...(UNI_RE.test(n)?{side:sd}:{})}); exHist[n]=h.slice(-24); });
   /* the day's set logs stay on screen until a new week starts */
   wk.doneT={...(wk.doneT||{}),[dayId]:stamp};
+  if(wk.wt&&wk.wt[dayId]&&wk.wt[dayId].start&&!wk.wt[dayId].end) wk.wt[dayId].end=stamp;
   wk.fatigue=(wk.fatigue||[]).concat([{t:Date.now(),day:dayId,drops}]).slice(-10);
   const P=plan(); let k=0;
   P.days[dayId].slots.forEach((A,i)=>{ if(d.slots[i].cardio&&!A.skip&&A.kcal){ const a=num(get(dayId,i).act,0); k+=a>0?a*A.rate:A.kcal; } });
@@ -502,7 +512,7 @@ function resyncDone(dayId){
   const P=plan(), items=[];
   d.slots.forEach((s,i)=>{ if(s.cardio) return; const n=exName(d,s,i), L=lastSet(get(dayId,i).log); let h=(exHist[n]||[]).filter(x=>x.t!==t);
     if(L){ const pv=h[h.length-1]; exHist[n]=h; const r=(!P.days[dayId].slots[i].skip)&&review(d,s,i,P); if(r) items.push(r);
-      h.push({w:L.w,r:L.r,t,season:inSeason()?"In-season":"Off-season"}); exHist[n]=h.slice(-24); }
+      h.push({w:L.w,r:L.r,t,season:inSeason()?"In-season":"Off-season",...(UNI_RE.test(n)?{side:get(dayId,i).side||sideDefault(n)}:{})}); exHist[n]=h.slice(-24); }
     else exHist[n]=h; });
   wk.review={...(wk.review||{}),[dayId]:{...((wk.review||{})[dayId]||{}),items}};
   save();
@@ -525,7 +535,7 @@ function newWeek(){
     const slope=xs.reduce((a,x,j)=>a+(x-mx)*(ys[j]-my),0)/Math.max(1e-9,xs.reduce((a,x)=>a+(x-mx)**2,0));
     const avgIn=ws.reduce((a,x)=>a+x.intake,0)/ws.length, avgRaw=ws.reduce((a,x)=>a+x.raw,0)/ws.length;
     wk.calib=Math.max(-400,Math.min(400,r5(avgIn-slope*500-avgRaw))); wk.calibN=ws.length; }
-  const reset={weekStart:Date.now(),review:{},done:{},donePlan:{},today:{},zAct:[],ready:"Normal",sore:"None",drink:"0",wAvg:"",deload:"No"};
+  const reset={weekStart:Date.now(),review:{},done:{},donePlan:{},today:{},wt:{},rest:null,stretchDone:{},zAct:[],ready:"Normal",sore:"None",drink:"0",wAvg:"",deload:"No"};
   ACT_IDS.forEach(a=>{ if(a!=="lift") reset[actKey(a)]=[]; });
   Object.assign(wk,reset);
   ALL.forEach(d=>d.slots.forEach((s,i)=>{ const st=slots[d.id]&&slots[d.id][i]; if(!st) return; if(s.cardio) delete st.act; if(done[d.id]){ st.log=[]; delete st.cdone; } }));
@@ -533,4 +543,4 @@ function newWeek(){
   save(); return ["New week started. Check-in reset to normal."];
 }
 
-export { resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk };
+export { seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk };

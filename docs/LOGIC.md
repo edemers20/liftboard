@@ -131,3 +131,15 @@ Per lift, from your last logged set:
 - Plan changes show as a toast, and only when something actually changed.
 - A Today switch shows what changed for that day.
 - Completion sheets appear after setup, after each day and at week's end.
+
+## Session tools (added)
+- **Rest timer:** 2:00 after main lifts, 1:15 after everything else. −15s / +15s on the running timer adjusts it and is remembered per exercise (30s–5:00). It runs from a saved end time, so locking the phone doesn't pause it; on return it shows the real time left or how long you've been over (up to 5 min).
+- **Workout timer:** starts on the first ticked set of a day, stops when the day is marked done. Shown under the day title and on the Day done sheet.
+- **Easy / tough set nudge:** after a ticked set, reps at least 2 above the top of the range suggest going up one increment for the remaining sets; reps below the bottom suggest dropping one increment. Dismissable; "Use" fills the remaining sets' weight.
+- **Starting weight:** with no history, the weight dial starts from an equipment-based guess (barbell 95 main / 65 accessory, dumbbell 30 / 20, small-muscle dumbbell 10, cable 40, machine 90 / 60, bodyweight 0). Later sets start from the set before.
+- **Rep target:** the reps field shows today's target; ticking a set without reps logs the target.
+- **Unilateral starting side:** single-side exercises show "Start on Left/Right", defaulting to the opposite of last session's start; the side is saved with that session's history.
+- **Finishing a day:** happens automatically only when every non-skipped lift set and the cardio finisher are done. Set logs stay visible until a new week; editing a finished day rewrites that day's history entry; reopening a day removes it.
+- **Two in-season sports:** a primary and an optional second sport. Support lifts cover both; the season sentence names both. Tapping a picked sport again makes it primary; tapping the primary removes it.
+- **Stretching:** optional cooldown block on lift days (lower, upper or full-body set), toggled in the Season card; never required to finish a day.
+- **Lifting days:** 0 is allowed and removes lift day tabs.

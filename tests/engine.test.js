@@ -138,3 +138,17 @@ describe("finishing a day", () => {
     expect(E.get(d.id, 0).log.length).toBe(0);
   });
 });
+
+describe("two in-season sports and zero lift days", () => {
+  it("0 lifting days means no lift tabs", () => { fresh({ days: 0 }); expect(E.split()).toEqual([]); });
+  it("support lifts cover both in-season sports", () => {
+    const P = fresh({ acts: { lift: true, golf: true, run: true }, mainSport: "golf", sport2: "run", season: "In-season", days: 2 });
+    const shown = E.DAYS.flatMap(d => d.slots.filter((s, i) => s.support && P.days[d.id].slots[i].skip !== "hidden").map(s => s.label));
+    expect(shown.some(l => /calf|calves/i.test(l))).toBe(true);
+    expect(shown.some(l => /cuff/i.test(l))).toBe(true);
+  });
+  it("turning a sport off promotes the other to primary", () => {
+    const w = E.fixSports({ acts: { tennis: true }, mainSport: "golf", sport2: "tennis", season: "In-season" });
+    expect(w.mainSport).toBe("tennis"); expect(w.sport2).toBe(""); expect(w.season).toBe("In-season");
+  });
+});

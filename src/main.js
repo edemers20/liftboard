@@ -1,6 +1,6 @@
 import "./styles.css";
 import { attachDials } from "./dial.js";
-import { resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk } from "./engine.js";
+import { seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk } from "./engine.js";
 
 const storage=(()=>{ try{ const k="__t"; localStorage.setItem(k,"1"); localStorage.removeItem(k); return localStorage; }catch(e){ const m=new Map(); return {getItem:k=>m.get(k)??null,setItem:(k,v)=>m.set(k,String(v))}; } })();
 init(storage);
@@ -31,7 +31,7 @@ const INFO={
  bf:"If set, resting metabolism uses lean mass, which is more accurate for muscular people.",
  steps:"Average daily steps, added to maintenance.",
  oura:"Replaces the maintenance estimate, minus 7% because wearables read high.",
- days:"Sets your split. Focus decides where the extra days go.",
+ days:"Sets your split. 0 turns lift days off for now; focus decides where extra days go.",
  time:"Shorter cuts accessories first; 75 adds a main-lift set.",
  liftK:"Average burn per lifting session, added to maintenance.",
  ready:"Low adds 2 to recovery load.",
@@ -74,12 +74,13 @@ const capF=s=>s.charAt(0).toUpperCase()+s.slice(1);
 const andList=a=>a.length<2?a.join(""):a.slice(0,-1).join(", ")+" and "+a[a.length-1];
 function planSentence(P){
   const M=P.math, inS=inSeason(), lift=enabled("lift"), n=DAYS.length, S=[];
-  const sport=hasSport()?ACT[wk.mainSport].name.toLowerCase():"";
+  const sport=hasSport()?seasonSports().map(a=>ACT[a].name.toLowerCase()).join(" and "):"";
   const days=[["days",`${n} ${inS?"full-body ":""}lift day${n===1?"":"s"}`]];
+  if(lift&&!n) S.push("No lift days are planned, so ",["aim","your other activity carries the week"],". ");
   if(lift&&n){
     if(wk.deload==="Yes"){ S.push("This is a ",["deload","lighter deload week"],": about 60% of your usual sets with ",...days,". "); }
     else if(inS){
-      const sp=Object.keys(SUP).filter(k=>SUP[k].includes(wk.mainSport)).map(k=>({calves:"calf",adductor:"adductor",cuff:"rotator cuff"})[k]);
+      const sp=Object.keys(SUP).filter(k=>seasonSports().some(a=>SUP[k].includes(a))).map(k=>({calves:"calf",adductor:"adductor",cuff:"rotator cuff"})[k]);
       S.push("It's ",["season",`${sport} season`],", so you're ",["aim","holding your strength"]," with ",...days," a week");
       if(sp.length) S.push(" plus ",["support",`${andList(sp)} work`]);
       S.push(". ");
@@ -125,7 +126,7 @@ function dialCfg(el){
   const d=el.dataset;
   if(d.f==="w"||d.f==="r"){
     const log=get(cur,+d.i).log||[], k=+d.set, prev=log[k-1]||{}, day=DAYS.find(x=>x.id===cur), slot=day&&day.slots[+d.i];
-    if(d.f==="w") return {label:"Weight",min:0,max:600,step:2.5,unit:"lb",start:prev.w||(+el.placeholder>0?el.placeholder:45)};
+    if(d.f==="w") return {label:"Weight",min:0,max:600,step:2.5,unit:"lb",start:prev.w||(+el.placeholder>0?el.placeholder:(slot?startW(exName(day,slot,+d.i),slot):45))};
     return {label:"Reps",min:0,max:40,step:1,start:prev.r||(slot?range(slot.reps)[1]:10)};
   }
   if(d.k==="act") return {label:"Actual minutes",min:0,max:120,step:1,unit:"min",start:el.placeholder};
@@ -154,9 +155,10 @@ function profileHTML(withGoal,src){
   const G=h=>`<div class="pgroup">${h}</div>`;
   return `<div class="pgroups">${G(`${hdr("Activities",["acts","mainSport",...(hs?["season"]:[])])}
   <div class="seg">${ACT_IDS.map(a=>`<button type="button" class="actt" data-actt="${a}" aria-pressed="${en(a)}">${ACT[a].name}</button>`).join("")}</div>`)}
-  ${sports.length?G(`${seg("mainSport","Main sport",[["","None"],...sports.map(a=>[a,ACT[a].name])],src.mainSport)}
+  ${sports.length?G(`<div class="q"><span>Sports in season<small> · up to two. Tap a picked sport again to make it primary.</small></span><div class="seg sportseg">${[["","None"],...sports.map(a=>[a,ACT[a].name])].map(([a,l])=>{ const p=a&&src.mainSport===a, q=a&&src.sport2===a, on=a?p||q:!src.mainSport;
+    return `<button type="button" data-sp="${a}" aria-pressed="${!!on}">${l}${p&&src.sport2?`<small class="prim">primary</small>`:""}</button>`; }).join("")}</div></div>
   ${withGoal&&hs?toggle("season","In-season",src.season,"In-season","Off-season"):""}`):""}
-  ${en("lift")?G(`${hdr("Lifting",["focus"])}${seg("focus","Focus",[["Lower","Lower body"],["Balanced","Balanced"],["Upper","Upper body"]],src.focus)}`):""}
+  ${en("lift")?G(`${hdr("Lifting",["focus","days"])}${stepper("days","Lifting days",(src.season==="In-season"&&hs?[0,1,2,3]:[0,1,2,3,4,5]),"",src.days)}${String(src.days)==="0"?"":seg("focus","Focus",[["Lower","Lower body"],["Balanced","Balanced"],["Upper","Upper body"]],src.focus)}`):""}
   ${withGoal?G(`${hdr("Goal",["mode"])}${seg("mode","Goal",["Deficit only","Recomp","Build"])}`):""}
   ${G(`${hdr("Bio Data",["sex","age","height","weight","bf","steps","oura"])}
   ${seg("sex","Sex",["Female","Male","Other"],src.sex)}
@@ -184,6 +186,7 @@ function renderSeason(P){
   ${planHTML(P)}
   <div class="panel">${hdr("Season",["season","ramp","deload"])}
     ${seasonBox}
+    ${enabled("lift")?toggle("stretch","Stretching after lifts"):""}
     ${DAYS.length?`${dl.length&&wk.deload!=="Yes"?`<p class="flag">Deload suggested · ${dl.join(", ")}</p>`:""}${toggle("deload","Deload this week")}`:""}
   </div>
   <div class="panel">${hdr("Goal",["mode","rate","share"])}
@@ -213,7 +216,7 @@ function renderWeek(P){
   return `<div class="dayhead"><h2>Weekly check-in</h2></div>
   ${nd&&nd.restSuggest?`<p class="flag">Reps dropped two sessions in a row. Take a rest day before ${DAYS.find(d=>d.id===P.nextId).tab}.</p>`:""}
   ${enabled("lift")?`<div class="panel">${hdr("Schedule",["days","time"])}
-    ${stepper("days","Lifting days",inS?[1,2,3]:[1,2,3,4,5])}
+    ${stepper("days","Lifting days",inS?[0,1,2,3]:[0,1,2,3,4,5])}
     ${stepper("time","Time per session",[30,45,60,75],"min")}</div>`:""}
   <div class="panel">${hdr("How you're doing",["ready","sore",...(fem()?["cycle"]:[]),"drink","load","wAvg"])}
     ${seg("ready","Readiness",["Normal","Low"])}
@@ -264,9 +267,34 @@ function activeIdx(d,D){
 }
 const nextIdx=(d,D,i)=>exCands(d,D).find(j=>j>i&&!exDone(d,D,j)) ?? exCands(d,D).find(j=>!exDone(d,D,j)&&j!==i);
 const whyTxt=A=>{ const w=A.why.filter(x=>!x.includes("focus")&&!x.includes("feeling good")); return w.length?[...new Set(w.map(x=>x.split(" · ")[1]))].join(", "):""; };
+/* First-time starting weight, by equipment, when an exercise has no history yet */
+function startW(name,s){
+  const n=name.toLowerCase(), main=!!s.main;
+  if(/band|plank|push-up|pull-up|chin-up|dead bug|bird dog|copenhagen|nordic|inverted|stability ball|sliding|knee raise|ab wheel|frog pump|back extension \(glute/.test(n)&&!/weighted/.test(n)) return 0;
+  if(/smith/.test(n)) return main?95:65;
+  if(/barbell|trap bar|deadlift|good morning|pendlay|seal row|t-bar|box squat|back squat|front squat|belt squat/.test(n)) return main?95:65;
+  if(/lateral raise|reverse fly|external rotation|y-raise|kickback|pull-apart/.test(n)) return 10;
+  if(/dumbbell|goblet|curl|arnold|lunge|step-up|split squat|carry/.test(n)) return main?30:20;
+  if(/cable|pulldown|pushdown|face pull|pallof|crunch|row/.test(n)) return 40;
+  if(/calf/.test(n)) return 90;
+  if(/machine|press|leg press|hack|pendulum|abductor|adductor|leg curl|pec deck/.test(n)) return main?90:60;
+  return 20;
+}
+const CSET=[[/incline walk|treadmill hike/i,"Incline · speed","12% · 3.0 mph"],[/stair/i,"Level","8"],[/bike/i,"Resistance","10"],[/rower/i,"Damper","5"],[/elliptical/i,"Resistance","8"],[/sled/i,"Load","90 lb"],[/outdoor walk/i,"",""]];
+const cardioSetting=n=>{ const m=CSET.find(([re])=>re.test(n)); return m?{label:m[1],ph:m[2]}:{label:"Setting",ph:""}; };
+const UNI=/single|bulgarian|split squat|lunge|step-up|copenhagen|side plank|suitcase|cossack|single-arm|one-arm|side-lying|kneeling single/i;
+const lastSide=n=>{ const h=(exHist[n]||[]).slice().reverse().find(x=>x.side); return h?h.side:""; };
+const sideToday=(d,s,i)=>{ const st=get(d.id,i), n=exName(d,s,i); return st.side||(lastSide(n)==="Left"?"Right":"Left"); };
+/* Optional cooldown stretches matched to the day's muscles */
+const STRETCH={
+  lower:[["Half-kneeling hip flexor","45s / side"],["Pigeon","45s / side"],["Standing hamstring","45s / side"],["Adductor rock-back","8 reps"],["Wall calf stretch","30s / side"]],
+  upper:[["Doorway pec stretch","45s / side"],["Lat stretch on a bench","45s"],["Cross-body shoulder","30s / side"],["Thread the needle","6 / side"],["Child's pose","60s"]],
+  full:[["Half-kneeling hip flexor","45s / side"],["Standing hamstring","45s / side"],["Doorway pec stretch","45s / side"],["Lat stretch on a bench","45s"],["Child's pose","60s"]]};
+const stretchesFor=d=>STRETCH[/^Lower/.test(d.title)?"lower":/^Upper/.test(d.title)?"upper":"full"];
 function renderDayHTML(d,P){
   const D=P.days[d.id], act=activeIdx(d,D);
-  let html=`<div class="dayhead"><h2>${d.title}</h2></div>`;
+  const WT=(wk.wt||{})[d.id];
+  let html=`<div class="dayhead"><h2>${d.title}</h2>${WT&&WT.start?`<p class="wtime" id="wtime" data-day="${d.id}"></p>`:""}</div>`;
   html+=`<div class="panel today"><div class="q"><span id="todayLbl">How do you feel today?${ib("today")}</span>
     <div class="seg slider" data-key="today" role="radiogroup" aria-labelledby="todayLbl">${["Good","Normal","Rough"].map(o=>`<button type="button" role="radio" data-v="${o}" aria-checked="${D.today===o}" aria-pressed="${D.today===o}"><i aria-hidden="true"></i><span>${o}</span></button>`).join("")}</div></div>
     ${D.restSuggest?`<p class="flag">Reps dropped two sessions in a row. Rest a day first if you can.</p>`:D.autoRough?`<p class="adj"><b>Shortened</b> · reps dropped last session</p>`:""}
@@ -293,22 +321,37 @@ function renderDayHTML(d,P){
       <select id="sel-${base}" data-i="${i}" aria-label="${esc(s.label)} exercise">${opts}</select>
       <input id="cus-${base}" class="custom${isCustom?" on":""}" data-i="${i}" placeholder="Exercise name" value="${esc(st.custom||"")}">`;
     if(s.cardio){
+      const cn=exName(d,s,i), cs=cardioSetting(cn), isInt=INTERVAL.includes(cn)&&!A.steady;
+      const planLine=A.min?`${A.min} min ${isInt?"· rounds of 30s hard, 90s easy":"at a steady, talkable pace"}${A.kcal?` · ~${r5(A.kcal)} kcal`:""}`:"";
       html+=`${A.flag?`<p class="adj"><b>Lowered</b> · ${A.flag}</p>`:""}${A.steady?`<p class="adj"><b>Easy pace, no intervals</b> · ${A.steady}</p>`:""}
-      <div class="nums two"><label for="act-${base}">Actual min<input id="act-${base}" data-i="${i}" data-k="act" inputmode="numeric" placeholder="${A.min||""}" value="${esc(st.act||"")}"></label><label for="load-${base}">Setting<input id="load-${base}" data-i="${i}" data-k="load" placeholder="12% / 3.0" value="${esc(st.load||"")}"></label></div>
-      ${D.done||st.cdone?"":`<div><button type="button" class="btn primary pillbtn cdone" data-i="${i}">Done</button></div>`}`;
+      ${planLine?`<p class="cplan">${planLine}</p>`:""}
+      <div class="nums ${cs.label?"two":"one"}"><label class="field" for="act-${base}"><span>Minutes done</span><input id="act-${base}" data-i="${i}" data-k="act" inputmode="numeric" placeholder="${A.min||""}" value="${esc(st.act||"")}"></label>${cs.label?`<label class="field" for="load-${base}"><span>${cs.label}</span><input id="load-${base}" data-i="${i}" data-k="load" placeholder="${esc(cs.ph)}" value="${esc(st.load||"")}"></label>`:""}</div>
+      ${D.done||st.cdone?"":`<button type="button" class="btn primary cdone wide" data-i="${i}">Finish cardio</button>`}`;
     }else{
-      const today=suggest(d,s,i,false,P);
+      const today=suggest(d,s,i,false,P), nm=exName(d,s,i);
+      const [lo,hi]=range(s.reps), top=(s.upperAcc||s.support||s.label==="Glute med")?hi+3:hi;
+      const lastT=log.slice(0,ticks).reverse().find(x=>x.d&&+x.w>0&&+x.r>0);
+      if(!D.done&&!fin&&lastT&&st.nudged!==ticks){ const w0=+lastT.w, r0=+lastT.r, inc=incFor(nm,s,w0);
+        if(r0>=top+2) html+=`<div class="nudge up"><span>That looked easy: ${r0} reps. Go up to <b>${w0+inc} lb</b> for the rest?</span><button type="button" class="btn mini" data-nudge="${w0+inc}" data-i="${i}">Use ${w0+inc}</button><button type="button" class="nx" data-nudge="" data-i="${i}" aria-label="Keep the weight">×</button></div>`;
+        else if(r0<lo) html+=`<div class="nudge dn"><span>Tough set: ${r0} reps. Drop to <b>${Math.max(0,w0-inc)} lb</b> to stay in range?</span><button type="button" class="btn mini" data-nudge="${Math.max(0,w0-inc)}" data-i="${i}">Use ${Math.max(0,w0-inc)}</button><button type="button" class="nx" data-nudge="" data-i="${i}" aria-label="Keep the weight">×</button></div>`; }
+      if(UNI.test(nm)){ const sd=sideToday(d,s,i), ls=lastSide(nm);
+        html+=`<div class="side"><span>Start on</span><button type="button" class="btn mini sidebtn" data-side="${sd==="Left"?"Right":"Left"}" data-i="${i}" aria-label="Starting side: ${sd}. Tap to switch">${sd}</button>${ls?`<small>last time: ${ls}</small>`:""}</div>`; }
       html+=`<div class="sets">`;
-      for(let k=0;k<nRows;k++){ const x=log[k]||{};
+      for(let k=0;k<nRows;k++){ const x=log[k]||{}, pw=k>0&&+(log[k-1]||{}).w>0?(log[k-1]||{}).w:"";
         html+=`<div class="setrow${x.d?" done":""}${k===ticks&&!fin?" now":""}"><span class="sn">${k+1}</span>
-          <input id="w-${base}-${k}" data-i="${i}" data-set="${k}" data-f="w" inputmode="decimal" placeholder="${D.done?"lb":today?today.w:"lb"}" aria-label="Set ${k+1} weight" value="${esc(x.w||"")}"><span class="u">lb</span>
+          <input id="w-${base}-${k}" data-i="${i}" data-set="${k}" data-f="w" inputmode="decimal" placeholder="${D.done?"lb":pw||(today?today.w:"lb")}" aria-label="Set ${k+1} weight" value="${esc(x.w||"")}"><span class="u">lb</span>
           <input id="r-${base}-${k}" data-i="${i}" data-set="${k}" data-f="r" inputmode="numeric" placeholder="${D.done?"reps":today&&today.r?today.r:range(s.reps)[0]}" aria-label="Set ${k+1} reps" value="${esc(x.r||"")}">
-          <button type="button" class="chk${fxOnce.chk===`${base}-${k}`?" pop":""}" data-i="${i}" data-set="${k}" data-rest="${s.main?120:75}" aria-pressed="${!!x.d}" aria-label="Set ${k+1} done">✓</button></div>`; }
+          <button type="button" class="chk${fxOnce.chk===`${base}-${k}`?" pop":""}" data-i="${i}" data-set="${k}" aria-pressed="${!!x.d}" aria-label="Set ${k+1} done">✓</button></div>`; }
       html+=`<button type="button" class="btn addset" data-i="${i}">+ Set</button></div>`;
     }
     html+=`</section>`;
   });
-  return html+`</div><button class="btn primary" id="doneBtn" type="button"${D.done?' disabled aria-disabled="true"':""}>${D.done?"✓ Day done":"Mark day done"}</button>`;
+  html+=`</div>`;
+  if(wk.stretch==="Yes"){ const sd=!!(wk.stretchDone||{})[d.id], list=stretchesFor(d);
+    html+=`<section class="slot stretch${sd?" sdone":""}"><div class="row1"><span class="label hdr">Stretch · optional</span><span class="pill">${sd?"Done":"~8 min"}</span></div>
+      <ul class="slist">${list.map(([n,t])=>`<li><span>${n}</span><small>${t}</small></li>`).join("")}</ul>
+      <button type="button" class="btn ${sd?"":"primary "}wide" id="stretchBtn">${sd?"✓ Stretched":"Done stretching"}</button></section>`; }
+  return html+`<button class="btn primary" id="doneBtn" type="button"${D.done?' disabled aria-disabled="true"':""}>${D.done?"✓ Day done":"Mark day done"}</button>`;
 }
 /* ---------- Small sheets: today's plan for an exercise, and next time after it ---------- */
 let sheetT=null;
@@ -332,7 +375,7 @@ function nextSheet(id,i){
   showSheet(`<div class="shtop"><span class="plab">${esc(exName(d,s,i))} · done</span>${XBTN}</div>
     ${g?`<p class="shline">${tagH(g.tag)}<span>Next time <b>${g.w} lb</b> · ${esc(g.why)}</span></p>`:""}
     ${n!=null?`<button type="button" class="shbtn wide" id="upNext">Up next: ${esc(exName(d,d.slots[n],n))}</button>`:""}`,
-    el=>{ const b=el.querySelector("#upNext"); if(b) b.onclick=()=>{ wk.active={...(wk.active||{}),[id]:n}; save(); render(); }; });
+    el=>{ const b=el.querySelector("#upNext"); if(b) b.onclick=()=>{ closeSheet(); wk.active={...(wk.active||{}),[id]:n}; save(); render(); const c=document.querySelector(".slot.cur"); if(c) c.scrollIntoView({block:"start",behavior:"smooth"}); }; });
 }
 function rows(key,n,pl,rate,label,noK){
   let h=""; if(key==="zAct") INFO.zAct="One easy 45-minute session during the pre-season ramp: bike, incline walk or rower at a pace you could talk through. It builds the aerobic base that keeps you fresh in-season.";
@@ -370,6 +413,7 @@ function render(){
   fxOnce={};
   bind();
   stackCards();
+  tickTimers();
   coachSoon();
 }
 /* ---------- Stacked cards on Season and This week ----------
@@ -508,8 +552,36 @@ window.addEventListener("scroll",()=>closePop(),{passive:true});
 
 /* ---------- Actions ---------- */
 function logSet(i,k,f,val){ const st=get(cur,i); const log=(st.log||[]).slice(); while(log.length<=k) log.push({}); log[k]={...log[k],[f]:val}; set(cur,i,"log",log); if((wk.done||{})[cur]) resyncDone(cur); }
-let restT=null;
-function startRest(sec){ const bar=document.getElementById("rest"); clearInterval(restT); let t=sec; const tick=()=>{ bar.hidden=false; bar.textContent=`Rest ${Math.floor(t/60)}:${String(t%60).padStart(2,"0")} · tap to skip`; if(t--<=0){clearInterval(restT); bar.textContent="Go"; setTimeout(()=>bar.hidden=true,2500);} }; tick(); restT=setInterval(tick,1000); }
+/* ---------- Timers ----------
+   Both run off saved timestamps, not a countdown, so locking the phone or leaving the app
+   doesn't pause them: on return they show the true time. Rest length per exercise is the
+   default (2:00 main lifts, 1:15 everything else) plus whatever ±15s you last set for it. */
+const mmss=t=>{ t=Math.max(0,Math.round(t)); return `${Math.floor(t/60)}:${String(t%60).padStart(2,"0")}`; };
+const restFor=(name,main)=>((wk.restFor||{})[name])||(main?120:75);
+function startRest(name,main){ wk.rest={end:Date.now()+restFor(name,main)*1000,name,main:!!main}; save(); tickTimers(); }
+function adjRest(d){ const r=wk.rest; if(!r) return; const base=restFor(r.name,r.main), nb=Math.max(30,Math.min(300,base+d));
+  wk.restFor={...(wk.restFor||{}),[r.name]:nb}; r.end=Math.max(Date.now()+5000,r.end+(nb-base)*1000); save(); tickTimers(); }
+function endRest(){ wk.rest=null; save(); tickTimers(); }
+let buzzed=0;
+function tickTimers(){
+  const bar=document.getElementById("rest"), r=wk.rest, now=Date.now();
+  if(r){ const left=(r.end-now)/1000;
+    if(left<-300){ wk.rest=null; save(); }
+    else { const over=left<=0;
+      if(over&&buzzed!==r.end){ buzzed=r.end; try{ navigator.vibrate&&navigator.vibrate([200,100,200]); }catch(e){} }
+      if(bar.hidden||bar.dataset.end!==String(r.end)){ bar.dataset.end=r.end;
+        bar.innerHTML=`<button type="button" class="rb" data-rest="-15" aria-label="15 seconds less">−15</button><span class="rt" aria-live="off"></span><button type="button" class="rb" data-rest="15" aria-label="15 seconds more">+15</button><button type="button" class="rb skip" data-rest="skip">Skip</button>`;
+        bar.querySelectorAll("[data-rest]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); const v=b.dataset.rest; if(v==="skip") endRest(); else adjRest(+v); }); }
+      bar.hidden=false; bar.classList.toggle("over",over);
+      bar.querySelector(".rt").textContent=over?`Go · ${mmss(-left)} over`:`Rest ${mmss(left)}`; } }
+  if(!wk.rest){ bar.hidden=true; bar.innerHTML=""; delete bar.dataset.end; }
+  const wt=document.getElementById("wtime"); if(wt){ const T=(wk.wt||{})[wt.dataset.day]; if(T&&T.start) wt.textContent=T.end?`Workout · ${Math.round((T.end-T.start)/60000)} min`:`Workout · ${mmss((now-T.start)/1000)}`; }
+}
+setInterval(tickTimers,1000);
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden) tickTimers(); });
+window.addEventListener("pageshow",tickTimers);
+function wtStart(id){ wk.wt=wk.wt||{}; if(!(wk.wt[id]&&wk.wt[id].start)) wk.wt[id]={start:Date.now()}; }
+function wtEnd(id){ wk.wt=wk.wt||{}; if(wk.wt[id]&&wk.wt[id].start&&!wk.wt[id].end) wk.wt[id].end=Date.now(); }
 new MutationObserver(()=>document.body.classList.toggle("resting",!document.getElementById("rest").hidden)).observe(document.getElementById("rest"),{attributes:true,attributeFilter:["hidden"]});
 /* ---------- "Are you sure?" sheet for anything destructive ---------- */
 function askSure({title,text,ok,onOk}){
@@ -556,9 +628,10 @@ function setupDone(){
 function dayDone(id,sets){
   const d=DAYS.find(x=>x.id===id), rv=(wk.review||{})[id]||{items:[]}, c=t=>rv.items.filter(x=>x.tag===t).length;
   const ease=c("down")+c("collapse"), nxt=DAYS.find(x=>!(wk.done||{})[x.id]);
+  const T=(wk.wt||{})[id];
   const top=rv.items.filter(x=>x.tag==="up").concat(rv.items.filter(x=>x.tag!=="up")).slice(0,3);
   showDone({eyebrow:`${d.tab} · ${d.title.split(" · ")[0]}`,title:"Day done",
-    body:dTiles([["Sets",String(sets)],["Up",String(c("up"))],ease?["Ease",String(ease)]:["Hold",String(c("hold"))]])
+    body:dTiles([...(T&&T.start&&T.end?[["Time",`${Math.max(1,Math.round((T.end-T.start)/60000))} min`]]:[]),["Sets",String(sets)],ease?["Ease",String(ease)]:["Up",String(c("up"))],...(T&&T.start&&T.end?[]:[["Hold",String(c("hold"))]])])
       +(top.length?`<div class="drows"><span class="dl">Next time</span>${top.map(x=>`<div class="prow"><span>${esc(x.n)}</span><b class="${x.tag==="up"?"a":""}">${TAGICON[x.tag]} ${x.w} lb</b></div>`).join("")}</div>`:"")
       +(rv.note?`<p class="dnote">${esc(rv.note)}</p>`:""),
     cta:nxt?`Up next: ${nxt.tab}`:"Done",onCta:nxt?()=>goTab(nxt.id):null});
@@ -581,10 +654,14 @@ function bind(){
   const v=document.getElementById("view");
   attachDials(v,dialCfg);
   const inProf=el=>wk.setupDone&&!!el.closest("#profileBox");
-  const stage=(k,val)=>{ draft=draft||{}; draft[k]=val; if(k==="acts"){ const ms=draft.mainSport??wk.mainSport; if(ms&&!val[ms]) draft.mainSport=""; } render(); };
-  const ps=document.getElementById("profSave"); if(ps) ps.onclick=()=>{ const d=draft; draft=null; const a=fx(plan()); Object.assign(wk,d); if(!enabled(wk.mainSport)){ wk.mainSport=""; } if(!wk.mainSport) wk.season="Off-season"; save(); const b=fx(plan()); render(); toast(["Profile saved",...diffFx(a,b)]); };
+  const stage=(k,val)=>{ draft=draft||{}; draft[k]=val; if(k==="acts"){ const f=fixSports({acts:val,mainSport:draft.mainSport??wk.mainSport,sport2:draft.sport2??wk.sport2,season:draft.season??wk.season}); draft.mainSport=f.mainSport; draft.sport2=f.sport2; draft.season=f.season; } render(); };
+  v.querySelectorAll("[data-sp]").forEach(b=>b.onclick=()=>{ const src=inProf(b)?{...wk,...(draft||{})}:wk, a=b.dataset.sp; let m=src.mainSport||"", s2=src.sport2||"";
+    if(!a){ m=""; s2=""; } else if(a===m){ m=s2; s2=""; } else if(a===s2){ s2=m; m=a; } else if(!m) m=a; else s2=a;
+    if(inProf(b)){ draft=draft||{}; draft.mainSport=m; draft.sport2=s2; if(!m) draft.season="Off-season"; render(); return; }
+    wk.mainSport=m; wk.sport2=s2; fixSports(wk); save(); render(); });
+  const ps=document.getElementById("profSave"); if(ps) ps.onclick=()=>{ const d=draft; draft=null; const a=fx(plan()); Object.assign(wk,d); if(d&&"days" in d) wk.days=+d.days; fixSports(wk); save(); const b=fx(plan()); render(); toast(["Profile saved",...diffFx(a,b)]); };
   v.querySelectorAll(".actt").forEach(b=>{ if(inProf(b)) b.onclick=()=>{ const a=b.dataset.actt, cur0={...(wk.acts||{}),...((draft&&draft.acts)||{})}; stage("acts",{...cur0,[a]:!cur0[a]}); }; });
-  v.querySelectorAll(".actt").forEach(b=>{ if(!inProf(b)) b.onclick=()=>change(()=>{ const a=b.dataset.actt; wk.acts={...(wk.acts||{}),[a]:!enabled(a)}; if(!enabled(wk.mainSport)) { wk.mainSport=""; wk.season="Off-season"; } }); });
+  v.querySelectorAll(".actt").forEach(b=>{ if(!inProf(b)) b.onclick=()=>change(()=>{ const a=b.dataset.actt; wk.acts={...(wk.acts||{}),[a]:!enabled(a)}; fixSports(wk); }); });
   const ss=document.getElementById("setupSave"); if(ss) ss.onclick=()=>{ wk.setupDone=true; wk.weekStart=wk.weekStart||Date.now(); cur="week"; save(); render(); window.scrollTo(0,0); setupDone(); };
   const rt=document.getElementById("replayTour"); if(rt) rt.onclick=openTour;
   const mc=document.getElementById("moveCopy"); if(mc) mc.onclick=async()=>{ const data=JSON.stringify({v:1,slots:storage.getItem(KEY),wk:storage.getItem(KEY2),hist:storage.getItem(KEY3)}); const t=document.getElementById("moveTxt"); t.value=data; t.select(); try{ await navigator.clipboard.writeText(data); toast(["Copied","Paste it into Lift Board on the other device."]); }catch(e){ toast(["Selected","Copy the text in the box."]); } };
@@ -600,12 +677,18 @@ function bind(){
   v.querySelectorAll(".chk").forEach(b=>b.onclick=()=>{ const i=+b.dataset.i,k=+b.dataset.set, x=(get(cur,i).log||[])[k]||{};
     if(!x.w){ const ph=document.getElementById(`w-${cur}-${i}-${k}`).placeholder; if(+ph>0) logSet(i,k,"w",ph); }
     if(!x.r){ const ph=document.getElementById(`r-${cur}-${i}-${k}`).placeholder; if(+ph>0) logSet(i,k,"r",ph); }
-    logSet(i,k,"d",!x.d); if(!x.d) startRest(+b.dataset.rest);
+    if(!x.d) wtStart(cur);
+    logSet(i,k,"d",!x.d); if(!x.d){ const d0=DAYS.find(z=>z.id===cur), s0=d0.slots[i]; startRest(exName(d0,s0,i),s0.main); }
     if(!x.d) closeSheet();
     if(!x.d&&!(wk.done||{})[cur]&&dayComplete(cur)){ const id=cur, n=setsLogged(id); markDone(id); render(); dayDone(id,n); return; }
     let finished=false;
     if(!x.d){ fxOnce.chk=`${cur}-${i}-${k}`; const A=plan().days[cur].slots[i]; if((get(cur,i).log||[]).filter(z=>z.d).length===A.sets){ fxOnce.slot=`${cur}-${i}`; finished=true; } }
     render(); if(finished) nextSheet(cur,i); });
+  v.querySelectorAll("[data-nudge]").forEach(b=>b.onclick=()=>{ const i=+b.dataset.i, st=get(cur,i), log=(st.log||[]).slice(), t=log.filter(x=>x.d).length, w=b.dataset.nudge;
+    if(w!==""){ for(let k=0;k<log.length;k++) if(!log[k].d) log[k]={...log[k],w}; const A=plan().days[cur].slots[i]; while(log.length<A.sets) log.push({w}); set(cur,i,"log",log); }
+    set(cur,i,"nudged",t); render(); });
+  const sb=document.getElementById("stretchBtn"); if(sb) sb.onclick=()=>{ wk.stretchDone={...(wk.stretchDone||{}),[cur]:!(wk.stretchDone||{})[cur]}; save(); render(); };
+  v.querySelectorAll(".sidebtn").forEach(b=>b.onclick=()=>{ set(cur,+b.dataset.i,"side",b.dataset.side); render(); });
   v.querySelectorAll(".addset").forEach(b=>b.onclick=()=>{ const i=+b.dataset.i, log=(get(cur,i).log||[]).slice(), A=plan().days[cur].slots[i]; while(log.length<A.sets) log.push({}); log.push({}); set(cur,i,"log",log); render(); });
   const db=document.getElementById("doneBtn"); if(db) db.onclick=()=>{ const id=cur; if((wk.done||{})[id]) return; const n=setsLogged(id); markDone(id); render(); dayDone(id,n); };
   const nw=document.getElementById("newWeek"); if(nw) nw.onclick=()=>askSure({title:"Start a new week",text:"This closes out the week: it saves this week's numbers to history and resets the check-in and day logs.",ok:"Start new week",onOk:()=>{ const P=plan(), s={lifts:DAYS.filter(d=>(wk.done||{})[d.id]).length,planned:DAYS.length,cardio:r5(P.math.cardioTotal)}; newWeek(); render(); weekDone(s); }});
@@ -631,7 +714,7 @@ function bind(){
 /* ---------- Guided tour: first run, before setup. Controls write real settings;
    a replay after setup runs on a snapshot that is restored on close. ---------- */
 let tour=null;
-function openTour(){ closePop(); tour={i:-1,snap:wk.setupDone?JSON.stringify(wk):null,added:{}}; planPrev=null; renderTour("open"); }
+function openTour(){ closePop(); tour={i:-2,snap:wk.setupDone?JSON.stringify(wk):null,added:{}}; planPrev=null; renderTour("open"); }
 function closeTour(){
   const t=tour; if(!t) return; tour=null;
   const el=document.getElementById("tour"); el.classList.add("out");
@@ -674,7 +757,7 @@ function renderTour(focus){
     body:card("Goal",tchips("mode",[["Deficit only","Deficit"],["Recomp","Recomp"],["Build","Build"]],wk.mode),1)},
    {tab:"This week",page:"This week",name:"Your week",title:"Your week adjusts itself",
     text:"Different factors combine to adjust your week; if anything changes, the week changes too.",
-    body:card("Schedule",`${tstep("days","Lifting days",inS?[1,2,3]:[1,2,3,4,5])}${tstep("time","Time per session",[30,45,60,75],"min")}${ttoggle("ss","Supersets")}`,1)
+    body:card("Schedule",`${tstep("days","Lifting days",inS?[0,1,2,3]:[0,1,2,3,4,5])}${tstep("time","Time per session",[30,45,60,75],"min")}${ttoggle("ss","Supersets")}`,1)
       +card("How you're doing",rowsH([["Readiness, soreness, drinks","Asked each week"]]))},
    {tab:"Day 1",page:"Day 1",name:"Lifting goals",title:"Specify lifting goals",
     text:"Hit the top or miss the bottom of your rep range to see future lifts adjust based on your goals.",
@@ -698,6 +781,35 @@ function renderTour(focus){
     if(focus) el.querySelector("#tTitle").focus({preventScroll:true});
     return;
   }
+  if(i===-1){
+    /* plain-language overview: four swipeable pictures of what the app does */
+    const chips=(o,on)=>`<div class="achips">${o.map(x=>`<span${x===on?' class="on"':""}>${x}</span>`).join("")}</div>`;
+    const A=[
+      [`<div class="acard">${chips(["Off-season","In-season"],"In-season")}</div><div class="aarrow">↓</div><div class="acard dark"><span class="plab">Your days now</span><b>Full Body A · Full Body B</b><small>2 sets each · extra work for your sport</small></div>`,
+       "Train for your season","Build strength when you're not playing much. When your season starts, the plan keeps you strong without wearing you out."],
+      [`<div class="acard">${chips(["Lose fat","Recomp","Build"],"Recomp")}</div><div class="acard"><p class="abig"><b>1,595</b> calories a day</p><div class="abar"><i style="width:32%"></i><i style="width:68%"></i></div><small class="aacc">+85 a day from your extra games</small></div>`,
+       "It does the food math","Pick a goal and it tells you how much to eat and how much cardio to do. Play more one week and you get to eat more."],
+      [`<div class="acard">${chips(["Lower body","Balanced","Upper body"],"Lower body")}</div><div class="acard alist"><div><b>Day 1 · Lower</b><small class="aacc">+1 set</small></div><div><b>Day 2 · Upper</b><small>shorter</small></div><div><b>Day 3 · Lower</b><small class="aacc">+1 set</small></div></div>`,
+       "Your focus, your extra sets","Tell it what you want to grow and the bonus work lands there. Short on time? It trims the extras first."],
+      [`<div class="acard">${chips(["Female","Male","Other"],"Female")}</div><div class="acard"><p class="abig"><span class="atag">↑</span>Next time <b class="aacc">140 lb</b></p><small>Protein 110–140 g a day · Maintenance 1,845</small></div>`,
+       "Lifts go up when you're ready","Log your sets as you go. Hit the top of your reps and the weight goes up next time; miss and it holds or eases off."]];
+    el.innerHTML=`<div class="twelcome tabout" role="dialog" aria-modal="true" aria-labelledby="tTitle">
+      <span class="plab">What this does</span>
+      <h2 id="tTitle" tabindex="-1">Your plan, worked out for you</h2>
+      <p>Lift Board writes your workouts and adjusts them every week to fit your sport, your goal and how you're feeling.</p>
+      <div class="acar" id="acar">${A.map(([v,t,c],k)=>`<figure class="aslide" aria-label="${k+1} of ${A.length}"><div class="avis">${v}</div><figcaption><b>${t}</b>${c}</figcaption></figure>`).join("")}</div>
+      <div class="adots" aria-hidden="true">${A.map((_,k)=>`<i${k?"":' class="on"'}></i>`).join("")}</div>
+      <div class="tbtns two"><button type="button" class="tb ghost" id="tBack">Back</button><button type="button" class="tb" id="tNext">Show me around</button></div>
+    </div>`;
+    el.hidden=false; document.body.classList.add("touring");
+    el.classList.toggle("step",!!focus); el.classList.toggle("opening",false);
+    const car=el.querySelector("#acar"), dots=[...el.querySelectorAll(".adots i")];
+    car.addEventListener("scroll",()=>{ const k=Math.round(car.scrollLeft/car.clientWidth); dots.forEach((d,j)=>d.classList.toggle("on",j===k)); },{passive:true});
+    el.querySelector("#tBack").onclick=()=>{ tour.i=-2; renderTour(true); };
+    el.querySelector("#tNext").onclick=()=>{ tour.i=0; renderTour(true); };
+    if(focus) el.querySelector("#tTitle").focus({preventScroll:true});
+    return;
+  }
   if(i<0){
     el.innerHTML=`<div class="twelcome" role="dialog" aria-modal="true" aria-labelledby="tTitle">
       <span class="plab">Lift Board</span>
@@ -710,7 +822,7 @@ function renderTour(focus){
     el.hidden=false; document.body.classList.add("touring");
     el.classList.toggle("step",!!focus); el.classList.toggle("opening",focus==="open");
     el.querySelector("#tSkip").onclick=closeTour;
-    el.querySelector("#tNext").onclick=()=>{ tour.i=0; renderTour(true); };
+    el.querySelector("#tNext").onclick=()=>{ tour.i=-1; renderTour(true); };
     if(focus) el.querySelector("#tTitle").focus({preventScroll:true});
     return;
   }
@@ -742,10 +854,10 @@ function renderTour(focus){
 document.addEventListener("keydown",e=>{ if(e.key!=="Escape") return; if(!document.getElementById("done").hidden) closeDone(); else if(tour) closeTour(); });
 window.addEventListener("pagehide",()=>{ if(tour&&tour.snap){ const o=JSON.parse(tour.snap); Object.keys(wk).forEach(k=>delete wk[k]); Object.assign(wk,o); save(); } });
 function resetConfirm(on){ document.getElementById("confirmBox").hidden=!on; document.getElementById("resetDay").hidden=on; }
-document.getElementById("rest").onclick=()=>{clearInterval(restT);document.getElementById("rest").hidden=true;};
+
 document.getElementById("toast").onclick=()=>{document.getElementById("toast").classList.remove("show");};
 document.getElementById("resetDay").onclick=()=>{ const d=DAYS.find(x=>x.id===cur); askSure({title:`Reset ${d?d.tab:"this day"}`,text:"Clears every set you've logged today and reopens the day if it was marked done.",ok:"Reset day",onOk:()=>document.getElementById("confirmReset").click()}); };
 document.getElementById("cancelReset").onclick=()=>resetConfirm(false);
-document.getElementById("confirmReset").onclick=()=>{ if((wk.done||{})[cur]) markDone(cur); delete slots[cur]; save(); render(); resetConfirm(false); toast(["Day reset","Logs cleared and the day is open again."]); };
+document.getElementById("confirmReset").onclick=()=>{ if((wk.done||{})[cur]) markDone(cur); delete slots[cur]; if(wk.wt) delete wk.wt[cur]; save(); render(); resetConfirm(false); toast(["Day reset","Logs cleared and the day is open again."]); };
 render();
 if((!wk.setupDone&&!wk.tourDone)||location.hash==='#tour') openTour();
