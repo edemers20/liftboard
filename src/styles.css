@@ -361,3 +361,6 @@ input.dialin{cursor:pointer;caret-color:transparent}
 .tb.danger{background:#c96a48;color:#fff}
 .season-foot{justify-content:space-between}
 #resetProfile{color:#ec8b68;border-color:transparent;background:transparent}
+#replayTour{border-color:transparent;background:transparent;color:var(--fg)}
+.tq{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.tq > span{font-weight:600;font-size:14px}

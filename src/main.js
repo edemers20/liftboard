@@ -527,9 +527,15 @@ function tourSet(k,v){
     const prev=wk.mainSport; if(prev&&tour.added[prev]){ wk.acts={...wk.acts,[prev]:false}; delete tour.added[prev]; }
     if(v){ if(!enabled(v)) tour.added[v]=1; wk.acts={...(wk.acts||{}),[v]:true}; wk.mainSport=v; } else { wk.mainSport=""; wk.season="Off-season"; }
   } else if(k==="season"){ wk.season=v; wk.days=v==="In-season"?2:3; }
-  else wk[k]=v;
+  else wk[k]=(k==="days"||k==="time")?+v:v;
   save(); renderTour();
 }
+/* Tour versions of the stepper and toggle: same look, write through tourSet */
+function tstep(key,label,vals,unit){ const v=String(wk[key]), arr=vals.map(String); let i=arr.indexOf(v); if(i<0) i=0;
+  const b=(d,lab,sym)=>{ const j=i+d; return j<0||j>=arr.length?`<button type="button" disabled aria-label="${lab}">${sym}</button>`:`<button type="button" data-tk="${key}" data-v="${arr[j]}" aria-label="${lab} to ${arr[j]}">${sym}</button>`; };
+  return `<div class="q tq"><span>${label}</span><div class="seg stepper">${b(-1,"Decrease","−")}<output>${arr[i]}${unit?`<small> ${unit}</small>`:""}</output>${b(1,"Increase","+")}</div></div>`; }
+function ttoggle(key,label){ const on=wk[key]==="Yes";
+  return `<div class="q tgl"><span id="tt-${key}">${label}</span><div class="seg toggle"><button type="button" role="switch" aria-checked="${on}" aria-labelledby="tt-${key}" data-tk="${key}" data-v="${on?"No":"Yes"}"><i aria-hidden="true"></i></button></div></div>`; }
 function tchips(key,opts,val,cols){ return `<div class="seg tseg" role="radiogroup" style="grid-template-columns:repeat(${cols||opts.length},minmax(0,1fr))">${opts.map(([v,l])=>`<button type="button" role="radio" data-tk="${key}" data-v="${v}" aria-checked="${String(val)===String(v)}" aria-pressed="${String(val)===String(v)}">${l}</button>`).join("")}</div>`; }
 function renderTour(focus){
   const el=document.getElementById("tour"), P=plan(), i=tour.i, inS=inSeason();
@@ -546,11 +552,12 @@ function renderTour(focus){
    {tab:"Season",page:"Season",name:"Goal",title:"Pick a goal",
     text:"The goal, combined with your body settings, structures the cardio portion of lift days.",
     body:card("Goal",tchips("mode",[["Deficit only","Deficit"],["Recomp","Recomp"],["Build","Build"]],wk.mode),1)},
-   {tab:"This week",page:"This week",name:"Check-in",title:"Your week adjusts itself",
+   {tab:"This week",page:"This week",name:"Your week",title:"Your week adjusts itself",
     text:"Different factors combine to adjust your week; if anything changes, the week changes too.",
-    body:card("How you're doing",`${lbl("Example")}${rowsH([["Readiness","Low"],["Soreness","Legs"],["Drinking","1–2 nights"],["This week","Main lifts −1 set, no weight increases",1]])}`,1)},
-   {tab:"Day 1",page:"Day 1",name:"Lifting",title:"Built-in progressive overload",
-    text:"Hit the top or miss the bottom of your rep range during a lift to see future lifts adjust.",
+    body:card("Schedule",`${tstep("days","Lifting days",inS?[1,2,3]:[1,2,3,4,5])}${tstep("time","Time per session",[30,45,60,75],"min")}${ttoggle("ss","Supersets")}`,1)
+      +card("How you're doing",rowsH([["Readiness, soreness, drinks","Asked each week"]]))},
+   {tab:"Day 1",page:"Day 1",name:"Lifting goals",title:"Specify lifting goals",
+    text:"Hit the top or miss the bottom of your rep range to see future lifts adjust based on your goals.",
     body:card("Lifting focus",`${tchips("focus",[["Lower","Lower body"],["Balanced","Balanced"],["Upper","Upper body"]],wk.focus)}${rowsH([["Hip thrust · 4 × 6–10","140 lb × 10"],["Next time",inS?"140 lb · Hold":`${140+inc} lb · Up`,1]])}`,1)},
    {tab:"Season",page:"Profile",name:"Body",title:"Tailor to your biometrics",
     text:"Set your bio data to see how things affect your metabolism, protein target & progressive overload.",
@@ -558,11 +565,11 @@ function renderTour(focus){
   ];
   if(i>=5){
     el.innerHTML=`<div class="twelcome" role="dialog" aria-modal="true" aria-labelledby="tTitle">
-      <span class="plab">Before you start</span>
       <h2 id="tTitle" tabindex="-1">You know you best</h2>
       <p>You may not realize it, but all these things go into your ability to perform and improve over time. But I'm not a doctor. So try it out, but at the end of the day, you know yourself the best.</p>
+      <p>Good luck!</p>
       <p class="wsig">Emma</p>
-      <div class="tbtns two"><button type="button" class="tb ghost" id="tBack">Back</button><button type="button" class="tb" id="tNext">${tour.snap?"Done":"Finish setup"}</button></div>
+      <div class="tbtns two"><button type="button" class="tb ghost" id="tBack">Back</button><button type="button" class="tb" id="tNext">${tour.snap?"Got it":"Finish setup"}</button></div>
     </div>`;
     el.hidden=false; document.body.classList.add("touring");
     el.classList.toggle("step",!!focus); el.classList.toggle("opening",false);
