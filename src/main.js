@@ -82,6 +82,8 @@ function planHTML(P,o={}){
   return `<div class="plan${o.pin?" pin":""}" aria-live="polite"><div class="plab">Your plan</div><p class="pctx">${esc(planCtx())}</p>${R.map(r=>`<div class="prow${prev&&prev[r.k]!==r.v?" hot":""}"><span>${r.k}</span><b>${esc(r.v)}</b></div>`).join("")}</div>`;
 }
 
+const TAGICON={up:"↑",hold:"=",down:"↓",collapse:"!"};
+const tagH=t=>`<span class="tag ${t}" role="img" aria-label="${TAGTXT[t]}">${TAGICON[t]}</span>`;
 /* ---------- Rendering ---------- */
 function tabName(id){ if(id==="week") return "This week"; if(id==="season") return wk.setupDone?"Season":"Setup"; if(ACT[id]) return ACT[id].name; return DAYS.find(d=>d.id===id).tab; }
 function renderTabs(P){
@@ -188,16 +190,16 @@ function renderDayHTML(d,P){
   html+=`<div class="panel" style="margin-top:12px">${seg("today","Today",["Good","Normal","Rough"],D.today,1)}
     ${D.restSuggest?`<p class="flag">Reps dropped two sessions in a row. Rest a day first if you can.</p>`:D.autoRough?`<p class="adj"><b>Shortened</b> · reps dropped last session</p>`:""}
     ${d.id===P.nextId&&wk.upNext===d.id&&wk.missedNote?`<p class="adj"><b>Up next</b> · ${esc(wk.missedNote.why)}</p>`:""}
-    <div class="foot"><button class="btn primary" id="doneBtn" type="button">${D.done?"✓ Done":"Mark day done"}</button></div></div>`;
+    </div>`;
   const rv=D.done&&(wk.review||{})[d.id];
-  if(rv&&rv.items.length) html+=`<div class="panel"><h3>Next time</h3><div class="rev">${rv.items.map(r=>`<p><span class="tag ${r.tag}">${TAGTXT[r.tag]}</span><b>${esc(r.n)}</b> · ${r.w} lb · ${esc(r.why)}</p>`).join("")}</div>${rv.note?`<p class="adj">${esc(rv.note)}</p>`:""}</div>`;
+  if(rv&&rv.items.length) html+=`<div class="panel"><h3>Next time</h3><div class="rev">${rv.items.map(r=>`<p>${tagH(r.tag)}<b>${esc(r.n)}</b> · ${r.w} lb · ${esc(r.why)}</p>`).join("")}</div>${rv.note?`<p class="adj">${esc(rv.note)}</p>`:""}</div>`;
   html+=`<div class="list" style="margin-top:12px">`;
   d.slots.forEach((s,i)=>{
     const st=get(d.id,i), A=D.slots[i];
     if(A.skip==="hidden") return;
     const choice=st.choice ?? s.opts[0], isCustom=choice===CUSTOM, base=`${d.id}-${i}`;
     const opts=[...s.opts,CUSTOM].map(o=>`<option${o===choice?" selected":""}>${esc(o)}</option>`).join("");
-    html+=`<div class="slot${s.cardio?" cardio":""}${s.ss?" ss":""}${A.skip?" skip":""}"><div class="row1"><span class="label">${s.label}</span>${s.ss&&wk.ss!=="No"?`<span class="ssTag">Superset ${s.ss}</span>`:""}</div>`;
+    html+=`<div class="slot${s.cardio?" cardio":""}${s.ss?" ss":""}${A.skip?" skip":""}${fxOnce.slot===base?" justdone":""}"><div class="row1"><span class="label">${s.label}</span>${s.ss&&wk.ss!=="No"?`<span class="ssTag">Superset ${s.ss}</span>`:""}</div>`;
     if(A.skip){ html+=`<p class="note">${A.flag||A.skip}</p></div>`; return; }
     html+=`<select id="sel-${base}" data-i="${i}" aria-label="${esc(s.label)} exercise">${opts}</select>
       <input id="cus-${base}" class="custom${isCustom?" on":""}" data-i="${i}" placeholder="Exercise name" value="${esc(st.custom||"")}">`;
@@ -212,14 +214,14 @@ function renderDayHTML(d,P){
         html+=`<div class="setrow${x.d?" done":""}"><span class="sn">${k+1}</span>
           <input id="w-${base}-${k}" data-i="${i}" data-set="${k}" data-f="w" inputmode="decimal" placeholder="${today?today.w:"lb"}" aria-label="Set ${k+1} weight" value="${esc(x.w||"")}"><span class="u">lb</span>
           <input id="r-${base}-${k}" data-i="${i}" data-set="${k}" data-f="r" inputmode="numeric" placeholder="reps" aria-label="Set ${k+1} reps" value="${esc(x.r||"")}">
-          <button type="button" class="chk" data-i="${i}" data-set="${k}" data-rest="${s.main?120:75}" aria-pressed="${!!x.d}" aria-label="Set ${k+1} done">✓</button></div>`; }
+          <button type="button" class="chk${fxOnce.chk===`${base}-${k}`?" pop":""}" data-i="${i}" data-set="${k}" data-rest="${s.main?120:75}" aria-pressed="${!!x.d}" aria-label="Set ${k+1} done">✓</button></div>`; }
       html+=`<button type="button" class="btn addset" data-i="${i}">+ Set</button></div>
-      ${(()=>{const g=review(d,s,i,P);return g?`<p class="burn" style="font-size:14px"><span class="tag ${g.tag}">${TAGTXT[g.tag]}</span>Next time <strong style="font-size:16px;color:var(--accent)">${g.w} lb</strong> · ${g.why}</p>`:"";})()}
+      ${(()=>{const g=review(d,s,i,P);return g?`<p class="burn" style="font-size:14px">${tagH(g.tag)}Next time <strong style="font-size:inherit;color:var(--accent)">${g.w} lb</strong> · ${g.why}</p>`:"";})()}
       ${(()=>{const w=A.why.filter(x=>!x.includes("focus")&&!x.includes("feeling good"));return w.length?`<p class="adj"><b>${A.sets} sets</b> · ${[...new Set(w.map(x=>x.split(" · ")[1]))].join(", ")}</p>`:"";})()}`;
     }
     html+=`</div>`;
   });
-  return html+"</div>";
+  return html+`</div><button class="btn primary" id="doneBtn" type="button">${D.done?"✓ Day done":"Mark day done"}</button>`;
 }
 function rows(key,n,pl,rate,label,noK){
   let h=""; for(let i=0;i<n;i++){ const v=(wk[key]||[])[i]||"", k=num(v,pl)*rate;
@@ -243,8 +245,13 @@ function render(){
   const v=document.getElementById("view");
   document.getElementById("foot").hidden=!DAYS.some(d=>d.id===cur);
   v.innerHTML=cur==="week"?renderWeek(P):cur==="season"?renderSeason(P):ACT[cur]?renderAct(cur):renderDayHTML(DAYS.find(d=>d.id===cur),P);
+  if(cur!==lastCur){ v.classList.remove("enter"); void v.offsetWidth; v.classList.add("enter"); lastCur=cur; }
+  if(fxOnce.seg){ const b=v.querySelector(`.seg[data-key="${fxOnce.seg[0]}"] button[data-v="${CSS.escape(fxOnce.seg[1])}"]`); if(b) b.classList.add("pressed"); }
+  fxOnce={};
   bind();
 }
+/* One-shot animation hooks: set right before a render, cleared after it, so re-renders never replay them */
+let fxOnce={}, lastCur=null;
 
 /* ---------- Toasts: only when the plan actually changes ---------- */
 let toastT=null;
@@ -259,12 +266,15 @@ function change(fn){ const a=fx(plan()); fn(); save(); const b=fx(plan()); rende
 
 /* ---------- Popover ---------- */
 let popBtn=null;
-function closePop(){ const p=document.getElementById("pop"); p.hidden=true; if(popBtn) popBtn.setAttribute("aria-expanded","false"); popBtn=null; }
+let popT=null;
+function closePop(){ const p=document.getElementById("pop"); if(popBtn) popBtn.setAttribute("aria-expanded","false"); popBtn=null;
+  if(p.hidden) return; p.classList.add("out"); clearTimeout(popT); popT=setTimeout(()=>{ p.hidden=true; p.classList.remove("out"); },140); }
 function openPop(b){
   const p=document.getElementById("pop");
   if(popBtn===b){ closePop(); return; }
   closePop(); popBtn=b; b.setAttribute("aria-expanded","true");
-  p.innerHTML=POP[b.dataset.pop]||""; p.hidden=false;
+  clearTimeout(popT); p.classList.remove("out");
+  p.innerHTML=POP[b.dataset.pop]||""; p.hidden=false; p.classList.remove("in"); void p.offsetWidth; p.classList.add("in");
   const r=b.getBoundingClientRect(), w=Math.min(300,window.innerWidth-32);
   p.style.width=w+"px";
   p.style.left=Math.max(16,Math.min(window.innerWidth-w-16,r.left+r.width/2-w/2))+window.scrollX+"px";
@@ -277,15 +287,55 @@ window.addEventListener("scroll",()=>closePop(),{passive:true});
 function logSet(i,k,f,val){ const st=get(cur,i); const log=(st.log||[]).slice(); while(log.length<=k) log.push({}); log[k]={...log[k],[f]:val}; set(cur,i,"log",log); }
 let restT=null;
 function startRest(sec){ const bar=document.getElementById("rest"); clearInterval(restT); let t=sec; const tick=()=>{ bar.hidden=false; bar.textContent=`Rest ${Math.floor(t/60)}:${String(t%60).padStart(2,"0")} · tap to skip`; if(t--<=0){clearInterval(restT); bar.textContent="Go"; setTimeout(()=>bar.hidden=true,2500);} }; tick(); restT=setInterval(tick,1000); }
-function setupToast(){
-  const L=["Setup saved"];
-  const on=ACT_IDS.filter(a=>a!=="lift"&&enabled(a)).map(a=>ACT[a].name);
-  L.push(on.length?`Activities: ${on.join(", ")} get tabs and check-in questions.`:"Add activities any time in Profile.");
-  if(hasSport()) L.push(`Season: ${ACT[wk.mainSport].name} ${wk.season.toLowerCase()} sets your split and support lifts.`);
-  if(enabled("lift")) L.push(`Focus: ${wk.focus.toLowerCase()} decides where extra sets and days go.`);
-  L.push(`Goal: ${wk.mode} sets food and cardio on This week.`);
-  toast(L,9000);
+/* ---------- Completion screens: short, closable sheets ---------- */
+let doneCta=null;
+const CHECK=`<span class="dcheck" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 28 28"><path d="M7 14.5l4.5 4.5L21 9.5"/></svg></span>`;
+function showDone({eyebrow,title,body,cta,onCta}){
+  const el=document.getElementById("done"); doneCta=onCta||null; closePop();
+  el.innerHTML=`<div class="ddim" data-close></div><section class="dsheet" role="dialog" aria-modal="true" aria-labelledby="dTitle">
+    <div class="dtop"><span class="plab">${esc(eyebrow)}</span><button type="button" class="dx" data-close aria-label="Close"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M2 2l10 10M12 2L2 12"/></svg></button></div>
+    <div class="dhead">${CHECK}<h2 id="dTitle" tabindex="-1">${esc(title)}</h2></div>
+    ${body}
+    <button type="button" class="tb dcta" id="dCta">${esc(cta)}</button></section>`;
+  el.querySelectorAll(".dsheet > *").forEach((c,i)=>c.style.setProperty("--d",(i*60)+"ms"));
+  el.hidden=false; el.classList.remove("out"); document.body.classList.add("touring");
+  el.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>closeDone());
+  el.querySelector("#dCta").onclick=()=>closeDone(true);
+  el.querySelector("#dTitle").focus({preventScroll:true});
 }
+function closeDone(viaCta){
+  const el=document.getElementById("done"); if(el.hidden||el.classList.contains("out")) return;
+  el.classList.add("out"); const go=viaCta&&doneCta;
+  setTimeout(()=>{ el.hidden=true; el.innerHTML=""; el.classList.remove("out"); if(!tour) document.body.classList.remove("touring"); if(go) go(); },220);
+}
+const dRows=R=>`<div class="drows">${R.map(([k,v,a])=>`<div class="prow"><span>${esc(k)}</span><b${a?' class="a"':""}>${esc(v)}</b></div>`).join("")}</div>`;
+const dTiles=T=>`<div class="dtiles">${T.map(([k,v])=>`<div><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join("")}</div>`;
+function goTab(id){ cur=id; try{localStorage.setItem(KEY+".tab",cur)}catch(e){}; render(); window.scrollTo(0,0); }
+function setupDone(){
+  const P=plan(), R=planRows(P).filter(r=>["Split","Eat","Cardio","Protein"].includes(r.k)).map(r=>[r.k,r.v,r.k==="Eat"]);
+  const first=DAYS[0];
+  showDone({eyebrow:"Setup saved",title:"Your plan is ready",body:`<p class="pctx">${esc(planCtx())}</p>${dRows(R)}`,
+    cta:first?`Start ${first.tab}`:"See this week",onCta:()=>goTab(first?first.id:"week")});
+}
+function dayDone(id,sets){
+  const d=DAYS.find(x=>x.id===id), rv=(wk.review||{})[id]||{items:[]}, c=t=>rv.items.filter(x=>x.tag===t).length;
+  const ease=c("down")+c("collapse"), nxt=DAYS.find(x=>!(wk.done||{})[x.id]);
+  const top=rv.items.filter(x=>x.tag==="up").concat(rv.items.filter(x=>x.tag!=="up")).slice(0,3);
+  showDone({eyebrow:`${d.tab} · ${d.title.split(" · ")[0]}`,title:"Day done",
+    body:dTiles([["Sets",String(sets)],["Up",String(c("up"))],ease?["Ease",String(ease)]:["Hold",String(c("hold"))]])
+      +(top.length?`<div class="drows"><span class="dl">Next time</span>${top.map(x=>`<div class="prow"><span>${esc(x.n)}</span><b class="${x.tag==="up"?"a":""}">${TAGICON[x.tag]} ${x.w} lb</b></div>`).join("")}</div>`:"")
+      +(rv.note?`<p class="dnote">${esc(rv.note)}</p>`:""),
+    cta:nxt?`Up next: ${nxt.tab}`:"Done",onCta:nxt?()=>goTab(nxt.id):null});
+}
+function weekDone(s){
+  const ws=wk.weeks||[], a=ws[ws.length-1], b=ws[ws.length-2];
+  const dw=a&&a.w&&b&&b.w?(a.w-b.w):null;
+  showDone({eyebrow:"Week complete",title:"Week done",
+    body:dTiles([["Lifts",`${s.lifts}/${s.planned}`],["Cardio",s.cardio.toLocaleString()],["Weight",dw==null?(a&&a.w?String(a.w):"–"):`${dw>0?"+":dw<0?"−":""}${Math.abs(dw).toFixed(1)}`]])
+      +`<p class="dnote">${esc(wk.missedNote?capF(wk.missedNote.txt)+".":"Next week starts with a fresh check-in and Day 1.")}</p>`,
+    cta:"Start next week",onCta:()=>goTab("week")});
+}
+const setsLogged=id=>{ const d=DAYS.find(x=>x.id===id); return d?d.slots.reduce((n,s,i)=>n+(get(id,i).log||[]).filter(x=>x.d).length,0):0; };
 /* A day is complete when every visible lift has all its planned sets ticked */
 function dayComplete(id){
   const d=DAYS.find(x=>x.id===id), P=plan(); if(!d) return false;
@@ -298,20 +348,21 @@ function bind(){
   const ps=document.getElementById("profSave"); if(ps) ps.onclick=()=>{ const d=draft; draft=null; const a=fx(plan()); Object.assign(wk,d); if(!enabled(wk.mainSport)){ wk.mainSport=""; } if(!wk.mainSport) wk.season="Off-season"; save(); const b=fx(plan()); render(); toast(["Profile saved",...diffFx(a,b)]); };
   v.querySelectorAll(".actt").forEach(b=>{ if(inProf(b)) b.onclick=()=>{ const a=b.dataset.actt, cur0={...(wk.acts||{}),...((draft&&draft.acts)||{})}; stage("acts",{...cur0,[a]:!cur0[a]}); }; });
   v.querySelectorAll(".actt").forEach(b=>{ if(!inProf(b)) b.onclick=()=>change(()=>{ const a=b.dataset.actt; wk.acts={...(wk.acts||{}),[a]:!enabled(a)}; if(!enabled(wk.mainSport)) { wk.mainSport=""; wk.season="Off-season"; } }); });
-  const ss=document.getElementById("setupSave"); if(ss) ss.onclick=()=>{ wk.setupDone=true; wk.weekStart=wk.weekStart||Date.now(); cur="season"; save(); render(); window.scrollTo(0,0); setupToast(); };
+  const ss=document.getElementById("setupSave"); if(ss) ss.onclick=()=>{ wk.setupDone=true; wk.weekStart=wk.weekStart||Date.now(); cur="season"; save(); render(); window.scrollTo(0,0); setupDone(); };
   const rt=document.getElementById("replayTour"); if(rt) rt.onclick=openTour;
   const pb=document.getElementById("profileBox"); if(pb) pb.ontoggle=()=>{ wk.openBase=pb.open; save(); };
   v.querySelectorAll("input[data-set]").forEach(el=>{ el.oninput=()=>logSet(+el.dataset.i,+el.dataset.set,el.dataset.f,el.value); el.onchange=()=>render(); });
   v.querySelectorAll(".chk").forEach(b=>b.onclick=()=>{ const i=+b.dataset.i,k=+b.dataset.set, x=(get(cur,i).log||[])[k]||{};
     if(!x.w){ const ph=document.getElementById(`w-${cur}-${i}-${k}`).placeholder; if(+ph>0) logSet(i,k,"w",ph); }
     logSet(i,k,"d",!x.d); if(!x.d) startRest(+b.dataset.rest);
-    if(!x.d&&!(wk.done||{})[cur]&&dayComplete(cur)){ const lines=markDone(cur); render(); toast(["All lifts logged · day marked done",...lines.slice(1)],6000); return; }
+    if(!x.d&&!(wk.done||{})[cur]&&dayComplete(cur)){ const id=cur, n=setsLogged(id); markDone(id); render(); dayDone(id,n); return; }
+    if(!x.d){ fxOnce.chk=`${cur}-${i}-${k}`; const A=plan().days[cur].slots[i]; if((get(cur,i).log||[]).filter(z=>z.d).length===A.sets) fxOnce.slot=`${cur}-${i}`; }
     render(); });
   v.querySelectorAll(".addset").forEach(b=>b.onclick=()=>{ const i=+b.dataset.i, log=(get(cur,i).log||[]).slice(), A=plan().days[cur].slots[i]; while(log.length<A.sets) log.push({}); log.push({}); set(cur,i,"log",log); render(); });
-  const db=document.getElementById("doneBtn"); if(db) db.onclick=()=>{ const lines=markDone(cur); render(); toast(lines,6000); };
-  const nw=document.getElementById("newWeek"); if(nw) nw.onclick=()=>{ const lines=newWeek(); render(); toast(lines); };
+  const db=document.getElementById("doneBtn"); if(db) db.onclick=()=>{ const id=cur, was=!!(wk.done||{})[id], n=setsLogged(id); markDone(id); render(); if(!was) dayDone(id,n); else toast(["Day reopened"]); };
+  const nw=document.getElementById("newWeek"); if(nw) nw.onclick=()=>{ const P=plan(), s={lifts:DAYS.filter(d=>(wk.done||{})[d.id]).length,planned:DAYS.length,cardio:r5(P.math.cardioTotal)}; newWeek(); render(); weekDone(s); };
   v.querySelectorAll(".seg[data-key]").forEach(g=>g.querySelectorAll("button").forEach(b=>b.onclick=()=>{
-    const k=g.dataset.key, raw=b.dataset.v;
+    const k=g.dataset.key, raw=b.dataset.v; fxOnce.seg=[k,raw];
     if(inProf(g)){ stage(k,raw); return; }
     if(!wk.setupDone){ wk[k]=(k==="days"||k==="time")?+raw:raw; if(k==="mainSport"&&!raw) wk.season="Off-season"; save(); render(); return; }
     if(k==="today"){ const Pa=plan(); wk.today={...(wk.today||{}),[cur]:raw}; save(); const Pb=plan(); render(); toast(dayDiff(Pa,Pb,cur)); return; }
@@ -330,10 +381,11 @@ function bind(){
 /* ---------- Guided tour: first run, before setup. Controls write real settings;
    a replay after setup runs on a snapshot that is restored on close. ---------- */
 let tour=null;
-function openTour(){ closePop(); tour={i:0,snap:wk.setupDone?JSON.stringify(wk):null,added:{}}; planPrev=null; renderTour(true); }
+function openTour(){ closePop(); tour={i:0,snap:wk.setupDone?JSON.stringify(wk):null,added:{}}; planPrev=null; renderTour("open"); }
 function closeTour(){
   const t=tour; if(!t) return; tour=null;
-  const el=document.getElementById("tour"); el.hidden=true; el.innerHTML=""; document.body.classList.remove("touring");
+  const el=document.getElementById("tour"); el.classList.add("out");
+  setTimeout(()=>{ el.hidden=true; el.innerHTML=""; el.classList.remove("out","step","opening"); if(document.getElementById("done").hidden) document.body.classList.remove("touring"); },200);
   if(t.snap){ const o=JSON.parse(t.snap); Object.keys(wk).forEach(k=>delete wk[k]); Object.assign(wk,o); }
   else { wk.tourDone=true; cur="season"; }
   save(); planPrev=null; render(); window.scrollTo(0,0);
@@ -389,6 +441,7 @@ function renderTour(focus){
     <div class="tbtns${i?" two":""}">${i?`<button type="button" class="tb ghost" id="tBack">Back</button>`:""}<button type="button" class="tb" id="tNext">${!last?"Next":tour.snap?"Done":"Finish setup"}</button></div>
   </div>`;
   el.hidden=false; document.body.classList.add("touring");
+  el.classList.toggle("step",!!focus); el.classList.toggle("opening",focus==="open");
   el.querySelectorAll("[data-tk]").forEach(b=>b.onclick=()=>tourSet(b.dataset.tk,b.dataset.v));
   el.querySelectorAll("[data-tw]").forEach(x=>x.onchange=()=>{ wk[x.dataset.tw]=x.value; save(); renderTour(); });
   el.querySelector("#tSkip").onclick=closeTour;
@@ -397,7 +450,7 @@ function renderTour(focus){
   el.querySelector("#tNext").onclick=()=>last?closeTour():go(1);
   if(focus) el.querySelector("#tTitle").focus({preventScroll:true});
 }
-document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&tour) closeTour(); });
+document.addEventListener("keydown",e=>{ if(e.key!=="Escape") return; if(!document.getElementById("done").hidden) closeDone(); else if(tour) closeTour(); });
 window.addEventListener("pagehide",()=>{ if(tour&&tour.snap){ const o=JSON.parse(tour.snap); Object.keys(wk).forEach(k=>delete wk[k]); Object.assign(wk,o); save(); } });
 function resetConfirm(on){ document.getElementById("confirmBox").hidden=!on; document.getElementById("resetDay").hidden=on; }
 document.getElementById("rest").onclick=()=>{clearInterval(restT);document.getElementById("rest").hidden=true;};
