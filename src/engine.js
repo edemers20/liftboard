@@ -42,6 +42,9 @@ const ACT={
  soccer:{name:"Soccer",sport:1,met:7,leg:2,min:90},
  volleyball:{name:"Volleyball",sport:1,met:4.5,leg:1,sh:1,min:90},
  climb:{name:"Climbing",sport:1,met:5,leg:0,pull:1,min:75,noMin:1},
+ tennis:{name:"Tennis",sport:1,met:7.3,leg:1,sh:1,min:90},
+ golf:{name:"Golf",sport:1,met:4.3,leg:0.5,sh:1,min:240},
+ hockey:{name:"Hockey",sport:1,met:8,leg:2,min:60},
  yoga:{name:"Yoga",cls:1},
  spin:{name:"Spin",cls:1}
 };
@@ -50,7 +53,7 @@ const actKey=a=>({pickle:"pAct",yoga:"yAct",spin:"sAct"})[a]||a+"Act";
 const minKey=a=>({pickle:"pmin",climb:"cmin",yoga:"ymin"})[a]||a+"min";
 
 /* ---------- Day templates (slot order is storage order; append only) ---------- */
-const SUP={calves:["pickle","run","soccer","volleyball"],adductor:["pickle","soccer"],cuff:["pickle","volleyball","climb"]};
+const SUP={calves:["pickle","run","soccer","volleyball","tennis","hockey"],adductor:["pickle","soccer","tennis","hockey"],cuff:["pickle","volleyball","climb","tennis","golf"]};
 const ALL=[
  {id:"d1",title:"Lower · Hinge & Glute",slots:[
   {label:"Main glute",main:1,opts:L.mainGlute,sets:4,reps:"6–10"},

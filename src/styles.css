@@ -364,3 +364,17 @@ input.dialin{cursor:pointer;caret-color:transparent}
 #replayTour{border-color:transparent;background:transparent;color:var(--fg)}
 .tq{display:flex;justify-content:space-between;align-items:center;gap:12px}
 .tq > span{font-weight:600;font-size:14px}
+/* first-visit tab tips */
+@keyframes lbRing{0%,100%{box-shadow:0 0 0 3px rgba(159,207,193,.9)}50%{box-shadow:0 0 0 6px rgba(159,207,193,.35)}}
+.tab.coached{animation:lbRing 1.6s ease-in-out infinite;position:relative;z-index:6}
+#coach{position:fixed;z-index:35;box-sizing:border-box;background:var(--card);color:#fff;border:1px solid rgba(255,255,255,.06);border-radius:16px;box-shadow:var(--shadow);padding:12px 14px 12px 16px;display:grid;gap:8px;animation:lbPop .22s var(--ease) both;transform-origin:var(--ax,50%) top}
+#coach::before{content:"";position:absolute;top:-6px;left:calc(var(--ax,50%) - 6px);width:12px;height:12px;background:var(--card);border-left:1px solid rgba(255,255,255,.06);border-top:1px solid rgba(255,255,255,.06);transform:rotate(45deg)}
+#coach p{margin:0;font-size:14px;line-height:1.45;color:#d9e0dd}
+#coach .shbtn{justify-self:end;min-height:40px}
+#coach.out{animation:lbPopOut .16s ease-in both}
+@media (prefers-reduced-motion:reduce){.tab.coached{animation:none;box-shadow:0 0 0 3px var(--mint)}}
+
+/* Save buttons stay reachable while editing a long form */
+#profileBox #profSave,#setupSave{position:sticky;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:3;box-shadow:0 -6px 24px rgba(0,0,0,.45)}
+body.resting #profileBox #profSave,body.resting #setupSave{bottom:calc(66px + env(safe-area-inset-bottom,0px))}
+#profSave:disabled{opacity:1;background:var(--surface);border-color:var(--line);color:var(--muted)}

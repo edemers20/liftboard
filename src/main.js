@@ -50,7 +50,7 @@ const INFO={
  weeks:"Saved each time you tap Start new week. Weigh-ins logged here calibrate maintenance after 3+ weeks.", spint:"Really hard burns more and adds 1 to recovery load.", ymin:"Class length."
 };
 SPORTS.forEach(a=>{ INFO[a]=sportInfo(a); INFO[minKey(a)]="Planned length per session."; });
-INFO.yoga="Counts toward cardio."; INFO.spin="Counts toward cardio. Hard weeks cut a quad set.";
+INFO.climb="Each session counts as about 75 minutes toward cardio. Pulling and arm work on lift days is trimmed so you don't double up.";INFO.yoga="Counts toward cardio."; INFO.spin="Counts toward cardio. Hard weeks cut a quad set.";
 const LBL={acts:"Activities",mainSport:"Main sport",focus:"Focus",season:"Season",ramp:"Ramp",deload:"Deload",mode:"Goal",rate:"Lose lb/week",share:"From cardio",sex:"Sex",age:"Age",height:"Height",weight:"Weight",bf:"Body fat",steps:"Steps",oura:"Daily burn",days:"Lifting days",time:"Session length",liftK:"Avg lift kcal",ready:"Readiness",sore:"Soreness",cycle:"Cycle",drink:"Drinking",load:"Recovery load",wAvg:"Avg weight",ymin:"Class length",heated:"Heated",spint:"Intensity",today:"Today",ss:"Supersets",progress:"Progress",changes:"Changes",watch:"Watch",lifts:"Main lifts",weeks:"Previous weeks",maint:"Maintenance"};
 ACT_IDS.forEach(a=>{ LBL[a]=ACT[a].name; LBL[minKey(a)]="Planned min"; });
 const POP={}; let popN=0;
@@ -117,10 +117,10 @@ function dialCfg(el){
     return {label:"Reps",min:0,max:40,step:1,start:prev.r||(slot?range(slot.reps)[1]:10)};
   }
   if(d.k==="act") return {label:"Actual minutes",min:0,max:120,step:1,unit:"min",start:el.placeholder};
-  if(d.act) return {label:"Actual minutes",min:0,max:240,step:1,unit:"min",start:el.placeholder};
+  if(d.act) return {label:"Actual minutes",min:0,max:360,step:1,unit:"min",start:el.placeholder};
   const k=d.w||d.tw; if(!k) return null;
   if(DIAL[k]) return {...DIAL[k],start:DIAL[k].start??(k==="wAvg"?wk.weight:el.placeholder)};
-  if(/min$/.test(k)) return {label:"Planned minutes",min:15,max:240,step:5,unit:"min",start:el.placeholder};
+  if(/min$/.test(k)) return {label:"Planned minutes",min:15,max:360,step:5,unit:"min",start:el.placeholder};
   return null;
 }
 /* ---------- Rendering ---------- */
@@ -130,7 +130,7 @@ function renderTabs(P){
   t.innerHTML=TABS().map(id=>{
     const off=ACT[id]?!cnt(id):false, nx=id===P.nextId;
     return `<button class="tab${off?" off":""}${nx?" nx":""}" role="tab" type="button" aria-selected="${id===cur}" data-id="${id}">${(wk.done||{})[id]?"✓ ":""}${tabName(id)}</button>`;}).join("");
-  t.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{closeSheet();cur=b.dataset.id;try{localStorage.setItem(KEY+".tab",cur)}catch(e){};closePop();render();resetConfirm(false);window.scrollTo(0,0);});
+  t.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{closeSheet();closeCoach(true);cur=b.dataset.id;try{localStorage.setItem(KEY+".tab",cur)}catch(e){};closePop();render();resetConfirm(false);window.scrollTo(0,0);});
 }
 let draft=null;
 function profileHTML(withGoal,src){
@@ -323,16 +323,17 @@ function nextSheet(id,i){
     el=>{ const b=el.querySelector("#upNext"); if(b) b.onclick=()=>{ wk.active={...(wk.active||{}),[id]:n}; save(); render(); planSheet(id,n); }; });
 }
 function rows(key,n,pl,rate,label,noK){
-  let h=""; for(let i=0;i<n;i++){ const v=(wk[key]||[])[i]||"", k=num(v,pl)*rate;
-    h+=`<div class="slot cardio"><div class="row1"><span class="label">${label}${n>1?" "+(i+1):""}</span>${noK?"":`<span class="burn">~${r5(k)} kcal</span>`}</div>
+  let h=""; if(key==="zAct") INFO.zAct="One easy 45-minute session during the pre-season ramp: bike, incline walk or rower at a pace you could talk through. It builds the aerobic base that keeps you fresh in-season.";
+  for(let i=0;i<n;i++){ const v=(wk[key]||[])[i]||"", k=num(v,pl)*rate;
+    h+=`<div class="slot cardio"><div class="row1"><span class="label hdr">${label}${n>1?" "+(i+1):""}${key==="zAct"?ib("zAct"):""}</span>${noK?"":`<span class="burn">~${r5(k)} kcal</span>`}</div>
     <div class="nums two"><label for="${key}-${i}">Actual min<input id="${key}-${i}" data-act="${key}" data-n="${i}" inputmode="numeric" placeholder="${pl}" value="${esc(v)}"></label></div></div>`; }
   return h;
 }
 function renderAct(a){
-  if(a==="zone2") return `<div class="dayhead"><h2>Zone 2</h2></div><div class="panel">${hdr("Pre-season ramp",["ramp"])}<p class="note">One easy 45-minute session this week: bike, incline walk or rower at a pace you could talk through. It builds the aerobic base that keeps you fresh once the season starts.</p></div>
+  if(a==="zone2") return `<div class="dayhead"><h2>Zone 2</h2></div>
   <div class="list">${rows("zAct",1,45,perMin(CARDIO["Bike (steady)"].met),"Zone 2 session")}</div>`;
   const n=cnt(a), A=ACT[a];
-  if(A.noMin) return `<div class="dayhead"><h2>${A.name}</h2></div><div class="panel">${hdr("This week",[a])}${stepper(a,"Sessions",[0,1,2,3,4,5])}<p class="note">Each session counts as about ${A.min} minutes toward cardio. Pulling and arm work on lift days is trimmed so you're not doubling up.</p></div>`;
+  if(A.noMin) return `<div class="dayhead"><h2>${A.name}</h2></div><div class="panel">${hdr("This week",[a])}${stepper(a,"Sessions",[0,1,2,3,4,5])}</div>`;
   if(a==="yoga") return `<div class="dayhead"><h2>Yoga</h2></div><div class="panel" style="margin-top:12px">${hdr("This week",["yoga","ymin","heated"])}${stepper("yoga","Sessions",[0,1,2,3])}${stepper("ymin","Class length",[45,60,75,90],"min")}${toggle("heated","Heated")}</div>
   <div class="list" style="margin-top:12px">${rows("yAct",n,num(wk.ymin,60),perMin(YOGA_MET[wk.heated]||2.8),"Class")}</div>`;
   if(a==="spin") return `<div class="dayhead"><h2>Spin</h2></div><div class="panel" style="margin-top:12px">${hdr("This week",["spin","spint"])}${stepper("spin","Sessions",[0,1,2,3])}${seg("spint","Intensity",["Hard","Really hard"])}</div>
@@ -353,6 +354,42 @@ function render(){
   if(fxOnce.seg){ const b=v.querySelector(`.seg[data-key="${fxOnce.seg[0]}"] button[data-v="${CSS.escape(fxOnce.seg[1])}"]`); if(b) b.classList.add("pressed"); }
   fxOnce={};
   bind();
+  coachSoon();
+}
+/* ---------- First-visit tab tips: one short popup per tab type, then never again ---------- */
+const coachKey=id=>DAYS.some(d=>d.id===id)?"day":id==="season"&&!wk.setupDone?"setup":id;
+function coachText(id){
+  if(id==="season"&&!wk.setupDone) return ["Setup","Fill in the rest of your details here. Your plan at the top updates as you go; save when it looks right."];
+  if(id==="season") return ["Season","Your plan at a glance, plus season, goal, lift trends, past weeks and your profile."];
+  if(id==="week") return ["This week","Check in once a week. Your schedule, how you're feeling and other activity reshape every lift day."];
+  if(DAYS.some(d=>d.id===id)) return ["Lift days","One exercise at a time. Tick each set and the app works out next time's weight."];
+  if(id==="zone2") return ["Zone 2","One easy 45-minute session during your pre-season ramp. Log the minutes you actually did."];
+  const A=ACT[id]; if(!A) return null;
+  if(A.cls) return [A.name,"Log your classes here. They count toward this week's cardio."];
+  if(A.noMin) return [A.name,"Log sessions here. Lift days trim pulling work so you don't double up."];
+  return [A.name,"Log sessions and minutes here. They count toward cardio, and long weeks trim overlapping leg work on lift days."];
+}
+let coachT=null;
+function coachSoon(){ clearTimeout(coachT); coachT=setTimeout(showCoach,450); }
+function closeCoach(mark){
+  const el=document.getElementById("coach"); if(!el||el.hidden) return;
+  if(mark){ wk.seenTabs={...(wk.seenTabs||{}),[el.dataset.k]:1}; save(); }
+  document.querySelectorAll(".tab.coached").forEach(t=>t.classList.remove("coached"));
+  el.classList.add("out"); setTimeout(()=>{ el.hidden=true; el.innerHTML=""; el.classList.remove("out"); },180);
+}
+function showCoach(){
+  const el=document.getElementById("coach"); if(!el) return;
+  const busy=["tour","done","confirm","dial"].some(x=>{ const n=document.getElementById(x); return n&&!n.hidden; });
+  const k=coachKey(cur), t=coachText(cur);
+  if(tour||busy||!t||(wk.seenTabs||{})[k]||(!wk.setupDone&&cur!=="season")){ return; }
+  const tab=document.querySelector('.tab[aria-selected="true"]'); if(!tab) return;
+  window.scrollTo({top:0}); const r=tab.getBoundingClientRect(), w=Math.min(320,window.innerWidth-32);
+  const left=Math.max(16,Math.min(window.innerWidth-w-16,r.left+r.width/2-w/2));
+  el.dataset.k=k; el.style.width=w+"px"; el.style.left=left+"px"; el.style.top=(r.bottom+12)+"px";
+  el.style.setProperty("--ax",(r.left+r.width/2-left)+"px");
+  el.innerHTML=`<span class="plab">${esc(t[0])}</span><p>${esc(t[1])}</p><button type="button" class="shbtn" id="coachOk">Got it</button>`;
+  tab.classList.add("coached"); el.hidden=false; el.classList.remove("out");
+  el.querySelector("#coachOk").onclick=()=>closeCoach(true);
 }
 /* One-shot animation hooks: set right before a render, cleared after it, so re-renders never replay them */
 let fxOnce={}, lastCur=null;
@@ -424,7 +461,7 @@ function showDone({eyebrow,title,body,cta,onCta}){
 function closeDone(viaCta){
   const el=document.getElementById("done"); if(el.hidden||el.classList.contains("out")) return;
   el.classList.add("out"); const go=viaCta&&doneCta;
-  setTimeout(()=>{ el.hidden=true; el.innerHTML=""; el.classList.remove("out"); if(!tour) document.body.classList.remove("touring"); if(go) go(); },220);
+  setTimeout(()=>{ el.hidden=true; el.innerHTML=""; el.classList.remove("out"); if(!tour) document.body.classList.remove("touring"); if(go) go(); coachSoon(); },220);
 }
 const dRows=R=>`<div class="drows">${R.map(([k,v,a])=>`<div class="prow"><span>${esc(k)}</span><b${a?' class="a"':""}>${esc(v)}</b></div>`).join("")}</div>`;
 const dTiles=T=>`<div class="dtiles">${T.map(([k,v])=>`<div><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join("")}</div>`;
@@ -521,6 +558,7 @@ function closeTour(){
   else { wk.tourDone=true; cur="season"; }
   save(); planPrev=null; render(); window.scrollTo(0,0);
   if(t.snap) document.getElementById("replayTour")?.focus();
+  setTimeout(showCoach,500);
 }
 function tourSet(k,v){
   if(k==="sport"){
