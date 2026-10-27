@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Lift Board · Setup saved</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#6fd0b4}a:hover{color:#e6ece9}
+@keyframes lbIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes lbInB{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes lbPop{from{opacity:0;transform:translateY(-6px) scale(.98)}to{opacity:1;transform:none}}
+@keyframes lbSheet{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:none}}
+@keyframes lbSheetOut{from{opacity:1;transform:none}to{opacity:0;transform:translateY(28px)}}
+@keyframes lbFade{from{opacity:0}to{opacity:1}}
+@keyframes lbFadeOut{from{opacity:1}to{opacity:0}}
+@keyframes lbCheck{0%{transform:scale(.7)}55%{transform:scale(1.18)}100%{transform:scale(1)}}
+@keyframes lbDraw{from{stroke-dashoffset:var(--len,60)}to{stroke-dashoffset:0}}
+button,a,input,section,span,div{transition:background-color .2s ease,border-color .2s ease,color .2s ease,box-shadow .2s ease,opacity .2s ease,transform .12s ease}
+button:active,a:active{transform:scale(.97)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-delay:0s!important;transition-duration:.01ms!important}}
+</style>
+</helmet>
+<div style="position: relative; width: 390px; height: 844px; overflow: hidden; background: #111715; color: #e6ece9; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 15px; line-height: 1.45">
+  <div aria-hidden="{{ bgHidden }}" style="position: absolute; inset: 0; box-sizing: border-box; padding: 20px 16px; display: flex; flex-direction: column; gap: 10px">
+    <h1 style="margin: 0; font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif; font-weight: 700; font-size: 34px; line-height: 1; text-transform: uppercase">Lift Board</h1>
+    <nav style="display: flex; gap: 6px; padding: 8px 0; overflow: hidden" aria-label="Tabs"><span style="flex: 0 0 auto; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 17px; letter-spacing: .04em; text-transform: uppercase; border: 1px solid #237a64; background: #237a64; color: #fff; padding: 7px 13px; border-radius: 999px">Season</span><span style="flex: 0 0 auto; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 17px; letter-spacing: .04em; text-transform: uppercase; border: 1px solid #2c3833; background: #1a2320; color: #e6ece9; padding: 7px 13px; border-radius: 999px">This week</span><span style="flex: 0 0 auto; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 17px; letter-spacing: .04em; text-transform: uppercase; border: 1px solid #2c3833; background: #1a2320; color: #e6ece9; padding: 7px 13px; border-radius: 999px">Day 1</span><span style="flex: 0 0 auto; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 17px; letter-spacing: .04em; text-transform: uppercase; border: 1px solid #2c3833; background: #1a2320; color: #e6ece9; padding: 7px 13px; border-radius: 999px">Day 2</span><span style="flex: 0 0 auto; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 17px; letter-spacing: .04em; text-transform: uppercase; border: 1px solid #2c3833; background: #1a2320; color: #e6ece9; padding: 7px 13px; border-radius: 999px">Day 3</span></nav>
+    <h2 style="margin: 0; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 26px; text-transform: uppercase; letter-spacing: .02em">Season</h2>
+    <div style="background: #1a2320; border-radius: 12px; height: 120px"></div><div style="background: #1a2320; border-radius: 12px; height: 180px"></div><div style="background: #1a2320; border-radius: 12px; height: 96px"></div><div style="background: #1a2320; border-radius: 12px; height: 150px"></div>
+  </div>
+  <sc-if value="{{ open }}" hint-placeholder-val="{{ true }}">
+    <div aria-hidden="true" onClick="{{ close }}" style="position: absolute; inset: 0; background: rgba(0, 0, 0, 0.6); animation: {{ dimAnim }}"></div>
+    <section role="dialog" aria-modal="true" aria-labelledby="doneTitle" style="position: absolute; left: 12px; right: 12px; bottom: 12px; background: #232e2a; color: #fff; border-radius: 24px; box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5); padding: 16px 20px 20px; display: flex; flex-direction: column; gap: 14px; animation: {{ sheetAnim }}">
+      <div style="display: flex; justify-content: space-between; align-items: center">
+        <span style="font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #9fcfc1">Setup saved</span>
+        <button type="button" aria-label="Close" onClick="{{ close }}" style="width: 44px; height: 44px; margin: -10px -12px -10px 0; border: 0; background: transparent; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M2 2l10 10M12 2L2 12" stroke="#ffffff" stroke-width="2" stroke-linecap="round"></path></svg></button>
+      </div>
+      <div style="display: flex; align-items: center; gap: 14px"><span aria-hidden="true" style="width: 56px; height: 56px; border-radius: 50%; background: #1d3530; display: flex; align-items: center; justify-content: center; animation: lbCheck .45s ease-out 80ms both"><svg width="28" height="28" viewBox="0 0 28 28"><path d="M7 14.5l4.5 4.5L21 9.5" fill="none" stroke="#9fcfc1" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="--len: 24; stroke-dasharray: 24; animation: lbDraw .42s ease-out 220ms both"></path></svg></span><h2 id="doneTitle" style="margin: 0; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 32px; line-height: 1; text-transform: uppercase; animation: lbIn .34s cubic-bezier(.2,.8,.2,1) 120ms both">Your plan is ready</h2></div>
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <p style="margin: 0 0 2px; font-weight: 600; font-size: 14px; animation: lbIn .34s cubic-bezier(.2,.8,.2,1) 180ms both">Pickleball off-season · Recomp · Lower focus</p>
+        <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 14px; animation: lbIn .34s cubic-bezier(.2,.8,.2,1) 240ms both"><span style="color: #c9d3cf">Split</span><b style="font: 500 14px 'IBM Plex Mono', monospace; text-align: right; color: #ffffff">Lower · Upper · Lower</b></div><div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 14px; animation: lbIn .34s cubic-bezier(.2,.8,.2,1) 300ms both"><span style="color: #c9d3cf">Eat</span><b style="font: 500 14px 'IBM Plex Mono', monospace; text-align: right; color: #6fd0b4">1,595 kcal/day</b></div><div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 14px; animation: lbIn .34s cubic-bezier(.2,.8,.2,1) 360ms both"><span style="color: #c9d3cf">Cardio</span><b style="font: 500 14px 'IBM Plex Mono', monospace; text-align: right; color: #ffffff">440 kcal/week</b></div><div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 14px; animation: lbIn .34s cubic-bezier(.2,.8,.2,1) 420ms both"><span style="color: #c9d3cf">Protein</span><b style="font: 500 14px 'IBM Plex Mono', monospace; text-align: right; color: #ffffff">110–140 g/day</b></div>
+      </div>
+      <a href="Day1.dc.html" style="min-height: 52px; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 600; border-radius: 14px; background: #9fcfc1; color: #17201d; text-decoration: none; margin-top: 2px; animation: lbIn .34s cubic-bezier(.2,.8,.2,1) 480ms both">Start Day 1</a>
+    </section>
+  </sc-if>
+  <sc-if value="{{ closed }}" hint-placeholder-val="{{ false }}">
+    <button type="button" onClick="{{ reopen }}" style="position: absolute; left: 50%; bottom: 24px; transform: translateX(-50%); min-height: 44px; padding: 0 18px; border-radius: 999px; border: 1px dashed #2c3833; background: #1a2320; color: #97a6a0; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; animation: lbFade .3s ease both">Show summary again</button>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const st = this.state || {};
+    const phase = st.phase || 'open';
+    return {
+      open: phase !== 'closed',
+      closed: phase === 'closed',
+      bgHidden: phase === 'closed' ? 'false' : 'true',
+      sheetAnim: phase === 'closing' ? 'lbSheetOut .22s ease-in both' : 'lbSheet .4s cubic-bezier(.2,.8,.2,1) both',
+      dimAnim: phase === 'closing' ? 'lbFadeOut .22s ease-in both' : 'lbFade .3s ease both',
+      close: () => { this.setState({ phase: 'closing' }); setTimeout(() => this.setState({ phase: 'closed' }), 220); },
+      reopen: () => this.setState({ phase: 'open' })
+    };
+  }
+}
+</script>
+</body>
+</html>

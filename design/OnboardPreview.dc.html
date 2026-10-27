@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Lift Board · Setup with live preview</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap">
+<style>
+body{margin:0}
+@keyframes lbIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes lbInB{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes lbPop{from{opacity:0;transform:translateY(-6px) scale(.98)}to{opacity:1;transform:none}}
+@keyframes lbSheet{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:none}}
+@keyframes lbSheetOut{from{opacity:1;transform:none}to{opacity:0;transform:translateY(28px)}}
+@keyframes lbFade{from{opacity:0}to{opacity:1}}
+@keyframes lbFadeOut{from{opacity:1}to{opacity:0}}
+@keyframes lbCheck{0%{transform:scale(.7)}55%{transform:scale(1.18)}100%{transform:scale(1)}}
+@keyframes lbDraw{from{stroke-dashoffset:var(--len,60)}to{stroke-dashoffset:0}}
+button,a,input,section,span,div{transition:background-color .2s ease,border-color .2s ease,color .2s ease,box-shadow .2s ease,opacity .2s ease,transform .12s ease}
+button:active,a:active{transform:scale(.97)}
+@keyframes lbShine{0%{transform:translateX(-120%)}26%{transform:translateX(120%)}100%{transform:translateX(120%)}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-delay:0s!important;transition-duration:.01ms!important}}
+</style>
+</helmet>
+<div style="position: relative; width: 390px; height: 844px; overflow: hidden; background: #111715; color: #e6ece9; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 15px; line-height: 1.45; display: flex; flex-direction: column; animation: lbIn .38s cubic-bezier(.2,.8,.2,1) both">
+  <div style="padding: 20px 16px 12px; display: flex; flex-direction: column; gap: 12px; background: #111715">
+    <h1 style="margin: 0; font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif; font-weight: 700; font-size: 34px; line-height: 1; text-transform: uppercase">Set up</h1>
+    <div aria-live="polite" style="position: relative; overflow: hidden; background: #232e2a; color: #fff; border-radius: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.56); padding: 14px 16px; display: flex; flex-direction: column; gap: 6px">
+    <span aria-hidden="true" style="position: absolute; inset: 0; z-index: 0; pointer-events: none; border-radius: inherit; background: linear-gradient(105deg, transparent 30%, rgba(159, 207, 193, 0.10) 44%, rgba(255, 255, 255, 0.20) 50%, rgba(159, 207, 193, 0.10) 56%, transparent 70%); transform: translateX(-120%); animation: lbShine 5s ease-in-out 0.7s infinite"></span>
+      <span style="font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #9fcfc1">Your plan</span>
+      <sc-for list="{{ preview }}" as="p" hint-placeholder-count="4">
+        <div style="display: flex; justify-content: space-between; gap: 12px; font-size: 14px; padding: 2px 0 2px 8px; border-left: 2px solid {{ p.bar }}"><span style="color: #d9e0dd">{{ p.k }}</span><span style="font-family: 'IBM Plex Mono', monospace; font-weight: 500; color: {{ p.c }}; text-align: right">{{ p.v }}</span></div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="flex: 1; min-height: 0; overflow-y: auto; padding: 6px 16px 16px; display: flex; flex-direction: column; gap: 18px">
+    <sc-for list="{{ groups }}" as="g" hint-placeholder-count="4">
+      <section style="background: #1a2320; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px">
+        <h3 style="margin: 0; font-family: 'Barlow Condensed', sans-serif; font-size: 20px; text-transform: uppercase; letter-spacing: .03em">{{ g.title }}</h3>
+        <div role="radiogroup" aria-label="{{ g.title }}" style="display: grid; grid-template-columns: {{ g.cols }}; gap: 6px">
+          <sc-for list="{{ g.opts }}" as="o" hint-placeholder-count="3">
+            <button type="button" role="radio" aria-checked="{{ o.on }}" onClick="{{ o.pick }}" style="min-height: 44px; font: inherit; font-size: 14px; font-weight: {{ o.fw }}; border: 1px solid {{ o.bd }}; background: {{ o.bg }}; color: {{ o.fg }}; border-radius: 10px; padding: 8px 4px; cursor: pointer">{{ o.label }}</button>
+          </sc-for>
+        </div>
+      </section>
+    </sc-for>
+  </div>
+
+  <div style="padding: 12px 16px 24px; border-top: 1px solid #2c3833; background: #111715">
+    <a href="DoneSetup.dc.html" style="min-height: 52px; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 600; border-radius: 14px; background: #237a64; color: #fff; text-decoration: none">Save setup</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const st = Object.assign({ sport: 'Pickleball', season: 'Off-season', focus: 'Lower', goal: 'Recomp', sex: 'Female', last: null }, this.state || {});
+    const inS = st.season === 'In-season';
+    const split = inS ? 'Full Body A · B · C'
+      : st.focus === 'Lower' ? 'Lower · Upper · Lower'
+      : st.focus === 'Upper' ? 'Upper · Lower · Upper'
+      : 'Lower · Upper · Full';
+    const maint = { Female: 1845, Male: 2010, Other: 1930 }[st.sex];
+    const delta = { Deficit: -400, Recomp: -250, Build: 200 }[st.goal] + (inS ? 150 : 0);
+    const eat = (maint + delta).toLocaleString('en-US');
+    const protein = { Female: '110–140 g', Male: '120–150 g', Other: '115–145 g' }[st.sex];
+    const jump = inS ? 'Held' : st.sex === 'Male' ? '+10 lb' : '+5 lb';
+    const sets = inS ? '2 · weights held' : st.goal === 'Deficit' ? '3 · hold strength' : '3–4 · progressing';
+    const support = {
+      Pickleball: 'Calves · adductors · cuff', Tennis: 'Calves · adductors · cuff',
+      Running: 'Calves · hip stability', Soccer: 'Calves · adductors · hams',
+      Basketball: 'Calves · adductors · ankles', Other: 'Calves · core'
+    }[st.sport];
+    const hit = {
+      sport: ['Support lifts'],
+      season: ['Split', 'Sets', 'Support lifts', 'Eat', 'Lower-lift jump'],
+      focus: ['Split'],
+      goal: ['Eat', 'Sets'],
+      sex: ['Eat', 'Protein', 'Lower-lift jump']
+    }[st.last] || [];
+    const preview = [
+      ['Split', split], ['Sets', sets], ...(inS ? [['Support lifts', support]] : []), ['Eat', `${eat} kcal/day`], ['Protein', protein], ['Lower-lift jump', jump]
+    ].map(([k, v]) => {
+      const on = hit.indexOf(k) > -1;
+      return { k, v, c: on ? '#9fcfc1' : '#fff', bar: on ? '#9fcfc1' : 'transparent' };
+    });
+    const mk = (key, title, opts, cols) => ({
+      title,
+      cols: `repeat(${cols || opts.length}, minmax(0, 1fr))`,
+      opts: opts.map((label) => {
+        const on = st[key] === label;
+        return {
+          label, on: on ? 'true' : 'false', fw: on ? 600 : 400,
+          bd: on ? '#237a64' : '#2c3833', bg: on ? '#237a64' : '#111715', fg: on ? '#fff' : '#e6ece9',
+          pick: () => this.setState({ [key]: label, last: key })
+        };
+      })
+    });
+    return {
+      preview,
+      groups: [
+        mk('sport', 'Main sport', ['Pickleball', 'Tennis', 'Running', 'Soccer', 'Basketball', 'Other'], 3),
+        mk('season', 'Season', ['Off-season', 'In-season']),
+        mk('focus', 'Lifting focus', ['Lower', 'Balanced', 'Upper']),
+        mk('goal', 'Goal', ['Deficit', 'Recomp', 'Build']),
+        mk('sex', 'Body', ['Female', 'Male', 'Other'])
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

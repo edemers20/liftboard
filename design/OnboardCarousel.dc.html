@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Lift Board · Onboarding carousel</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#6fd0b4}a:hover{color:#e6ece9}
+@keyframes lbIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes lbInB{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes lbPop{from{opacity:0;transform:translateY(-6px) scale(.98)}to{opacity:1;transform:none}}
+@keyframes lbSheet{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:none}}
+@keyframes lbSheetOut{from{opacity:1;transform:none}to{opacity:0;transform:translateY(28px)}}
+@keyframes lbFade{from{opacity:0}to{opacity:1}}
+@keyframes lbFadeOut{from{opacity:1}to{opacity:0}}
+@keyframes lbCheck{0%{transform:scale(.7)}55%{transform:scale(1.18)}100%{transform:scale(1)}}
+@keyframes lbDraw{from{stroke-dashoffset:var(--len,60)}to{stroke-dashoffset:0}}
+button,a,input,section,span,div{transition:background-color .2s ease,border-color .2s ease,color .2s ease,box-shadow .2s ease,opacity .2s ease,transform .12s ease}
+button:active,a:active{transform:scale(.97)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-delay:0s!important;transition-duration:.01ms!important}}
+</style>
+</helmet>
+<div style="position: relative; width: 390px; height: 844px; overflow: hidden; background: #111715; color: #e6ece9; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 15px; line-height: 1.45; box-sizing: border-box; padding: 20px 16px 24px; display: flex; flex-direction: column; gap: 20px; animation: lbIn .38s cubic-bezier(.2,.8,.2,1) both">
+  <div style="display: flex; justify-content: space-between; align-items: center">
+    <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 22px; text-transform: uppercase; letter-spacing: .02em">Lift Board</span>
+    <a href="Setup.dc.html" style="min-height: 44px; display: inline-flex; align-items: center; padding: 0 4px; font-size: 14px; font-weight: 600; color: #97a6a0; text-decoration: none">Skip</a>
+  </div>
+
+  <div style="flex: 1; min-height: 0; background: linear-gradient(160deg, #1d3530, #111715 70%); border-radius: 24px; display: flex; align-items: center; justify-content: center; padding: 24px">
+    <sc-if value="{{ s1 }}" hint-placeholder-val="{{ true }}">
+      <div style="width: 100%; display: flex; flex-direction: column; gap: 14px; animation: lbIn .34s cubic-bezier(.2,.8,.2,1) both">
+        <div style="background: #1a2320; border-radius: 16px; padding: 16px; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.24); display: flex; flex-direction: column; gap: 10px">
+          <span style="font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #97a6a0">Main sport · Season</span>
+          <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px">
+            <span style="text-align: center; font-size: 16px; border: 1px solid #2c3833; background: #111715; border-radius: 10px; padding: 10px">Off-season</span>
+            <span style="text-align: center; font-size: 16px; font-weight: 600; border: 1px solid #237a64; background: #237a64; color: #fff; border-radius: 10px; padding: 10px">In-season</span>
+          </div>
+        </div>
+        <div aria-hidden="true" style="align-self: center; font-size: 22px; color: #6fd0b4">↓</div>
+        <div style="background: #232e2a; color: #fff; border-radius: 16px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4)">
+          <span style="font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #9fcfc1">Your days now</span>
+          <span style="font-size: 17px; font-weight: 600">Full Body A · Full Body B</span>
+          <span style="font-size: 13px; color: #d9e0dd">2 sets each · weights held · support lifts for your sport</span>
+        </div>
+      </div>
+    </sc-if>
+    <sc-if value="{{ s2 }}" hint-placeholder-val="{{ false }}">
+      <div style="width: 100%; display: flex; flex-direction: column; gap: 14px; animation: lbIn .34s cubic-bezier(.2,.8,.2,1) both">
+        <div style="background: #1a2320; border-radius: 16px; padding: 16px; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.24); display: flex; flex-direction: column; gap: 10px">
+          <span style="font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #97a6a0">Goal</span>
+          <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px">
+            <span style="text-align: center; font-size: 14px; border: 1px solid #2c3833; background: #111715; border-radius: 10px; padding: 10px 4px">Deficit</span>
+            <span style="text-align: center; font-size: 14px; font-weight: 600; border: 1px solid #237a64; background: #237a64; color: #fff; border-radius: 10px; padding: 10px 4px">Recomp</span>
+            <span style="text-align: center; font-size: 14px; border: 1px solid #2c3833; background: #111715; border-radius: 10px; padding: 10px 4px">Build</span>
+          </div>
+        </div>
+        <div style="background: #1a2320; border-radius: 16px; padding: 16px; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.24); display: flex; flex-direction: column; gap: 8px">
+          <p style="margin: 0; font-family: 'IBM Plex Mono', monospace; font-size: 15px"><strong style="font-size: 30px">1,595</strong> kcal/day to eat</p>
+          <div role="img" aria-label="Deficit split between activity and food" style="display: flex; height: 10px; border-radius: 5px; overflow: hidden; background: #2c3833"><div style="width: 32%; background: #b98f2a"></div><div style="width: 68%; background: #237a64"></div></div>
+          <p style="margin: 0; font-size: 13px; color: #6fd0b4; font-weight: 600">+85 kcal/day from extra sport sessions</p>
+        </div>
+      </div>
+    </sc-if>
+    <sc-if value="{{ s3 }}" hint-placeholder-val="{{ false }}">
+      <div style="width: 100%; display: flex; flex-direction: column; gap: 14px; animation: lbIn .34s cubic-bezier(.2,.8,.2,1) both">
+        <div style="background: #1a2320; border-radius: 16px; padding: 16px; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.24); display: flex; flex-direction: column; gap: 10px">
+          <span style="font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #97a6a0">Lifting focus</span>
+          <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px">
+            <span style="text-align: center; font-size: 14px; font-weight: 600; border: 1px solid #237a64; background: #237a64; color: #fff; border-radius: 10px; padding: 10px 4px">Lower</span>
+            <span style="text-align: center; font-size: 14px; border: 1px solid #2c3833; background: #111715; border-radius: 10px; padding: 10px 4px">Balanced</span>
+            <span style="text-align: center; font-size: 14px; border: 1px solid #2c3833; background: #111715; border-radius: 10px; padding: 10px 4px">Upper</span>
+          </div>
+        </div>
+        <div style="background: #1a2320; border-radius: 16px; padding: 8px 16px; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.24); display: flex; flex-direction: column">
+          <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #25302c"><span style="font-weight: 600">Day 1 · Lower</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #6fd0b4">+1 set</span></div>
+          <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #25302c"><span style="font-weight: 600">Day 2 · Upper</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #97a6a0">trimmed</span></div>
+          <div style="display: flex; justify-content: space-between; padding: 8px 0"><span style="font-weight: 600">Day 3 · Lower</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #6fd0b4">+1 set</span></div>
+        </div>
+      </div>
+    </sc-if>
+    <sc-if value="{{ s4 }}" hint-placeholder-val="{{ false }}">
+      <div style="width: 100%; display: flex; flex-direction: column; gap: 14px; animation: lbIn .34s cubic-bezier(.2,.8,.2,1) both">
+        <div style="background: #1a2320; border-radius: 16px; padding: 16px; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.24); display: flex; flex-direction: column; gap: 10px">
+          <span style="font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #97a6a0">Body</span>
+          <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px">
+            <span style="text-align: center; font-size: 14px; font-weight: 600; border: 1px solid #237a64; background: #237a64; color: #fff; border-radius: 10px; padding: 10px 4px">Female</span>
+            <span style="text-align: center; font-size: 14px; border: 1px solid #2c3833; background: #111715; border-radius: 10px; padding: 10px 4px">Male</span>
+            <span style="text-align: center; font-size: 14px; border: 1px solid #2c3833; background: #111715; border-radius: 10px; padding: 10px 4px">Other</span>
+          </div>
+        </div>
+        <div style="background: #1a2320; border-radius: 16px; padding: 14px 16px; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.24); display: flex; flex-direction: column; gap: 8px">
+          <p style="margin: 0; font-family: 'IBM Plex Mono', monospace; font-size: 14px"><span style="font-weight: 600; font-size: 11px; padding: 2px 6px; border-radius: 999px; margin-right: 6px; background: #1d3530; color: #6fd0b4">Up</span>Next time <strong style="font-size: 20px; color: #6fd0b4">140 lb</strong> · +5</p>
+          <p style="margin: 0; font-size: 14px">Protein <b>110–140 g</b> a day</p>
+          <p style="margin: 0; font-size: 14px">Maintenance <b>1,845 kcal</b></p>
+        </div>
+      </div>
+    </sc-if>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 6px; min-height: 150px">
+    <span style="font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #6fd0b4">{{ eyebrow }}</span>
+    <sc-if value="{{ s1 }}" hint-placeholder-val="{{ true }}">
+      <h1 style="animation: lbIn .3s cubic-bezier(.2,.8,.2,1) both; margin: 0; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 34px; line-height: 1; text-transform: uppercase; text-wrap: balance">Train for the season you're in</h1>
+      <p style="margin: 0; color: #97a6a0">Pick your main sport. Off-season builds strength; in-season drops to full-body days that hold your numbers while you play more.</p>
+    </sc-if>
+    <sc-if value="{{ s2 }}" hint-placeholder-val="{{ false }}">
+      <h1 style="animation: lbIn .3s cubic-bezier(.2,.8,.2,1) both; margin: 0; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 34px; line-height: 1; text-transform: uppercase; text-wrap: balance">Food and cardio do the math</h1>
+      <p style="margin: 0; color: #97a6a0">Choose deficit, recomp or build. Your eating target moves with whatever else you did this week.</p>
+    </sc-if>
+    <sc-if value="{{ s3 }}" hint-placeholder-val="{{ false }}">
+      <h1 style="animation: lbIn .3s cubic-bezier(.2,.8,.2,1) both; margin: 0; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 34px; line-height: 1; text-transform: uppercase; text-wrap: balance">Extra work goes where you want it</h1>
+      <p style="margin: 0; color: #97a6a0">Lower, upper or balanced decides your split and where bonus sets land.</p>
+    </sc-if>
+    <sc-if value="{{ s4 }}" hint-placeholder-val="{{ false }}">
+      <h1 style="animation: lbIn .3s cubic-bezier(.2,.8,.2,1) both; margin: 0; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 34px; line-height: 1; text-transform: uppercase; text-wrap: balance">Numbers that fit your body</h1>
+      <p style="margin: 0; color: #97a6a0">Sex, size and body fat set your metabolism, protein and how big each weight jump is.</p>
+    </sc-if>
+  </div>
+
+  <div style="display: flex; justify-content: center; gap: 8px" role="tablist" aria-label="Slides">
+    <sc-for list="{{ dots }}" as="d" hint-placeholder-count="4">
+      <button type="button" role="tab" aria-selected="{{ d.sel }}" aria-label="Slide {{ d.n }}" onClick="{{ d.go }}" style="width: 28px; height: 28px; padding: 0; border: 0; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center"><span style="transition: width .25s cubic-bezier(.2,.8,.2,1), background-color .2s ease; display: block; height: 8px; width: {{ d.w }}; border-radius: 4px; background: {{ d.c }}"></span></button>
+    </sc-for>
+  </div>
+
+  <div style="display: grid; grid-template-columns: {{ cols }}; gap: 10px">
+    <sc-if value="{{ hasBack }}" hint-placeholder-val="{{ false }}">
+      <button type="button" onClick="{{ back }}" style="min-height: 52px; font: inherit; font-size: 15px; font-weight: 600; border-radius: 14px; border: 1px solid #2c3833; background: #1a2320; color: #e6ece9; cursor: pointer">Back</button>
+    </sc-if>
+    <sc-if value="{{ notLast }}" hint-placeholder-val="{{ true }}">
+      <button type="button" onClick="{{ next }}" style="min-height: 52px; font: inherit; font-size: 15px; font-weight: 600; border-radius: 14px; border: 1px solid #237a64; background: #237a64; color: #fff; cursor: pointer">Next</button>
+    </sc-if>
+    <sc-if value="{{ isLast }}" hint-placeholder-val="{{ false }}">
+      <a href="Setup.dc.html" style="min-height: 52px; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 600; border-radius: 14px; background: #237a64; color: #fff; text-decoration: none">Set up my plan</a>
+    </sc-if>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const i = (this.state && this.state.i) || 0;
+    const names = ['Season', 'Goal', 'Lifting focus', 'Body'];
+    const go = (n) => this.setState({ i: Math.max(0, Math.min(3, n)) });
+    return {
+      s1: i === 0, s2: i === 1, s3: i === 2, s4: i === 3,
+      eyebrow: `${i + 1} of 4 · ${names[i]}`,
+      hasBack: i > 0,
+      notLast: i < 3,
+      isLast: i === 3,
+      cols: i > 0 ? '1fr 2fr' : '1fr',
+      back: () => go(i - 1),
+      next: () => go(i + 1),
+      dots: names.map((_, n) => ({ n: n + 1, sel: n === i ? 'true' : 'false', w: n === i ? '24px' : '8px', c: n === i ? '#237a64' : '#3a4743', go: () => go(n) }))
+    };
+  }
+}
+</script>
+</body>
+</html>

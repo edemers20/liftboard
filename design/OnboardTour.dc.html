@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Lift Board · Guided tour</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#6fd0b4}a:hover{color:#e6ece9}
+@keyframes lbIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes lbInB{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes lbPop{from{opacity:0;transform:translateY(-6px) scale(.98)}to{opacity:1;transform:none}}
+@keyframes lbSheet{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:none}}
+@keyframes lbSheetOut{from{opacity:1;transform:none}to{opacity:0;transform:translateY(28px)}}
+@keyframes lbFade{from{opacity:0}to{opacity:1}}
+@keyframes lbFadeOut{from{opacity:1}to{opacity:0}}
+@keyframes lbCheck{0%{transform:scale(.7)}55%{transform:scale(1.18)}100%{transform:scale(1)}}
+@keyframes lbDraw{from{stroke-dashoffset:var(--len,60)}to{stroke-dashoffset:0}}
+button,a,input,section,span,div{transition:background-color .2s ease,border-color .2s ease,color .2s ease,box-shadow .2s ease,opacity .2s ease,transform .12s ease}
+button:active,a:active{transform:scale(.97)}
+@keyframes lbShine{0%{transform:translateX(-120%)}26%{transform:translateX(120%)}100%{transform:translateX(120%)}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-delay:0s!important;transition-duration:.01ms!important}}
+</style>
+</helmet>
+<div style="position: relative; width: 390px; height: 844px; overflow: hidden; background: #111715; color: #e6ece9; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 15px; line-height: 1.45; box-sizing: border-box; padding: 16px; display: flex; flex-direction: column; gap: 12px; animation: lbIn .38s cubic-bezier(.2,.8,.2,1) both">
+
+  <div aria-live="polite" style="position: relative; overflow: hidden; z-index: 12; background: #232e2a; color: #fff; border-radius: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.56); padding: 12px 16px; display: flex; flex-direction: column; gap: 4px">
+    <span aria-hidden="true" style="position: absolute; inset: 0; z-index: 0; pointer-events: none; border-radius: inherit; background: linear-gradient(105deg, transparent 30%, rgba(159, 207, 193, 0.10) 44%, rgba(255, 255, 255, 0.20) 50%, rgba(159, 207, 193, 0.10) 56%, transparent 70%); transform: translateX(-120%); animation: lbShine 5s ease-in-out 0.7s infinite"></span>
+    <span style="font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #9fcfc1">Your plan</span>
+    <sc-for list="{{ plan }}" as="p" hint-placeholder-count="3">
+      <div style="display: flex; justify-content: space-between; gap: 12px; font-size: 13px; padding: 1px 0 1px 8px; border-left: 2px solid {{ p.bar }}"><span style="color: #d9e0dd; flex: 0 0 auto">{{ p.k }}</span><span style="font-family: 'IBM Plex Mono', monospace; font-weight: 500; color: {{ p.c }}; text-align: right">{{ p.v }}</span></div>
+    </sc-for>
+  </div>
+
+  <nav style="display: flex; gap: 6px; overflow: hidden" aria-label="Tabs">
+    <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="5">
+      <span style="flex: 0 0 auto; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 17px; letter-spacing: .04em; text-transform: uppercase; border: 1px solid {{ t.bd }}; background: {{ t.bg }}; color: {{ t.fg }}; padding: 7px 13px; border-radius: 999px">{{ t.name }}</span>
+    </sc-for>
+  </nav>
+  <h2 style="margin: 0; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 26px; line-height: 1.1; text-transform: uppercase; letter-spacing: .02em">{{ page }}</h2>
+
+  <sc-for list="{{ cards }}" as="c" hint-placeholder-count="2">
+    <section style="animation: {{ c.anim }}; position: relative; z-index: {{ c.z }}; background: #1a2320; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px; box-shadow: {{ c.ring }}">
+      <h3 style="margin: 0; font-family: 'Barlow Condensed', sans-serif; font-size: 20px; text-transform: uppercase; letter-spacing: .03em">{{ c.title }}</h3>
+      <sc-for list="{{ c.groups }}" as="g" hint-placeholder-count="1">
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <sc-if value="{{ g.hasLabel }}" hint-placeholder-val="{{ true }}"><span style="font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #97a6a0">{{ g.label }}</span></sc-if>
+          <div role="radiogroup" aria-label="{{ g.label }}" style="display: grid; grid-template-columns: {{ g.cols }}; gap: 6px">
+            <sc-for list="{{ g.opts }}" as="o" hint-placeholder-count="3">
+              <button type="button" role="radio" aria-checked="{{ o.on }}" onClick="{{ o.pick }}" style="min-height: 44px; font: inherit; font-size: 14px; font-weight: {{ o.fw }}; border: 1px solid {{ o.bd }}; background: {{ o.bg }}; color: {{ o.fg }}; border-radius: 10px; padding: 8px 4px; cursor: pointer">{{ o.label }}</button>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+      <sc-for list="{{ c.rows }}" as="r" hint-placeholder-count="2">
+        <div style="display: flex; justify-content: space-between; gap: 12px; font-size: 14px"><span style="color: #97a6a0">{{ r.k }}</span><span style="font-family: 'IBM Plex Mono', monospace; font-weight: 500; color: {{ r.c }}">{{ r.v }}</span></div>
+      </sc-for>
+    </section>
+  </sc-for>
+
+  <div aria-hidden="true" style="position: absolute; inset: 0; z-index: 10; background: rgba(0, 0, 0, 0.6)"></div>
+
+  <div role="dialog" aria-label="Tour" style="animation: lbSheet .32s cubic-bezier(.2,.8,.2,1) both; position: absolute; left: 16px; right: 16px; bottom: 24px; z-index: 12; background: #232e2a; color: #fff; border-radius: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.56); padding: 16px; display: flex; flex-direction: column; gap: 8px">
+    <div style="display: flex; justify-content: space-between; align-items: center">
+      <span style="font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #9fcfc1">{{ eyebrow }}</span>
+      <a href="OnboardPreview.dc.html" style="min-height: 44px; margin: -12px -4px; display: inline-flex; align-items: center; padding: 0 4px; font-size: 13px; font-weight: 600; color: #d9e0dd; text-decoration: none">Skip tour</a>
+    </div>
+    <p style="animation: {{ stepAnim }}; margin: 0; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 24px; line-height: 1.05; text-transform: uppercase">{{ title }}</p>
+    <p style="animation: {{ stepAnim }}; margin: 0 0 4px; font-size: 14px; color: #d9e0dd">{{ text }}</p>
+    <div style="display: grid; grid-template-columns: {{ cols }}; gap: 10px">
+      <sc-if value="{{ hasBack }}" hint-placeholder-val="{{ false }}">
+        <button type="button" onClick="{{ back }}" style="min-height: 52px; font: inherit; font-size: 15px; font-weight: 600; border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.25); background: transparent; color: #fff; cursor: pointer">Back</button>
+      </sc-if>
+      <sc-if value="{{ notLast }}" hint-placeholder-val="{{ true }}">
+        <button type="button" onClick="{{ next }}" style="min-height: 52px; font: inherit; font-size: 15px; font-weight: 600; border-radius: 14px; border: 0; background: #9fcfc1; color: #17201d; cursor: pointer">Next</button>
+      </sc-if>
+      <sc-if value="{{ isLast }}" hint-placeholder-val="{{ false }}">
+        <a href="OnboardPreview.dc.html" style="min-height: 52px; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 600; border-radius: 14px; background: #9fcfc1; color: #17201d; text-decoration: none">Finish setup</a>
+      </sc-if>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const st = Object.assign({ i: 0, sport: 'Pickleball', season: 'Off-season', goal: 'Recomp', focus: 'Lower', sex: 'Female', last: null }, this.state || {});
+    const i = st.i;
+    const A = '#237a64', AT = '#6fd0b4', M = '#e6ece9', MINT = '#9fcfc1';
+    const inS = st.season === 'In-season';
+    const sportWord = st.sport === 'Other' ? 'sport' : st.sport.toLowerCase();
+
+    // Plan values (illustrative; real numbers come from the engine)
+    const split = inS ? 'Full Body A · B'
+      : st.focus === 'Lower' ? 'Lower · Upper · Lower'
+      : st.focus === 'Upper' ? 'Upper · Lower · Upper'
+      : 'Lower · Upper · Full';
+    const sets = inS ? '2 · weights held' : st.goal === 'Deficit' ? '3 · hold strength' : '3–4 · progressing';
+    const support = {
+      Pickleball: 'Calves · adductors · cuff', Tennis: 'Calves · adductors · cuff',
+      Running: 'Calves · hip stability', Soccer: 'Calves · adductors · hams',
+      Basketball: 'Calves · adductors · ankles', Other: 'Calves · core'
+    }[st.sport];
+    const maint = { Female: 1845, Male: 2010, Other: 1930 }[st.sex];
+    const eat = (maint + { Deficit: -400, Recomp: -250, Build: 200 }[st.goal] + (inS ? 150 : 0)).toLocaleString('en-US');
+    const jump = inS ? 'Held' : st.sex === 'Male' ? '+10 lb' : '+5 lb';
+    const protein = { Female: '110–140 g', Male: '120–150 g', Other: '115–145 g' }[st.sex];
+
+    const rows = [
+      { k: 'Split', v: split, from: 0, by: ['season', 'focus'] },
+      { k: 'Sets', v: sets, from: 0, by: ['season', 'goal'] },
+      { k: 'Support lifts', v: support, from: 0, by: ['season', 'sport'], show: inS },
+      { k: 'Eat', v: `${eat} kcal/day`, from: 1, by: ['season', 'goal', 'sex'] },
+      { k: 'Check-in', v: 'Adjusts each week', from: 2, by: [] },
+      { k: 'Lower-lift jump', v: jump, from: 3, by: ['season', 'sex'] },
+      { k: 'Protein', v: protein, from: 4, by: ['sex'] }
+    ];
+    const plan = rows.filter((r) => r.from <= i && r.show !== false).map((r) => {
+      const on = (st.last && r.by.indexOf(st.last) > -1) || (!st.last && r.from === i);
+      return { k: r.k, v: r.v, c: on ? MINT : '#fff', bar: on ? MINT : 'transparent' };
+    });
+
+    const chips = (key, label, opts, cols) => ({
+      label, hasLabel: !!label,
+      cols: `repeat(${cols || opts.length}, minmax(0, 1fr))`,
+      opts: opts.map((o) => {
+        const on = st[key] === o;
+        return { label: o, on: on ? 'true' : 'false', fw: on ? 600 : 400,
+          bd: on ? A : '#2c3833', bg: on ? A : '#111715', fg: on ? '#fff' : M,
+          pick: () => this.setState({ [key]: o, last: key }) };
+      })
+    });
+    const lastW = 140;
+    const nextW = inS ? `${lastW} lb · Hold` : `${lastW + (st.sex === 'Male' ? 10 : 5)} lb · Up`;
+
+    const steps = [
+      { tab: 'Season', page: 'Season', name: 'Season', title: 'Your season sets the split',
+        text: 'Pick your main sport. Off-season builds strength; in-season moves to full-body days, holds weights and adds support work for that sport.',
+        cards: [
+          { title: 'Season', hi: true, groups: [
+            chips('sport', 'Main sport', ['Pickleball', 'Tennis', 'Running', 'Soccer', 'Basketball', 'Other'], 3),
+            chips('season', 'Season', ['Off-season', 'In-season'])] },
+          { title: 'Goal', rows: [['Goal', st.goal]] } ] },
+      { tab: 'Season', page: 'Season', name: 'Goal', title: 'Pick a goal, the math follows',
+        text: `Deficit, recomp or build sets your food target and how much cardio fills the gap. Extra ${sportWord} sessions shift both.`,
+        cards: [
+          { title: 'Goal', hi: true, groups: [chips('goal', '', ['Deficit', 'Recomp', 'Build'])] },
+          { title: 'Main lifts', rows: [['Hip thrust', '140 lb'], ['RDL', '95 lb']] } ] },
+      { tab: 'This week', page: 'This week', name: 'Check-in', title: 'Your week adjusts itself',
+        text: 'Readiness, soreness, drinks, cycle phase and a heavy sport week add up. Past a threshold, sets drop or the day gets shorter.',
+        cards: [
+          { title: "How you're doing", hi: true, rows: [['Readiness', 'Low'], ['Cycle', 'Luteal'], ['This week', '−1 set on main lifts']] },
+          { title: 'Other activity', rows: [[st.sport === 'Other' ? 'Sport' : st.sport, '2 sessions']] } ] },
+      { tab: 'Day 1', page: 'Day 1', name: 'Lifting', title: 'Log sets, get the next weight',
+        text: 'Focus decides where extra sets land. Hit the top of the range and the weight goes up; miss the bottom twice and it rebuilds.',
+        cards: [
+          { title: 'Lifting focus', hi: true, groups: [chips('focus', '', ['Lower', 'Balanced', 'Upper'])],
+            rows: [['Hip thrust', `${lastW} lb × 10`], ['Next time', nextW]] },
+          { title: 'Leg curl', rows: [['Plan', '3 × 10–15']] } ] },
+      { tab: 'Setup', page: 'Setup', name: 'Body', title: 'Your body sets the numbers',
+        text: 'Sex, height and weight change your metabolism, protein target and how big each weight jump is.',
+        cards: [
+          { title: 'Body', hi: true, groups: [chips('sex', '', ['Female', 'Male', 'Other'])],
+            rows: [['Height', '5′3″'], ['Weight', '138 lb']] } ] }
+    ];
+    const s = steps[i];
+    const n = steps.length;
+    const go = (k) => this.setState({ i: Math.max(0, Math.min(n - 1, k)), last: null });
+    return {
+      plan,
+      page: s.page,
+      eyebrow: `${i + 1} of ${n} · ${s.name}`,
+      title: s.title,
+      text: s.text,
+      tabs: ['Season', 'This week', 'Day 1', 'Sport', 'Setup'].map((t) => {
+        const on = t === s.tab;
+        return { name: t, bd: on ? A : '#2c3833', bg: on ? A : '#1a2320', fg: on ? '#fff' : M };
+      }),
+      stepAnim: `${i % 2 ? 'lbIn' : 'lbInB'} .28s cubic-bezier(.2,.8,.2,1) both`,
+      cards: s.cards.map((c) => ({
+        anim: `${i % 2 ? 'lbIn' : 'lbInB'} .32s cubic-bezier(.2,.8,.2,1) both`,
+        title: c.title,
+        z: c.hi ? 11 : 1,
+        ring: c.hi ? '0 0 0 3px #9fcfc1, 0 10px 30px rgba(0, 0, 0, 0.56)' : 'none',
+        groups: c.hi ? (c.groups || []) : [],
+        rows: (c.rows || []).map(([k, v]) => ({ k, v, c: c.hi && (k === 'Next time' || k === 'This week') ? AT : M }))
+      })),
+      hasBack: i > 0,
+      notLast: i < n - 1,
+      isLast: i === n - 1,
+      cols: i > 0 ? '1fr 2fr' : '1fr',
+      back: () => go(i - 1),
+      next: () => go(i + 1)
+    };
+  }
+}
+</script>
+</body>
+</html>

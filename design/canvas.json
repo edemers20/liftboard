@@ -1,0 +1,141 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "Day1.dc.html": {
+      "h": 844,
+      "title": "Day 1 \u00b7 workout",
+      "w": 390,
+      "x": 470,
+      "y": 0,
+      "is_interactive": true
+    },
+    "Main.dc.html": {
+      "h": 844,
+      "title": "This week",
+      "w": 390,
+      "x": 0,
+      "y": 0,
+      "is_interactive": true
+    },
+    "Pickle.dc.html": {
+      "h": 760,
+      "title": "Pickleball",
+      "w": 390,
+      "x": 1880,
+      "y": 0,
+      "is_interactive": true
+    },
+    "Season.dc.html": {
+      "h": 1660,
+      "title": "Season",
+      "w": 390,
+      "x": 940,
+      "y": 0,
+      "is_interactive": true
+    },
+    "Setup.dc.html": {
+      "h": 1300,
+      "title": "Setup (first run)",
+      "w": 390,
+      "x": 1410,
+      "y": 0,
+      "is_interactive": true
+    },
+    "OnboardCarousel.dc.html": {
+      "x": 0,
+      "y": 2060,
+      "w": 390,
+      "h": 844,
+      "title": "Option A \u00b7 Carousel",
+      "is_interactive": true
+    },
+    "OnboardTour.dc.html": {
+      "x": 470,
+      "y": 2060,
+      "w": 390,
+      "h": 844,
+      "title": "Option B \u00b7 Guided tour",
+      "is_interactive": true
+    },
+    "OnboardPreview.dc.html": {
+      "x": 940,
+      "y": 2060,
+      "w": 390,
+      "h": 844,
+      "title": "Option C \u00b7 Live preview in setup",
+      "is_interactive": true
+    },
+    "DoneSetup.dc.html": {
+      "x": 0,
+      "y": 3260,
+      "w": 390,
+      "h": 844,
+      "title": "Setup saved",
+      "is_interactive": true
+    },
+    "DoneDay.dc.html": {
+      "x": 470,
+      "y": 3260,
+      "w": 390,
+      "h": 844,
+      "title": "Day done",
+      "is_interactive": true
+    },
+    "DoneWeek.dc.html": {
+      "x": 940,
+      "y": 3260,
+      "w": 390,
+      "h": 844,
+      "title": "Week done",
+      "is_interactive": true
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-10-26T22:52:00Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {
+    "view": "canvas"
+  },
+  "notes": {
+    "baseline": {
+      "kind": "title1",
+      "maxW": 2270,
+      "text": "Lift Board \u00b7 current UI (baseline to redesign)",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "onboarding": {
+      "x": 0,
+      "y": 1760,
+      "text": "Onboarding options",
+      "kind": "title1",
+      "maxW": 1330
+    },
+    "done": {
+      "x": 0,
+      "y": 2960,
+      "text": "Completion screens",
+      "kind": "title1",
+      "maxW": 1330
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "Day1.dc.html",
+    "Season.dc.html",
+    "Setup.dc.html",
+    "Pickle.dc.html",
+    "OnboardCarousel.dc.html",
+    "OnboardTour.dc.html",
+    "OnboardPreview.dc.html",
+    "DoneSetup.dc.html",
+    "DoneDay.dc.html",
+    "DoneWeek.dc.html"
+  ],
+  "pages": [],
+  "title": "Lift Board Redesign"
+}
