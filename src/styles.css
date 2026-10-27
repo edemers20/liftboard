@@ -403,3 +403,8 @@ body.resting #profileBox #profSave,body.resting #setupSave{bottom:calc(66px + en
 #view.stacked > .plan.stack{padding-bottom:28px}
 #view.stacked > .stack:last-of-type{padding-bottom:16px}
 #view.stacked > .foot,#view.stacked > #newWeek{margin-top:14px !important;position:relative;z-index:0}
+#view.stacked > .stack{transition:top .25s var(--ease)}
+#view.stacked > .stack.gone{position:relative}
+#view.stacked > .stack.covered{cursor:pointer}
+#view.stacked > .stack.covered *{pointer-events:none}
+#view.stacked.measuring > .stack{position:relative !important;top:auto !important;transition:none}

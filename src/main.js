@@ -373,35 +373,64 @@ function render(){
   coachSoon();
 }
 /* ---------- Stacked cards on Season and This week ----------
-   Each card sticks under the tabs a header-strip lower than the one before, so earlier
-   cards stay visible as a stack of titles while the next one slides up over them.
-   A card taller than the room left sticks by its bottom edge instead, so none of it is hidden. */
-let stackRO=null, stackRaf=0;
-const STACK_TABS=["week","season"];
+   Cards stick under the tabs and the next one slides up over them, leaving title strips.
+   Only the last STACK_MAX titles stay stacked; older ones scroll away so the page keeps room.
+   Tap a stacked title to jump back to that card. A card taller than the space left sticks by
+   its bottom edge while it is the current card, so none of it is hidden. */
+const STACK_TABS=["week","season"], STACK_MAX=2;
+let stackRO=null, stackRaf=0, ST=null;
 function stackCards(){
   const v=document.getElementById("view");
   const on=STACK_TABS.includes(cur)&&wk.setupDone;
   v.classList.toggle("stacked",on);
   if(stackRO){ stackRO.disconnect(); stackRO=null; }
-  if(!on){ v.querySelectorAll(".stack").forEach(c=>{ c.classList.remove("stack"); c.style.top=c.style.zIndex=""; }); return; }
+  ST=null;
+  if(!on) return;
   const cards=[...v.children].filter(c=>c.matches(".panel,.plan"));
-  cards.forEach((c,i)=>{ c.classList.add("stack"); c.style.zIndex=i+1; c.style.setProperty("--dp",Math.min(i*9,60)+"%"); });
-  layoutStack();
-  if(window.ResizeObserver){ stackRO=new ResizeObserver(()=>{ cancelAnimationFrame(stackRaf); stackRaf=requestAnimationFrame(layoutStack); }); cards.forEach(c=>stackRO.observe(c)); }
+  cards.forEach((c,i)=>{ c.addEventListener("transitionend",e=>{ if(e.propertyName==="top"&&ST) updateStack(); }); c.classList.add("stack"); c.style.zIndex=i+1; c.style.setProperty("--dp",Math.min(i*9,60)+"%");
+    c.addEventListener("click",e=>{ if(!c.classList.contains("covered")) return; e.preventDefault(); e.stopPropagation(); stackJump(i); },true); });
+  ST={cards}; measureStack();
+  if(window.ResizeObserver){ stackRO=new ResizeObserver(()=>{ cancelAnimationFrame(stackRaf); stackRaf=requestAnimationFrame(measureStack); }); cards.forEach(c=>stackRO.observe(c)); }
 }
-function layoutStack(){
-  const v=document.getElementById("view"); if(!v.classList.contains("stacked")) return;
-  const tabs=document.getElementById("tabs"), vh=window.innerHeight;
-  let top=(parseFloat(getComputedStyle(tabs).top)||0)+tabs.offsetHeight+4;
-  v.querySelectorAll(":scope > .stack").forEach(c=>{
-    const h=c.offsetHeight, first=c.firstElementChild;
-    const strip=first?Math.min(64,first.offsetTop+first.offsetHeight+10):44;
-    c.style.top=(h>vh-top-12?vh-h-12:top)+"px";
-    top+=strip;
+function measureStack(){
+  if(!ST) return; const v=document.getElementById("view"), tabs=document.getElementById("tabs");
+  let pad=v.querySelector(":scope > .stackpad"); if(!pad){ pad=document.createElement("div"); pad.className="stackpad"; pad.setAttribute("aria-hidden","true"); v.appendChild(pad); }
+  pad.style.height="0px"; v.classList.add("measuring");
+  const y=window.scrollY;
+  ST.nat=ST.cards.map(c=>c.getBoundingClientRect().top+y);
+  ST.h=ST.cards.map(c=>c.offsetHeight);
+  ST.strip=ST.cards.map(c=>{ const f=c.firstElementChild; return f?Math.min(64,f.offsetTop+f.offsetHeight+10):44; });
+  v.classList.remove("measuring");
+  ST.tabsH=(parseFloat(getComputedStyle(tabs).top)||0)+tabs.offsetHeight+4;
+  ST.thr=ST.cards.map((_,i)=>{ let t=ST.tabsH; for(let k=Math.max(0,i-STACK_MAX);k<i;k++) t+=ST.strip[k]; return t; });
+  /* room at the bottom so the last card can still slide up into place */
+  const L=ST.cards.length-1, need=ST.nat[L]-ST.thr[L], max=document.documentElement.scrollHeight-window.innerHeight;
+  if(L>0&&need>max) pad.style.height=Math.ceil(need-max)+"px";
+  updateStack();
+}
+function updateStack(){
+  if(!ST||!ST.nat) return;
+  const y=window.scrollY, vh=window.innerHeight, n=ST.cards.length;
+  let c=0; for(let i=0;i<n;i++) if(ST.nat[i]-y<=ST.thr[i]+1) c=i;
+  const first=Math.max(0,c-STACK_MAX);
+  let t=ST.tabsH;
+  ST.cards.forEach((card,i)=>{
+    card.classList.toggle("gone",i<first); card.classList.toggle("covered",i>=first&&i<c);
+    let top;
+    if(i<first) top=null;
+    else if(i<c){ top=t; t+=ST.strip[i]; }
+    else { top=i===c?t:ST.thr[i]; if(ST.h[i]>vh-top-12) top=vh-ST.h[i]-12; }
+    card.style.top=top==null?"":top+"px";
   });
+  /* trim each card where the next one covers it, so a tall card's lower half never peeks out below a shorter one */
+  const R=ST.cards.map(c=>c.getBoundingClientRect());
+  ST.cards.forEach((card,i)=>{ const nx=R[i+1]; const hide=nx?R[i].bottom-nx.top-20:0;
+    card.style.clipPath=hide>0?`inset(0 0 ${Math.round(hide)}px 0)`:""; });
 }
-window.addEventListener("resize",()=>{ cancelAnimationFrame(stackRaf); stackRaf=requestAnimationFrame(layoutStack); });
-document.addEventListener("toggle",e=>{ if(e.target.matches&&e.target.matches(".stack")) layoutStack(); },true);
+function stackJump(i){ if(!ST) return; window.scrollTo({top:Math.max(0,ST.nat[i]-ST.thr[i]),behavior:"smooth"}); }
+window.addEventListener("scroll",()=>{ if(ST){ cancelAnimationFrame(stackRaf); stackRaf=requestAnimationFrame(updateStack); } },{passive:true});
+window.addEventListener("resize",()=>{ cancelAnimationFrame(stackRaf); stackRaf=requestAnimationFrame(measureStack); });
+document.addEventListener("toggle",e=>{ if(e.target.matches&&e.target.matches(".stack")) measureStack(); },true);
 /* ---------- First-visit tab tips: one short popup per tab type, then never again ---------- */
 const coachKey=id=>DAYS.some(d=>d.id===id)?"day":id==="season"&&!wk.setupDone?"setup":id;
 function coachText(id){
