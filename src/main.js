@@ -7,8 +7,9 @@ init(storage);
 setSaveHook(ok=>{ document.getElementById("saved").textContent= ok?"Saved":"Not saved (storage blocked)"; });
 let cur="week";
 try{ const t=localStorage.getItem(KEY+".tab"); if(t) cur=t; }catch(e){}
-const actTabs=()=>ACT_IDS.filter(a=>a!=="lift"&&!ACT[a].noMin&&enabled(a));
-const TABS=()=>["season","week",...DAYS.map(d=>d.id),...actTabs()];
+const actTabs=()=>ACT_IDS.filter(a=>a!=="lift"&&enabled(a)&&(!ACT[a].noMin||cnt(a)>0));
+const rampOn=()=>hasSport()&&!inSeason()&&wk.ramp==="Yes";
+const TABS=()=>["season","week",...DAYS.map(d=>d.id),...(rampOn()?["zone2"]:[]),...actTabs()];
 if(!wk.setupDone) cur="season";
 const hsh=location.hash.slice(1); if(TABS().includes(hsh)) cur=hsh; if(!TABS().includes(cur)) cur="week";
 
@@ -123,7 +124,7 @@ function dialCfg(el){
   return null;
 }
 /* ---------- Rendering ---------- */
-function tabName(id){ if(id==="week") return "This week"; if(id==="season") return wk.setupDone?"Season":"Setup"; if(ACT[id]) return ACT[id].name; return DAYS.find(d=>d.id===id).tab; }
+function tabName(id){ if(id==="week") return "This week"; if(id==="zone2") return "Zone 2"; if(id==="season") return wk.setupDone?"Season":"Setup"; if(ACT[id]) return ACT[id].name; return DAYS.find(d=>d.id===id).tab; }
 function renderTabs(P){
   const t=document.getElementById("tabs");
   t.innerHTML=TABS().map(id=>{
@@ -165,7 +166,7 @@ function renderSeason(P){
   const H=(wk.weeks||[]).slice().reverse();
   const seasonBox=hasSport()?`${seg("season","Season",["Off-season","In-season"])}
     ${inS?"":toggle("ramp","Season starts in ≤6 weeks")}
-    ${!inS&&wk.ramp==="Yes"?`<div class="list">${rows("zAct",1,45,perMin(CARDIO["Bike (steady)"].met),"Zone 2 session")}</div>`:""}`:`<p class="note">Pick a main sport in Profile to use seasons.</p>`;
+`:`<p class="note">Pick a main sport in Profile to use seasons.</p>`;
   return `<div class="dayhead"><h2>Season</h2></div>
   ${planHTML(P)}
   <div class="panel">${hdr("Season",["season","ramp","deload"])}
@@ -233,9 +234,19 @@ function renderWeek(P){
 /* ---------- Day: one focused exercise at a time ---------- */
 const exDone=(d,D,i)=>{ const s=d.slots[i], A=D.slots[i]; if(A.skip) return true; if(D.done) return true; const st=get(d.id,i); return s.cardio?!!st.cdone:(st.log||[]).filter(x=>x.d).length>=A.sets; };
 const exCands=(d,D)=>d.slots.map((_,i)=>i).filter(i=>!D.slots[i].skip);
+function skipWhy(A){
+  const k=A.skip||"";
+  if(A.flag) return A.flag;
+  if(k==="Trimmed · no supersets") return "Cut to fit without supersets. Turn supersets on or pick 75 min to keep it.";
+  if(k.startsWith("Trimmed for a 45")) return "Cut to fit 45 min. Pick 60 min or more to keep it.";
+  if(k.startsWith("Trimmed for a 30")) return "Cut to fit 30 min. Pick 45 min or more to keep it.";
+  if(k==="Not needed this week") return "Your cardio target is already covered.";
+  if(k.startsWith("Skipped · ")) return `Skipped for ${k.slice(10)}.`;
+  return k;
+}
 function activeIdx(d,D){
   const c=exCands(d,D), a=(wk.active||{})[d.id];
-  if(c.includes(a)) return a;
+  if(a!=null&&d.slots[a]&&D.slots[a]&&D.slots[a].skip!=="hidden") return a;
   return c.find(i=>!exDone(d,D,i)) ?? c[c.length-1];
 }
 const nextIdx=(d,D,i)=>exCands(d,D).find(j=>j>i&&!exDone(d,D,j)) ?? exCands(d,D).find(j=>!exDone(d,D,j)&&j!==i);
@@ -254,17 +265,19 @@ function renderDayHTML(d,P){
   d.slots.forEach((s,i)=>{
     const st=get(d.id,i), A=D.slots[i], base=`${d.id}-${i}`;
     if(A.skip==="hidden") return;
-    if(A.skip){ html+=`<div class="exrow skip"><span class="label">${s.label}</span><span class="exname">${esc(A.flag||A.skip)}</span></div>`; return; }
+    if(A.skip&&i!==act){ const lg=(st.log||[]).filter(x=>x.d).length, dn=s.cardio?!!st.cdone:lg>=(A.sets||1);
+      html+=`<button type="button" class="exrow opt${dn?" done":""}" data-ex="${i}" aria-label="Optional: ${esc(exName(d,s,i))}"><span class="label">${s.label} · optional</span><span class="mk" aria-hidden="true">${dn?"✓":"›"}</span><span class="exname">${esc(exName(d,s,i))}</span><span class="why">${esc(skipWhy(A))}</span></button>`; return; }
     if(i!==act){ const dn=exDone(d,D,i);
       html+=`<button type="button" class="exrow${dn?" done":""}" data-ex="${i}" aria-label="${dn?"Done":"Start"} ${esc(exName(d,s,i))}"><span class="label">${s.label}${s.ss&&wk.ss!=="No"?` · ${s.ss}`:""}</span><span class="mk" aria-hidden="true">${dn?"✓":"›"}</span><span class="exname">${esc(exName(d,s,i))}</span></button>`; return; }
     const choice=st.choice ?? s.opts[0], isCustom=choice===CUSTOM;
     const opts=[...s.opts,CUSTOM].map(o=>`<option${o===choice?" selected":""}>${esc(o)}</option>`).join("");
     const log=st.log||[], ticks=log.filter(x=>x.d).length, fin=s.cardio?!!st.cdone||D.done:ticks>=A.sets;
     const nRows=Math.max(A.sets||0,log.length);
-    const pill=s.cardio?(D.done?`~${r5(A.doneK||0)} kcal`:`${A.min} min`):fin?"Done":`Set ${Math.min(ticks+1,A.sets)} of ${A.sets}`;
+    const pill=s.cardio?(D.done?`~${r5(A.doneK||0)} kcal`:A.min?`${A.min} min`:"Optional"):fin?"Done":`Set ${Math.min(ticks+1,A.sets)} of ${A.sets}`;
     html+=`<section class="slot cur${s.ss&&wk.ss!=="No"?" ss":""}${fxOnce.slot===base?" justdone":""}" aria-current="step">
       <div class="row1"><span class="label hdr">${s.label}${s.ss&&wk.ss!=="No"?` · Superset ${s.ss}`:""}</span><span class="pill">${pill}</span></div>
       ${s.cardio?"":`<div class="bars" style="--n:${nRows}" aria-hidden="true">${Array.from({length:nRows},(_,k)=>`<i class="${k<ticks?"on":k===ticks&&!fin?"now":""}"></i>`).join("")}</div>`}
+      ${A.skip?`<p class="adj"><b>Optional</b> · ${esc(skipWhy(A))}</p>`:""}
       <select id="sel-${base}" data-i="${i}" aria-label="${esc(s.label)} exercise">${opts}</select>
       <input id="cus-${base}" class="custom${isCustom?" on":""}" data-i="${i}" placeholder="Exercise name" value="${esc(st.custom||"")}">`;
     if(s.cardio){
@@ -283,7 +296,7 @@ function renderDayHTML(d,P){
     }
     html+=`</section>`;
   });
-  return html+`</div><button class="btn primary" id="doneBtn" type="button">${D.done?"✓ Day done":"Mark day done"}</button>`;
+  return html+`</div><button class="btn primary" id="doneBtn" type="button"${D.done?' disabled aria-disabled="true"':""}>${D.done?"✓ Day done":"Mark day done"}</button>`;
 }
 /* ---------- Small sheets: today's plan for an exercise, and next time after it ---------- */
 let sheetT=null;
@@ -296,7 +309,7 @@ function closeSheet(){ const el=document.getElementById("sheet"); if(!el||el.hid
 const XBTN=`<button type="button" class="dx" data-x aria-label="Close"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M2 2l10 10M12 2L2 12"/></svg></button>`;
 function planSheet(id,i){
   const d=DAYS.find(x=>x.id===id); if(!d) return;
-  const P=plan(), s=d.slots[i], A=P.days[id].slots[i]; if(A.skip) return;
+  const P=plan(), s=d.slots[i], A=P.days[id].slots[i]; if(A.skip&&s.cardio) return;
   const t=s.cardio?null:suggest(d,s,i,false,P), why=s.cardio?(A.steady?`Easy pace · ${A.steady}`:A.flag||""):whyTxt(A);
   const main=s.cardio?`${A.min} min · ~${r5(A.kcal||0)} kcal`:`${A.sets} × ${esc(s.reps)}${t?` · start ${t.w} lb`:""}`;
   showSheet(`<div class="shgrid"><span class="plab">Today's plan · ${esc(s.label)}</span><button type="button" class="shbtn" data-x>Begin</button><span class="shmain">${main}</span>${why?`<span class="shsub">${esc(why)}</span>`:""}</div>`);
@@ -316,7 +329,10 @@ function rows(key,n,pl,rate,label,noK){
   return h;
 }
 function renderAct(a){
+  if(a==="zone2") return `<div class="dayhead"><h2>Zone 2</h2></div><div class="panel">${hdr("Pre-season ramp",["ramp"])}<p class="note">One easy 45-minute session this week: bike, incline walk or rower at a pace you could talk through. It builds the aerobic base that keeps you fresh once the season starts.</p></div>
+  <div class="list">${rows("zAct",1,45,perMin(CARDIO["Bike (steady)"].met),"Zone 2 session")}</div>`;
   const n=cnt(a), A=ACT[a];
+  if(A.noMin) return `<div class="dayhead"><h2>${A.name}</h2></div><div class="panel">${hdr("This week",[a])}${stepper(a,"Sessions",[0,1,2,3,4,5])}<p class="note">Each session counts as about ${A.min} minutes toward cardio. Pulling and arm work on lift days is trimmed so you're not doubling up.</p></div>`;
   if(a==="yoga") return `<div class="dayhead"><h2>Yoga</h2></div><div class="panel" style="margin-top:12px">${hdr("This week",["yoga","ymin","heated"])}${stepper("yoga","Sessions",[0,1,2,3])}${stepper("ymin","Class length",[45,60,75,90],"min")}${toggle("heated","Heated")}</div>
   <div class="list" style="margin-top:12px">${rows("yAct",n,num(wk.ymin,60),perMin(YOGA_MET[wk.heated]||2.8),"Class")}</div>`;
   if(a==="spin") return `<div class="dayhead"><h2>Spin</h2></div><div class="panel" style="margin-top:12px">${hdr("This week",["spin","spint"])}${stepper("spin","Sessions",[0,1,2,3])}${seg("spint","Intensity",["Hard","Really hard"])}</div>
@@ -330,7 +346,7 @@ function render(){
   const P=plan(); renderTabs(P);
   const v=document.getElementById("view");
   document.getElementById("foot").hidden=!DAYS.some(d=>d.id===cur);
-  v.innerHTML=cur==="week"?renderWeek(P):cur==="season"?renderSeason(P):ACT[cur]?renderAct(cur):renderDayHTML(DAYS.find(d=>d.id===cur),P);
+  v.innerHTML=cur==="week"?renderWeek(P):cur==="season"?renderSeason(P):(ACT[cur]||cur==="zone2")?renderAct(cur):renderDayHTML(DAYS.find(d=>d.id===cur),P);
   if(cur!==lastCur){ v.classList.remove("enter"); void v.offsetWidth; v.classList.add("enter"); lastCur=cur; }
   if(fxOnce.seg){ const b=v.querySelector(`.seg[data-key="${fxOnce.seg[0]}"] button[data-v="${CSS.escape(fxOnce.seg[1])}"]`); if(b) b.classList.add("pressed"); }
   fxOnce={};
@@ -454,13 +470,14 @@ function bind(){
     if(!x.d){ fxOnce.chk=`${cur}-${i}-${k}`; const A=plan().days[cur].slots[i]; if((get(cur,i).log||[]).filter(z=>z.d).length===A.sets){ fxOnce.slot=`${cur}-${i}`; finished=true; } }
     render(); if(finished) nextSheet(cur,i); });
   v.querySelectorAll(".addset").forEach(b=>b.onclick=()=>{ const i=+b.dataset.i, log=(get(cur,i).log||[]).slice(), A=plan().days[cur].slots[i]; while(log.length<A.sets) log.push({}); log.push({}); set(cur,i,"log",log); render(); });
-  const db=document.getElementById("doneBtn"); if(db) db.onclick=()=>{ const id=cur, was=!!(wk.done||{})[id], n=setsLogged(id); markDone(id); render(); if(!was) dayDone(id,n); else toast(["Day reopened"]); };
+  const db=document.getElementById("doneBtn"); if(db) db.onclick=()=>{ const id=cur; if((wk.done||{})[id]) return; const n=setsLogged(id); markDone(id); render(); dayDone(id,n); };
   const nw=document.getElementById("newWeek"); if(nw) nw.onclick=()=>{ const P=plan(), s={lifts:DAYS.filter(d=>(wk.done||{})[d.id]).length,planned:DAYS.length,cardio:r5(P.math.cardioTotal)}; newWeek(); render(); weekDone(s); };
   v.querySelectorAll(".seg[data-key]").forEach(g=>g.querySelectorAll("button").forEach(b=>b.onclick=()=>{
     const k=g.dataset.key, raw=b.dataset.v; fxOnce.seg=[k,raw];
     if(inProf(g)){ stage(k,raw); return; }
     if(!wk.setupDone){ wk[k]=(k==="days"||k==="time")?+raw:raw; if(k==="mainSport"&&!raw) wk.season="Off-season"; save(); render(); return; }
     if(k==="today"){ const Pa=plan(); wk.today={...(wk.today||{}),[cur]:raw}; save(); const Pb=plan(); render(); toast(dayDiff(Pa,Pb,cur)); return; }
+    if(k==="ramp"){ change(()=>{ wk.ramp=raw; }); if(raw==="Yes") toast(["Pre-season ramp","One 45-min zone 2 session added. It has its own Zone 2 tab."],6000); return; }
     change(()=>{
       wk[k]=(k==="days"||k==="time")?+raw:raw;
       if(k==="mainSport"&&!raw) wk.season="Off-season";
@@ -583,6 +600,6 @@ document.getElementById("rest").onclick=()=>{clearInterval(restT);document.getEl
 document.getElementById("toast").onclick=()=>{document.getElementById("toast").classList.remove("show");};
 document.getElementById("resetDay").onclick=()=>resetConfirm(true);
 document.getElementById("cancelReset").onclick=()=>resetConfirm(false);
-document.getElementById("confirmReset").onclick=()=>{ delete slots[cur]; save(); render(); resetConfirm(false); };
+document.getElementById("confirmReset").onclick=()=>{ if((wk.done||{})[cur]) markDone(cur); delete slots[cur]; save(); render(); resetConfirm(false); toast(["Day reset","Logs cleared and the day is open again."]); };
 render();
 if((!wk.setupDone&&!wk.tourDone)||location.hash==='#tour') openTour();

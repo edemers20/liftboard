@@ -337,3 +337,9 @@ input.dialin{cursor:pointer;caret-color:transparent}
 .pgroup + .pgroup{border-top:1px solid var(--line)}
 .twelcome .tbtns{margin-top:16px}
 .twelcome .tbtns .tb{margin-top:0}
+/* optional exercises and finished days */
+.exrow.opt{background:transparent;border:1px dashed var(--line)}
+.exrow.opt .label{color:var(--muted)}
+.exrow.opt .exname{color:#c9d3cf}
+.exrow .why{grid-column:1;font-size:12px;color:var(--muted);margin-top:2px}
+#doneBtn:disabled{opacity:1;cursor:default;transform:none}
