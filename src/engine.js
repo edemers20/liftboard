@@ -46,6 +46,7 @@ const ACT={
  golf:{name:"Golf",sport:1,met:4.3,leg:0.5,sh:1,min:240},
  hockey:{name:"Hockey",sport:1,met:8,leg:2,min:60},
  yoga:{name:"Yoga",cls:1},
+ pilates:{name:"Pilates",cls:1,met:3.0,min:50},
  spin:{name:"Spin",cls:1}
 };
 const ACT_IDS=Object.keys(ACT), SPORTS=ACT_IDS.filter(a=>ACT[a].sport);
@@ -306,6 +307,7 @@ function plan(){
   const sess=(n,act,pl,rate)=>{let k=0;for(let i=0;i<n;i++)k+=num((act||[])[i],pl)*rate;return k;};
   let sportK=0; sportOn.forEach(([a,m])=>{ sportK+=m*perMin(ACT[a].met); });
   const climbK=cl*75*perMin(ACT.climb.met);
+  const pilK=sess(cnt("pilates"),wk[actKey("pilates")],plannedMin("pilates"),perMin(ACT.pilates.met));
   const yogaK=sess(yg,wk.yAct,num(wk.ymin,60),perMin(YOGA_MET[wk.heated]||2.8));
   const spinK=sess(sp,wk.sAct,SPIN_MIN,perMin(SPIN_MET[wk.spint]||8.5));
   const zoneK=ramp?num((wk.zAct||[])[0],45)*perMin(CARDIO["Bike (steady)"].met):0;
@@ -314,7 +316,7 @@ function plan(){
       const act=num(get(d.id,i).act,0);
       if(done[d.id]){ const k=act>0?act*A.rate:done[d.id]; doneK+=k; P.days[d.id].done=k||0.001; A.doneK=k; return; }
       if(!A.skip){A.day=d.id;cand.push(A);} }); });
-  const otherK=sportK+climbK+yogaK+spinK+zoneK;
+  const otherK=sportK+climbK+yogaK+pilK+spinK+zoneK;
   const need=cardioTarget-otherK-doneK;
   const order=["d2","fb","x","u3","d1","fa","lf","fc","g2","d3"];
   cand.sort((p,q)=>order.indexOf(p.day)-order.indexOf(q.day));

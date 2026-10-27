@@ -89,7 +89,7 @@ Score = sum of:
 - **Weekly deficit:** target rate × 3,500. Recomp caps the rate at 0.5 lb/week and the cardio share at 25%. Build has no deficit, eats +200, and adds a set to main lifts.
 - **Cardio target:** deficit × cardio share.
 - **Sources:**
-  - Planned sport, climbing, yoga, spin and the pre-season zone 2 session count first.
+  - Planned sport, climbing, yoga, pilates (3.0 MET, 50-min default class), spin and the pre-season zone 2 session count first.
   - Finishers fill the gap, spread across the remaining lift days, up to the session-length cap.
   - Activity beyond plan shortens later finishers.
 - **Food:** whatever the deficit cardio doesn't cover. If activity covers it all, food flips to eating above baseline, which protects muscle.

@@ -94,3 +94,11 @@ describe("toasts only fire on real changes", () => {
 describe("your plan", () => {
   it("exposes the protein range per lb of bodyweight", () => { expect(fresh({ weight: 138 }).math.protein).toEqual([110, 140]); });
 });
+
+describe("pilates", () => {
+  it("counts classes toward this week's cardio", () => {
+    const a = fresh({ acts: { lift: true, pilates: true }, pilates: "0" });
+    const b = fresh({ acts: { lift: true, pilates: true }, pilates: "2" });
+    expect(b.math.otherK - a.math.otherK).toBeGreaterThan(0);
+  });
+});
