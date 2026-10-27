@@ -7,7 +7,7 @@ init(storage);
 setSaveHook(ok=>{ document.getElementById("saved").textContent= ok?"Saved":"Not saved (storage blocked)"; });
 let cur="week";
 try{ const t=localStorage.getItem(KEY+".tab"); if(t) cur=t; }catch(e){}
-const actTabs=()=>ACT_IDS.filter(a=>a!=="lift"&&enabled(a)&&(!ACT[a].noMin||cnt(a)>0));
+const actTabs=()=>ACT_IDS.filter(a=>a!=="lift"&&enabled(a));
 const rampOn=()=>hasSport()&&!inSeason()&&wk.ramp==="Yes";
 const TABS=()=>["season","week",...DAYS.map(d=>d.id),...(rampOn()?["zone2"]:[]),...actTabs()];
 if(!wk.setupDone) cur="season";
@@ -63,8 +63,8 @@ function seg(key,label,opts,val,solo){ const v=val!==undefined?val:wk[key];
 function stepper(key,label,vals,unit,val){ const v=String(val!==undefined?val:wk[key]), arr=vals.map(String); let i=arr.indexOf(v); if(i<0) i=0;
   const b=(d,lab,sym)=>{ const j=i+d; return j<0||j>=arr.length?`<button type="button" disabled aria-label="${lab}">${sym}</button>`:`<button type="button" data-v="${arr[j]}" aria-label="${lab} to ${arr[j]}${unit?" "+unit:""}">${sym}</button>`; };
   return `<div class="q"><span>${label}</span><div class="seg stepper" data-key="${key}">${b(-1,"Decrease","−")}<output aria-live="polite">${arr[i]}${unit?`<small> ${unit}</small>`:""}</output>${b(1,"Increase","+")}</div></div>`; }
-function toggle(key,label,val){ const on=String(val!==undefined?val:wk[key])==="Yes";
-  return `<div class="q tgl"><span id="tg-${key}">${label}</span><div class="seg toggle" data-key="${key}"><button type="button" role="switch" aria-checked="${on}" aria-labelledby="tg-${key}" data-v="${on?"No":"Yes"}"><i aria-hidden="true"></i></button></div></div>`; }
+function toggle(key,label,val,onV="Yes",offV="No"){ const on=String(val!==undefined?val:wk[key])===onV;
+  return `<div class="q tgl"><span id="tg-${key}">${label}</span><div class="seg toggle" data-key="${key}"><button type="button" role="switch" aria-checked="${on}" aria-labelledby="tg-${key}" data-v="${on?offV:onV}"><i aria-hidden="true"></i></button></div></div>`; }
 function fld(key,label,mode,ph,cls,val){ return `<label class="field${cls?" "+cls:""}" for="${key}"><span>${label}</span><input id="${key}" data-w="${key}" inputmode="${mode||"numeric"}" placeholder="${ph||""}" value="${esc((val!==undefined?val:wk[key])??"")}"></label>`; }
 
 function draftDirty(){ return !!draft&&Object.keys(draft).some(k=>JSON.stringify(draft[k])!==JSON.stringify(wk[k])); }
@@ -129,7 +129,7 @@ const themeOf=id=>DAYS.some(d=>d.id===id)?"th-green":(ACT[id]||id==="zone2")?"th
 function renderTabs(P){
   const t=document.getElementById("tabs");
   t.innerHTML=TABS().map(id=>{
-    const off=ACT[id]?!cnt(id):false, nx=id===P.nextId;
+    const off=false, nx=id===P.nextId;
     return `<button class="tab ${themeOf(id)}${off?" off":""}${nx?" nx":""}" role="tab" type="button" aria-selected="${id===cur}" data-id="${id}">${(wk.done||{})[id]?"✓ ":""}${tabName(id)}</button>`;}).join("");
   t.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{closeSheet();closeCoach(true);cur=b.dataset.id;try{localStorage.setItem(KEY+".tab",cur)}catch(e){};closePop();render();resetConfirm(false);window.scrollTo(0,0);});
 }
@@ -143,10 +143,10 @@ function profileHTML(withGoal,src){
   return `<div class="pgroups">${G(`${hdr("Activities",["acts","mainSport",...(hs?["season"]:[])])}
   <div class="seg">${ACT_IDS.map(a=>`<button type="button" class="actt" data-actt="${a}" aria-pressed="${en(a)}">${ACT[a].name}</button>`).join("")}</div>`)}
   ${sports.length?G(`${seg("mainSport","Main sport",[["","None"],...sports.map(a=>[a,ACT[a].name])],src.mainSport)}
-  ${withGoal&&hs?seg("season","Season",["Off-season","In-season"]):""}`):""}
+  ${withGoal&&hs?toggle("season","In-season",src.season,"In-season","Off-season"):""}`):""}
   ${en("lift")?G(`${hdr("Lifting",["focus"])}${seg("focus","Focus",[["Lower","Lower body"],["Balanced","Balanced"],["Upper","Upper body"]],src.focus)}`):""}
   ${withGoal?G(`${hdr("Goal",["mode"])}${seg("mode","Goal",["Deficit only","Recomp","Build"])}`):""}
-  ${G(`${hdr("Body",["sex","age","height","weight","bf","steps","oura"])}
+  ${G(`${hdr("Bio Data",["sex","age","height","weight","bf","steps","oura"])}
   ${seg("sex","Sex",["Female","Male","Other"],src.sex)}
   <div class="nums">${F("age","Age")}${F("height","Height (in)","decimal")}${F("weight","Weight (lb)","decimal")}${F("bf","Body fat %","decimal","optional")}${F("steps","Steps / day")}${F("oura","Daily burn","numeric","optional")}</div>`)}</div>`;
 }
@@ -165,7 +165,7 @@ function renderSeason(P){
   const fmt=t=>new Date(t).toLocaleDateString(undefined,{month:"short",day:"numeric"});
   const names=Object.keys(exHist).filter(n=>(exHist[n]||[]).length);
   const H=(wk.weeks||[]).slice().reverse();
-  const seasonBox=hasSport()?`${seg("season","Season",["Off-season","In-season"])}
+  const seasonBox=hasSport()?`${toggle("season","In-season",undefined,"In-season","Off-season")}
     ${inS?"":toggle("ramp","Season starts in ≤6 weeks")}
 `:`<p class="note">Pick a main sport in Profile to use seasons.</p>`;
   return `<div class="dayhead"><h2>Season</h2></div>
@@ -267,7 +267,7 @@ function renderDayHTML(d,P){
     const st=get(d.id,i), A=D.slots[i], base=`${d.id}-${i}`;
     if(A.skip==="hidden") return;
     if(A.skip&&i!==act){ const lg=(st.log||[]).filter(x=>x.d).length, dn=s.cardio?!!st.cdone:lg>=(A.sets||1);
-      html+=`<button type="button" class="exrow opt${dn?" done":""}" data-ex="${i}" aria-label="Optional: ${esc(exName(d,s,i))}"><span class="label">${s.label} · optional</span><span class="mk" aria-hidden="true">${dn?"✓":"›"}</span><span class="exname">${esc(exName(d,s,i))}</span><span class="why">${esc(skipWhy(A))}</span></button>`; return; }
+      html+=`<button type="button" class="exrow opt${dn?" done":""}" data-ex="${i}" aria-label="Optional: ${esc(exName(d,s,i))}"><span class="label">${s.label} · optional</span><span class="mk" aria-hidden="true">${dn?"✓":"›"}</span><span class="exname">${esc(exName(d,s,i))}</span></button>`; return; }
     if(i!==act){ const dn=exDone(d,D,i);
       html+=`<button type="button" class="exrow${dn?" done":""}" data-ex="${i}" aria-label="${dn?"Done":"Start"} ${esc(exName(d,s,i))}"><span class="label">${s.label}${s.ss&&wk.ss!=="No"?` · ${s.ss}`:""}</span><span class="mk" aria-hidden="true">${dn?"✓":"›"}</span><span class="exname">${esc(exName(d,s,i))}</span></button>`; return; }
     const choice=st.choice ?? s.opts[0], isCustom=choice===CUSTOM;
@@ -278,7 +278,6 @@ function renderDayHTML(d,P){
     html+=`<section class="slot cur${s.ss&&wk.ss!=="No"?" ss":""}${fxOnce.slot===base?" justdone":""}" aria-current="step">
       <div class="row1"><span class="label hdr">${s.label}${s.ss&&wk.ss!=="No"?` · Superset ${s.ss}`:""}</span><span class="pill">${pill}</span></div>
       ${s.cardio?"":`<div class="bars" style="--n:${nRows}" aria-hidden="true">${Array.from({length:nRows},(_,k)=>`<i class="${k<ticks?"on":k===ticks&&!fin?"now":""}"></i>`).join("")}</div>`}
-      ${A.skip?`<p class="adj"><b>Optional</b> · ${esc(skipWhy(A))}</p>`:""}
       <select id="sel-${base}" data-i="${i}" aria-label="${esc(s.label)} exercise">${opts}</select>
       <input id="cus-${base}" class="custom${isCustom?" on":""}" data-i="${i}" placeholder="Exercise name" value="${esc(st.custom||"")}">`;
     if(s.cardio){
@@ -321,7 +320,7 @@ function nextSheet(id,i){
   showSheet(`<div class="shtop"><span class="plab">${esc(exName(d,s,i))} · done</span>${XBTN}</div>
     ${g?`<p class="shline">${tagH(g.tag)}<span>Next time <b>${g.w} lb</b> · ${esc(g.why)}</span></p>`:""}
     ${n!=null?`<button type="button" class="shbtn wide" id="upNext">Up next: ${esc(exName(d,d.slots[n],n))}</button>`:""}`,
-    el=>{ const b=el.querySelector("#upNext"); if(b) b.onclick=()=>{ wk.active={...(wk.active||{}),[id]:n}; save(); render(); planSheet(id,n); }; });
+    el=>{ const b=el.querySelector("#upNext"); if(b) b.onclick=()=>{ wk.active={...(wk.active||{}),[id]:n}; save(); render(); }; });
 }
 function rows(key,n,pl,rate,label,noK){
   let h=""; if(key==="zAct") INFO.zAct="One easy 45-minute session during the pre-season ramp: bike, incline walk or rower at a pace you could talk through. It builds the aerobic base that keeps you fresh in-season.";
@@ -513,9 +512,9 @@ function bind(){
     const go=()=>{ storage.setItem(KEY,o.slots||"{}"); storage.setItem(KEY2,o.wk); storage.setItem(KEY3,o.hist||"{}"); location.reload(); };
     if(wk.setupDone) askSure({title:"Replace your data",text:"Everything on this device is replaced with the pasted data.",ok:"Replace",onOk:go}); else go(); };
   const rp=document.getElementById("resetProfile"); if(rp) rp.onclick=()=>askSure({title:"Reset profile",text:"This erases your setup, logs and lift history on this device and starts over from the welcome screen. Copy your data first if you want to keep it.",ok:"Erase and start over",onOk:()=>{ [KEY,KEY2,KEY3,KEY+".tab"].forEach(k=>{ try{ localStorage.removeItem(k); }catch(e){} }); location.hash=""; location.reload(); }});
-  v.querySelectorAll(".exrow[data-ex]").forEach(b=>b.onclick=()=>{ const i=+b.dataset.ex; wk.active={...(wk.active||{}),[cur]:i}; save(); render(); planSheet(cur,i); });
+  v.querySelectorAll(".exrow[data-ex]").forEach(b=>b.onclick=()=>{ const i=+b.dataset.ex; wk.active={...(wk.active||{}),[cur]:i}; save(); render(); });
   v.querySelectorAll(".cdone").forEach(b=>b.onclick=()=>{ const i=+b.dataset.i, A=plan().days[cur].slots[i], st=get(cur,i); if(!st.act&&A.min) set(cur,i,"act",String(A.min)); set(cur,i,"cdone",true); fxOnce.slot=`${cur}-${i}`;
-    const d=DAYS.find(x=>x.id===cur), n=nextIdx(d,plan().days[cur],i); if(n!=null){ wk.active={...(wk.active||{}),[cur]:n}; save(); } render(); if(n!=null) planSheet(cur,n); });
+    const d=DAYS.find(x=>x.id===cur), n=nextIdx(d,plan().days[cur],i); if(n!=null){ wk.active={...(wk.active||{}),[cur]:n}; save(); } render(); });
   const pb=document.getElementById("profileBox"); if(pb) pb.ontoggle=()=>{ wk.openBase=pb.open; save(); };
   v.querySelectorAll("input[data-set]").forEach(el=>{ el.oninput=()=>logSet(+el.dataset.i,+el.dataset.set,el.dataset.f,el.value); el.onchange=()=>render(); });
   v.querySelectorAll(".chk").forEach(b=>b.onclick=()=>{ const i=+b.dataset.i,k=+b.dataset.set, x=(get(cur,i).log||[])[k]||{};
@@ -574,8 +573,8 @@ function tourSet(k,v){
 function tstep(key,label,vals,unit){ const v=String(wk[key]), arr=vals.map(String); let i=arr.indexOf(v); if(i<0) i=0;
   const b=(d,lab,sym)=>{ const j=i+d; return j<0||j>=arr.length?`<button type="button" disabled aria-label="${lab}">${sym}</button>`:`<button type="button" data-tk="${key}" data-v="${arr[j]}" aria-label="${lab} to ${arr[j]}">${sym}</button>`; };
   return `<div class="q tq"><span>${label}</span><div class="seg stepper">${b(-1,"Decrease","−")}<output>${arr[i]}${unit?`<small> ${unit}</small>`:""}</output>${b(1,"Increase","+")}</div></div>`; }
-function ttoggle(key,label){ const on=wk[key]==="Yes";
-  return `<div class="q tgl"><span id="tt-${key}">${label}</span><div class="seg toggle"><button type="button" role="switch" aria-checked="${on}" aria-labelledby="tt-${key}" data-tk="${key}" data-v="${on?"No":"Yes"}"><i aria-hidden="true"></i></button></div></div>`; }
+function ttoggle(key,label,onV="Yes",offV="No"){ const on=wk[key]===onV;
+  return `<div class="q tgl"><span id="tt-${key}">${label}</span><div class="seg toggle"><button type="button" role="switch" aria-checked="${on}" aria-labelledby="tt-${key}" data-tk="${key}" data-v="${on?offV:onV}"><i aria-hidden="true"></i></button></div></div>`; }
 function tchips(key,opts,val,cols){ return `<div class="seg tseg" role="radiogroup" style="grid-template-columns:repeat(${cols||opts.length},minmax(0,1fr))">${opts.map(([v,l])=>`<button type="button" role="radio" data-tk="${key}" data-v="${v}" aria-checked="${String(val)===String(v)}" aria-pressed="${String(val)===String(v)}">${l}</button>`).join("")}</div>`; }
 function renderTour(focus){
   const el=document.getElementById("tour"), P=plan(), i=tour.i, inS=inSeason();
@@ -588,7 +587,7 @@ function renderTour(focus){
   const S=[
    {tab:"Season",page:"Season",name:"Season",title:"Your split",
     text:"Pick your main sport and specify if you're in- or off-season. This determines the cadence for progressive overload and any accessory work.",
-    body:card("Season",`${lbl("Main sport")}${tchips("sport",[["","None"],...SPORTS.map(a=>[a,ACT[a].name])],hasSport()?wk.mainSport:"",3)}${hasSport()?`${lbl("Season")}${tchips("season",[["Off-season","Off-season"],["In-season","In-season"]],wk.season)}`:""}`,1)+card("Goal",rowsH([["Goal",wk.mode]]))},
+    body:card("Season",`${lbl("Main sport")}${tchips("sport",[["","None"],...SPORTS.map(a=>[a,ACT[a].name])],hasSport()?wk.mainSport:"",3)}${hasSport()?`${ttoggle("season","In-season","In-season","Off-season")}`:""}`,1)+card("Goal",rowsH([["Goal",wk.mode]]))},
    {tab:"Season",page:"Season",name:"Goal",title:"Pick a goal",
     text:"The goal, combined with your body settings, structures the cardio portion of lift days.",
     body:card("Goal",tchips("mode",[["Deficit only","Deficit"],["Recomp","Recomp"],["Build","Build"]],wk.mode),1)},
@@ -599,13 +598,13 @@ function renderTour(focus){
    {tab:"Day 1",page:"Day 1",name:"Lifting goals",title:"Specify lifting goals",
     text:"Hit the top or miss the bottom of your rep range to see future lifts adjust based on your goals.",
     body:card("Lifting focus",`${tchips("focus",[["Lower","Lower body"],["Balanced","Balanced"],["Upper","Upper body"]],wk.focus)}${rowsH([["Hip thrust · 4 × 6–10","140 lb × 10"],["Next time",inS?"140 lb · Hold":`${140+inc} lb · Up`,1]])}`,1)},
-   {tab:"Season",page:"Profile",name:"Body",title:"Tailor to your biometrics",
+   {tab:"Season",page:"Profile",name:"Bio Data",title:"Tailor to your biometrics",
     text:"Set your bio data to see how things affect your metabolism, protein target & progressive overload.",
-    body:card("Body",`${tchips("sex",[["Female","Female"],["Male","Male"],["Other","Other"]],wk.sex)}<div class="nums two">${tin("height","Height (in)")}${tin("weight","Weight (lb)")}</div>`,1)}
+    body:card("Bio Data",`${tchips("sex",[["Female","Female"],["Male","Male"],["Other","Other"]],wk.sex)}<div class="nums two">${tin("height","Height (in)")}${tin("weight","Weight (lb)")}</div>`,1)}
   ];
   if(i>=5){
     el.innerHTML=`<div class="twelcome" role="dialog" aria-modal="true" aria-labelledby="tTitle">
-      <h2 id="tTitle" tabindex="-1">You know you best</h2>
+      <h2 id="tTitle" tabindex="-1">I don't know you</h2>
       <p>You may not realize it, but all these things go into your ability to perform and improve over time. But I'm not a doctor. So try it out, but at the end of the day, you know yourself the best.</p>
       <p>Good luck!</p>
       <p class="wsig">Emma</p>

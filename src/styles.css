@@ -116,8 +116,8 @@ details.panel > summary::-webkit-details-marker{display:none}
 #pop b{color:var(--mint)}
 #pop p{margin:0}
 .field.sm input{max-width:120px}
-.seg .actt{font:inherit;font-size:14px;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:8px;padding:6px 11px;cursor:pointer}
-.seg .actt[aria-pressed="true"]{background:var(--accent-fill);border-color:var(--accent-fill);color:var(--on-accent);font-weight:600}
+.seg .actt{font:inherit;font-size:14px;border:1px solid transparent;background:var(--bg);color:var(--fg);border-radius:8px;padding:6px 11px;cursor:pointer}
+.seg .actt[aria-pressed="true"]{background:var(--accent-fill);border-color:transparent;color:var(--on-accent);font-weight:600}
 #setupSave,#profSave,#newWeek,#doneBtn{width:100%;min-height:52px;border-radius:14px;font-size:15px}
 /* Your plan */
 .plan{background:var(--card);color:#fff;border-radius:16px;box-shadow:var(--shadow);padding:12px 16px;display:grid;gap:3px}
@@ -323,7 +323,7 @@ input.dialin{cursor:pointer;caret-color:transparent}
 .dialsheet .dx path{stroke:#fff;stroke-width:2;stroke-linecap:round}
 .wheelwrap{position:relative;height:200px}
 .wband{position:absolute;left:0;right:0;top:80px;height:40px;border-radius:10px;background:rgba(var(--mint-rgb),.12);pointer-events:none}
-.wheel{position:relative;height:200px;overflow-y:auto;scroll-snap-type:y mandatory;scrollbar-width:none;overscroll-behavior:contain;outline:none;-webkit-mask-image:linear-gradient(transparent,#000 30%,#000 70%,transparent);mask-image:linear-gradient(transparent,#000 30%,#000 70%,transparent)}
+.wheel{position:relative;height:200px;overflow-y:auto;overflow-x:hidden;touch-action:pan-y;overscroll-behavior-x:none;scroll-snap-type:y mandatory;scrollbar-width:none;overscroll-behavior:contain;outline:none;-webkit-mask-image:linear-gradient(transparent,#000 30%,#000 70%,transparent);mask-image:linear-gradient(transparent,#000 30%,#000 70%,transparent)}
 .wheel::-webkit-scrollbar{display:none}
 .wheel:focus-visible{box-shadow:inset 0 0 0 2px var(--mint);border-radius:10px}
 .wpad{height:80px}
@@ -367,8 +367,8 @@ input.dialin{cursor:pointer;caret-color:transparent}
 /* first-visit tab tips */
 @keyframes lbRing{0%,100%{box-shadow:0 0 0 3px rgba(var(--mint-rgb),.9)}50%{box-shadow:0 0 0 6px rgba(var(--mint-rgb),.35)}}
 .tab.coached{animation:lbRing 1.6s ease-in-out infinite;position:relative;z-index:6}
-#coach{position:fixed;z-index:35;box-sizing:border-box;background:var(--card);color:#fff;border:1px solid rgba(255,255,255,.06);border-radius:16px;box-shadow:var(--shadow);padding:12px 14px 12px 16px;display:grid;gap:8px;animation:lbPop .22s var(--ease) both;transform-origin:var(--ax,50%) top}
-#coach::before{content:"";position:absolute;top:-6px;left:calc(var(--ax,50%) - 6px);width:12px;height:12px;background:var(--card);border-left:1px solid rgba(255,255,255,.06);border-top:1px solid rgba(255,255,255,.06);transform:rotate(45deg)}
+#coach{position:fixed;z-index:35;box-sizing:border-box;background:var(--card);color:#fff;border:0;border-radius:16px;box-shadow:var(--shadow);padding:12px 14px 12px 16px;display:grid;gap:8px;animation:lbPop .22s var(--ease) both;transform-origin:var(--ax,50%) top}
+#coach::before{content:"";position:absolute;top:-6px;left:calc(var(--ax,50%) - 6px);width:12px;height:12px;background:var(--card);transform:rotate(45deg)}
 #coach p{margin:0;font-size:14px;line-height:1.45;color:var(--tx3)}
 #coach .shbtn{justify-self:end;min-height:40px}
 #coach.out{animation:lbPopOut .16s ease-in both}
@@ -386,3 +386,4 @@ body.resting #profileBox #profSave,body.resting #setupSave{bottom:calc(66px + en
 .th-pink{--accent:#fc96bf;--accent-fill:#9c4a6d;--accent-soft:#3d2930;--mint:#e9b1c5;--accent-mid:#d36c97;--on-mint:#231b1e;--bg:#181416;--surface:#241f21;--card:#2f292b;--line:#393335;--muted:#a89fa2;--fg:#ede9ea;--tx2:#d4cfd0;--tx3:#e1ddde;--div:#433c3f;--knob:#484244;--mint-rgb:233,177,197;--accent-rgb:252,150,191}
 #resetDay{border-color:transparent}
 #newWeek{border-color:transparent}
+.dialsheet,#dial .ddim{touch-action:pan-y}
