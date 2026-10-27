@@ -418,7 +418,7 @@ function weekDone(s){
   const dw=a&&a.w&&b&&b.w?(a.w-b.w):null;
   showDone({eyebrow:"Week complete",title:"Week done",
     body:dTiles([["Lifts",`${s.lifts}/${s.planned}`],["Cardio",s.cardio.toLocaleString()],["Weight",dw==null?(a&&a.w?String(a.w):"–"):`${dw>0?"+":dw<0?"−":""}${Math.abs(dw).toFixed(1)}`]])
-      +`<p class="dnote">${esc(wk.missedNote?capF(wk.missedNote.txt)+".":"Next week starts with a fresh check-in and Day 1.")}</p>`,
+      +(wk.missedNote?`<p class="dnote">${esc(capF(wk.missedNote.txt)+".")}</p>`:""),
     cta:"Start next week",onCta:()=>goTab("week")});
 }
 const setsLogged=id=>{ const d=DAYS.find(x=>x.id===id); return d?d.slots.reduce((n,s,i)=>n+(get(id,i).log||[]).filter(x=>x.d).length,0):0; };
