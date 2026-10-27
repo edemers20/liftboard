@@ -137,15 +137,16 @@ function profileHTML(withGoal,src){
   const en=a=>!!(src.acts||{})[a], hs=!!src.mainSport&&en(src.mainSport);
   const sports=SPORTS.filter(en);
   const F=(k,l,m,ph)=>fld(k,l,m,ph,"",src[k]);
-  return `${hdr("Activities",["acts","mainSport",...(hs?["season"]:[])])}
-  <div class="seg">${ACT_IDS.map(a=>`<button type="button" class="actt" data-actt="${a}" aria-pressed="${en(a)}">${ACT[a].name}</button>`).join("")}</div>
-  ${sports.length?seg("mainSport","Main sport",[["","None"],...sports.map(a=>[a,ACT[a].name])],src.mainSport):""}
-  ${withGoal&&hs?seg("season","Season",["Off-season","In-season"]):""}
-  ${en("lift")?`${hdr("Lifting",["focus"])}${seg("focus","Focus",[["Lower","Lower body"],["Balanced","Balanced"],["Upper","Upper body"]],src.focus)}`:""}
-  ${withGoal?`${hdr("Goal",["mode"])}${seg("mode","Goal",["Deficit only","Recomp","Build"])}`:""}
-  ${hdr("Body",["sex","age","height","weight","bf","steps","oura"])}
+  const G=h=>`<div class="pgroup">${h}</div>`;
+  return `<div class="pgroups">${G(`${hdr("Activities",["acts","mainSport",...(hs?["season"]:[])])}
+  <div class="seg">${ACT_IDS.map(a=>`<button type="button" class="actt" data-actt="${a}" aria-pressed="${en(a)}">${ACT[a].name}</button>`).join("")}</div>`)}
+  ${sports.length?G(`${seg("mainSport","Main sport",[["","None"],...sports.map(a=>[a,ACT[a].name])],src.mainSport)}
+  ${withGoal&&hs?seg("season","Season",["Off-season","In-season"]):""}`):""}
+  ${en("lift")?G(`${hdr("Lifting",["focus"])}${seg("focus","Focus",[["Lower","Lower body"],["Balanced","Balanced"],["Upper","Upper body"]],src.focus)}`):""}
+  ${withGoal?G(`${hdr("Goal",["mode"])}${seg("mode","Goal",["Deficit only","Recomp","Build"])}`):""}
+  ${G(`${hdr("Body",["sex","age","height","weight","bf","steps","oura"])}
   ${seg("sex","Sex",["Female","Male","Other"],src.sex)}
-  <div class="nums">${F("age","Age")}${F("height","Height (in)","decimal")}${F("weight","Weight (lb)","decimal")}${F("bf","Body fat %","decimal","optional")}${F("steps","Steps / day")}${F("oura","Daily burn","numeric","optional")}</div>`;
+  <div class="nums">${F("age","Age")}${F("height","Height (in)","decimal")}${F("weight","Weight (lb)","decimal")}${F("bf","Body fat %","decimal","optional")}${F("steps","Steps / day")}${F("oura","Daily burn","numeric","optional")}</div>`)}</div>`;
 }
 const spark=h=>{ const ws=h.slice(-8).map(x=>x.w), n=ws.length, lo=Math.min(...ws), hi=Math.max(...ws);
   const pts=ws.map((w,j)=>[n>1?4+j*104/(n-1):56, hi===lo?16:28-(w-lo)/(hi-lo)*24].map(v=>+v.toFixed(1)));
@@ -510,15 +511,30 @@ function renderTour(focus){
     text:"The goal, combined with your body settings, structures the cardio portion of lift days.",
     body:card("Goal",tchips("mode",[["Deficit only","Deficit"],["Recomp","Recomp"],["Build","Build"]],wk.mode),1)},
    {tab:"This week",page:"This week",name:"Check-in",title:"Your week adjusts itself",
-    text:"Different factors combine to adjust the rest of the week's plan.",
+    text:"Different factors combine to adjust your week; if anything changes, the week changes too.",
     body:card("How you're doing",`${lbl("Example")}${rowsH([["Readiness","Low"],["Soreness","Legs"],["Drinking","1–2 nights"],["This week","Main lifts −1 set, no weight increases",1]])}`,1)},
    {tab:"Day 1",page:"Day 1",name:"Lifting",title:"Built-in progressive overload",
-    text:"Your plan dictates where extra sets go. Hit the top or miss the bottom of your rep range to see future lifts adjust.",
+    text:"Hit the top or miss the bottom of your rep range during a lift to see future lifts adjust.",
     body:card("Lifting focus",`${tchips("focus",[["Lower","Lower body"],["Balanced","Balanced"],["Upper","Upper body"]],wk.focus)}${rowsH([["Hip thrust · 4 × 6–10","140 lb × 10"],["Next time",inS?"140 lb · Hold":`${140+inc} lb · Up`,1]])}`,1)},
-   {tab:"Season",page:"Profile",name:"Body",title:"Your body sets the numbers",
-    text:"Sex, height and weight change your metabolism, protein target and how big each weight jump is.",
+   {tab:"Season",page:"Profile",name:"Body",title:"Tailor to your biometrics",
+    text:"Set your bio data to see how things affect your metabolism, protein target & progressive overload.",
     body:card("Body",`${tchips("sex",[["Female","Female"],["Male","Male"],["Other","Other"]],wk.sex)}<div class="nums two">${tin("height","Height (in)")}${tin("weight","Weight (lb)")}</div>`,1)}
   ];
+  if(i>=5){
+    el.innerHTML=`<div class="twelcome" role="dialog" aria-modal="true" aria-labelledby="tTitle">
+      <span class="plab">Before you start</span>
+      <h2 id="tTitle" tabindex="-1">You know you best</h2>
+      <p>You may not realize it, but all these things go into your ability to perform and improve over time. But I'm not a doctor. So try it out, but at the end of the day, you know yourself the best.</p>
+      <p class="wsig">Emma</p>
+      <div class="tbtns two"><button type="button" class="tb ghost" id="tBack">Back</button><button type="button" class="tb" id="tNext">${tour.snap?"Done":"Finish setup"}</button></div>
+    </div>`;
+    el.hidden=false; document.body.classList.add("touring");
+    el.classList.toggle("step",!!focus); el.classList.toggle("opening",false);
+    el.querySelector("#tBack").onclick=()=>{ tour.i=4; renderTour(true); };
+    el.querySelector("#tNext").onclick=closeTour;
+    if(focus) el.querySelector("#tTitle").focus({preventScroll:true});
+    return;
+  }
   if(i<0){
     el.innerHTML=`<div class="twelcome" role="dialog" aria-modal="true" aria-labelledby="tTitle">
       <span class="plab">Lift Board</span>
@@ -538,7 +554,6 @@ function renderTour(focus){
   const s=S[i], last=i===S.length-1;
   const tabs=["Season","This week","Day 1",...(sportN&&!ACT[wk.mainSport].noMin?[sportN]:[])];
   el.innerHTML=`<div class="tscroll"><div class="tbody">
-    ${planHTML(P,{step:i})}
     <div class="ttabs" aria-hidden="true">${tabs.map(t=>`<span class="tab" aria-selected="${t===s.tab}">${t}</span>`).join("")}</div>
     <h2 class="tpage" aria-hidden="true">${s.page}</h2>
     ${s.body}
@@ -548,7 +563,7 @@ function renderTour(focus){
     <div class="ttop"><span class="plab">${i+1} of ${S.length} · ${s.name}</span><button type="button" class="tskip" id="tSkip">${tour.snap?"Close":"Skip tour"}</button></div>
     <p class="ttitle" id="tTitle" tabindex="-1">${s.title}</p>
     <p class="ttext">${s.text}</p>
-    <div class="tbtns two"><button type="button" class="tb ghost" id="tBack">Back</button><button type="button" class="tb" id="tNext">${!last?"Next":tour.snap?"Done":"Finish setup"}</button></div>
+    <div class="tbtns two"><button type="button" class="tb ghost" id="tBack">Back</button><button type="button" class="tb" id="tNext">Next</button></div>
   </div>`;
   el.hidden=false; document.body.classList.add("touring");
   el.classList.toggle("step",!!focus); el.classList.toggle("opening",focus==="open");
@@ -558,7 +573,7 @@ function renderTour(focus){
   el.querySelector("#tSkip").onclick=closeTour;
   const go=d=>{ tour.i+=d; renderTour(true); const sc=el.querySelector(".tscroll"); if(sc) sc.scrollTop=0; };
   const bk=el.querySelector("#tBack"); if(bk) bk.onclick=()=>go(-1);
-  el.querySelector("#tNext").onclick=()=>last?closeTour():go(1);
+  el.querySelector("#tNext").onclick=()=>go(1);
   if(focus) el.querySelector("#tTitle").focus({preventScroll:true});
 }
 document.addEventListener("keydown",e=>{ if(e.key!=="Escape") return; if(!document.getElementById("done").hidden) closeDone(); else if(tour) closeTour(); });

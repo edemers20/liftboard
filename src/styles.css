@@ -329,3 +329,11 @@ input.dialin{cursor:pointer;caret-color:transparent}
 .wi small{font-size:13px;color:#97a6a0}
 .wi.on{color:#fff;transform:scale(1.08)}
 .wi.on small{color:var(--mint)}
+/* setup / profile groups */
+.pgroups{display:grid;gap:0}
+.pgroup{display:grid;gap:12px;padding:18px 0}
+.pgroup:first-child{padding-top:2px}
+.pgroup:last-child{padding-bottom:4px}
+.pgroup + .pgroup{border-top:1px solid var(--line)}
+.twelcome .tbtns{margin-top:16px}
+.twelcome .tbtns .tb{margin-top:0}
