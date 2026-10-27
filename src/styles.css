@@ -91,8 +91,8 @@ summary{cursor:pointer;padding:4px 0}
 .wk{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
 .wk th{text-align:left;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:4px 8px 6px 0}
 .wk td{border-top:1px solid var(--line);padding:6px 8px 6px 0;vertical-align:top;white-space:nowrap}
-.ib{font:600 11px var(--mono);width:18px;height:18px;border-radius:50%;border:1px solid var(--line);background:var(--bg);color:var(--muted);margin-left:6px;padding:0;cursor:pointer;vertical-align:1px}
-.ib[aria-expanded="true"]{background:var(--accent-fill);color:var(--on-accent);border-color:var(--accent-fill)}
+.ib{font:600 11px var(--mono);width:18px;height:18px;border-radius:50%;border:0;background:var(--line);color:#c9d3cf;margin-left:6px;padding:0;cursor:pointer;vertical-align:1px}
+.ib[aria-expanded="true"]{background:var(--mint);color:#17201d}
 .field > span{display:inline-flex;align-items:center}
 .tab.nx::after{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--cardio);margin-left:6px;vertical-align:2px}
 details.panel > summary{list-style:none;cursor:pointer}
