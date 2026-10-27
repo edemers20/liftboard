@@ -8,9 +8,9 @@
 <body>
 <x-dc>
 <helmet>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Ranchers&amp;family=Noto+Sans:wght@400;500;600&amp;family=Noto+Sans+Mono:wght@400;500;600&amp;display=swap">
 <style>
-body{margin:0}
+body{margin:0;font-synthesis-weight:none}
 a{color:#6fd0b4}a:hover{color:#e6ece9}
 @keyframes lbIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 @keyframes lbInB{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
@@ -27,26 +27,26 @@ button:active,a:active{transform:scale(.97)}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-delay:0s!important;transition-duration:.01ms!important}}
 </style>
 </helmet>
-<div style="position: relative; width: 390px; height: 844px; overflow: hidden; background: #111715; color: #e6ece9; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 15px; line-height: 1.45; box-sizing: border-box; padding: 16px; display: flex; flex-direction: column; gap: 12px; animation: lbIn .38s cubic-bezier(.2,.8,.2,1) both">
+<div style="position: relative; width: 390px; height: 844px; overflow: hidden; background: #111715; color: #e6ece9; font-family: 'Noto Sans', system-ui, sans-serif; font-size: 15px; line-height: 1.45; box-sizing: border-box; padding: 16px; display: flex; flex-direction: column; gap: 12px; animation: lbIn .38s cubic-bezier(.2,.8,.2,1) both">
 
   <div aria-live="polite" style="position: relative; overflow: hidden; z-index: 12; background: #232e2a; color: #fff; border-radius: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.56); padding: 12px 16px; display: flex; flex-direction: column; gap: 4px">
     <span aria-hidden="true" style="position: absolute; inset: 0; z-index: 0; pointer-events: none; border-radius: inherit; background: linear-gradient(105deg, transparent 30%, rgba(159, 207, 193, 0.10) 44%, rgba(255, 255, 255, 0.20) 50%, rgba(159, 207, 193, 0.10) 56%, transparent 70%); transform: translateX(-120%); animation: lbShine 5s ease-in-out 0.7s infinite"></span>
     <span style="font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #9fcfc1">Your plan</span>
     <sc-for list="{{ plan }}" as="p" hint-placeholder-count="3">
-      <div style="display: flex; justify-content: space-between; gap: 12px; font-size: 13px; padding: 1px 0 1px 8px; border-left: 2px solid {{ p.bar }}"><span style="color: #d9e0dd; flex: 0 0 auto">{{ p.k }}</span><span style="font-family: 'IBM Plex Mono', monospace; font-weight: 500; color: {{ p.c }}; text-align: right">{{ p.v }}</span></div>
+      <div style="display: flex; justify-content: space-between; gap: 12px; font-size: 13px; padding: 1px 0 1px 8px; border-left: 2px solid {{ p.bar }}"><span style="color: #d9e0dd; flex: 0 0 auto">{{ p.k }}</span><span style="font-family: 'Noto Sans Mono', monospace; font-weight: 500; color: {{ p.c }}; text-align: right">{{ p.v }}</span></div>
     </sc-for>
   </div>
 
   <nav style="display: flex; gap: 6px; overflow: hidden" aria-label="Tabs">
     <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="5">
-      <span style="flex: 0 0 auto; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 17px; letter-spacing: .04em; text-transform: uppercase; border: 1px solid {{ t.bd }}; background: {{ t.bg }}; color: {{ t.fg }}; padding: 7px 13px; border-radius: 999px">{{ t.name }}</span>
+      <span style="flex: 0 0 auto; font-family: 'Ranchers', sans-serif; font-weight: 600; font-size: 17px; letter-spacing: .04em; text-transform: uppercase; border: 1px solid {{ t.bd }}; background: {{ t.bg }}; color: {{ t.fg }}; padding: 7px 13px; border-radius: 999px">{{ t.name }}</span>
     </sc-for>
   </nav>
-  <h2 style="margin: 0; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 26px; line-height: 1.1; text-transform: uppercase; letter-spacing: .02em">{{ page }}</h2>
+  <h2 style="margin: 0; font-family: 'Ranchers', sans-serif; font-weight: 700; font-size: 26px; line-height: 1.1; text-transform: uppercase; letter-spacing: .02em">{{ page }}</h2>
 
   <sc-for list="{{ cards }}" as="c" hint-placeholder-count="2">
     <section style="animation: {{ c.anim }}; position: relative; z-index: {{ c.z }}; background: #1a2320; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px; box-shadow: {{ c.ring }}">
-      <h3 style="margin: 0; font-family: 'Barlow Condensed', sans-serif; font-size: 20px; text-transform: uppercase; letter-spacing: .03em">{{ c.title }}</h3>
+      <h3 style="margin: 0; font-family: 'Ranchers', sans-serif; font-size: 20px; text-transform: uppercase; letter-spacing: .03em">{{ c.title }}</h3>
       <sc-for list="{{ c.groups }}" as="g" hint-placeholder-count="1">
         <div style="display: flex; flex-direction: column; gap: 6px">
           <sc-if value="{{ g.hasLabel }}" hint-placeholder-val="{{ true }}"><span style="font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #97a6a0">{{ g.label }}</span></sc-if>
@@ -58,7 +58,7 @@ button:active,a:active{transform:scale(.97)}
         </div>
       </sc-for>
       <sc-for list="{{ c.rows }}" as="r" hint-placeholder-count="2">
-        <div style="display: flex; justify-content: space-between; gap: 12px; font-size: 14px"><span style="color: #97a6a0">{{ r.k }}</span><span style="font-family: 'IBM Plex Mono', monospace; font-weight: 500; color: {{ r.c }}">{{ r.v }}</span></div>
+        <div style="display: flex; justify-content: space-between; gap: 12px; font-size: 14px"><span style="color: #97a6a0">{{ r.k }}</span><span style="font-family: 'Noto Sans Mono', monospace; font-weight: 500; color: {{ r.c }}">{{ r.v }}</span></div>
       </sc-for>
     </section>
   </sc-for>
@@ -70,7 +70,7 @@ button:active,a:active{transform:scale(.97)}
       <span style="font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #9fcfc1">{{ eyebrow }}</span>
       <a href="OnboardPreview.dc.html" style="min-height: 44px; margin: -12px -4px; display: inline-flex; align-items: center; padding: 0 4px; font-size: 13px; font-weight: 600; color: #d9e0dd; text-decoration: none">Skip tour</a>
     </div>
-    <p style="animation: {{ stepAnim }}; margin: 0; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 24px; line-height: 1.05; text-transform: uppercase">{{ title }}</p>
+    <p style="animation: {{ stepAnim }}; margin: 0; font-family: 'Ranchers', sans-serif; font-weight: 700; font-size: 24px; line-height: 1.05; text-transform: uppercase">{{ title }}</p>
     <p style="animation: {{ stepAnim }}; margin: 0 0 4px; font-size: 14px; color: #d9e0dd">{{ text }}</p>
     <div style="display: grid; grid-template-columns: {{ cols }}; gap: 10px">
       <sc-if value="{{ hasBack }}" hint-placeholder-val="{{ false }}">
@@ -89,7 +89,7 @@ button:active,a:active{transform:scale(.97)}
 <script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
 class Component extends DCLogic {
   renderVals() {
-    const st = Object.assign({ i: 0, sport: 'Pickleball', season: 'Off-season', goal: 'Recomp', focus: 'Lower', sex: 'Female', last: null }, this.state || {});
+    const st = Object.assign({ i: 0, sport: 'Pickleball', season: 'Off-season', goal: 'Recomp', focus: 'Lower body', sex: 'Female', last: null }, this.state || {});
     const i = st.i;
     const A = '#237a64', AT = '#6fd0b4', M = '#e6ece9', MINT = '#9fcfc1';
     const inS = st.season === 'In-season';
@@ -97,8 +97,8 @@ class Component extends DCLogic {
 
     // Plan values (illustrative; real numbers come from the engine)
     const split = inS ? 'Full Body A · B'
-      : st.focus === 'Lower' ? 'Lower · Upper · Lower'
-      : st.focus === 'Upper' ? 'Upper · Lower · Upper'
+      : st.focus === 'Lower body' ? 'Lower · Upper · Lower'
+      : st.focus === 'Upper body' ? 'Upper · Lower · Upper'
       : 'Lower · Upper · Full';
     const sets = inS ? '2 · weights held' : st.goal === 'Deficit' ? '3 · hold strength' : '3–4 · progressing';
     const support = {
@@ -139,27 +139,27 @@ class Component extends DCLogic {
     const nextW = inS ? `${lastW} lb · Hold` : `${lastW + (st.sex === 'Male' ? 10 : 5)} lb · Up`;
 
     const steps = [
-      { tab: 'Season', page: 'Season', name: 'Season', title: 'Your season sets the split',
-        text: 'Pick your main sport. Off-season builds strength; in-season moves to full-body days, holds weights and adds support work for that sport.',
+      { tab: 'Season', page: 'Season', name: 'Season', title: 'Your split',
+        text: "Pick your main sport and specify if you're in- or off-season. This determines the cadence for progressive overload and any accessory work.",
         cards: [
           { title: 'Season', hi: true, groups: [
             chips('sport', 'Main sport', ['Pickleball', 'Tennis', 'Running', 'Soccer', 'Basketball', 'Other'], 3),
             chips('season', 'Season', ['Off-season', 'In-season'])] },
           { title: 'Goal', rows: [['Goal', st.goal]] } ] },
-      { tab: 'Season', page: 'Season', name: 'Goal', title: 'Pick a goal, the math follows',
-        text: `Deficit, recomp or build sets your food target and how much cardio fills the gap. Extra ${sportWord} sessions shift both.`,
+      { tab: 'Season', page: 'Season', name: 'Goal', title: 'Pick a goal',
+        text: 'The goal, combined with your body settings, structures the cardio portion of lift days.',
         cards: [
           { title: 'Goal', hi: true, groups: [chips('goal', '', ['Deficit', 'Recomp', 'Build'])] },
           { title: 'Main lifts', rows: [['Hip thrust', '140 lb'], ['RDL', '95 lb']] } ] },
       { tab: 'This week', page: 'This week', name: 'Check-in', title: 'Your week adjusts itself',
-        text: 'Readiness, soreness, drinks, cycle phase and a heavy sport week add up. Past a threshold, sets drop or the day gets shorter.',
+        text: "Different factors combine to adjust the rest of the week's plan.",
         cards: [
           { title: "How you're doing", hi: true, rows: [['Readiness', 'Low'], ['Cycle', 'Luteal'], ['This week', '−1 set on main lifts']] },
           { title: 'Other activity', rows: [[st.sport === 'Other' ? 'Sport' : st.sport, '2 sessions']] } ] },
-      { tab: 'Day 1', page: 'Day 1', name: 'Lifting', title: 'Log sets, get the next weight',
-        text: 'Focus decides where extra sets land. Hit the top of the range and the weight goes up; miss the bottom twice and it rebuilds.',
+      { tab: 'Day 1', page: 'Day 1', name: 'Lifting', title: 'Built-in progressive overload',
+        text: 'Your plan dictates where extra sets go. Hit the top or miss the bottom of your rep range to see future lifts adjust.',
         cards: [
-          { title: 'Lifting focus', hi: true, groups: [chips('focus', '', ['Lower', 'Balanced', 'Upper'])],
+          { title: 'Lifting focus', hi: true, groups: [chips('focus', '', ['Lower body', 'Balanced', 'Upper body'])],
             rows: [['Hip thrust', `${lastW} lb × 10`], ['Next time', nextW]] },
           { title: 'Leg curl', rows: [['Plan', '3 × 10–15']] } ] },
       { tab: 'Setup', page: 'Setup', name: 'Body', title: 'Your body sets the numbers',
