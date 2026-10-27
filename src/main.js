@@ -387,7 +387,7 @@ function stackCards(){
   ST=null;
   if(!on) return;
   const cards=[...v.children].filter(c=>c.matches(".panel,.plan"));
-  cards.forEach((c,i)=>{ c.addEventListener("transitionend",e=>{ if(e.propertyName==="top"&&ST) updateStack(); }); c.classList.add("stack"); c.style.zIndex=i+1; c.style.setProperty("--dp",Math.min(i*9,60)+"%");
+  cards.forEach((c,i)=>{ c.addEventListener("transitionend",e=>{ if(e.propertyName==="top"&&ST) updateStack(); }); c.classList.add("stack"); c.style.zIndex=i+1; c.style.setProperty("--lift",[0,4.5,9][i%3]+"%");
     c.addEventListener("click",e=>{ if(!c.classList.contains("covered")) return; e.preventDefault(); e.stopPropagation(); stackJump(i); },true); });
   ST={cards}; measureStack();
   if(window.ResizeObserver){ stackRO=new ResizeObserver(()=>{ cancelAnimationFrame(stackRaf); stackRaf=requestAnimationFrame(measureStack); }); cards.forEach(c=>stackRO.observe(c)); }

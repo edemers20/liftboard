@@ -398,7 +398,7 @@ body.resting #profileBox #profSave,body.resting #setupSave{bottom:calc(66px + en
    later cards sit a touch lighter so the stack reads as depth */
 #view.stacked{position:relative;z-index:1;isolation:isolate;gap:0}
 #view.stacked > .dayhead{margin-bottom:12px}
-#view.stacked > .stack{position:sticky;background:var(--surface);background:color-mix(in oklab,var(--card) var(--dp,0%),var(--surface));border-radius:16px;padding-bottom:26px;box-shadow:0 -6px 18px rgba(0,0,0,.38),0 -1px 0 rgba(255,255,255,.04)}
+#view.stacked > .stack{position:sticky;background:var(--surface);background:color-mix(in oklab,var(--surface),#fff var(--lift,0%));border-radius:16px;padding-bottom:26px;box-shadow:0 -6px 18px rgba(0,0,0,.42),inset 0 1px 0 rgba(255,255,255,.07)}
 #view.stacked > .stack + .stack{margin-top:-14px !important}
 #view.stacked > .plan.stack{padding-bottom:28px}
 #view.stacked > .stack:last-of-type{padding-bottom:16px}
