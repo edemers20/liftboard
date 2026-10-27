@@ -387,7 +387,7 @@ function stackCards(){
   ST=null;
   if(!on) return;
   const cards=[...v.children].filter(c=>c.matches(".panel,.plan"));
-  cards.forEach((c,i)=>{ c.addEventListener("transitionend",e=>{ if(e.propertyName==="top"&&ST) updateStack(); }); c.classList.add("stack"); c.style.zIndex=i+1; c.style.setProperty("--lift",[0,4.5,9][i%3]+"%");
+  cards.forEach((c,i)=>{ c.addEventListener("transitionend",e=>{ if(e.propertyName==="top"&&ST) updateStack(); }); c.classList.add("stack"); c.style.zIndex=i+1; 
     c.addEventListener("click",e=>{ if(!c.classList.contains("covered")) return; e.preventDefault(); e.stopPropagation(); stackJump(i); },true); });
   ST={cards}; measureStack();
   if(window.ResizeObserver){ stackRO=new ResizeObserver(()=>{ cancelAnimationFrame(stackRaf); stackRaf=requestAnimationFrame(measureStack); }); cards.forEach(c=>stackRO.observe(c)); }
@@ -419,6 +419,8 @@ function updateStack(){
   const first=past?n:Math.max(0,c-STACK_MAX);
   let t=ST.tabsH;
   ST.cards.forEach((card,i)=>{
+    /* shade by distance behind the current card: front is lightest, the back of the pile is the base colour */
+    card.style.setProperty("--lift",(i>=c||i>=ST.end?9:i===c-1?4.5:0)+"%");
     if(i>=ST.end){ card.style.top=""; card.classList.remove("gone","covered"); return; }
     card.classList.toggle("gone",i<first); card.classList.toggle("covered",i>=first&&i<c);
     let top;
