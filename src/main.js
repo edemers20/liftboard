@@ -346,7 +346,7 @@ function render(){
   if(!TABS().includes(cur)) cur="week";
   popN=0; for(const k in POP) delete POP[k];
   const P=plan(); renderTabs(P);
-  document.body.classList.remove("th-green","th-lift","th-sport"); document.body.classList.add(themeOf(cur));
+  document.body.classList.remove("th-green","th-lift","th-sport"); document.body.classList.add(themeOf(cur)); { const m=document.querySelector('meta[name="theme-color"]'); if(m) m.content={"th-green":"#111715","th-lift":"#1b1316","th-sport":"#1c130f"}[themeOf(cur)]; }
   const v=document.getElementById("view");
   document.getElementById("foot").hidden=!DAYS.some(d=>d.id===cur);
   v.innerHTML=cur==="week"?renderWeek(P):cur==="season"?renderSeason(P):(ACT[cur]||cur==="zone2")?renderAct(cur):renderDayHTML(DAYS.find(d=>d.id===cur),P);
