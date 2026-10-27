@@ -389,3 +389,8 @@ body.resting #profileBox #profSave,body.resting #setupSave{bottom:calc(66px + en
 .dialsheet,#dial .ddim{touch-action:pan-y}
 /* Change toasts: darker than the page so they read as a separate layer */
 #toast{background:#080808;background:color-mix(in oklab,var(--bg) 40%,#000);border-color:rgba(255,255,255,.09);box-shadow:0 12px 36px rgba(0,0,0,.7)}
+/* Your plan sentence: filled-in blanks read like ad-libs */
+.psent{margin:2px 0 0;font-size:17px;line-height:1.6;color:var(--tx2);text-wrap:pretty}
+.psent .blank{color:#fff;font-weight:600;white-space:nowrap;padding:0 2px;border-bottom:2px solid var(--mint);border-radius:2px}
+.psent .blank.hot{color:var(--mint);animation:lbHot 1.2s ease-out}
+.dsheet .psent{margin:0}

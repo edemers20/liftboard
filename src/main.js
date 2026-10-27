@@ -69,29 +69,41 @@ function fld(key,label,mode,ph,cls,val){ return `<label class="field${cls?" "+cl
 
 function draftDirty(){ return !!draft&&Object.keys(draft).some(k=>JSON.stringify(draft[k])!==JSON.stringify(wk[k])); }
 /* ---------- Your plan: live summary built from the engine's output ---------- */
-const SUPN={calves:"calves",adductor:"adductors",cuff:"rotator cuff"};
 const capF=s=>s.charAt(0).toUpperCase()+s.slice(1);
-function planRows(P,touring){
-  const M=P.math, inS=inSeason(), lift=enabled("lift"), R=[];
-  if(lift){
-    R.push({k:"Split",v:DAYS.length?DAYS.map(d=>d.title.split(" · ")[0].replace("Full Body ","Full ")).join(" · "):"No lifting days",s:0});
-    R.push({k:"Sets",v:wk.deload==="Yes"?"Deload · about 60%":inS?"2 per lift · same weights":wk.mode==="Build"?"Progressing · +1 on main lifts":"Progressing",s:0});
-    if(inS){ const sp=Object.keys(SUP).filter(k=>SUP[k].includes(wk.mainSport)).map(k=>SUPN[k]); if(sp.length) R.push({k:"Support lifts",v:capF(sp.join(" · ")),s:0}); }
+/* Your plan as a fill-in-the-blanks sentence. Strings are plain words; [id,value] pairs are the filled-in blanks. */
+const andList=a=>a.length<2?a.join(""):a.slice(0,-1).join(", ")+" and "+a[a.length-1];
+function planSentence(P){
+  const M=P.math, inS=inSeason(), lift=enabled("lift"), n=DAYS.length, S=[];
+  const sport=hasSport()?ACT[wk.mainSport].name.toLowerCase():"";
+  const days=[["days",`${n} ${inS?"full-body ":""}lift day${n===1?"":"s"}`]];
+  if(lift&&n){
+    if(wk.deload==="Yes"){ S.push("This is a ",["deload","lighter deload week"],": about 60% of your usual sets with ",...days,". "); }
+    else if(inS){
+      const sp=Object.keys(SUP).filter(k=>SUP[k].includes(wk.mainSport)).map(k=>({calves:"calf",adductor:"adductor",cuff:"rotator cuff"})[k]);
+      S.push("It's ",["season",`${sport} season`],", so you're ",["aim","holding your strength"]," with ",...days," a week");
+      if(sp.length) S.push(" plus ",["support",`${andList(sp)} work`]);
+      S.push(". ");
+    } else {
+      const foc=wk.focus==="Balanced"?["focus","upper and lower body evenly"]:["focus",wk.focus==="Upper"?"upper body":"lower body"];
+      if(sport) S.push("It's your ",["season",`${sport} off-season`],", so you're ",["aim","building strength"]," with ",...days," a week");
+      else S.push("You're ",["aim","building strength"]," with ",...days," a week");
+      S.push(wk.focus==="Balanced"?", working ":", focused on your ",foc);
+      if(rampOn()) S.push(", plus ",["ramp","one zone 2 session"]," to get ready for the season");
+      S.push(". ");
+    }
   }
-  R.push({k:"Eat",v:`${r5(M.intake).toLocaleString()} kcal/day`,s:1});
-  if(wk.mode!=="Build"&&M.cardioTarget>0) R.push({k:"Cardio",v:`${r5(M.cardioTarget).toLocaleString()} kcal/week`,s:1});
-  if(touring) R.push({k:"Check-in",v:"Adjusts each week",s:2});
-  if(lift) R.push({k:"Lower-lift jump",v:inS?"None in-season":`+5%, min ${wk.sex==="Male"?10:5} lb`,s:3});
-  R.push({k:"Protein",v:`${M.protein[0]}–${M.protein[1]} g/day`,s:4});
-  return R;
+  const goal={"Deficit only":"lose fat",Recomp:"lose fat and keep muscle",Build:"build muscle"}[wk.mode]||"lose fat";
+  S.push("To ",["goal",goal],", eat about ",["eat",`${r5(M.intake).toLocaleString()} calories`]," and ",["protein",`${M.protein[0]}–${M.protein[1]} g of protein`]," a day");
+  if(wk.mode!=="Build"&&M.cardioTarget>0) S.push(", and burn ",["cardio",`${r5(M.cardioTarget).toLocaleString()} calories`]," in cardio each week");
+  S.push(".");
+  return S;
 }
-const planCtx=()=>[hasSport()?`${ACT[wk.mainSport].name} ${wk.season.toLowerCase()}`:"No main sport", wk.mode, enabled("lift")?({Lower:"Lower body",Upper:"Upper body"}[wk.focus]||wk.focus)+" focus":""].filter(Boolean).join(" · ");
-/* Rows whose value changed since the last plan card was drawn get a mint marker */
+const sentenceHTML=(S,prev)=>S.map(x=>typeof x==="string"?esc(x):`<b class="blank${prev&&prev[x[0]]!==x[1]?" hot":""}">${esc(x[1])}</b>`).join("");
+/* Blanks whose value changed since the last plan card was drawn flash */
 let planPrev=null;
 function planHTML(P,o={}){
-  let R=planRows(P,o.step!=null); if(o.step!=null) R=R.filter(r=>r.s<=o.step);
-  const prev=planPrev; planPrev=Object.fromEntries(R.map(r=>[r.k,r.v]));
-  return `<div class="plan${o.pin?" pin":""}" aria-live="polite"><div class="plab">Your plan</div><p class="pctx">${esc(planCtx())}</p>${R.map(r=>`<div class="prow${prev&&prev[r.k]!==r.v?" hot":""}"><span>${r.k}</span><b>${esc(r.v)}</b></div>`).join("")}</div>`;
+  const S=planSentence(P), prev=planPrev; planPrev=Object.fromEntries(S.filter(x=>typeof x!=="string"));
+  return `<div class="plan${o.pin?" pin":""}" aria-live="polite"><div class="plab">Your plan</div><p class="psent">${sentenceHTML(S,prev)}</p></div>`;
 }
 
 const TAGICON={up:"↑",hold:"=",down:"↓",collapse:"!"};
@@ -470,9 +482,8 @@ const dRows=R=>`<div class="drows">${R.map(([k,v,a])=>`<div class="prow"><span>$
 const dTiles=T=>`<div class="dtiles">${T.map(([k,v])=>`<div><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join("")}</div>`;
 function goTab(id){ cur=id; try{localStorage.setItem(KEY+".tab",cur)}catch(e){}; render(); window.scrollTo(0,0); }
 function setupDone(){
-  const P=plan(), R=planRows(P).filter(r=>["Split","Eat","Cardio","Protein"].includes(r.k)).map(r=>[r.k,r.v,r.k==="Eat"]);
-  const first=DAYS[0];
-  showDone({eyebrow:"Setup saved",title:"Your plan is ready",body:`<p class="pctx">${esc(planCtx())}</p>${dRows(R)}`,
+  const P=plan();
+  showDone({eyebrow:"Setup saved",title:"Your plan is ready",body:`<p class="psent">${sentenceHTML(planSentence(P))}</p>`,
     cta:"See this week",onCta:()=>goTab("week")});
 }
 function dayDone(id,sets){
