@@ -369,8 +369,39 @@ function render(){
   if(fxOnce.seg){ const b=v.querySelector(`.seg[data-key="${fxOnce.seg[0]}"] button[data-v="${CSS.escape(fxOnce.seg[1])}"]`); if(b) b.classList.add("pressed"); }
   fxOnce={};
   bind();
+  stackCards();
   coachSoon();
 }
+/* ---------- Stacked cards on Season and This week ----------
+   Each card sticks under the tabs a header-strip lower than the one before, so earlier
+   cards stay visible as a stack of titles while the next one slides up over them.
+   A card taller than the room left sticks by its bottom edge instead, so none of it is hidden. */
+let stackRO=null, stackRaf=0;
+const STACK_TABS=["week","season"];
+function stackCards(){
+  const v=document.getElementById("view");
+  const on=STACK_TABS.includes(cur)&&wk.setupDone;
+  v.classList.toggle("stacked",on);
+  if(stackRO){ stackRO.disconnect(); stackRO=null; }
+  if(!on){ v.querySelectorAll(".stack").forEach(c=>{ c.classList.remove("stack"); c.style.top=c.style.zIndex=""; }); return; }
+  const cards=[...v.children].filter(c=>c.matches(".panel,.plan"));
+  cards.forEach((c,i)=>{ c.classList.add("stack"); c.style.zIndex=i+1; c.style.setProperty("--dp",Math.min(i*9,60)+"%"); });
+  layoutStack();
+  if(window.ResizeObserver){ stackRO=new ResizeObserver(()=>{ cancelAnimationFrame(stackRaf); stackRaf=requestAnimationFrame(layoutStack); }); cards.forEach(c=>stackRO.observe(c)); }
+}
+function layoutStack(){
+  const v=document.getElementById("view"); if(!v.classList.contains("stacked")) return;
+  const tabs=document.getElementById("tabs"), vh=window.innerHeight;
+  let top=(parseFloat(getComputedStyle(tabs).top)||0)+tabs.offsetHeight+4;
+  v.querySelectorAll(":scope > .stack").forEach(c=>{
+    const h=c.offsetHeight, first=c.firstElementChild;
+    const strip=first?Math.min(64,first.offsetTop+first.offsetHeight+10):44;
+    c.style.top=(h>vh-top-12?vh-h-12:top)+"px";
+    top+=strip;
+  });
+}
+window.addEventListener("resize",()=>{ cancelAnimationFrame(stackRaf); stackRaf=requestAnimationFrame(layoutStack); });
+document.addEventListener("toggle",e=>{ if(e.target.matches&&e.target.matches(".stack")) layoutStack(); },true);
 /* ---------- First-visit tab tips: one short popup per tab type, then never again ---------- */
 const coachKey=id=>DAYS.some(d=>d.id===id)?"day":id==="season"&&!wk.setupDone?"setup":id;
 function coachText(id){
