@@ -217,3 +217,9 @@ button:active:not(:disabled),.tab:active{transform:scale(.97)}
 #doneBtn{margin-top:4px}
 .plan,.tpop,#toast,#pop,.dsheet{border:1px solid rgba(255,255,255,.06)}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-delay:0s!important;transition-duration:.01ms!important}}
+/* Your plan shine: a slow sweep every 5s */
+@keyframes lbShine{0%{transform:translateX(-120%)}26%{transform:translateX(120%)}100%{transform:translateX(120%)}}
+.plan{overflow:hidden}
+.plan:not(.pin){position:relative}
+.plan::after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;background:linear-gradient(105deg,transparent 30%,rgba(159,207,193,.10) 44%,rgba(255,255,255,.20) 50%,rgba(159,207,193,.10) 56%,transparent 70%);transform:translateX(-120%);animation:lbShine 5s ease-in-out .7s infinite}
+@media (prefers-reduced-motion:reduce){.plan::after{display:none}}
