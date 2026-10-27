@@ -387,3 +387,5 @@ body.resting #profileBox #profSave,body.resting #setupSave{bottom:calc(66px + en
 #resetDay{border-color:transparent}
 #newWeek{border-color:transparent}
 .dialsheet,#dial .ddim{touch-action:pan-y}
+/* Change toasts: darker than the page so they read as a separate layer */
+#toast{background:#080808;background:color-mix(in oklab,var(--bg) 40%,#000);border-color:rgba(255,255,255,.09);box-shadow:0 12px 36px rgba(0,0,0,.7)}
