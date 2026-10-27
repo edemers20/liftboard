@@ -125,11 +125,12 @@ function dialCfg(el){
 }
 /* ---------- Rendering ---------- */
 function tabName(id){ if(id==="week") return "This week"; if(id==="zone2") return "Zone 2"; if(id==="season") return wk.setupDone?"Season":"Setup"; if(ACT[id]) return ACT[id].name; return DAYS.find(d=>d.id===id).tab; }
+const themeOf=id=>DAYS.some(d=>d.id===id)?"th-lift":(ACT[id]||id==="zone2")?"th-sport":"th-green";
 function renderTabs(P){
   const t=document.getElementById("tabs");
   t.innerHTML=TABS().map(id=>{
     const off=ACT[id]?!cnt(id):false, nx=id===P.nextId;
-    return `<button class="tab${off?" off":""}${nx?" nx":""}" role="tab" type="button" aria-selected="${id===cur}" data-id="${id}">${(wk.done||{})[id]?"✓ ":""}${tabName(id)}</button>`;}).join("");
+    return `<button class="tab ${themeOf(id)}${off?" off":""}${nx?" nx":""}" role="tab" type="button" aria-selected="${id===cur}" data-id="${id}">${(wk.done||{})[id]?"✓ ":""}${tabName(id)}</button>`;}).join("");
   t.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{closeSheet();closeCoach(true);cur=b.dataset.id;try{localStorage.setItem(KEY+".tab",cur)}catch(e){};closePop();render();resetConfirm(false);window.scrollTo(0,0);});
 }
 let draft=null;
@@ -345,6 +346,7 @@ function render(){
   if(!TABS().includes(cur)) cur="week";
   popN=0; for(const k in POP) delete POP[k];
   const P=plan(); renderTabs(P);
+  document.body.classList.remove("th-green","th-lift","th-sport"); document.body.classList.add(themeOf(cur));
   const v=document.getElementById("view");
   document.getElementById("foot").hidden=!DAYS.some(d=>d.id===cur);
   v.innerHTML=cur==="week"?renderWeek(P):cur==="season"?renderSeason(P):(ACT[cur]||cur==="zone2")?renderAct(cur):renderDayHTML(DAYS.find(d=>d.id===cur),P);

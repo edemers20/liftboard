@@ -11,7 +11,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Ranchers&amp;family=Noto+Sans:wght@400;500;600&amp;family=Noto+Sans+Mono:wght@400;500;600&amp;display=swap">
 <style>
 body{margin:0;font-synthesis-weight:none}
-a{color:#6fd0b4}a:hover{color:#e6ece9}
+a{color:#fc96bf}a:hover{color:#e6ece9}
 @keyframes lbIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 @keyframes lbInB{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 @keyframes lbPop{from{opacity:0;transform:translateY(-6px) scale(.98)}to{opacity:1;transform:none}}
@@ -32,16 +32,16 @@ button:active,a:active{transform:scale(.97)}
   <nav style="display: flex; gap: 6px; padding: 8px 0; overflow: hidden" aria-label="Tabs">
     <a href="Season.dc.html" style="flex: 0 0 auto; font-family: 'Ranchers', sans-serif; font-weight: 600; font-size: 17px; letter-spacing: .04em; text-transform: uppercase; border: 1px solid #2c3833; background: #1a2320; color: #e6ece9; padding: 7px 13px; border-radius: 999px; text-decoration: none">Season</a>
     <a href="Main.dc.html" style="flex: 0 0 auto; font-family: 'Ranchers', sans-serif; font-weight: 600; font-size: 17px; letter-spacing: .04em; text-transform: uppercase; border: 1px solid #2c3833; background: #1a2320; color: #e6ece9; padding: 7px 13px; border-radius: 999px; text-decoration: none">This week</a>
-    <a href="Day1.dc.html" style="flex: 0 0 auto; font-family: 'Ranchers', sans-serif; font-weight: 600; font-size: 17px; letter-spacing: .04em; text-transform: uppercase; border: 1px solid #237a64; background: #237a64; color: #fff; padding: 7px 13px; border-radius: 999px; text-decoration: none" aria-current="page">Day 1 •</a>
+    <a href="Day1.dc.html" style="flex: 0 0 auto; font-family: 'Ranchers', sans-serif; font-weight: 600; font-size: 17px; letter-spacing: .04em; text-transform: uppercase; border: 1px solid #9c4a6d; background: #9c4a6d; color: #fff; padding: 7px 13px; border-radius: 999px; text-decoration: none" aria-current="page">Day 1 •</a>
     <a href="Day1.dc.html" style="flex: 0 0 auto; font-family: 'Ranchers', sans-serif; font-weight: 600; font-size: 17px; letter-spacing: .04em; text-transform: uppercase; border: 1px solid #2c3833; background: #1a2320; color: #e6ece9; padding: 7px 13px; border-radius: 999px; text-decoration: none">Day 2</a>
   </nav>
   <h2 style="margin: 0; font-family: 'Ranchers', sans-serif; font-weight: 700; font-size: 26px; text-transform: uppercase; letter-spacing: .02em">Lower · Hinge &amp; Glute</h2>
 
   <section style="background: #1a2320; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px">
     <div style="display: flex; flex-direction: column; gap: 4px">
-      <div style="position: relative"><span style="display: flex; align-items: center"><span id="today-label" style="font-weight: 600; font-size: 14px">How do you feel today?</span><button type="button" aria-label="What this does" aria-expanded="{{ info.today.exp }}" onClick="{{ info.today.toggle }}" style="width: 44px; height: 44px; margin: -12px -10px -12px -4px; padding: 0; border: 0; background: transparent; cursor: pointer; display: inline-flex; align-items: center; justify-content: center"><span aria-hidden="true" style="width: 20px; height: 20px; border-radius: 50%; background: {{ info.today.bg }}; color: {{ info.today.fg }}; font: 600 11px 'Noto Sans Mono', monospace; display: flex; align-items: center; justify-content: center">i</span></button></span><sc-if value="{{ info.today.open }}" hint-placeholder-val="{{ false }}"><div role="dialog" style="position: absolute; left: 0; right: 0; top: calc(100% + 8px); z-index: 20; background: #232e2a; color: #fff; border-radius: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.56); padding: 12px 16px; display: flex; flex-direction: column; gap: 6px; font-family: 'Noto Sans', system-ui, sans-serif; text-transform: none; letter-spacing: normal; animation: lbPop .18s ease-out both; transform-origin: top left"><sc-for list="{{ info.today.lines }}" as="l" hint-placeholder-count="2"><p style="margin: 0; font-size: 13px; line-height: 1.45; font-weight: 400"><b style="color: #9fcfc1; font-weight: 600">{{ l.k }}:</b> {{ l.v }}</p></sc-for></div></sc-if></div>
+      <div style="position: relative"><span style="display: flex; align-items: center"><span id="today-label" style="font-weight: 600; font-size: 14px">How do you feel today?</span><button type="button" aria-label="What this does" aria-expanded="{{ info.today.exp }}" onClick="{{ info.today.toggle }}" style="width: 44px; height: 44px; margin: -12px -10px -12px -4px; padding: 0; border: 0; background: transparent; cursor: pointer; display: inline-flex; align-items: center; justify-content: center"><span aria-hidden="true" style="width: 20px; height: 20px; border-radius: 50%; background: {{ info.today.bg }}; color: {{ info.today.fg }}; font: 600 11px 'Noto Sans Mono', monospace; display: flex; align-items: center; justify-content: center">i</span></button></span><sc-if value="{{ info.today.open }}" hint-placeholder-val="{{ false }}"><div role="dialog" style="position: absolute; left: 0; right: 0; top: calc(100% + 8px); z-index: 20; background: #232e2a; color: #fff; border-radius: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.56); padding: 12px 16px; display: flex; flex-direction: column; gap: 6px; font-family: 'Noto Sans', system-ui, sans-serif; text-transform: none; letter-spacing: normal; animation: lbPop .18s ease-out both; transform-origin: top left"><sc-for list="{{ info.today.lines }}" as="l" hint-placeholder-count="2"><p style="margin: 0; font-size: 13px; line-height: 1.45; font-weight: 400"><b style="color: #e9b1c5; font-weight: 600">{{ l.k }}:</b> {{ l.v }}</p></sc-for></div></sc-if></div>
       <div role="radiogroup" aria-labelledby="today-label" style="position: relative; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr))">
-        <div aria-hidden="true" style="position: absolute; left: 16.67%; right: 16.67%; top: 14px; height: 4px; border-radius: 2px; background: linear-gradient(90deg, #237a64, #2c3833 50%, #c96a48)"></div>
+        <div aria-hidden="true" style="position: absolute; left: 16.67%; right: 16.67%; top: 14px; height: 4px; border-radius: 2px; background: linear-gradient(90deg, #9c4a6d, #2c3833 50%, #c96a48)"></div>
         <sc-for list="{{ stops }}" as="t" hint-placeholder-count="3">
           <button type="button" role="radio" aria-checked="{{ t.checked }}" onClick="{{ t.pick }}" style="position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 52px; padding: 0 0 2px; border: 0; background: transparent; font: inherit; cursor: pointer">
             <span style="display: flex; align-items: center; justify-content: center; width: 46px; height: 32px">
@@ -56,10 +56,10 @@ button:active,a:active{transform:scale(.97)}
 
   <sc-for list="{{ exercises }}" as="e" hint-placeholder-count="5">
     <sc-if value="{{ e.isCur }}" hint-placeholder-val="{{ false }}">
-      <section aria-current="step" style="animation: lbIn .3s cubic-bezier(.2,.8,.2,1) both; background: #1a2320; border: 2px solid #6fd0b4; border-radius: 12px; padding: 11px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 6px 18px rgba(111, 208, 180, 0.16)">
+      <section aria-current="step" style="animation: lbIn .3s cubic-bezier(.2,.8,.2,1) both; background: #1a2320; border: 2px solid #fc96bf; border-radius: 12px; padding: 11px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 6px 18px rgba(252, 150, 191, 0.16)">
         <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px">
-          <div style="position: relative; display: flex; align-items: center"><span style="font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #6fd0b4">{{ e.label }}</span><button type="button" aria-label="What this does" aria-expanded="{{ info.progress.exp }}" onClick="{{ info.progress.toggle }}" style="width: 44px; height: 44px; margin: -12px -10px -12px -4px; padding: 0; border: 0; background: transparent; cursor: pointer; display: inline-flex; align-items: center; justify-content: center"><span aria-hidden="true" style="width: 20px; height: 20px; border-radius: 50%; background: {{ info.progress.bg }}; color: {{ info.progress.fg }}; font: 600 11px 'Noto Sans Mono', monospace; display: flex; align-items: center; justify-content: center">i</span></button><sc-if value="{{ info.progress.open }}" hint-placeholder-val="{{ false }}"><div role="dialog" style="position: absolute; left: 0; width: 330px; top: calc(100% + 8px); z-index: 20; background: #232e2a; color: #fff; border-radius: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.56); padding: 12px 16px; display: flex; flex-direction: column; gap: 6px; font-family: 'Noto Sans', system-ui, sans-serif; text-transform: none; letter-spacing: normal; animation: lbPop .18s ease-out both; transform-origin: top left"><sc-for list="{{ info.progress.lines }}" as="l" hint-placeholder-count="2"><p style="margin: 0; font-size: 13px; line-height: 1.45; font-weight: 400"><b style="color: #9fcfc1; font-weight: 600">{{ l.k }}:</b> {{ l.v }}</p></sc-for></div></sc-if></div>
-          <span style="font-family: 'Noto Sans Mono', monospace; font-size: 12px; font-weight: 500; color: #fff; background: #237a64; padding: 3px 8px; border-radius: 999px">{{ e.setLabel }}</span>
+          <div style="position: relative; display: flex; align-items: center"><span style="font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #fc96bf">{{ e.label }}</span><button type="button" aria-label="What this does" aria-expanded="{{ info.progress.exp }}" onClick="{{ info.progress.toggle }}" style="width: 44px; height: 44px; margin: -12px -10px -12px -4px; padding: 0; border: 0; background: transparent; cursor: pointer; display: inline-flex; align-items: center; justify-content: center"><span aria-hidden="true" style="width: 20px; height: 20px; border-radius: 50%; background: {{ info.progress.bg }}; color: {{ info.progress.fg }}; font: 600 11px 'Noto Sans Mono', monospace; display: flex; align-items: center; justify-content: center">i</span></button><sc-if value="{{ info.progress.open }}" hint-placeholder-val="{{ false }}"><div role="dialog" style="position: absolute; left: 0; width: 330px; top: calc(100% + 8px); z-index: 20; background: #232e2a; color: #fff; border-radius: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.56); padding: 12px 16px; display: flex; flex-direction: column; gap: 6px; font-family: 'Noto Sans', system-ui, sans-serif; text-transform: none; letter-spacing: normal; animation: lbPop .18s ease-out both; transform-origin: top left"><sc-for list="{{ info.progress.lines }}" as="l" hint-placeholder-count="2"><p style="margin: 0; font-size: 13px; line-height: 1.45; font-weight: 400"><b style="color: #e9b1c5; font-weight: 600">{{ l.k }}:</b> {{ l.v }}</p></sc-for></div></sc-if></div>
+          <span style="font-family: 'Noto Sans Mono', monospace; font-size: 12px; font-weight: 500; color: #fff; background: #9c4a6d; padding: 3px 8px; border-radius: 999px">{{ e.setLabel }}</span>
         </div>
         <sc-if value="{{ e.isLift }}" hint-placeholder-val="{{ true }}">
           <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px" role="img" aria-label="Set progress">
@@ -86,7 +86,7 @@ button:active,a:active{transform:scale(.97)}
             <label style="display: flex; flex-direction: column; gap: 3px; font-size: 11px; color: #97a6a0; letter-spacing: .06em; text-transform: uppercase; font-weight: 600">Actual min<input placeholder="18" style="font-family: 'Noto Sans Mono', monospace; font-size: 15px; padding: 9px 8px; border: 1px solid #2c3833; border-radius: 8px; background: #111715; color: #e6ece9; min-width: 0"></label>
             <label style="display: flex; flex-direction: column; gap: 3px; font-size: 11px; color: #97a6a0; letter-spacing: .06em; text-transform: uppercase; font-weight: 600">Setting<input placeholder="12% / 3.0" style="font-family: 'Noto Sans Mono', monospace; font-size: 15px; padding: 9px 8px; border: 1px solid #2c3833; border-radius: 8px; background: #111715; color: #e6ece9; min-width: 0"></label>
           </div>
-          <div><button type="button" onClick="{{ e.finish }}" style="font: inherit; font-size: 14px; font-weight: 600; min-height: 44px; padding: 0 16px; border-radius: 999px; border: 1px solid #237a64; background: #237a64; color: #fff; cursor: pointer">Done</button></div>
+          <div><button type="button" onClick="{{ e.finish }}" style="font: inherit; font-size: 14px; font-weight: 600; min-height: 44px; padding: 0 16px; border-radius: 999px; border: 1px solid #9c4a6d; background: #9c4a6d; color: #fff; cursor: pointer">Done</button></div>
         </sc-if>
       </section>
     </sc-if>
@@ -109,8 +109,8 @@ button:active,a:active{transform:scale(.97)}
 
 <sc-if value="{{ showPlan }}" hint-placeholder-val="{{ false }}">
   <section role="dialog" aria-label="Plan for {{ cur.name }}" style="animation: {{ sheetAnim }}; position: absolute; left: 12px; right: 12px; bottom: 12px; background: #232e2a; color: #fff; border-radius: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.56); padding: 12px 12px 12px 16px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; align-items: center">
-    <span style="font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #9fcfc1">Today's plan · {{ cur.label }}</span>
-    <button type="button" onClick="{{ dismiss }}" style="grid-row: span 2; font: inherit; font-size: 14px; font-weight: 600; min-height: 44px; padding: 0 18px; border-radius: 999px; border: 0; background: #9fcfc1; color: #17201d; cursor: pointer">Begin</button>
+    <span style="font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #e9b1c5">Today's plan · {{ cur.label }}</span>
+    <button type="button" onClick="{{ dismiss }}" style="grid-row: span 2; font: inherit; font-size: 14px; font-weight: 600; min-height: 44px; padding: 0 18px; border-radius: 999px; border: 0; background: #e9b1c5; color: #231b1e; cursor: pointer">Begin</button>
     <span style="font-family: 'Noto Sans Mono', monospace; font-size: 16px; font-weight: 500">{{ cur.plan }}</span>
   </section>
 </sc-if>
@@ -118,12 +118,12 @@ button:active,a:active{transform:scale(.97)}
 <sc-if value="{{ showNext }}" hint-placeholder-val="{{ true }}">
   <section role="dialog" aria-label="Next time" style="animation: {{ sheetAnim }}; position: absolute; left: 12px; right: 12px; bottom: 12px; background: #232e2a; color: #fff; border-radius: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.56); padding: 12px 12px 12px 16px; display: flex; flex-direction: column; gap: 10px">
     <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px">
-      <span style="font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #9fcfc1">{{ cur.name }} · done</span>
+      <span style="font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #e9b1c5">{{ cur.name }} · done</span>
       <button type="button" aria-label="Close" onClick="{{ dismiss }}" style="width: 44px; height: 44px; margin: -10px -10px -10px 0; border: 0; background: transparent; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M2 2l10 10M12 2L2 12" stroke="#ffffff" stroke-width="2" stroke-linecap="round"></path></svg></button>
     </div>
-    <p style="margin: 0; display: flex; align-items: center; gap: 8px; font-family: 'Noto Sans Mono', monospace; font-size: 14px"><span role="img" aria-label="{{ cur.tag }}" style="flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; font: 600 13px/1 'Noto Sans Mono', monospace; background: {{ cur.tagBg }}; color: {{ cur.tagFg }}">{{ cur.icon }}</span><span>Next time <strong style="color: #9fcfc1">{{ cur.nextW }}</strong> · {{ cur.why }}</span></p>
+    <p style="margin: 0; display: flex; align-items: center; gap: 8px; font-family: 'Noto Sans Mono', monospace; font-size: 14px"><span role="img" aria-label="{{ cur.tag }}" style="flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; font: 600 13px/1 'Noto Sans Mono', monospace; background: {{ cur.tagBg }}; color: {{ cur.tagFg }}">{{ cur.icon }}</span><span>Next time <strong style="color: #e9b1c5">{{ cur.nextW }}</strong> · {{ cur.why }}</span></p>
     <sc-if value="{{ hasNext }}" hint-placeholder-val="{{ true }}">
-      <button type="button" onClick="{{ goNext }}" style="font: inherit; font-size: 14px; font-weight: 600; min-height: 44px; border-radius: 999px; border: 0; background: #9fcfc1; color: #17201d; cursor: pointer">Up next: {{ next.name }}</button>
+      <button type="button" onClick="{{ goNext }}" style="font: inherit; font-size: 14px; font-weight: 600; min-height: 44px; border-radius: 999px; border: 0; background: #e9b1c5; color: #231b1e; cursor: pointer">Up next: {{ next.name }}</button>
     </sc-if>
   </section>
 </sc-if>
@@ -137,8 +137,8 @@ class Component extends DCLogic {
     const active = st.active ?? 0;
     const doneMap = st.doneMap ?? { 0: preview === 'Next time' ? 4 : 2 };
     const sheet = 'sheet' in st ? st.sheet : (preview === 'Plan' ? 'plan' : preview === 'Next time' ? 'next' : null);
-    const doneS = { bg: '#1d3530', line: '#2b4a42', rowBg: 'transparent', numFg: '#97a6a0', chkBg: '#237a64', chkLine: '#237a64', chkFg: '#ffffff', anim: 'lbCheck .32s ease-out' };
-    const nowS = { bg: '#1a2320', line: '#3fa88c', rowBg: '#1d3530', numFg: '#6fd0b4', chkBg: '#1a2320', chkLine: '#3fa88c', chkFg: '#6fd0b4', anim: 'none' };
+    const doneS = { bg: '#3d2930', line: '#2b4a42', rowBg: 'transparent', numFg: '#97a6a0', chkBg: '#9c4a6d', chkLine: '#9c4a6d', chkFg: '#ffffff', anim: 'lbCheck .32s ease-out' };
+    const nowS = { bg: '#1a2320', line: '#d36c97', rowBg: '#3d2930', numFg: '#fc96bf', chkBg: '#1a2320', chkLine: '#d36c97', chkFg: '#fc96bf', anim: 'none' };
     const todoS = { bg: '#111715', line: '#2c3833', rowBg: 'transparent', numFg: '#97a6a0', chkBg: '#111715', chkLine: '#2c3833', chkFg: '#97a6a0', anim: 'none' };
     const tags = { Up: ['#2c5b4f', '#cdeee3', '↑'], Hold: ['#33403b', '#d9e0dd', '='], Down: ['#4a3a33', '#f0d8cc', '↓'] };
     const list = [
@@ -160,7 +160,7 @@ class Component extends DCLogic {
         ...(j < k ? doneS : j === k ? nowS : todoS),
         tick: () => (j + 1 >= e.n ? finishEx(i) : set({ doneMap: { ...doneMap, [i]: j + 1 } }))
       }));
-      const bars = Array.from({ length: 4 }, (_, j) => ({ c: j >= e.n ? 'transparent' : j < k ? '#237a64' : j === k ? '#9fcfc1' : '#2c3833' }));
+      const bars = Array.from({ length: 4 }, (_, j) => ({ c: j >= e.n ? 'transparent' : j < k ? '#9c4a6d' : j === k ? '#e9b1c5' : '#2c3833' }));
       const finished = k >= e.n && !e.cardio;
       return {
         ...e,
@@ -174,7 +174,7 @@ class Component extends DCLogic {
         cta: (doneMap[i] ?? 0) >= e.n ? 'Done' : 'Start',
         fade: (doneMap[i] ?? 0) >= e.n ? '0.6' : '1',
         mark: (doneMap[i] ?? 0) >= e.n ? '✓' : '›',
-        markFg: (doneMap[i] ?? 0) >= e.n ? '#6fd0b4' : '#97a6a0',
+        markFg: (doneMap[i] ?? 0) >= e.n ? '#fc96bf' : '#97a6a0',
         markAnim: (doneMap[i] ?? 0) >= e.n ? 'lbCheck .35s ease-out' : 'none',
         start: () => set({ active: i, sheet: 'plan' }),
         finish: () => finishEx(i)
@@ -185,7 +185,7 @@ class Component extends DCLogic {
     const cur = list[active];
     const nextEx = list[active + 1];
     const pickedDay = st.today || 'Normal';
-    const colors = { Good: '#3fa88c', Normal: '#97a6a0', Rough: '#e07a55' };
+    const colors = { Good: '#d36c97', Normal: '#97a6a0', Rough: '#e07a55' };
     const stops = ['Good', 'Normal', 'Rough'].map((label) => {
       const on = label === pickedDay;
       return { label, checked: on ? 'true' : 'false', size: on ? '26px' : '14px', dot: on ? colors[label] : '#3a4743', shadow: on ? '0 2px 8px rgba(0, 0, 0, 0.5)' : 'none', weight: on ? '600' : '400', fg: on ? '#e6ece9' : '#97a6a0', pick: () => this.setState({ active, doneMap, sheet, today: label }) };
@@ -204,9 +204,9 @@ class Component extends DCLogic {
       dayDone, notDayDone: !dayDone,
       dayDoneStr: dayDone ? 'true' : 'false',
       dayLabel: dayDone ? '✓ Day done' : 'Mark day done',
-      dayBg: '#237a64',
+      dayBg: '#9c4a6d',
       dayFg: '#ffffff',
-      dayLine: '#237a64',
+      dayLine: '#9c4a6d',
       toggleDay: () => this.setState({ active, doneMap, sheet, dayManual: !dayDone }),
       goNext: () => set({ active: Math.min(active + 1, list.length - 1), sheet: 'plan' })
     };
@@ -216,7 +216,7 @@ class Component extends DCLogic {
     const out = {};
     Object.keys(groups).forEach((k) => {
       const open = st.info === k;
-      out[k] = { open, exp: open ? 'true' : 'false', ring: 'transparent', bg: open ? '#9fcfc1' : '#2c3833', fg: open ? '#17201d' : '#c9d3cf', lines: groups[k].map(([a, b]) => ({ k: a, v: b })), toggle: () => this.setState({ info: open ? null : k }) };
+      out[k] = { open, exp: open ? 'true' : 'false', ring: 'transparent', bg: open ? '#e9b1c5' : '#2c3833', fg: open ? '#231b1e' : '#c9d3cf', lines: groups[k].map(([a, b]) => ({ k: a, v: b })), toggle: () => this.setState({ info: open ? null : k }) };
     });
     return out;
   }
