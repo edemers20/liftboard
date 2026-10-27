@@ -30,7 +30,7 @@ const INFO={
  steps:"Average daily steps, added to maintenance.",
  oura:"Replaces the maintenance estimate, minus 7% because wearables read high.",
  days:"Sets your split. Focus decides where the extra days go.",
- time:"30: main lifts + 1 accessory, no finisher. 45: optional accessories cut. 75: +1 set on main lifts.",
+ time:"Shorter cuts accessories first; 75 adds a main-lift set.",
  liftK:"Average burn per lifting session, added to maintenance.",
  ready:"Low adds 2 to recovery load.",
  sore:"Adds 1 (2 if everywhere). Where you're sore decides which main lifts get cut.",
