@@ -117,8 +117,14 @@ function profileHTML(withGoal,src){
 const spark=h=>{ const ws=h.slice(-8).map(x=>x.w), n=ws.length, lo=Math.min(...ws), hi=Math.max(...ws);
   const pts=ws.map((w,j)=>[n>1?4+j*104/(n-1):56, hi===lo?16:28-(w-lo)/(hi-lo)*24].map(v=>+v.toFixed(1)));
   return `<svg class="spark" width="112" height="32" viewBox="0 0 112 32" role="img" aria-label="Top set ${ws[0]} to ${ws[n-1]} lb over ${n} sessions"><line x1="0" y1="31" x2="112" y2="31"/><polyline points="${pts.map(p=>p.join(",")).join(" ")}"/><circle cx="${pts[n-1][0]}" cy="${pts[n-1][1]}" r="3"/></svg>`; };
+const moveHTML=()=>`  <details class="panel" id="moveBox"><summary><h3 style="display:inline">Move your data</h3> <span class="small">to another device or link</span></summary>
+    <div style="display:grid;gap:10px;margin-top:12px">
+      <p class="note">Copy here, then paste into Lift Board on the other device or link and tap Load.</p>
+      <textarea id="moveTxt" rows="4" placeholder="Paste data here" aria-label="Lift Board data"></textarea>
+      <div class="nums two"><button class="btn" id="moveCopy" type="button">Copy my data</button><button class="btn primary" id="moveLoad" type="button">Load</button></div>
+    </div></details>`;
 function renderSeason(P){
-  if(!wk.setupDone) return `<div class="dayhead"><h2>Setup</h2></div>${planHTML(P,{pin:1})}<div class="panel">${profileHTML(true)}<button class="btn primary" id="setupSave" type="button">Save setup</button></div>`;
+  if(!wk.setupDone) return `<div class="dayhead"><h2>Setup</h2></div>${planHTML(P,{pin:1})}<div class="panel">${profileHTML(true)}<button class="btn primary" id="setupSave" type="button">Save setup</button></div>${moveHTML()}`;
   const inS=inSeason(), build=wk.mode==="Build", dl=deloadInfo();
   const fmt=t=>new Date(t).toLocaleDateString(undefined,{month:"short",day:"numeric"});
   const names=Object.keys(exHist).filter(n=>(exHist[n]||[]).length);
@@ -146,6 +152,7 @@ function renderSeason(P){
     ${seg("ss","Supersets",["Yes","No"])}
     <div class="q"><span>Avg lift kcal</span>${fld("liftK","","numeric","","sm")}</div></div>`:""}
   <details class="panel" id="profileBox"${wk.openBase?" open":""}><summary><h3 style="display:inline">Profile</h3> <span class="small">${esc(wk.sex)} · ${esc(wk.weight)} lb · ${esc(wk.height)} in</span></summary><div style="display:grid;gap:12px;margin-top:12px">${profileHTML(false,{...wk,...(draft||{})})}<button class="btn primary" id="profSave" type="button"${draftDirty()?"":" disabled"}>Save changes</button></div></details>
+  ${moveHTML()}
   <div class="foot"><button class="btn" id="replayTour" type="button">Replay tour</button></div>`;
 }
 function renderWeek(P){
@@ -396,6 +403,8 @@ function bind(){
   v.querySelectorAll(".actt").forEach(b=>{ if(!inProf(b)) b.onclick=()=>change(()=>{ const a=b.dataset.actt; wk.acts={...(wk.acts||{}),[a]:!enabled(a)}; if(!enabled(wk.mainSport)) { wk.mainSport=""; wk.season="Off-season"; } }); });
   const ss=document.getElementById("setupSave"); if(ss) ss.onclick=()=>{ wk.setupDone=true; wk.weekStart=wk.weekStart||Date.now(); cur="season"; save(); render(); window.scrollTo(0,0); setupDone(); };
   const rt=document.getElementById("replayTour"); if(rt) rt.onclick=openTour;
+  const mc=document.getElementById("moveCopy"); if(mc) mc.onclick=async()=>{ const data=JSON.stringify({v:1,slots:storage.getItem(KEY),wk:storage.getItem(KEY2),hist:storage.getItem(KEY3)}); const t=document.getElementById("moveTxt"); t.value=data; t.select(); try{ await navigator.clipboard.writeText(data); toast(["Copied","Paste it into Lift Board on the other device."]); }catch(e){ toast(["Selected","Copy the text in the box."]); } };
+  const ml=document.getElementById("moveLoad"); if(ml) ml.onclick=()=>{ try{ const o=JSON.parse(document.getElementById("moveTxt").value); if(!o||o.v!==1||!o.wk) throw 0; storage.setItem(KEY,o.slots||"{}"); storage.setItem(KEY2,o.wk); storage.setItem(KEY3,o.hist||"{}"); location.reload(); }catch(e){ toast(["Couldn't load","Paste the full text from Copy my data."]); } };
   v.querySelectorAll(".exrow[data-ex]").forEach(b=>b.onclick=()=>{ const i=+b.dataset.ex; wk.active={...(wk.active||{}),[cur]:i}; save(); render(); planSheet(cur,i); });
   v.querySelectorAll(".cdone").forEach(b=>b.onclick=()=>{ const i=+b.dataset.i, A=plan().days[cur].slots[i], st=get(cur,i); if(!st.act&&A.min) set(cur,i,"act",String(A.min)); set(cur,i,"cdone",true); fxOnce.slot=`${cur}-${i}`;
     const d=DAYS.find(x=>x.id===cur), n=nextIdx(d,plan().days[cur],i); if(n!=null){ wk.active={...(wk.active||{}),[cur]:n}; save(); } render(); if(n!=null) planSheet(cur,n); });

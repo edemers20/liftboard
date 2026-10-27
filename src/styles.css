@@ -282,3 +282,5 @@ body.resting #sheet{bottom:calc(66px + env(safe-area-inset-bottom,0px))}
 .lw em.neg{color:var(--cardio)}
 .inset .burn{font-size:14px}
 .inset .burn strong{font-size:inherit}
+textarea{font:13px var(--mono);color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%;box-sizing:border-box;resize:vertical}
+#moveBox .btn{min-height:44px}
