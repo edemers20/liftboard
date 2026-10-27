@@ -199,7 +199,7 @@ function renderSeason(P){
   ${enabled("lift")?`<div class="panel">${hdr("Training preferences",["ss","liftK"])}
     ${toggle("ss","Supersets")}
     <div class="q"><span>Avg lift kcal</span>${fld("liftK","","numeric","","sm")}</div></div>`:""}
-  <details class="panel" id="profileBox"${wk.openBase?" open":""}><summary><h3 style="display:inline">Profile</h3> <span class="small">${esc(wk.sex)} · ${esc(wk.weight)} lb · ${esc(wk.height)} in</span></summary><div style="display:grid;gap:12px;margin-top:12px">${profileHTML(false,{...wk,...(draft||{})})}<button class="btn primary" id="profSave" type="button"${draftDirty()?"":" disabled"}>Save changes</button></div></details>
+  <div class="panel" id="profileBox"><h3>Profile</h3>${profileHTML(false,{...wk,...(draft||{})})}<button class="btn primary" id="profSave" type="button"${draftDirty()?"":" disabled"}>Save changes</button></div>
   ${moveHTML()}
   <div class="foot season-foot"><button class="btn" id="replayTour" type="button">Replay tour</button><button class="btn" id="resetProfile" type="button">Reset profile</button></div>`;
 }
@@ -403,18 +403,23 @@ function measureStack(){
   v.classList.remove("measuring");
   ST.tabsH=(parseFloat(getComputedStyle(tabs).top)||0)+tabs.offsetHeight+4;
   ST.thr=ST.cards.map((_,i)=>{ let t=ST.tabsH; for(let k=Math.max(0,i-STACK_MAX);k<i;k++) t+=ST.strip[k]; return t; });
+  const vh0=window.innerHeight; ST.end=ST.cards.findIndex((c,i)=>i>0&&ST.h[i]>vh0-ST.thr[i]-12); if(ST.end<0) ST.end=ST.cards.length;
+  ST.cards.forEach((c,i)=>c.classList.toggle("flow",i>=ST.end));
   /* room at the bottom so the last card can still slide up into place */
   const L=ST.cards.length-1, need=ST.nat[L]-ST.thr[L], max=document.documentElement.scrollHeight-window.innerHeight;
-  if(L>0&&need>max) pad.style.height=Math.ceil(need-max)+"px";
+  if(ST.end>L&&L>0&&need>max) pad.style.height=Math.ceil(need-max)+"px";
   updateStack();
 }
 function updateStack(){
   if(!ST||!ST.nat) return;
-  const y=window.scrollY, vh=window.innerHeight, n=ST.cards.length;
+  const y=window.scrollY, vh=window.innerHeight, n=ST.end;
   let c=0; for(let i=0;i<n;i++) if(ST.nat[i]-y<=ST.thr[i]+1) c=i;
-  const first=Math.max(0,c-STACK_MAX);
+  /* once the first card that scrolls normally reaches the stack, the stack lets go entirely */
+  const past=ST.end<ST.cards.length&&ST.nat[ST.end]-y<=ST.thr[ST.end];
+  const first=past?n:Math.max(0,c-STACK_MAX);
   let t=ST.tabsH;
   ST.cards.forEach((card,i)=>{
+    if(i>=ST.end){ card.style.top=""; card.classList.remove("gone","covered"); return; }
     card.classList.toggle("gone",i<first); card.classList.toggle("covered",i>=first&&i<c);
     let top;
     if(i<first) top=null;
@@ -588,7 +593,6 @@ function bind(){
   v.querySelectorAll(".exrow[data-ex]").forEach(b=>b.onclick=()=>{ const i=+b.dataset.ex; wk.active={...(wk.active||{}),[cur]:i}; save(); render(); });
   v.querySelectorAll(".cdone").forEach(b=>b.onclick=()=>{ const i=+b.dataset.i, A=plan().days[cur].slots[i], st=get(cur,i); if(!st.act&&A.min) set(cur,i,"act",String(A.min)); set(cur,i,"cdone",true); fxOnce.slot=`${cur}-${i}`;
     const d=DAYS.find(x=>x.id===cur), n=nextIdx(d,plan().days[cur],i); if(n!=null){ wk.active={...(wk.active||{}),[cur]:n}; save(); } render(); });
-  const pb=document.getElementById("profileBox"); if(pb) pb.ontoggle=()=>{ wk.openBase=pb.open; save(); };
   v.querySelectorAll("input[data-set]").forEach(el=>{ el.oninput=()=>logSet(+el.dataset.i,+el.dataset.set,el.dataset.f,el.value); el.onchange=()=>render(); });
   v.querySelectorAll(".chk").forEach(b=>b.onclick=()=>{ const i=+b.dataset.i,k=+b.dataset.set, x=(get(cur,i).log||[])[k]||{};
     if(!x.w){ const ph=document.getElementById(`w-${cur}-${i}-${k}`).placeholder; if(+ph>0) logSet(i,k,"w",ph); }
