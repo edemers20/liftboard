@@ -186,7 +186,6 @@ function renderSeason(P){
   ${planHTML(P)}
   <div class="panel">${hdr("Season",["season","ramp","deload"])}
     ${seasonBox}
-    ${enabled("lift")?toggle("stretch","Stretching after lifts"):""}
     ${DAYS.length?`${dl.length&&wk.deload!=="Yes"?`<p class="flag">Deload suggested · ${dl.join(", ")}</p>`:""}${toggle("deload","Deload this week")}`:""}
   </div>
   <div class="panel">${hdr("Goal",["mode","rate","share"])}
@@ -201,6 +200,7 @@ function renderSeason(P){
   </div>
   ${enabled("lift")?`<div class="panel">${hdr("Training preferences",["ss","liftK"])}
     ${toggle("ss","Supersets")}
+    ${toggle("stretch","Stretching after lifts")}
     <div class="q"><span>Avg lift kcal</span>${fld("liftK","","numeric","","sm")}</div></div>`:""}
   <div class="panel" id="profileBox"><h3>Profile</h3>${profileHTML(false,{...wk,...(draft||{})})}<button class="btn primary" id="profSave" type="button"${draftDirty()?"":" disabled"}>Save changes</button></div>
   ${moveHTML()}

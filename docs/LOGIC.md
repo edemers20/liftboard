@@ -141,7 +141,7 @@ Per lift, from your last logged set:
 - **Unilateral starting side:** single-side exercises show "Start on Left/Right", defaulting to the opposite of last session's start; the side is saved with that session's history.
 - **Finishing a day:** happens automatically only when every non-skipped lift set and the cardio finisher are done. Set logs stay visible until a new week; editing a finished day rewrites that day's history entry; reopening a day removes it.
 - **Two in-season sports:** a primary and an optional second sport. Support lifts cover both; the season sentence names both. Tapping a picked sport again makes it primary; tapping the primary removes it.
-- **Stretching:** optional cooldown block on lift days (lower, upper or full-body set), toggled in the Season card; never required to finish a day.
+- **Stretching:** optional cooldown block on lift days (lower, upper or full-body set), toggled in Training preferences; never required to finish a day.
 - **Lifting days:** 0 is allowed and removes lift day tabs.
 - **Up to 7 of anything:** lift days and every activity go to 7 a week (in-season lifting stays capped at 3 full-body days). Days 6–7 add full-body sessions and run 1 set lighter on every lift.
 - **Packed weeks:** total sessions = lift days + all activity sessions + the ramp session. 10–12 adds 1 to recovery load, 13+ adds 2. 4+ spin classes add 2 instead of 1.
