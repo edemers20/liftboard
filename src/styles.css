@@ -199,7 +199,7 @@ button:active:not(:disabled),.tab:active{transform:scale(.97)}
 .dx{width:44px;height:44px;margin:-10px -12px -10px 0;border:0;background:transparent;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .dx path{stroke:#fff;stroke-width:2;stroke-linecap:round}
 .dhead{display:flex;align-items:center;gap:14px}
-.dhead h2{margin:0;font-family:var(--display);font-weight:700;font-size:32px;line-height:1;text-transform:uppercase;outline:none}
+.dhead h2{margin:0;font-family:var(--display);font-weight:700;font-size:30px;line-height:1;letter-spacing:.03em;text-transform:uppercase;outline:none}
 .dcheck{width:56px;height:56px;flex:0 0 auto;border-radius:50%;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;animation:lbCheck .45s ease-out 80ms both}
 .dcheck path{fill:none;stroke:var(--mint);stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:24;animation:lbDraw .42s ease-out 220ms both}
 .drows{display:grid;gap:6px}
