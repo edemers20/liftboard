@@ -1,4 +1,5 @@
 import "./styles.css";
+import { attachDials } from "./dial.js";
 import { ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk } from "./engine.js";
 
 const storage=(()=>{ try{ const k="__t"; localStorage.setItem(k,"1"); localStorage.removeItem(k); return localStorage; }catch(e){ const m=new Map(); return {getItem:k=>m.get(k)??null,setItem:(k,v)=>m.set(k,String(v))}; } })();
@@ -17,7 +18,7 @@ const INFO={
  acts:"Turns on each activity's tab and check-in question. Lifting off hides all lift days.",
  mainSport:"The sport your seasons revolve around. It decides which support lifts appear in-season.",
  focus:"Where extra sets and extra days go. Lower: more lower-body work. Upper: the reverse. Balanced: even.",
- season:"Off-season: full splits, weights go up. In-season: 1–3 full-body days, 2 sets each, weights held, support lifts for your sport.",
+ season:"Off-season: full splits, weights go up. In-season: 1–3 full-body days, 2 sets each, no weight increases, support lifts for your sport.",
  ramp:"Adds one 45-min zone 2 session a week to build the aerobic base that prevents in-season fatigue.",
  deload:"One lighter week: about 60% of sets, ~90% weights, easy-pace cardio. Suggested after 6 off-season weeks or when 2+ main lifts stall.",
  mode:"Deficit only: fat loss first. Recomp: loss capped at 0.5 lb/wk and cardio at 25% to protect muscle. Build: ~200 kcal surplus, +1 set on main lifts.",
@@ -36,10 +37,10 @@ const INFO={
  sore:"Adds 1 (2 if everywhere). Where you're sore decides which main lifts get cut.",
  cycle:"Period or luteal adds 1.",
  drink:"1–2 adds 1. 3+ adds 2.",
- load:"Recovery load 2: finishers switch to an easy, conversational pace (no intervals). 3–4: also main lifts −1 set and weights held. 5+: shortened days.",
+ load:"Recovery load 2: finishers switch to an easy, conversational pace (no intervals). 3–4: also main lifts −1 set and no weight increases. 5+: shortened days.",
  wAvg:"Optional. After 3+ weeks, maintenance corrects itself from your real change. Assumes you ate close to target.",
  ss:"No: exercises run as straight sets. At 60 min or less, optional accessories are cut to fit the time.",
- today:"Good: −1 recovery load and a push-your-top-set cue. Normal: plan as written. Rough gives a shortened day: −1 set on everything, optional accessories cut, easy-pace finisher, weights held.",
+ today:"Good: −1 recovery load and a push-your-top-set cue. Normal: plan as written. Rough gives a shortened day: −1 set on everything, optional accessories cut, easy-pace finisher, no weight increases.",
  heated:"Heated burns more.",
  progress:"↑ Up: hit the top of the range, ~5% more on lower lifts, ~2.5% on upper. = Hold: same weight, one more rep. ↓ Down: missed the bottom twice, rebuild at −10%. ! Fatigue: reps fell 4+ across sets; rest longer.",
  changes:"Everything this week's check-in and activities changed, grouped by cause.",
@@ -61,6 +62,8 @@ function seg(key,label,opts,val,solo){ const v=val!==undefined?val:wk[key];
 function stepper(key,label,vals,unit,val){ const v=String(val!==undefined?val:wk[key]), arr=vals.map(String); let i=arr.indexOf(v); if(i<0) i=0;
   const b=(d,lab,sym)=>{ const j=i+d; return j<0||j>=arr.length?`<button type="button" disabled aria-label="${lab}">${sym}</button>`:`<button type="button" data-v="${arr[j]}" aria-label="${lab} to ${arr[j]}${unit?" "+unit:""}">${sym}</button>`; };
   return `<div class="q"><span>${label}</span><div class="seg stepper" data-key="${key}">${b(-1,"Decrease","−")}<output aria-live="polite">${arr[i]}${unit?`<small> ${unit}</small>`:""}</output>${b(1,"Increase","+")}</div></div>`; }
+function toggle(key,label,val){ const on=String(val!==undefined?val:wk[key])==="Yes";
+  return `<div class="q tgl"><span id="tg-${key}">${label}</span><div class="seg toggle" data-key="${key}"><button type="button" role="switch" aria-checked="${on}" aria-labelledby="tg-${key}" data-v="${on?"No":"Yes"}"><i aria-hidden="true"></i></button></div></div>`; }
 function fld(key,label,mode,ph,cls,val){ return `<label class="field${cls?" "+cls:""}" for="${key}"><span>${label}</span><input id="${key}" data-w="${key}" inputmode="${mode||"numeric"}" placeholder="${ph||""}" value="${esc((val!==undefined?val:wk[key])??"")}"></label>`; }
 
 function draftDirty(){ return !!draft&&Object.keys(draft).some(k=>JSON.stringify(draft[k])!==JSON.stringify(wk[k])); }
@@ -71,13 +74,13 @@ function planRows(P,touring){
   const M=P.math, inS=inSeason(), lift=enabled("lift"), R=[];
   if(lift){
     R.push({k:"Split",v:DAYS.length?DAYS.map(d=>d.title.split(" · ")[0].replace("Full Body ","Full ")).join(" · "):"No lifting days",s:0});
-    R.push({k:"Sets",v:wk.deload==="Yes"?"Deload · about 60%":inS?"2 per lift · weights held":wk.mode==="Build"?"Progressing · +1 on main lifts":"Progressing",s:0});
+    R.push({k:"Sets",v:wk.deload==="Yes"?"Deload · about 60%":inS?"2 per lift · same weights":wk.mode==="Build"?"Progressing · +1 on main lifts":"Progressing",s:0});
     if(inS){ const sp=Object.keys(SUP).filter(k=>SUP[k].includes(wk.mainSport)).map(k=>SUPN[k]); if(sp.length) R.push({k:"Support lifts",v:capF(sp.join(" · ")),s:0}); }
   }
   R.push({k:"Eat",v:`${r5(M.intake).toLocaleString()} kcal/day`,s:1});
   if(wk.mode!=="Build"&&M.cardioTarget>0) R.push({k:"Cardio",v:`${r5(M.cardioTarget).toLocaleString()} kcal/week`,s:1});
   if(touring) R.push({k:"Check-in",v:"Adjusts each week",s:2});
-  if(lift) R.push({k:"Lower-lift jump",v:inS?"Held in-season":`+5%, min ${wk.sex==="Male"?10:5} lb`,s:3});
+  if(lift) R.push({k:"Lower-lift jump",v:inS?"None in-season":`+5%, min ${wk.sex==="Male"?10:5} lb`,s:3});
   R.push({k:"Protein",v:`${M.protein[0]}–${M.protein[1]} g/day`,s:4});
   return R;
 }
@@ -92,6 +95,33 @@ function planHTML(P,o={}){
 
 const TAGICON={up:"↑",hold:"=",down:"↓",collapse:"!"};
 const tagH=t=>`<span class="tag ${t}" role="img" aria-label="${TAGTXT[t]}">${TAGICON[t]}</span>`;
+/* ---------- Number wheels: which inputs get one, and their ranges ---------- */
+const DIAL={
+  age:{label:"Age",min:13,max:90,step:1},
+  height:{label:"Height",min:48,max:84,step:1,unit:"in"},
+  weight:{label:"Weight",min:70,max:400,step:0.5,unit:"lb"},
+  bf:{label:"Body fat",min:5,max:50,step:1,unit:"%",optional:1,start:25},
+  steps:{label:"Steps / day",min:0,max:30000,step:250},
+  oura:{label:"Daily burn",min:1000,max:5000,step:10,unit:"kcal",optional:1,start:2000},
+  wAvg:{label:"Avg weight",min:70,max:400,step:0.2,unit:"lb",optional:1},
+  liftK:{label:"Avg lift kcal",min:0,max:800,step:10,unit:"kcal"},
+  rate:{label:"Lose per week",min:0,max:2,step:0.25,unit:"lb"},
+  share:{label:"From cardio",min:0,max:100,step:5,unit:"%"}
+};
+function dialCfg(el){
+  const d=el.dataset;
+  if(d.f==="w"||d.f==="r"){
+    const log=get(cur,+d.i).log||[], k=+d.set, prev=log[k-1]||{}, day=DAYS.find(x=>x.id===cur), slot=day&&day.slots[+d.i];
+    if(d.f==="w") return {label:"Weight",min:0,max:600,step:2.5,unit:"lb",start:prev.w||(+el.placeholder>0?el.placeholder:45)};
+    return {label:"Reps",min:0,max:40,step:1,start:prev.r||(slot?range(slot.reps)[1]:10)};
+  }
+  if(d.k==="act") return {label:"Actual minutes",min:0,max:120,step:1,unit:"min",start:el.placeholder};
+  if(d.act) return {label:"Actual minutes",min:0,max:240,step:1,unit:"min",start:el.placeholder};
+  const k=d.w||d.tw; if(!k) return null;
+  if(DIAL[k]) return {...DIAL[k],start:DIAL[k].start??(k==="wAvg"?wk.weight:el.placeholder)};
+  if(/min$/.test(k)) return {label:"Planned minutes",min:15,max:240,step:5,unit:"min",start:el.placeholder};
+  return null;
+}
 /* ---------- Rendering ---------- */
 function tabName(id){ if(id==="week") return "This week"; if(id==="season") return wk.setupDone?"Season":"Setup"; if(ACT[id]) return ACT[id].name; return DAYS.find(d=>d.id===id).tab; }
 function renderTabs(P){
@@ -133,13 +163,13 @@ function renderSeason(P){
   const names=Object.keys(exHist).filter(n=>(exHist[n]||[]).length);
   const H=(wk.weeks||[]).slice().reverse();
   const seasonBox=hasSport()?`${seg("season","Season",["Off-season","In-season"])}
-    ${inS?"":seg("ramp","Season starts in ≤6 weeks",["No","Yes"])}
+    ${inS?"":toggle("ramp","Season starts in ≤6 weeks")}
     ${!inS&&wk.ramp==="Yes"?`<div class="list">${rows("zAct",1,45,perMin(CARDIO["Bike (steady)"].met),"Zone 2 session")}</div>`:""}`:`<p class="note">Pick a main sport in Profile to use seasons.</p>`;
   return `<div class="dayhead"><h2>Season</h2></div>
   ${planHTML(P)}
   <div class="panel">${hdr("Season",["season","ramp","deload"])}
     ${seasonBox}
-    ${DAYS.length?`${dl.length&&wk.deload!=="Yes"?`<p class="flag">Deload suggested · ${dl.join(", ")}</p>`:""}${seg("deload","Deload this week",["No","Yes"])}`:""}
+    ${DAYS.length?`${dl.length&&wk.deload!=="Yes"?`<p class="flag">Deload suggested · ${dl.join(", ")}</p>`:""}${toggle("deload","Deload this week")}`:""}
   </div>
   <div class="panel">${hdr("Goal",["mode","rate","share"])}
     ${seg("mode","Goal",["Deficit only","Recomp","Build"])}
@@ -152,7 +182,7 @@ function renderSeason(P){
    ${H.length?`<div style="overflow-x:auto"><table class="wk"><thead><tr><th>Week of</th><th>Plan</th><th>Lifts</th><th>Sport</th><th>Wt</th></tr></thead><tbody>${H.map(w=>`<tr><td>${fmt(w.start)}</td><td>${w.season==="In-season"?"In":"Off"}${w.ramp?" · ramp":""}${w.deload?" · deload":""} · ${esc(w.mode)}<br><span class="small">${esc(w.focus||w.priority||"")}</span></td><td>${w.lifts}/${w.planned}</td><td>${w.sport??w.pickle??0} min</td><td>${w.w||"–"}</td></tr>`).join("")}</tbody></table></div>`:`<p class="note">Saves when you tap Start new week.</p>`}
   </div>
   ${enabled("lift")?`<div class="panel">${hdr("Training preferences",["ss","liftK"])}
-    ${seg("ss","Supersets",["Yes","No"])}
+    ${toggle("ss","Supersets")}
     <div class="q"><span>Avg lift kcal</span>${fld("liftK","","numeric","","sm")}</div></div>`:""}
   <details class="panel" id="profileBox"${wk.openBase?" open":""}><summary><h3 style="display:inline">Profile</h3> <span class="small">${esc(wk.sex)} · ${esc(wk.weight)} lb · ${esc(wk.height)} in</span></summary><div style="display:grid;gap:12px;margin-top:12px">${profileHTML(false,{...wk,...(draft||{})})}<button class="btn primary" id="profSave" type="button"${draftDirty()?"":" disabled"}>Save changes</button></div></details>
   ${moveHTML()}
@@ -232,7 +262,7 @@ function renderDayHTML(d,P){
     const nRows=Math.max(A.sets||0,log.length);
     const pill=s.cardio?(D.done?`~${r5(A.doneK||0)} kcal`:`${A.min} min`):fin?"Done":`Set ${Math.min(ticks+1,A.sets)} of ${A.sets}`;
     html+=`<section class="slot cur${s.ss&&wk.ss!=="No"?" ss":""}${fxOnce.slot===base?" justdone":""}" aria-current="step">
-      <div class="row1"><span class="label hdr">${s.label}${s.ss&&wk.ss!=="No"?` · Superset ${s.ss}`:""}${s.cardio?"":ib("progress")}</span><span class="pill">${pill}</span></div>
+      <div class="row1"><span class="label hdr">${s.label}${s.ss&&wk.ss!=="No"?` · Superset ${s.ss}`:""}</span><span class="pill">${pill}</span></div>
       ${s.cardio?"":`<div class="bars" style="--n:${nRows}" aria-hidden="true">${Array.from({length:nRows},(_,k)=>`<i class="${k<ticks?"on":k===ticks&&!fin?"now":""}"></i>`).join("")}</div>`}
       <select id="sel-${base}" data-i="${i}" aria-label="${esc(s.label)} exercise">${opts}</select>
       <input id="cus-${base}" class="custom${isCustom?" on":""}" data-i="${i}" placeholder="Exercise name" value="${esc(st.custom||"")}">`;
@@ -286,7 +316,7 @@ function rows(key,n,pl,rate,label,noK){
 }
 function renderAct(a){
   const n=cnt(a), A=ACT[a];
-  if(a==="yoga") return `<div class="dayhead"><h2>Yoga</h2></div><div class="panel" style="margin-top:12px">${hdr("This week",["yoga","ymin","heated"])}${stepper("yoga","Sessions",[0,1,2,3])}${stepper("ymin","Class length",[45,60,75,90],"min")}${seg("heated","Heated",["No","Yes"])}</div>
+  if(a==="yoga") return `<div class="dayhead"><h2>Yoga</h2></div><div class="panel" style="margin-top:12px">${hdr("This week",["yoga","ymin","heated"])}${stepper("yoga","Sessions",[0,1,2,3])}${stepper("ymin","Class length",[45,60,75,90],"min")}${toggle("heated","Heated")}</div>
   <div class="list" style="margin-top:12px">${rows("yAct",n,num(wk.ymin,60),perMin(YOGA_MET[wk.heated]||2.8),"Class")}</div>`;
   if(a==="spin") return `<div class="dayhead"><h2>Spin</h2></div><div class="panel" style="margin-top:12px">${hdr("This week",["spin","spint"])}${stepper("spin","Sessions",[0,1,2,3])}${seg("spint","Intensity",["Hard","Really hard"])}</div>
   <div class="list" style="margin-top:12px">${rows("sAct",n,SPIN_MIN,perMin(SPIN_MET[wk.spint]||8.5),"Class")}</div>`;
@@ -399,6 +429,7 @@ function dayComplete(id){
 }
 function bind(){
   const v=document.getElementById("view");
+  attachDials(v,dialCfg);
   const inProf=el=>wk.setupDone&&!!el.closest("#profileBox");
   const stage=(k,val)=>{ draft=draft||{}; draft[k]=val; if(k==="acts"){ const ms=draft.mainSport??wk.mainSport; if(ms&&!val[ms]) draft.mainSport=""; } render(); };
   const ps=document.getElementById("profSave"); if(ps) ps.onclick=()=>{ const d=draft; draft=null; const a=fx(plan()); Object.assign(wk,d); if(!enabled(wk.mainSport)){ wk.mainSport=""; } if(!wk.mainSport) wk.season="Off-season"; save(); const b=fx(plan()); render(); toast(["Profile saved",...diffFx(a,b)]); };
@@ -480,7 +511,7 @@ function renderTour(focus){
     body:card("Goal",tchips("mode",[["Deficit only","Deficit"],["Recomp","Recomp"],["Build","Build"]],wk.mode),1)},
    {tab:"This week",page:"This week",name:"Check-in",title:"Your week adjusts itself",
     text:"Different factors combine to adjust the rest of the week's plan.",
-    body:card("How you're doing",`${lbl("Example")}${rowsH([["Readiness","Low"],["Soreness","Legs"],["Drinking","1–2 nights"],["This week","Main lifts −1 set, weights held",1]])}`,1)},
+    body:card("How you're doing",`${lbl("Example")}${rowsH([["Readiness","Low"],["Soreness","Legs"],["Drinking","1–2 nights"],["This week","Main lifts −1 set, no weight increases",1]])}`,1)},
    {tab:"Day 1",page:"Day 1",name:"Lifting",title:"Built-in progressive overload",
     text:"Your plan dictates where extra sets go. Hit the top or miss the bottom of your rep range to see future lifts adjust.",
     body:card("Lifting focus",`${tchips("focus",[["Lower","Lower body"],["Balanced","Balanced"],["Upper","Upper body"]],wk.focus)}${rowsH([["Hip thrust · 4 × 6–10","140 lb × 10"],["Next time",inS?"140 lb · Hold":`${140+inc} lb · Up`,1]])}`,1)},
@@ -523,6 +554,7 @@ function renderTour(focus){
   el.classList.toggle("step",!!focus); el.classList.toggle("opening",focus==="open");
   el.querySelectorAll("[data-tk]").forEach(b=>b.onclick=()=>tourSet(b.dataset.tk,b.dataset.v));
   el.querySelectorAll("[data-tw]").forEach(x=>x.onchange=()=>{ wk[x.dataset.tw]=x.value; save(); renderTour(); });
+  attachDials(el,dialCfg);
   el.querySelector("#tSkip").onclick=closeTour;
   const go=d=>{ tour.i+=d; renderTour(true); const sc=el.querySelector(".tscroll"); if(sc) sc.scrollTop=0; };
   const bk=el.querySelector("#tBack"); if(bk) bk.onclick=()=>go(-1);

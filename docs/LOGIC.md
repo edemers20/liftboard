@@ -16,7 +16,7 @@ Every rule the app applies, by layer. Each layer feeds the next. The source of t
 
 ## 2. Split (which days you get)
 
-- **In-season:** 1–3 full-body days (Full Body A, B, C). 2 sets per lift, weights held, support lifts on.
+- **In-season:** 1–3 full-body days (Full Body A, B, C). 2 sets per lift, no weight increases, support lifts on.
 - **Off-season:**
   - 1 day: Full A.
   - 2 days: Full A and B.
@@ -75,7 +75,7 @@ Score = sum of:
 | Score | Effect |
 | --- | --- |
 | 2 | Finishers switch to easy pace (no intervals). |
-| 3–4 | Also: main lifts −1 set, weights held. If you're sore in one area, the cut hits that area's main lift. |
+| 3–4 | Also: main lifts −1 set, no weight increases. If you're sore in one area, the cut hits that area's main lift. |
 | 5+ | Shortened day: −1 set on everything, optional accessories skipped. |
 
 **Fatigue:** if reps drop on 2+ lifts in a session, the next day is shortened automatically. Two hard sessions in a row suggest a rest day.
@@ -114,7 +114,7 @@ Per lift, from your last logged set:
 - Dumbbells step 2.5 lb at 20 lb and under.
 
 **Holds:**
-- Weights hold in-season and when recovery load is 3+.
+- Weights stay the same in-season and when recovery load is 3+.
 - Deload uses 90% weights.
 
 ## 7. Days and weeks

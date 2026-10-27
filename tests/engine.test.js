@@ -62,7 +62,7 @@ describe("progression", () => {
   it("holds weights in-season", () => {
     fresh({ acts: { lift: true, pickle: true }, mainSport: "pickle", season: "In-season", days: 2 });
     E.exHist["Hip Thrust (Barbell)"] = [{ w: 135, r: 10 }];
-    expect(E.suggest(E.DAYS[0], E.DAYS[0].slots[0], 0, false, E.plan()).why).toBe("hold, in-season");
+    expect(E.suggest(E.DAYS[0], E.DAYS[0].slots[0], 0, false, E.plan()).why).toBe("same weight in-season");
   });
 });
 

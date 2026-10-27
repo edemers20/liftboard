@@ -369,7 +369,7 @@ function plan(){
       if(/^[+−]\d$/.test(e)) add(causeOf(c),`${cat(s)} ${e[0]}1 set`); else if(c==="deload week") add(c,"about 60% of sets"); else add(c,e); });
     if(A.steady&&!A.skip&&!daily(A.steady)) add(causeOf(A.steady),"finishers at easy pace");
     if(A.overWhy) add(A.overWhy,A.skip?"finishers dropped":"finishers shortened"); }); });
-  if(S>=3) add(loadLbl,"weights held");
+  if(S>=3) add(loadLbl,"no weight increases");
   if(ramp) add("pre-season ramp","one 45-min zone 2 session");
   if(twoHard&&P.nextId) add("reps dropped 2 sessions in a row","take a rest day first");
   if(wk.missedNote&&wk.upNext&&!done[wk.upNext]) add(wk.missedNote.why,wk.missedNote.txt);
@@ -403,7 +403,7 @@ function suggest(d,s,i,useLog,P){
   const [lo,hi]=range(s.reps), top=isIso(s)?hi+3:hi;
   const D=(P&&P.days[d.id])||{};
   if(wk.deload==="Yes") return {w:roundW(n,last.w*0.9),why:"deload, easy reps"};
-  if(last.r>=top){ if(inSeason()) return {w:last.w,why:"hold, in-season"}; if(D.cutD) return {w:last.w,why:"hold, "+D.dayCause}; return {w:last.w+incFor(n,s,last.w),why:`~${lo} reps`}; }
+  if(last.r>=top){ if(inSeason()) return {w:last.w,why:"same weight in-season"}; if(D.cutD) return {w:last.w,why:"same weight, "+D.dayCause}; return {w:last.w+incFor(n,s,last.w),why:`~${lo} reps`}; }
   if(last.r>=lo) return {w:last.w,why:`${Math.min(top,last.r+1)} reps`};
   if(prev&&prev.w===last.w&&prev.r<lo) return {w:roundW(n,last.w*0.9),why:"rebuild"};
   return {w:last.w,why:"repeat"};
@@ -456,8 +456,8 @@ function dayDiff(Pa,Pb,id){
   if(up.length) out.unshift(`+1 set: ${up.join(", ")}`);
   if(sk.length) out.push(`Skipped: ${sk.join(", ")}`);
   if(back.length) out.push(`Back in: ${back.join(", ")}`);
-  if(B.cutD&&!A.cutD) out.push("Weights held");
-  if(!B.cutD&&A.cutD) out.push("Weight increases back on");
+  if(B.cutD&&!A.cutD) out.push("Same weights as last time");
+  if(!B.cutD&&A.cutD) out.push("Weights can go up again");
   if(B.today==="Good"&&A.today!=="Good") out.push("Push your top set on main lifts");
   return out.length?[`Today: ${B.today}`,...out]:[`Today: ${B.today} · no change to the plan`];
 }
