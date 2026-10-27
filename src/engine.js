@@ -179,9 +179,9 @@ let slots={}, wk={...DEF}, exHist={};
 /** Load state from a storage adapter ({getItem,setItem}), run migrations, persist. */
 function init(storage){
   store=storage; let hadStore=false;
-  slots={}; wk={...DEF}; exHist={};
+  slots={}; wk=JSON.parse(JSON.stringify(DEF)); exHist={};
   try{ slots=JSON.parse(store.getItem(KEY)||"{}")||{}; }catch(e){}
-  try{ const raw=store.getItem(KEY2); hadStore=!!raw; wk={...DEF,...(JSON.parse(raw||"{}")||{})}; }catch(e){}
+  try{ const raw=store.getItem(KEY2); hadStore=!!raw; wk={...JSON.parse(JSON.stringify(DEF)),...(JSON.parse(raw||"{}")||{})}; }catch(e){}
   try{ exHist=JSON.parse(store.getItem(KEY3)||"{}")||{}; }catch(e){}
 
 if(!wk.mig1){ [["d1",4],["d2",7],["d3",5]].forEach(([d,i])=>{ if(slots[d]&&slots[d][i]){ slots[d][i+1]=slots[d][i]; delete slots[d][i]; } }); wk.mig1=1; }
@@ -470,14 +470,20 @@ function dayDiff(Pa,Pb,id){
 /** Mark a day done: logs history, detects fatigue, stores the next-time review. Returns toast lines. */
 function markDone(dayId){
   wk.done=wk.done||{};
-  if(wk.done[dayId]){ delete wk.done[dayId]; if(wk.review) delete wk.review[dayId]; save(); return []; }
+  if(wk.done[dayId]){
+    /* reopening a day takes back the history it wrote, so finishing it again doesn't double-count */
+    const t=(wk.doneT||{})[dayId]; if(t) Object.keys(exHist).forEach(n=>{ exHist[n]=exHist[n].filter(x=>x.t!==t); });
+    delete wk.done[dayId]; if(wk.review) delete wk.review[dayId]; if(wk.doneT) delete wk.doneT[dayId]; save(); return []; }
+  const stamp=Date.now();
   const d=DAYS.find(x=>x.id===dayId); let drops=0;
   const P0=plan(), items=[];
   d.slots.forEach((s,i)=>{ if(s.cardio||P0.days[dayId].slots[i].skip) return; const r=review(d,s,i,P0); if(r) items.push(r); });
   d.slots.forEach((s,i)=>{ if(s.cardio) return; const L=lastSet(get(dayId,i).log); if(!L) return; const n=exName(d,s,i), h=exHist[n]||[], pv=h[h.length-1];
     const rv=items.find(x=>x.n===n);
     if((pv&&wk.deload!=="Yes"&&L.w>=pv.w&&L.r<=pv.r-2)||(rv&&rv.tag==="collapse")) drops++;
-    h.push({w:L.w,r:L.r,t:Date.now(),season:inSeason()?"In-season":"Off-season"}); exHist[n]=h.slice(-24); set(dayId,i,"log",[]); });
+    h.push({w:L.w,r:L.r,t:stamp,season:inSeason()?"In-season":"Off-season"}); exHist[n]=h.slice(-24); });
+  /* the day's set logs stay on screen until a new week starts */
+  wk.doneT={...(wk.doneT||{}),[dayId]:stamp};
   wk.fatigue=(wk.fatigue||[]).concat([{t:Date.now(),day:dayId,drops}]).slice(-10);
   const P=plan(); let k=0;
   P.days[dayId].slots.forEach((A,i)=>{ if(d.slots[i].cardio&&!A.skip&&A.kcal){ const a=num(get(dayId,i).act,0); k+=a>0?a*A.rate:A.kcal; } });
@@ -489,6 +495,17 @@ function markDone(dayId){
   save();
   const parts=[c("up")&&`${c("up")} moving up`,c("hold")&&`${c("hold")} holding`,(c("down")+c("collapse"))&&`${c("down")+c("collapse")} easing off`].filter(Boolean);
   return [`${d.tab} done`,...(parts.length?[`Next time: ${parts.join(", ")}.`]:[]),...(note?[note]:[]),...(items.some(x=>x.why.startsWith("too light"))?["Some lifts were too light; they get a bigger jump."]:[])];
+}
+/** After editing sets on a finished day, rewrite that day's history entries and next-time review. */
+function resyncDone(dayId){
+  const t=(wk.doneT||{})[dayId], d=DAYS.find(x=>x.id===dayId); if(!t||!d) return;
+  const P=plan(), items=[];
+  d.slots.forEach((s,i)=>{ if(s.cardio) return; const n=exName(d,s,i), L=lastSet(get(dayId,i).log); let h=(exHist[n]||[]).filter(x=>x.t!==t);
+    if(L){ const pv=h[h.length-1]; exHist[n]=h; const r=(!P.days[dayId].slots[i].skip)&&review(d,s,i,P); if(r) items.push(r);
+      h.push({w:L.w,r:L.r,t,season:inSeason()?"In-season":"Off-season"}); exHist[n]=h.slice(-24); }
+    else exHist[n]=h; });
+  wk.review={...(wk.review||{}),[dayId]:{...((wk.review||{})[dayId]||{}),items}};
+  save();
 }
 /** Close the week: snapshot history, plan missed days, calibrate maintenance, reset check-in. Returns toast lines. */
 function newWeek(){
@@ -511,8 +528,9 @@ function newWeek(){
   const reset={weekStart:Date.now(),review:{},done:{},donePlan:{},today:{},zAct:[],ready:"Normal",sore:"None",drink:"0",wAvg:"",deload:"No"};
   ACT_IDS.forEach(a=>{ if(a!=="lift") reset[actKey(a)]=[]; });
   Object.assign(wk,reset);
-  ALL.forEach(d=>d.slots.forEach((s,i)=>{ if(s.cardio&&slots[d.id]&&slots[d.id][i]) delete slots[d.id][i].act; }));
+  ALL.forEach(d=>d.slots.forEach((s,i)=>{ const st=slots[d.id]&&slots[d.id][i]; if(!st) return; if(s.cardio) delete st.act; if(done[d.id]){ st.log=[]; delete st.cdone; } }));
+  wk.doneT={};
   save(); return ["New week started. Check-in reset to normal."];
 }
 
-export { ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk };
+export { resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk };

@@ -113,3 +113,28 @@ describe("rep targets", () => {
     expect(t.r).toBeGreaterThan(0);
   });
 });
+
+describe("finishing a day", () => {
+  const logDay = () => { const d = E.DAYS[0]; E.set(d.id, 0, "log", [{ w: "135", r: "10", d: true }, { w: "135", r: "9", d: true }]); return d; };
+  it("keeps the set logs on screen and writes the top set to history", () => {
+    fresh({ focus: "Lower", days: 3 }); const d = logDay(); const n = E.exName(d, d.slots[0], 0);
+    E.markDone(d.id);
+    expect(E.get(d.id, 0).log.length).toBe(2);
+    expect(E.exHist[n].at(-1)).toMatchObject({ w: 135, r: 9 });
+  });
+  it("reopening the day takes its history back out", () => {
+    fresh({ focus: "Lower", days: 3 }); const d = logDay(); const n = E.exName(d, d.slots[0], 0); const before = (E.exHist[n] || []).length;
+    E.markDone(d.id); E.markDone(d.id);
+    expect((E.exHist[n] || []).length).toBe(before);
+  });
+  it("editing a finished day updates its history entry", () => {
+    fresh({ focus: "Lower", days: 3 }); const d = logDay(); const n = E.exName(d, d.slots[0], 0);
+    E.markDone(d.id); E.set(d.id, 0, "log", [{ w: "135", r: "10", d: true }, { w: "140", r: "8", d: true }]); E.resyncDone(d.id);
+    expect(E.exHist[n].at(-1)).toMatchObject({ w: 140, r: 8 });
+    expect(E.exHist[n].filter(x => x.t === E.wk.doneT[d.id]).length).toBe(1);
+  });
+  it("a new week clears finished days' logs", () => {
+    fresh({ focus: "Lower", days: 3 }); const d = logDay(); E.markDone(d.id); E.newWeek();
+    expect(E.get(d.id, 0).log.length).toBe(0);
+  });
+});

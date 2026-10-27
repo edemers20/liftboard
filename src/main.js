@@ -1,6 +1,6 @@
 import "./styles.css";
 import { attachDials } from "./dial.js";
-import { ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk } from "./engine.js";
+import { resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk } from "./engine.js";
 
 const storage=(()=>{ try{ const k="__t"; localStorage.setItem(k,"1"); localStorage.removeItem(k); return localStorage; }catch(e){ const m=new Map(); return {getItem:k=>m.get(k)??null,setItem:(k,v)=>m.set(k,String(v))}; } })();
 init(storage);
@@ -301,8 +301,8 @@ function renderDayHTML(d,P){
       html+=`<div class="sets">`;
       for(let k=0;k<nRows;k++){ const x=log[k]||{};
         html+=`<div class="setrow${x.d?" done":""}${k===ticks&&!fin?" now":""}"><span class="sn">${k+1}</span>
-          <input id="w-${base}-${k}" data-i="${i}" data-set="${k}" data-f="w" inputmode="decimal" placeholder="${today?today.w:"lb"}" aria-label="Set ${k+1} weight" value="${esc(x.w||"")}"><span class="u">lb</span>
-          <input id="r-${base}-${k}" data-i="${i}" data-set="${k}" data-f="r" inputmode="numeric" placeholder="${today&&today.r?today.r:range(s.reps)[0]}" aria-label="Set ${k+1} reps" value="${esc(x.r||"")}">
+          <input id="w-${base}-${k}" data-i="${i}" data-set="${k}" data-f="w" inputmode="decimal" placeholder="${D.done?"lb":today?today.w:"lb"}" aria-label="Set ${k+1} weight" value="${esc(x.w||"")}"><span class="u">lb</span>
+          <input id="r-${base}-${k}" data-i="${i}" data-set="${k}" data-f="r" inputmode="numeric" placeholder="${D.done?"reps":today&&today.r?today.r:range(s.reps)[0]}" aria-label="Set ${k+1} reps" value="${esc(x.r||"")}">
           <button type="button" class="chk${fxOnce.chk===`${base}-${k}`?" pop":""}" data-i="${i}" data-set="${k}" data-rest="${s.main?120:75}" aria-pressed="${!!x.d}" aria-label="Set ${k+1} done">✓</button></div>`; }
       html+=`<button type="button" class="btn addset" data-i="${i}">+ Set</button></div>`;
     }
@@ -507,7 +507,7 @@ document.addEventListener("click",e=>{ const b=e.target.closest&&e.target.closes
 window.addEventListener("scroll",()=>closePop(),{passive:true});
 
 /* ---------- Actions ---------- */
-function logSet(i,k,f,val){ const st=get(cur,i); const log=(st.log||[]).slice(); while(log.length<=k) log.push({}); log[k]={...log[k],[f]:val}; set(cur,i,"log",log); }
+function logSet(i,k,f,val){ const st=get(cur,i); const log=(st.log||[]).slice(); while(log.length<=k) log.push({}); log[k]={...log[k],[f]:val}; set(cur,i,"log",log); if((wk.done||{})[cur]) resyncDone(cur); }
 let restT=null;
 function startRest(sec){ const bar=document.getElementById("rest"); clearInterval(restT); let t=sec; const tick=()=>{ bar.hidden=false; bar.textContent=`Rest ${Math.floor(t/60)}:${String(t%60).padStart(2,"0")} · tap to skip`; if(t--<=0){clearInterval(restT); bar.textContent="Go"; setTimeout(()=>bar.hidden=true,2500);} }; tick(); restT=setInterval(tick,1000); }
 new MutationObserver(()=>document.body.classList.toggle("resting",!document.getElementById("rest").hidden)).observe(document.getElementById("rest"),{attributes:true,attributeFilter:["hidden"]});
@@ -575,7 +575,7 @@ const setsLogged=id=>{ const d=DAYS.find(x=>x.id===id); return d?d.slots.reduce(
 /* A day is complete when every visible lift has all its planned sets ticked */
 function dayComplete(id){
   const d=DAYS.find(x=>x.id===id), P=plan(); if(!d) return false;
-  return d.slots.every((s,i)=>{ const A=P.days[id].slots[i]; if(s.cardio||A.skip) return true; const log=get(id,i).log||[]; return log.filter(x=>x.d).length>=A.sets; });
+  return d.slots.every((s,i)=>{ const A=P.days[id].slots[i]; if(A.skip) return true; if(s.cardio) return !!get(id,i).cdone; const log=get(id,i).log||[]; return log.filter(x=>x.d).length>=A.sets; });
 }
 function bind(){
   const v=document.getElementById("view");
@@ -594,6 +594,7 @@ function bind(){
   const rp=document.getElementById("resetProfile"); if(rp) rp.onclick=()=>askSure({title:"Reset profile",text:"This erases your setup, logs and lift history on this device and starts over from the welcome screen. Copy your data first if you want to keep it.",ok:"Erase and start over",onOk:()=>{ [KEY,KEY2,KEY3,KEY+".tab"].forEach(k=>{ try{ localStorage.removeItem(k); }catch(e){} }); location.hash=""; location.reload(); }});
   v.querySelectorAll(".exrow[data-ex]").forEach(b=>b.onclick=()=>{ const i=+b.dataset.ex; wk.active={...(wk.active||{}),[cur]:i}; save(); render(); });
   v.querySelectorAll(".cdone").forEach(b=>b.onclick=()=>{ const i=+b.dataset.i, A=plan().days[cur].slots[i], st=get(cur,i); if(!st.act&&A.min) set(cur,i,"act",String(A.min)); set(cur,i,"cdone",true); fxOnce.slot=`${cur}-${i}`;
+    if(!(wk.done||{})[cur]&&dayComplete(cur)){ const id=cur, n=setsLogged(id); markDone(id); render(); dayDone(id,n); return; }
     const d=DAYS.find(x=>x.id===cur), n=nextIdx(d,plan().days[cur],i); if(n!=null){ wk.active={...(wk.active||{}),[cur]:n}; save(); } render(); });
   v.querySelectorAll("input[data-set]").forEach(el=>{ el.oninput=()=>logSet(+el.dataset.i,+el.dataset.set,el.dataset.f,el.value); el.onchange=()=>render(); });
   v.querySelectorAll(".chk").forEach(b=>b.onclick=()=>{ const i=+b.dataset.i,k=+b.dataset.set, x=(get(cur,i).log||[])[k]||{};
