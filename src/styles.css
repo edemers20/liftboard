@@ -25,7 +25,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .dayhead h2{font-family:var(--display);font-weight:700;font-size:26px;margin:0;text-transform:uppercase;letter-spacing:.02em;text-wrap:balance}
 .dayhead p{margin:0;color:var(--muted);font-size:14px;max-width:62ch}
 .list{display:flex;flex-direction:column;gap:10px}
-.slot{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;display:grid;gap:10px}
+.slot{background:var(--surface);border:1px solid transparent;border-radius:12px;padding:12px;display:grid;gap:10px}
 .slot.cardio{background:var(--surface);border-color:var(--line)}
 .slot.ss{border-left:3px solid var(--accent)}
 .slot.skip{opacity:.5}
@@ -49,7 +49,7 @@ select{font-weight:600;font-size:16px;appearance:none;background-image:linear-gr
 .nums label,.field{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;font-weight:600}
 .nums input,.field input{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:15px;padding:7px 8px}
 .note{font-size:13px;color:var(--muted);margin:0}
-.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;display:grid;gap:10px}
+.panel{background:var(--surface);border:1px solid transparent;border-radius:12px;padding:12px;display:grid;gap:10px}
 #view{display:flex;flex-direction:column;gap:10px}
 #view > *{margin-top:0 !important}
 .panel h3{margin:0;font-family:var(--display);font-size:20px;text-transform:uppercase;letter-spacing:.03em}
@@ -139,7 +139,7 @@ body.touring{overflow:hidden}
 .ttabs{display:flex;gap:6px;overflow:hidden}
 .ttabs .tab{cursor:default}
 .tpage{font-family:var(--display);font-weight:700;font-size:26px;margin:0;text-transform:uppercase;letter-spacing:.02em}
-.tcard{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;display:grid;gap:10px}
+.tcard{background:var(--surface);border:1px solid transparent;border-radius:12px;padding:12px;display:grid;gap:10px}
 .tcard.hi{position:relative;z-index:2;box-shadow:0 0 0 3px #9fcfc1,var(--shadow)}
 .tcard h3{margin:0;font-family:var(--display);font-size:20px;text-transform:uppercase;letter-spacing:.03em}
 .tl{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 -4px}
@@ -172,7 +172,7 @@ body.touring{overflow:hidden}
 @keyframes lbCheck{0%{transform:scale(.7)}55%{transform:scale(1.18)}100%{transform:scale(1)}}
 @keyframes lbPress{0%{transform:scale(.94)}100%{transform:scale(1)}}
 @keyframes lbDraw{from{stroke-dashoffset:24}to{stroke-dashoffset:0}}
-@keyframes lbGlow{0%{box-shadow:0 0 0 0 rgba(111,208,180,.45);border-color:var(--accent)}100%{box-shadow:0 0 0 10px rgba(111,208,180,0);border-color:var(--line)}}
+@keyframes lbGlow{0%{box-shadow:0 0 0 0 rgba(111,208,180,.45);border-color:var(--accent)}100%{box-shadow:0 0 0 10px rgba(111,208,180,0);border-color:transparent}}
 @keyframes lbHot{0%{background:rgba(159,207,193,.18)}100%{background:transparent}}
 button,.tab,.seg button,.btn,.chk,select,input{transition:background-color .2s ease,border-color .2s ease,color .2s ease,box-shadow .2s ease,transform .12s ease}
 button:active:not(:disabled),.tab:active{transform:scale(.97)}
