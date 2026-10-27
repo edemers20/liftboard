@@ -479,3 +479,4 @@ select,input,textarea,.setrow.now input,.nums input,.field input{border-color:tr
 .adots{display:flex;justify-content:center;gap:6px}
 .adots i{width:7px;height:7px;border-radius:50%;background:var(--knob);transition:background-color .2s,width .2s}
 .adots i.on{width:20px;border-radius:4px;background:var(--accent)}
+.side .sidebtn{border-color:transparent;background:var(--bg);color:var(--fg);font-weight:600}
