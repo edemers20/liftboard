@@ -752,7 +752,7 @@ function renderTour(focus){
   const tin=(k,l)=>`<label class="field" for="t-${k}"><span>${l}</span><input id="t-${k}" data-tw="${k}" inputmode="decimal" value="${esc(wk[k]??"")}"></label>`;
   const inc=incFor("Hip Thrust (Barbell)",{main:1},140);
   const S=[
-   {tab:"Season",page:"Season",name:"Season",title:"Your split",
+   {tab:"Season",page:"Season",name:"Season",title:"Choose your split",
     text:"Pick your main sport and specify if you're in- or off-season. This determines the cadence for progressive overload and any accessory work.",
     body:card("Season",`${lbl("Main sport")}${tchips("sport",[["","None"],...SPORTS.map(a=>[a,ACT[a].name])],hasSport()?wk.mainSport:"",3)}${hasSport()?`${ttoggle("season","In-season","In-season","Off-season")}`:""}`,1)+card("Goal",rowsH([["Goal",goalName(wk.mode)]]))},
    {tab:"Season",page:"Season",name:"Goal",title:"Pick a goal",
@@ -791,11 +791,11 @@ function renderTour(focus){
       [`<div class="acard">${chips(["Off-season","In-season"],"In-season")}</div><div class="aarrow">↓</div><div class="acard dark"><span class="plab">Your days now</span><b>Full Body A · Full Body B</b><small>2 sets each · extra work for your sport</small></div>`,
        "Train for your season","Build strength when you're not playing much. When your season starts, the plan keeps you strong without wearing you out."],
       [`<div class="acard">${chips(["Lose fat","Maintain","Build muscle"],"Lose fat")}</div><div class="acard"><p class="abig"><b>1,595</b> calories a day</p><div class="abar"><i style="width:32%"></i><i style="width:68%"></i></div><small class="aacc">+85 a day from your extra games</small></div>`,
-       "It does the food math","Pick a goal and it tells you how much to eat and how much cardio to do. Play more one week and you get to eat more."],
+       "Know how to fuel","Choose your goal. Your fuel target moves with whatever else you did this week."],
       [`<div class="acard">${chips(["Lower body","Balanced","Upper body"],"Lower body")}</div><div class="acard alist"><div><b>Day 1 · Lower</b><small class="aacc">+1 set</small></div><div><b>Day 2 · Upper</b><small>shorter</small></div><div><b>Day 3 · Lower</b><small class="aacc">+1 set</small></div></div>`,
        "Your focus, your extra sets","Tell it what you want to grow and the bonus work lands there. Short on time? It trims the extras first."],
       [`<div class="acard">${chips(["Female","Male","Other"],"Female")}</div><div class="acard"><p class="abig"><span class="atag">↑</span>Next time <b class="aacc">140 lb</b></p><small>Protein 110–140 g a day · Maintenance 1,845</small></div>`,
-       "Lifts go up when you're ready","Log your sets as you go. Hit the top of your reps and the weight goes up next time; miss and it holds or eases off."]];
+       "Numbers that fit your body","Sex, size and body fat set your metabolism, protein and progressive overload."]];
     el.innerHTML=`<div class="twelcome tabout" role="dialog" aria-modal="true" aria-labelledby="tTitle">
       <span class="plab">What this does</span>
       <h2 id="tTitle" tabindex="-1">A tailored plan</h2>

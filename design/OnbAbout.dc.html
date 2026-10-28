@@ -20,7 +20,7 @@ button:active,a:active{transform:scale(.97)}
 </helmet>
 <div style="position: relative; width: 390px; height: 844px; overflow: hidden; box-sizing: border-box; background: #181513; color: #edeae8; font-family: 'Noto Sans', system-ui, sans-serif; font-size: 15px; line-height: 1.45; padding: 56px 24px 32px; display: flex; flex-direction: column; gap: 12px">
   <span style="font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #e9b69b">What this does</span>
-  <h1 style="margin: 0; font-family: 'Ranchers', sans-serif; font-weight: 400; font-size: 38px; line-height: 1; text-transform: uppercase">Your plan, worked out for you</h1>
+  <h1 style="margin: 0; font-family: 'Ranchers', sans-serif; font-weight: 400; font-size: 38px; line-height: 1; text-transform: uppercase">A TAILORED PLAN</h1>
   <p style="margin: 0; font-size: 16px; line-height: 1.5; color: #d4cfcc">Lift Board writes your workouts and adjusts them every week to fit your sport, your goal and how you're feeling.</p>
 
   <div style="display: flex; flex-direction: column; gap: 12px; animation: lbSlide .32s cubic-bezier(.2,.8,.2,1) both" aria-live="polite">
@@ -39,9 +39,9 @@ button:active,a:active{transform:scale(.97)}
       </sc-if>
       <sc-if value="{{ s1 }}" hint-placeholder-val="{{ false }}">
         <div style="background: #24201d; border-radius: 14px; padding: 12px; display: flex; gap: 6px; box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25)">
-          <span style="flex: 1; text-align: center; font-size: 13px; padding: 8px 4px; border-radius: 10px; background: #181513">Lose fat</span>
-          <span style="flex: 1; text-align: center; font-size: 13px; font-weight: 600; padding: 8px 4px; border-radius: 10px; background: #9d5324; color: #fff">Recomp</span>
-          <span style="flex: 1; text-align: center; font-size: 13px; padding: 8px 4px; border-radius: 10px; background: #181513">Build</span>
+          <span style="flex: 1; text-align: center; font-size: 13px; font-weight: 600; padding: 8px 4px; border-radius: 10px; background: #9d5324; color: #fff">Lose fat</span>
+          <span style="flex: 1; text-align: center; font-size: 13px; padding: 8px 4px; border-radius: 10px; background: #181513">Maintain</span>
+          <span style="flex: 1; text-align: center; font-size: 13px; padding: 8px 4px; border-radius: 10px; background: #181513">Build muscle</span>
         </div>
         <div style="background: #24201d; border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25)">
           <p style="margin: 0; font: 500 14px 'Noto Sans Mono', monospace"><b style="font-size: 26px">1,595</b> calories a day</p>
@@ -97,9 +97,9 @@ class Component extends DCLogic {
     const i = (this.state && this.state.i) || 0;
     const S = [
       ['Train for your season', "Build strength when you're not playing much. When your season starts, the plan keeps you strong without wearing you out."],
-      ['It does the food math', 'Pick a goal and it tells you how much to eat and how much cardio to do. Play more one week and you get to eat more.'],
+      ['Know how to fuel', 'Choose your goal. Your fuel target moves with whatever else you did this week.'],
       ['Your focus, your extra sets', 'Tell it what you want to grow and the bonus work lands there. Short on time? It trims the extras first.'],
-      ["Lifts go up when you're ready", 'Log your sets as you go. Hit the top of your reps and the weight goes up next time; miss and it holds or eases off.']
+      ['Numbers that fit your body', 'Sex, size and body fat set your metabolism, protein and progressive overload.']
     ];
     return {
       s0: i === 0, s1: i === 1, s2: i === 2, s3: i === 3,
