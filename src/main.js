@@ -798,7 +798,7 @@ function renderTour(focus){
        "Lifts go up when you're ready","Log your sets as you go. Hit the top of your reps and the weight goes up next time; miss and it holds or eases off."]];
     el.innerHTML=`<div class="twelcome tabout" role="dialog" aria-modal="true" aria-labelledby="tTitle">
       <span class="plab">What this does</span>
-      <h2 id="tTitle" tabindex="-1">Your plan, worked out for you</h2>
+      <h2 id="tTitle" tabindex="-1">A tailored plan</h2>
       <p>Lift Board writes your workouts and adjusts them every week to fit your sport, your goal and how you're feeling.</p>
       <div class="acar" id="acar">${A.map(([v,t,c],k)=>`<figure class="aslide" aria-label="${k+1} of ${A.length}"><div class="avis">${v}</div><figcaption><b>${t}</b>${c}</figcaption></figure>`).join("")}</div>
       <div class="adots" aria-hidden="true">${A.map((_,k)=>`<i${k?"":' class="on"'}></i>`).join("")}</div>
