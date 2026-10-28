@@ -234,7 +234,7 @@ function plan(){
   syncDays();
   const P={days:{},notes:[]};
   const inS=inSeason(), sport=hasSport(), ramp=sport&&!inS&&wk.ramp==="Yes", deload=wk.deload==="Yes"&&DAYS.length>0;
-  const recomp=wk.mode==="Recomp", build=wk.mode==="Build", focus=wk.focus;
+  const recomp=wk.mode==="Recomp", build=wk.mode==="Build", maintain=wk.mode==="Maintain", focus=wk.focus;
   /* sport load */
   let legMin=0, shMin=0, sportTot=0; const sportOn=[];
   SPORTS.forEach(a=>{ if(ACT[a].noMin) return; const n=cnt(a); let m=0; for(let i=0;i<n;i++) m+=num((wk[actKey(a)]||[])[i],plannedMin(a));
@@ -317,8 +317,8 @@ function plan(){
     P.days[d.id]=D;
   });
   /* Cardio */
-  const rateEff=build?0:recomp?Math.min(num(wk.rate,0.5),0.5):num(wk.rate,0.5), shareEff=recomp?Math.min(num(wk.share,25),25):num(wk.share,25);
-  const target=rateEff*3500, cardioTarget=build?0:target*shareEff/100;
+  const rateEff=(build||maintain)?0:recomp?Math.min(num(wk.rate,0.5),0.5):num(wk.rate,0.5), shareEff=recomp?Math.min(num(wk.share,25),25):num(wk.share,25);
+  const target=rateEff*3500, cardioTarget=(build||maintain)?0:target*shareEff/100;
   const sess=(n,act,pl,rate)=>{let k=0;for(let i=0;i<n;i++)k+=num((act||[])[i],pl)*rate;return k;};
   let sportK=0; sportOn.forEach(([a,m])=>{ sportK+=m*perMin(ACT[a].met); });
   const climbK=cl*75*perMin(ACT.climb.met);
@@ -336,16 +336,16 @@ function plan(){
   const order=["d2","fb","x","u3","d1","fa","lf","fc","g2","d3"];
   cand.sort((p,q)=>order.indexOf(p.day)-order.indexOf(q.day));
   let fins=[];
-  if(build||deload){fins=cand;}
+  if(build||maintain||deload){fins=cand;}
   else if(need>cardioTarget*0.1&&cand.length){ fins=cand; for(let k=1;k<=cand.length;k++){const sub=cand.slice(0,k), r=sub.reduce((a,f)=>a+f.rate,0); if(need/r<=cap){fins=sub;break;}} }
   cand.forEach(f=>{ if(!fins.includes(f)) f.skip="Not needed this week"; });
   const sumRate=fins.reduce((a,f)=>a+f.rate,0);
-  const m=(build||deload)?10:sumRate?Math.max(10,Math.round(need/sumRate)):0;
+  const m=(build||maintain||deload)?10:sumRate?Math.max(10,Math.round(need/sumRate)):0;
   fins.forEach(f=>{f.min=m;f.kcal=m*f.rate;});
   const finK=fins.reduce((a,f)=>a+f.kcal,0);
   const overs=[];
   DAYS.forEach(d=>{ const pl=(wk.donePlan||{})[d.id]; const got=P.days[d.id].done; if(done[d.id]&&pl!=null&&got-pl>Math.max(50,pl*0.25)) overs.push(`${d.tab} cardio +${r5(got-pl)} kcal`); });
-  if(overs.length&&!build) cand.forEach(f=>{ f.flag=(f.skip?"Dropped":`Cut to ${f.min} min`)+" · "+overs.join(", "); f.overWhy=overs.join(", "); });
+  if(overs.length&&!build&&!maintain) cand.forEach(f=>{ f.flag=(f.skip?"Dropped":`Cut to ${f.min} min`)+" · "+overs.join(", "); f.overWhy=overs.join(", "); });
   const cardioTotal=otherK+doneK+finK;
   const food=(target-cardioTotal)/7;
   /* Maintenance */
@@ -362,16 +362,16 @@ function plan(){
   const intake=build?tdee+200:tdee-target/7;
   P.math={doneK,otherK,target,cardioTarget,finK,cardioTotal,food,cap,m,nFin:fins.length,bmr,base:baseM,stepsK,tef,liftDay,nLift,raw,calib,tdee,intake,useOura};
   /* Watch */
-  const lb=num(wk.weight,150), pr=build?[0.7,0.9]:[0.8,1.0];
+  const lb=num(wk.weight,150), pr=(build||maintain)?[0.7,0.9]:[0.8,1.0];
   P.math.protein=[r5(lb*pr[0]),r5(lb*pr[1])];
   P.notes.push(`Protein ${P.math.protein[0]}–${P.math.protein[1]} g daily.`);
   const floor=wk.sex==="Male"?1800:1500;
   if(intake<floor) P.notes.push(`Eating ~${r5(intake)} kcal/day is too low. Slow the rate.`);
   if(recomp&&num(wk.rate,0.5)>0.5) P.notes.push("Recomp caps loss at 0.5 lb/week.");
   if(recomp&&num(wk.share,25)>25) P.notes.push("Recomp caps cardio at 25%.");
-  if(!build&&!recomp&&num(wk.rate,0.5)>=0.75) P.notes.push(`${wk.rate} lb/week is aggressive; strength will stall.`);
+  if(!build&&!recomp&&!maintain&&num(wk.rate,0.5)>=0.75) P.notes.push(`${wk.rate} lb/week is aggressive; strength will stall.`);
   if(food>500) P.notes.push(`A ${r5(food)} kcal/day food deficit is steep.`);
-  if(!build&&food<0) P.notes.push(`Your activity covers the whole deficit. Eat ${r5(-food)} kcal/day above baseline so it doesn't cost muscle.`);
+  if(!build&&!maintain&&food<0) P.notes.push(`Your activity covers the whole deficit. Eat ${r5(-food)} kcal/day above baseline so it doesn't cost muscle.`);
   if(fins.length&&m>cap&&cap>0) P.notes.push(`Finishers run ${m} min, past a normal ${cap}-min finisher.`);
   if(ramp&&sp&&wk.spint==="Really hard") P.notes.push("Keep spin easy during the ramp; hard classes don't build base.");
   const nL=DAYS.length;

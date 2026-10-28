@@ -22,7 +22,7 @@ const INFO={
  season:"Off-season: full splits, weights go up. In-season: 1–3 full-body days, 2 sets each, no weight increases, support lifts for your sport.",
  ramp:"Adds one 45-min zone 2 session a week to build the aerobic base that prevents in-season fatigue.",
  deload:"One lighter week: about 60% of sets, ~90% weights, easy-pace cardio. Suggested after 6 off-season weeks or when 2+ main lifts stall.",
- mode:"Deficit only: fat loss first. Recomp: loss capped at 0.5 lb/wk and cardio at 25% to protect muscle. Build: ~200 kcal surplus, +1 set on main lifts.",
+ mode:"Lose fat fast: fat loss comes first, at the rate you set. Lose fat, keep muscle: slower, capped at 0.5 lb a week with no more than 25% from cardio, so strength holds. Maintain: eat what you burn and keep lifting as normal. Build muscle: about 200 calories over, plus a set on main lifts.",
  rate:"Target loss per week. Sets the weekly deficit at 3,500 kcal per lb.",
  share:"How much of the deficit should come from cardio. The rest comes from food.",
  sex:"Changes resting metabolism and the minimum weight jump. Other uses the midpoint.",
@@ -67,6 +67,9 @@ function toggle(key,label,val,onV="Yes",offV="No"){ const on=String(val!==undefi
   return `<div class="q tgl"><span id="tg-${key}">${label}</span><div class="seg toggle" data-key="${key}"><button type="button" role="switch" aria-checked="${on}" aria-labelledby="tg-${key}" data-v="${on?offV:onV}"><i aria-hidden="true"></i></button></div></div>`; }
 function fld(key,label,mode,ph,cls,val){ return `<label class="field${cls?" "+cls:""}" for="${key}"><span>${label}</span><input id="${key}" data-w="${key}" inputmode="${mode||"numeric"}" placeholder="${ph||""}" value="${esc((val!==undefined?val:wk[key])??"")}"></label>`; }
 
+/* Goal values stay as stored; these are the words people see */
+const GOALS=[["Deficit only","Lose fat fast"],["Recomp","Lose fat, keep muscle"],["Maintain","Maintain"],["Build","Build muscle"]];
+const goalName=v=>(GOALS.find(g=>g[0]===v)||[v,v])[1];
 function draftDirty(){ return !!draft&&Object.keys(draft).some(k=>JSON.stringify(draft[k])!==JSON.stringify(wk[k])); }
 /* ---------- Your plan: live summary built from the engine's output ---------- */
 const capF=s=>s.charAt(0).toUpperCase()+s.slice(1);
@@ -93,9 +96,9 @@ function planSentence(P){
       S.push(". ");
     }
   }
-  const goal={"Deficit only":"lose fat",Recomp:"lose fat and keep muscle",Build:"build muscle"}[wk.mode]||"lose fat";
+  const goal={"Deficit only":"lose fat fast",Recomp:"lose fat and keep muscle",Maintain:"maintain your weight",Build:"build muscle"}[wk.mode]||"lose fat";
   S.push("To ",["goal",goal],", eat about ",["eat",`${r5(M.intake).toLocaleString()} calories`]," and ",["protein",`${M.protein[0]}–${M.protein[1]} g of protein`]," a day");
-  if(wk.mode!=="Build"&&M.cardioTarget>0) S.push(", and burn ",["cardio",`${r5(M.cardioTarget).toLocaleString()} calories`]," in cardio each week");
+  if(M.cardioTarget>0) S.push(", and burn ",["cardio",`${r5(M.cardioTarget).toLocaleString()} calories`]," in cardio each week");
   S.push(".");
   return S;
 }
@@ -159,7 +162,7 @@ function profileHTML(withGoal,src){
     return `<button type="button" data-sp="${a}" aria-pressed="${!!on}">${l}${p&&src.sport2?`<small class="prim">primary</small>`:""}</button>`; }).join("")}</div></div>
   ${withGoal&&hs?toggle("season","In-season",src.season,"In-season","Off-season"):""}`):""}
   ${en("lift")?G(`${hdr("Lifting",["focus","days"])}${stepper("days","Lifting days",(src.season==="In-season"&&hs?[0,1,2,3]:[0,1,2,3,4,5,6,7]),"",src.days)}${String(src.days)==="0"?"":seg("focus","Focus",[["Lower","Lower body"],["Balanced","Balanced"],["Upper","Upper body"]],src.focus)}`):""}
-  ${withGoal?G(`${hdr("Goal",["mode"])}${seg("mode","Goal",["Deficit only","Recomp","Build"])}`):""}
+  ${withGoal?G(`${hdr("Goal",["mode"])}${seg("mode","Goal",GOALS)}`):""}
   ${G(`${hdr("Bio Data",["sex","age","height","weight","bf","steps","oura"])}
   ${seg("sex","Sex",["Female","Male","Other"],src.sex)}
   <div class="nums">${F("age","Age")}${F("height","Height (in)","decimal")}${F("weight","Weight (lb)","decimal")}${F("bf","Body fat %","decimal","optional")}${F("steps","Steps / day")}${F("oura","Daily burn","numeric","optional")}</div>`)}</div>`;
@@ -175,7 +178,7 @@ const moveHTML=()=>`  <details class="panel" id="moveBox"><summary><h3 style="di
     </div></details>`;
 function renderSeason(P){
   if(!wk.setupDone) return `<div class="dayhead"><h2>Setup</h2></div>${planHTML(P)}<div class="panel">${profileHTML(true)}<button class="btn primary" id="setupSave" type="button">Save setup</button></div>${moveHTML()}`;
-  const inS=inSeason(), build=wk.mode==="Build", dl=deloadInfo();
+  const inS=inSeason(), build=wk.mode==="Build"||wk.mode==="Maintain", dl=deloadInfo();
   const fmt=t=>new Date(t).toLocaleDateString(undefined,{month:"short",day:"numeric"});
   const names=Object.keys(exHist).filter(n=>(exHist[n]||[]).length);
   const H=(wk.weeks||[]).slice().reverse();
@@ -189,14 +192,14 @@ function renderSeason(P){
     ${DAYS.length?`${dl.length&&wk.deload!=="Yes"?`<p class="flag">Deload suggested · ${dl.join(", ")}</p>`:""}${toggle("deload","Deload this week")}`:""}
   </div>
   <div class="panel">${hdr("Goal",["mode","rate","share"])}
-    ${seg("mode","Goal",["Deficit only","Recomp","Build"])}
+    ${seg("mode","Goal",GOALS)}
     ${build?"":`<div class="nums two">${fld("rate","Lose lb / week","decimal")}${fld("share","From cardio %")}</div>`}
   </div>
   ${DAYS.length||names.length?`<div class="panel">${hdr("Main lifts",["lifts"])}
    ${names.length?names.map(n=>{const h=exHist[n],a=h[0],z=h[h.length-1],dw=z.w-a.w;return `<div class="liftrow"><span class="ln">${esc(n)}</span>${spark(h)}<span class="lw"><b>${z.w}<small> lb</small></b>${h.length>1?`<em class="${dw<0?"neg":""}">${dw>0?"+":dw<0?"−":"±"}${Math.abs(dw)}</em>`:""}</span></div>`;}).join(""):`<p class="note">Appears after you mark days done.</p>`}
   </div>`:""}
   <div class="panel">${hdr("Previous weeks",["weeks"])}
-   ${H.length?`<div style="overflow-x:auto"><table class="wk"><thead><tr><th>Week of</th><th>Plan</th><th>Lifts</th><th>Sport</th><th>Wt</th></tr></thead><tbody>${H.map(w=>`<tr><td>${fmt(w.start)}</td><td>${w.season==="In-season"?"In":"Off"}${w.ramp?" · ramp":""}${w.deload?" · deload":""} · ${esc(w.mode)}<br><span class="small">${esc(w.focus||w.priority||"")}</span></td><td>${w.lifts}/${w.planned}</td><td>${w.sport??w.pickle??0} min</td><td>${w.w||"–"}</td></tr>`).join("")}</tbody></table></div>`:`<p class="note">Saves when you tap Start new week.</p>`}
+   ${H.length?`<div style="overflow-x:auto"><table class="wk"><thead><tr><th>Week of</th><th>Plan</th><th>Lifts</th><th>Sport</th><th>Wt</th></tr></thead><tbody>${H.map(w=>`<tr><td>${fmt(w.start)}</td><td>${w.season==="In-season"?"In":"Off"}${w.ramp?" · ramp":""}${w.deload?" · deload":""} · ${esc(goalName(w.mode))}<br><span class="small">${esc(w.focus||w.priority||"")}</span></td><td>${w.lifts}/${w.planned}</td><td>${w.sport??w.pickle??0} min</td><td>${w.w||"–"}</td></tr>`).join("")}</tbody></table></div>`:`<p class="note">Saves when you tap Start new week.</p>`}
   </div>
   ${enabled("lift")?`<div class="panel">${hdr("Training preferences",["ss","liftK"])}
     ${toggle("ss","Supersets")}
@@ -207,7 +210,7 @@ function renderSeason(P){
   <div class="foot season-foot"><button class="btn" id="replayTour" type="button">Replay tour</button><button class="btn" id="resetProfile" type="button">Reset profile</button></div>`;
 }
 function renderWeek(P){
-  const M=P.math, inS=inSeason(), build=wk.mode==="Build", tot=Math.max(M.target,1);
+  const M=P.math, inS=inSeason(), build=wk.mode==="Build"||wk.mode==="Maintain", tot=Math.max(M.target,1);
   const pct=v=>Math.min(100,v/tot*100).toFixed(1);
   const nd=P.days[P.nextId];
   const others=ACT_IDS.filter(a=>a!=="lift"&&enabled(a));
@@ -225,7 +228,7 @@ function renderWeek(P){
     ${seg("drink","Drinking nights",["0","1–2","3+"])}
     <div class="nums">${fld("wAvg","Avg weight","decimal","optional","sm")}</div></div>
   ${acts?`<div class="panel">${hdr("Other activity",others)}${acts}</div>`:""}
-  <div class="panel">${hdr(esc(wk.mode),["mode","maint"])}
+  <div class="panel">${hdr(esc(goalName(wk.mode)),["mode","maint"])}
     <div class="inset">
       <div class="k label">Daily maintenance${M.useOura?" · wearable −7%":wk.calibN?" · calibrated":" · estimated"}</div>
       <p class="burn">Baseline ${r5(M.tdee-M.cardioTotal/7).toLocaleString()} + this week's cardio ${r5(M.cardioTotal/7)} = <strong>${r5(M.tdee).toLocaleString()}</strong></p>
@@ -751,10 +754,10 @@ function renderTour(focus){
   const S=[
    {tab:"Season",page:"Season",name:"Season",title:"Your split",
     text:"Pick your main sport and specify if you're in- or off-season. This determines the cadence for progressive overload and any accessory work.",
-    body:card("Season",`${lbl("Main sport")}${tchips("sport",[["","None"],...SPORTS.map(a=>[a,ACT[a].name])],hasSport()?wk.mainSport:"",3)}${hasSport()?`${ttoggle("season","In-season","In-season","Off-season")}`:""}`,1)+card("Goal",rowsH([["Goal",wk.mode]]))},
+    body:card("Season",`${lbl("Main sport")}${tchips("sport",[["","None"],...SPORTS.map(a=>[a,ACT[a].name])],hasSport()?wk.mainSport:"",3)}${hasSport()?`${ttoggle("season","In-season","In-season","Off-season")}`:""}`,1)+card("Goal",rowsH([["Goal",goalName(wk.mode)]]))},
    {tab:"Season",page:"Season",name:"Goal",title:"Pick a goal",
     text:"The goal, combined with your body settings, structures the cardio portion of lift days.",
-    body:card("Goal",tchips("mode",[["Deficit only","Deficit"],["Recomp","Recomp"],["Build","Build"]],wk.mode),1)},
+    body:card("Goal",tchips("mode",GOALS,wk.mode,2),1)},
    {tab:"This week",page:"This week",name:"Your week",title:"Your week adjusts itself",
     text:"Different factors combine to adjust your week; if anything changes, the week changes too.",
     body:card("Schedule",`${tstep("days","Lifting days",inS?[0,1,2,3]:[0,1,2,3,4,5,6,7])}${tstep("time","Time per session",[30,45,60,75],"min")}${ttoggle("ss","Supersets")}`,1)
@@ -787,7 +790,7 @@ function renderTour(focus){
     const A=[
       [`<div class="acard">${chips(["Off-season","In-season"],"In-season")}</div><div class="aarrow">↓</div><div class="acard dark"><span class="plab">Your days now</span><b>Full Body A · Full Body B</b><small>2 sets each · extra work for your sport</small></div>`,
        "Train for your season","Build strength when you're not playing much. When your season starts, the plan keeps you strong without wearing you out."],
-      [`<div class="acard">${chips(["Lose fat","Recomp","Build"],"Recomp")}</div><div class="acard"><p class="abig"><b>1,595</b> calories a day</p><div class="abar"><i style="width:32%"></i><i style="width:68%"></i></div><small class="aacc">+85 a day from your extra games</small></div>`,
+      [`<div class="acard">${chips(["Lose fat","Maintain","Build muscle"],"Lose fat")}</div><div class="acard"><p class="abig"><b>1,595</b> calories a day</p><div class="abar"><i style="width:32%"></i><i style="width:68%"></i></div><small class="aacc">+85 a day from your extra games</small></div>`,
        "It does the food math","Pick a goal and it tells you how much to eat and how much cardio to do. Play more one week and you get to eat more."],
       [`<div class="acard">${chips(["Lower body","Balanced","Upper body"],"Lower body")}</div><div class="acard alist"><div><b>Day 1 · Lower</b><small class="aacc">+1 set</small></div><div><b>Day 2 · Upper</b><small>shorter</small></div><div><b>Day 3 · Lower</b><small class="aacc">+1 set</small></div></div>`,
        "Your focus, your extra sets","Tell it what you want to grow and the bonus work lands there. Short on time? It trims the extras first."],

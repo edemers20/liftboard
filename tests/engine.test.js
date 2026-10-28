@@ -170,3 +170,11 @@ describe("up to 7 of anything", () => {
     expect(P.notes.some(n => n.includes("close to daily"))).toBe(true);
   });
 });
+
+describe("maintain goal", () => {
+  it("eats what you burn with no cardio target", () => {
+    const P = fresh({ mode: "Maintain" });
+    expect(P.math.target).toBe(0); expect(P.math.cardioTarget).toBe(0);
+    expect(Math.round(P.math.intake)).toBe(Math.round(P.math.tdee));
+  });
+});
