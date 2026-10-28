@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Lift Board · Onboarding 6 · Tour: Lifting goals</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Ranchers&amp;family=Noto+Sans:wght@400;500;600&amp;family=Noto+Sans+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;font-synthesis-weight:none}
+@keyframes lbIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+button,a,span{transition:background-color .2s ease,color .2s ease,transform .12s ease}
+button:active,a:active{transform:scale(.97)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</helmet>
+<div style="position: relative; width: 390px; height: 844px; overflow: hidden; box-sizing: border-box; background: #181513; color: #edeae8; font-family: 'Noto Sans', system-ui, sans-serif; font-size: 15px; line-height: 1.45; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+  <nav aria-hidden="true" style="display: flex; gap: 6px; overflow: hidden">
+    <span style="flex: 0 0 auto; font-family: 'Ranchers', sans-serif; font-size: 17px; letter-spacing: .04em; text-transform: uppercase; background: #24201d; padding: 7px 13px; border-radius: 999px">Season</span>
+    <span style="flex: 0 0 auto; font-family: 'Ranchers', sans-serif; font-size: 17px; letter-spacing: .04em; text-transform: uppercase; background: #24201d; padding: 7px 13px; border-radius: 999px">This week</span>
+    <span style="flex: 0 0 auto; font-family: 'Ranchers', sans-serif; font-size: 17px; letter-spacing: .04em; text-transform: uppercase; background: #9d5324; color: #fff; padding: 7px 13px; border-radius: 999px">Day 1</span>
+    <span style="flex: 0 0 auto; font-family: 'Ranchers', sans-serif; font-size: 17px; letter-spacing: .04em; text-transform: uppercase; background: #241f21; padding: 7px 13px; border-radius: 999px">Pickleball</span>
+  </nav>
+  <h2 aria-hidden="true" style="margin: 0; font-family: 'Ranchers', sans-serif; font-weight: 400; font-size: 26px; text-transform: uppercase">Day 1</h2>
+
+  <section style="position: relative; z-index: 11; background: #24201d; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 0 0 3px #e9b69b, 0 10px 30px rgba(0, 0, 0, 0.56); animation: lbIn .32s cubic-bezier(.2,.8,.2,1) both">
+    <h3 style="margin: 0; font-family: 'Ranchers', sans-serif; font-weight: 400; font-size: 20px; text-transform: uppercase; letter-spacing: .03em">Lifting focus</h3>
+    <div role="radiogroup" aria-label="Lifting focus" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px">
+      <sc-for list="{{ focus }}" as="o" hint-placeholder-count="3">
+        <button type="button" role="radio" aria-checked="{{ o.on }}" onClick="{{ o.pick }}" style="min-height: 44px; font: inherit; font-size: 14px; font-weight: {{ o.fw }}; border: 0; background: {{ o.bg }}; color: {{ o.fg }}; border-radius: 10px; padding: 8px 4px; cursor: pointer">{{ o.label }}</button>
+      </sc-for>
+    </div>
+    <div style="display: flex; justify-content: space-between; gap: 12px; font-size: 14px"><span style="color: #a8a09c">Hip thrust · 4 × 6–10</span><span style="font-family: 'Noto Sans Mono', monospace; font-weight: 500">140 lb × 10</span></div>
+    <div style="display: flex; justify-content: space-between; gap: 12px; font-size: 14px"><span style="color: #a8a09c">Next time</span><span style="font-family: 'Noto Sans Mono', monospace; font-weight: 500; color: #fea06a">145 lb · Up</span></div>
+  </section>
+
+  <div aria-hidden="true" style="position: absolute; inset: 0; z-index: 10; background: rgba(0, 0, 0, 0.6); pointer-events: none"></div>
+
+  <div role="dialog" aria-labelledby="t4" style="position: absolute; left: 16px; right: 16px; bottom: 24px; z-index: 12; background: #2f2a27; color: #fff; border-radius: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.56); padding: 16px; display: flex; flex-direction: column; gap: 8px">
+    <div style="display: flex; justify-content: space-between; align-items: center">
+      <span style="font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #e9b69b">4 of 5 · Lifting goals</span>
+      <a href="OnbCoach.dc.html" style="min-height: 44px; margin: -12px -4px; display: inline-flex; align-items: center; padding: 0 4px; font-size: 13px; font-weight: 600; color: #e1dddb; text-decoration: none">Skip tour</a>
+    </div>
+    <p id="t4" style="margin: 0; font-family: 'Ranchers', sans-serif; font-size: 24px; line-height: 1.05; text-transform: uppercase">Specify lifting goals</p>
+    <p style="margin: 0 0 4px; font-size: 14px; color: #e1dddb">Hit the top or miss the bottom of your rep range to see future lifts adjust based on your goals.</p>
+    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px">
+      <a href="OnbStep3.dc.html" style="min-height: 52px; display: flex; align-items: center; justify-content: center; border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.25); color: #fff; font-size: 15px; font-weight: 600; text-decoration: none">Back</a>
+      <a href="OnbStep5.dc.html" style="min-height: 52px; display: flex; align-items: center; justify-content: center; border-radius: 14px; background: #e9b69b; color: #231c18; font-size: 15px; font-weight: 600; text-decoration: none">Next</a>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const f = (this.state && this.state.f) || 'Lower body';
+    return {
+      focus: ['Lower body', 'Balanced', 'Upper body'].map((label) => {
+        const on = f === label;
+        return { label, on: on ? 'true' : 'false', fw: on ? 600 : 400, bg: on ? '#9d5324' : '#181513', fg: on ? '#fff' : '#edeae8', pick: () => this.setState({ f: label }) };
+      })
+    };
+  }
+}
+</script>
+</body>
+</html>

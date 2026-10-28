@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Lift Board · Onboarding 3 · Tour: Your split</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Ranchers&amp;family=Noto+Sans:wght@400;500;600&amp;family=Noto+Sans+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;font-synthesis-weight:none}
+@keyframes lbSheet{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:none}}
+button,a,span{transition:background-color .2s ease,color .2s ease,transform .12s ease}
+button:active,a:active{transform:scale(.97)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</helmet>
+<div style="position: relative; width: 390px; height: 844px; overflow: hidden; box-sizing: border-box; background: #181513; color: #edeae8; font-family: 'Noto Sans', system-ui, sans-serif; font-size: 15px; line-height: 1.45; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+  <nav aria-hidden="true" style="display: flex; gap: 6px; overflow: hidden">
+    <span style="flex: 0 0 auto; font-family: 'Ranchers', sans-serif; font-size: 17px; letter-spacing: .04em; text-transform: uppercase; background: #9d5324; color: #fff; padding: 7px 13px; border-radius: 999px">Season</span>
+    <span style="flex: 0 0 auto; font-family: 'Ranchers', sans-serif; font-size: 17px; letter-spacing: .04em; text-transform: uppercase; background: #24201d; padding: 7px 13px; border-radius: 999px">This week</span>
+    <span style="flex: 0 0 auto; font-family: 'Ranchers', sans-serif; font-size: 17px; letter-spacing: .04em; text-transform: uppercase; background: #1d2220; padding: 7px 13px; border-radius: 999px">Day 1</span>
+    <span style="flex: 0 0 auto; font-family: 'Ranchers', sans-serif; font-size: 17px; letter-spacing: .04em; text-transform: uppercase; background: #241f21; padding: 7px 13px; border-radius: 999px">Pickleball</span>
+  </nav>
+  <h2 aria-hidden="true" style="margin: 0; font-family: 'Ranchers', sans-serif; font-weight: 400; font-size: 26px; text-transform: uppercase">Season</h2>
+
+  <section style="position: relative; z-index: 11; background: #24201d; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 0 0 3px #e9b69b, 0 10px 30px rgba(0, 0, 0, 0.56)">
+    <h3 style="margin: 0; font-family: 'Ranchers', sans-serif; font-weight: 400; font-size: 20px; text-transform: uppercase; letter-spacing: .03em">Season</h3>
+    <span style="font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #a8a09c">Main sport</span>
+    <div role="radiogroup" aria-label="Main sport" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px">
+      <sc-for list="{{ sports }}" as="o" hint-placeholder-count="9">
+        <button type="button" role="radio" aria-checked="{{ o.on }}" onClick="{{ o.pick }}" style="min-height: 44px; font: inherit; font-size: 14px; font-weight: {{ o.fw }}; border: 0; background: {{ o.bg }}; color: {{ o.fg }}; border-radius: 10px; padding: 8px 4px; cursor: pointer">{{ o.label }}</button>
+      </sc-for>
+    </div>
+    <sc-if value="{{ hasSport }}" hint-placeholder-val="{{ true }}">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px">
+        <span id="tgS" style="font-weight: 600; font-size: 14px">In-season</span>
+        <button type="button" role="switch" aria-checked="{{ inS }}" aria-labelledby="tgS" onClick="{{ toggle }}" style="position: relative; width: 52px; height: 32px; padding: 0; border: 0; border-radius: 999px; background: {{ tgBg }}; cursor: pointer"><span aria-hidden="true" style="position: absolute; top: 3px; left: 3px; width: 26px; height: 26px; border-radius: 50%; background: #fff; transform: {{ tgX }}; transition: transform .22s cubic-bezier(.2,.8,.2,1)"></span></button>
+      </div>
+    </sc-if>
+  </section>
+  <section style="background: #24201d; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px">
+    <h3 style="margin: 0; font-family: 'Ranchers', sans-serif; font-weight: 400; font-size: 20px; text-transform: uppercase; letter-spacing: .03em">Goal</h3>
+    <div style="display: flex; justify-content: space-between; font-size: 14px"><span style="color: #a8a09c">Goal</span><span style="font-family: 'Noto Sans Mono', monospace; font-weight: 500">Recomp</span></div>
+  </section>
+
+  <div aria-hidden="true" style="position: absolute; inset: 0; z-index: 10; background: rgba(0, 0, 0, 0.6); pointer-events: none"></div>
+
+  <div role="dialog" aria-labelledby="t1" style="position: absolute; left: 16px; right: 16px; bottom: 24px; z-index: 12; background: #2f2a27; color: #fff; border-radius: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.56); padding: 16px; display: flex; flex-direction: column; gap: 8px; animation: lbSheet .32s cubic-bezier(.2,.8,.2,1) both">
+    <div style="display: flex; justify-content: space-between; align-items: center">
+      <span style="font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #e9b69b">1 of 5 · Season</span>
+      <a href="OnbCoach.dc.html" style="min-height: 44px; margin: -12px -4px; display: inline-flex; align-items: center; padding: 0 4px; font-size: 13px; font-weight: 600; color: #e1dddb; text-decoration: none">Skip tour</a>
+    </div>
+    <p id="t1" style="margin: 0; font-family: 'Ranchers', sans-serif; font-size: 24px; line-height: 1.05; text-transform: uppercase">Your split</p>
+    <p style="margin: 0 0 4px; font-size: 14px; color: #e1dddb">Pick your main sport and specify if you're in- or off-season. This determines the cadence for progressive overload and any accessory work.</p>
+    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px">
+      <a href="OnbAbout.dc.html" style="min-height: 52px; display: flex; align-items: center; justify-content: center; border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.25); color: #fff; font-size: 15px; font-weight: 600; text-decoration: none">Back</a>
+      <a href="OnbStep2.dc.html" style="min-height: 52px; display: flex; align-items: center; justify-content: center; border-radius: 14px; background: #e9b69b; color: #231c18; font-size: 15px; font-weight: 600; text-decoration: none">Next</a>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const st = Object.assign({ sport: 'Pickleball', season: 'Off-season' }, this.state || {});
+    const names = ['None', 'Pickleball', 'Running', 'Soccer', 'Volleyball', 'Climbing', 'Tennis', 'Golf', 'Hockey'];
+    const inS = st.season === 'In-season';
+    return {
+      sports: names.map((label) => {
+        const on = st.sport === label;
+        return { label, on: on ? 'true' : 'false', fw: on ? 600 : 400, bg: on ? '#9d5324' : '#181513', fg: on ? '#fff' : '#edeae8',
+          pick: () => this.setState({ sport: label, season: label === 'None' ? 'Off-season' : st.season }) };
+      }),
+      hasSport: st.sport !== 'None',
+      inS: inS ? 'true' : 'false',
+      tgBg: inS ? '#9d5324' : '#393330',
+      tgX: inS ? 'translateX(20px)' : 'none',
+      toggle: () => this.setState({ season: inS ? 'Off-season' : 'In-season' })
+    };
+  }
+}
+</script>
+</body>
+</html>

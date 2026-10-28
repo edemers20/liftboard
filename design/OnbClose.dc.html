@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Lift Board · Onboarding 8 · I don't know you</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Ranchers&amp;family=Noto+Sans:wght@400;500;600&amp;family=Noto+Sans+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;font-synthesis-weight:none}
+@keyframes lbIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+button,a{transition:background-color .2s ease,color .2s ease,transform .12s ease}
+button:active,a:active{transform:scale(.97)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</helmet>
+<div style="position: relative; width: 390px; height: 844px; overflow: hidden; box-sizing: border-box; background: #181513; color: #edeae8; font-family: 'Noto Sans', system-ui, sans-serif; font-size: 15px; line-height: 1.45; padding: 96px 24px 32px; display: flex; flex-direction: column; justify-content: center; gap: 14px">
+  <h1 style="margin: 0; font-family: 'Ranchers', sans-serif; font-weight: 400; font-size: 52px; line-height: 1; text-transform: uppercase; animation: lbIn .4s cubic-bezier(.2,.8,.2,1) both">I don't know you</h1>
+  <p style="margin: 0; font-size: 17px; line-height: 1.5; color: #d4cfcc; max-width: 34ch; animation: lbIn .4s cubic-bezier(.2,.8,.2,1) 60ms both">You may not realize it, but all these things go into your ability to perform and improve over time. But I'm not a doctor. So try it out, but at the end of the day, you know yourself the best.</p>
+  <p style="margin: 0; font-size: 17px; line-height: 1.5; color: #d4cfcc; animation: lbIn .4s cubic-bezier(.2,.8,.2,1) 140ms both">Good luck!</p>
+  <p style="margin: 0; font-size: 17px; font-weight: 600; color: #e9b69b; animation: lbIn .4s cubic-bezier(.2,.8,.2,1) 220ms both">Emma</p>
+  <div style="margin-top: 16px; display: grid; grid-template-columns: 1fr 2fr; gap: 10px; animation: lbIn .4s cubic-bezier(.2,.8,.2,1) 300ms both">
+    <a href="OnbStep5.dc.html" style="min-height: 52px; display: flex; align-items: center; justify-content: center; border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.25); color: #fff; font-size: 15px; font-weight: 600; text-decoration: none">Back</a>
+    <a href="OnbCoach.dc.html" style="min-height: 52px; display: flex; align-items: center; justify-content: center; border-radius: 14px; background: #e9b69b; color: #231c18; font-size: 15px; font-weight: 600; text-decoration: none">Finish setup</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

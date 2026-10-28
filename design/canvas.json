@@ -89,6 +89,78 @@
       "h": 844,
       "title": "Week done",
       "is_interactive": true
+    },
+    "OnbWelcome.dc.html": {
+      "x": 0,
+      "y": 4600,
+      "w": 390,
+      "h": 844,
+      "title": "1 \u00b7 Welcome",
+      "is_interactive": true
+    },
+    "OnbAbout.dc.html": {
+      "x": 470,
+      "y": 4600,
+      "w": 390,
+      "h": 844,
+      "title": "2 \u00b7 What this does",
+      "is_interactive": true
+    },
+    "OnbStep1.dc.html": {
+      "x": 940,
+      "y": 4600,
+      "w": 390,
+      "h": 844,
+      "title": "3 \u00b7 Tour: Your split",
+      "is_interactive": true
+    },
+    "OnbStep2.dc.html": {
+      "x": 1410,
+      "y": 4600,
+      "w": 390,
+      "h": 844,
+      "title": "4 \u00b7 Tour: Pick a goal",
+      "is_interactive": true
+    },
+    "OnbStep3.dc.html": {
+      "x": 1880,
+      "y": 4600,
+      "w": 390,
+      "h": 844,
+      "title": "5 \u00b7 Tour: Your week",
+      "is_interactive": true
+    },
+    "OnbStep4.dc.html": {
+      "x": 2350,
+      "y": 4600,
+      "w": 390,
+      "h": 844,
+      "title": "6 \u00b7 Tour: Lifting goals",
+      "is_interactive": true
+    },
+    "OnbStep5.dc.html": {
+      "x": 2820,
+      "y": 4600,
+      "w": 390,
+      "h": 844,
+      "title": "7 \u00b7 Tour: Biometrics",
+      "is_interactive": true
+    },
+    "OnbClose.dc.html": {
+      "x": 3290,
+      "y": 4600,
+      "w": 390,
+      "h": 844,
+      "title": "8 \u00b7 I don't know you",
+      "is_interactive": true
+    },
+    "OnbCoach.dc.html": {
+      "x": 3760,
+      "y": 4600,
+      "w": 390,
+      "h": 844,
+      "title": "9 \u00b7 First-visit tab tip",
+      "is_interactive": true
     }
   },
   "createdOnFiles": {
@@ -121,6 +193,13 @@
       "text": "Completion screens",
       "kind": "title1",
       "maxW": 1330
+    },
+    "onbflow": {
+      "x": 0,
+      "y": 4300,
+      "text": "Onboarding flow (current)",
+      "kind": "title1",
+      "maxW": 4150
     }
   },
   "order": [
@@ -134,7 +213,16 @@
     "OnboardPreview.dc.html",
     "DoneSetup.dc.html",
     "DoneDay.dc.html",
-    "DoneWeek.dc.html"
+    "DoneWeek.dc.html",
+    "OnbWelcome.dc.html",
+    "OnbAbout.dc.html",
+    "OnbStep1.dc.html",
+    "OnbStep2.dc.html",
+    "OnbStep3.dc.html",
+    "OnbStep4.dc.html",
+    "OnbStep5.dc.html",
+    "OnbClose.dc.html",
+    "OnbCoach.dc.html"
   ],
   "pages": [],
   "title": "Lift Board Redesign"

@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Lift Board · Onboarding 2 · What this does</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Ranchers&amp;family=Noto+Sans:wght@400;500;600&amp;family=Noto+Sans+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;font-synthesis-weight:none}
+@keyframes lbIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes lbSlide{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
+button,a,span{transition:background-color .2s ease,color .2s ease,width .25s ease,transform .12s ease}
+button:active,a:active{transform:scale(.97)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</helmet>
+<div style="position: relative; width: 390px; height: 844px; overflow: hidden; box-sizing: border-box; background: #181513; color: #edeae8; font-family: 'Noto Sans', system-ui, sans-serif; font-size: 15px; line-height: 1.45; padding: 56px 24px 32px; display: flex; flex-direction: column; gap: 12px">
+  <span style="font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #e9b69b">What this does</span>
+  <h1 style="margin: 0; font-family: 'Ranchers', sans-serif; font-weight: 400; font-size: 38px; line-height: 1; text-transform: uppercase">Your plan, worked out for you</h1>
+  <p style="margin: 0; font-size: 16px; line-height: 1.5; color: #d4cfcc">Lift Board writes your workouts and adjusts them every week to fit your sport, your goal and how you're feeling.</p>
+
+  <div style="display: flex; flex-direction: column; gap: 12px; animation: lbSlide .32s cubic-bezier(.2,.8,.2,1) both" aria-live="polite">
+    <div style="background: linear-gradient(160deg, #3d2b21, #181513 75%); border-radius: 20px; padding: 18px; min-height: 236px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; gap: 10px">
+      <sc-if value="{{ s0 }}" hint-placeholder-val="{{ true }}">
+        <div style="background: #24201d; border-radius: 14px; padding: 12px; display: flex; gap: 6px; box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25)">
+          <span style="flex: 1; text-align: center; font-size: 13px; padding: 8px 4px; border-radius: 10px; background: #181513">Off-season</span>
+          <span style="flex: 1; text-align: center; font-size: 13px; font-weight: 600; padding: 8px 4px; border-radius: 10px; background: #9d5324; color: #fff">In-season</span>
+        </div>
+        <span aria-hidden="true" style="align-self: center; color: #fea06a; font-size: 20px; line-height: 1">↓</span>
+        <div style="background: #2f2a27; border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 4px; box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25)">
+          <span style="font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #e9b69b">Your days now</span>
+          <b style="font-weight: 600">Full Body A · Full Body B</b>
+          <span style="font-size: 12px; color: #d4cfcc">2 sets each · extra work for your sport</span>
+        </div>
+      </sc-if>
+      <sc-if value="{{ s1 }}" hint-placeholder-val="{{ false }}">
+        <div style="background: #24201d; border-radius: 14px; padding: 12px; display: flex; gap: 6px; box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25)">
+          <span style="flex: 1; text-align: center; font-size: 13px; padding: 8px 4px; border-radius: 10px; background: #181513">Lose fat</span>
+          <span style="flex: 1; text-align: center; font-size: 13px; font-weight: 600; padding: 8px 4px; border-radius: 10px; background: #9d5324; color: #fff">Recomp</span>
+          <span style="flex: 1; text-align: center; font-size: 13px; padding: 8px 4px; border-radius: 10px; background: #181513">Build</span>
+        </div>
+        <div style="background: #24201d; border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25)">
+          <p style="margin: 0; font: 500 14px 'Noto Sans Mono', monospace"><b style="font-size: 26px">1,595</b> calories a day</p>
+          <div role="img" aria-label="Deficit split: about a third from activity, two thirds from food" style="display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: #393330"><span style="width: 32%; background: #e7b94a"></span><span style="width: 68%; background: #9d5324"></span></div>
+          <span style="font-size: 12px; font-weight: 600; color: #fea06a">+85 a day from your extra games</span>
+        </div>
+      </sc-if>
+      <sc-if value="{{ s2 }}" hint-placeholder-val="{{ false }}">
+        <div style="background: #24201d; border-radius: 14px; padding: 12px; display: flex; gap: 6px; box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25)">
+          <span style="flex: 1; text-align: center; font-size: 13px; font-weight: 600; padding: 8px 4px; border-radius: 10px; background: #9d5324; color: #fff">Lower body</span>
+          <span style="flex: 1; text-align: center; font-size: 13px; padding: 8px 4px; border-radius: 10px; background: #181513">Balanced</span>
+          <span style="flex: 1; text-align: center; font-size: 13px; padding: 8px 4px; border-radius: 10px; background: #181513">Upper body</span>
+        </div>
+        <div style="background: #24201d; border-radius: 14px; padding: 4px 12px; display: flex; flex-direction: column; box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25)">
+          <div style="display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px"><b style="font-weight: 600">Day 1 · Lower</b><span style="font-size: 12px; font-weight: 600; color: #fea06a">+1 set</span></div>
+          <div style="display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px; border-top: 1px solid #393330"><b style="font-weight: 600">Day 2 · Upper</b><span style="font-size: 12px; color: #d4cfcc">shorter</span></div>
+          <div style="display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px; border-top: 1px solid #393330"><b style="font-weight: 600">Day 3 · Lower</b><span style="font-size: 12px; font-weight: 600; color: #fea06a">+1 set</span></div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ s3 }}" hint-placeholder-val="{{ false }}">
+        <div style="background: #24201d; border-radius: 14px; padding: 12px; display: flex; gap: 6px; box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25)">
+          <span style="flex: 1; text-align: center; font-size: 13px; font-weight: 600; padding: 8px 4px; border-radius: 10px; background: #9d5324; color: #fff">Female</span>
+          <span style="flex: 1; text-align: center; font-size: 13px; padding: 8px 4px; border-radius: 10px; background: #181513">Male</span>
+          <span style="flex: 1; text-align: center; font-size: 13px; padding: 8px 4px; border-radius: 10px; background: #181513">Other</span>
+        </div>
+        <div style="background: #24201d; border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 6px; box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25)">
+          <p style="margin: 0; font: 500 14px 'Noto Sans Mono', monospace"><span aria-hidden="true" style="color: #fea06a; margin-right: 6px">↑</span>Next time <b style="font-size: 20px; color: #fea06a">140 lb</b></p>
+          <span style="font-size: 12px; color: #d4cfcc">Protein 110–140 g a day · Maintenance 1,845</span>
+        </div>
+      </sc-if>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 4px">
+      <b style="font-family: 'Ranchers', sans-serif; font-weight: 400; font-size: 22px; letter-spacing: .03em; text-transform: uppercase; color: #fff">{{ title }}</b>
+      <p style="margin: 0; font-size: 15px; line-height: 1.45; color: #d4cfcc">{{ caption }}</p>
+    </div>
+  </div>
+
+  <div style="display: flex; justify-content: center; gap: 2px" role="group" aria-label="Slides">
+    <sc-for list="{{ dots }}" as="d" hint-placeholder-count="4">
+      <button type="button" aria-label="Slide {{ d.n }}" aria-pressed="{{ d.on }}" onClick="{{ d.go }}" style="width: 28px; height: 28px; padding: 0; border: 0; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center"><span style="display: block; height: 7px; width: {{ d.w }}; border-radius: 4px; background: {{ d.c }}"></span></button>
+    </sc-for>
+  </div>
+
+  <div style="margin-top: auto; display: grid; grid-template-columns: 1fr 2fr; gap: 10px">
+    <a href="OnbWelcome.dc.html" style="min-height: 52px; display: flex; align-items: center; justify-content: center; border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.25); color: #fff; font-size: 15px; font-weight: 600; text-decoration: none">Back</a>
+    <a href="OnbStep1.dc.html" style="min-height: 52px; display: flex; align-items: center; justify-content: center; border-radius: 14px; background: #e9b69b; color: #231c18; font-size: 15px; font-weight: 600; text-decoration: none">Show me around</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const i = (this.state && this.state.i) || 0;
+    const S = [
+      ['Train for your season', "Build strength when you're not playing much. When your season starts, the plan keeps you strong without wearing you out."],
+      ['It does the food math', 'Pick a goal and it tells you how much to eat and how much cardio to do. Play more one week and you get to eat more.'],
+      ['Your focus, your extra sets', 'Tell it what you want to grow and the bonus work lands there. Short on time? It trims the extras first.'],
+      ["Lifts go up when you're ready", 'Log your sets as you go. Hit the top of your reps and the weight goes up next time; miss and it holds or eases off.']
+    ];
+    return {
+      s0: i === 0, s1: i === 1, s2: i === 2, s3: i === 3,
+      title: S[i][0], caption: S[i][1],
+      dots: S.map((_, n) => ({ n: n + 1, on: n === i ? 'true' : 'false', w: n === i ? '20px' : '7px', c: n === i ? '#fea06a' : '#48423f', go: () => this.setState({ i: n }) }))
+    };
+  }
+}
+</script>
+</body>
+</html>
