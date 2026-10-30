@@ -178,3 +178,35 @@ describe("maintain goal", () => {
     expect(Math.round(P.math.intake)).toBe(Math.round(P.math.tdee));
   });
 });
+
+describe("muscle priorities and weekly balance", () => {
+  const setup = (patch) => { E.init(mem()); Object.assign(E.wk, { setupDone: true, mig1: 1, mig2: 1, mig3: 1, mode: "Recomp", time: 60, ss: "Yes" }, patch); E.syncDays(); return E.plan(); };
+  const finish = (P, d, skip = []) => { d.slots.forEach((s, i) => { const A = P.days[d.id].slots[i]; if (s.cardio || A.skip || skip.includes(s.label)) return; E.set(d.id, i, "log", Array.from({ length: A.sets }, () => ({ w: "50", r: "10", d: true }))); }); E.markDone(d.id); return E.plan(); };
+  it("any shoulder sport protects rear delts and cuff; climbing lowers back and biceps", () => {
+    for (const a of ["pickle", "tennis", "volleyball", "golf"]) { setup({ acts: { lift: true, [a]: true }, mainSport: a, [a]: "1" }); const p = E.musclePriority().P; expect(p.rdelts).toBeGreaterThan(p.sdelts); expect(p.cuff).toBeGreaterThan(1); }
+    setup({ acts: { lift: true, climb: true }, climb: "2" }); const c = E.musclePriority().P; expect(c.back).toBe(2); expect(c.biceps).toBe(0);
+    setup({ acts: { lift: true, run: true }, mainSport: "run", run: "3" }); const r = E.musclePriority().P; expect(r.hams).toBe(4); expect(r.calves).toBe(2);
+  });
+  it("focus raises its muscles for any focus", () => {
+    setup({ focus: "Upper" }); let p = E.musclePriority().P; expect(p.chest).toBe(5); expect(p.glutes).toBe(3);
+    setup({ focus: "Lower" }); p = E.musclePriority().P; expect(p.glutes).toBe(5); expect(p.chest).toBe(3);
+    setup({ focus: "Balanced" }); p = E.musclePriority().P; expect(p.glutes).toBe(3); expect(p.chest).toBe(3);
+  });
+  it("time trims drop the lowest-priority accessories, not fixed ones", () => {
+    const P = setup({ focus: "Lower", days: 4, time: 45, acts: { lift: true, pickle: true }, mainSport: "pickle", pickle: "2" });
+    const d2 = E.DAYS[1], rear = d2.slots.findIndex(s => s.label === "Rear delts"), arms = d2.slots.findIndex(s => s.label === "Arms");
+    expect(P.days[d2.id].slots[rear].skip).toBe(""); expect(P.days[d2.id].slots[arms].skip).toMatch(/^Trimmed/);
+  });
+  it("nothing is pulled back or dropped before a skip", () => {
+    const P = setup({ focus: "Lower", days: 4, time: 45 });
+    expect(P.balance).toEqual([]); expect(P.ledger.every(x => x.status !== "behind")).toBe(true);
+  });
+  it("after a skipped day: covered repeats go optional and a short muscle gets a set back", () => {
+    let P = setup({ focus: "Lower", days: 4, acts: { lift: true, pickle: true }, mainSport: "pickle", pickle: "2" });
+    P = finish(P, E.DAYS[0]); P = finish(P, E.DAYS[1], ["Rear delts", "Arms"]);
+    const d3 = E.DAYS[2], d4 = E.DAYS[3];
+    expect(P.days[d3.id].slots[d3.slots.findIndex(s => s.label === "Side delts")].skip).toMatch(/^Covered/);
+    expect(P.days[d4.id].slots[d4.slots.findIndex(s => s.label === "Rear delts")].why.some(w => w.includes("rear delts behind"))).toBe(true);
+    expect(P.ledger.find(x => x.m === "rdelts").status).toBe("behind");
+  });
+});

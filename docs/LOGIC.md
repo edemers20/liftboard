@@ -146,3 +146,13 @@ Per lift, from your last logged set:
 - **Up to 7 of anything:** lift days and every activity go to 7 a week (in-season lifting stays capped at 3 full-body days). Days 6–7 add full-body sessions and run 1 set lighter on every lift.
 - **Packed weeks:** total sessions = lift days + all activity sessions + the ramp session. 10–12 adds 1 to recovery load, 13+ adds 2. 4+ spin classes add 2 instead of 1.
 - **Flags (Watch):** 6 or 7 lift days (rest-day warning), any sport or climbing at 6+ a week (near daily), 10+ sessions (stack activities on lift days), 14+ sessions (expect strength to hold, not climb).
+
+## Muscle priorities and weekly balance (added)
+- **Slot → muscles:** every slot maps to the muscles it trains. Direct work counts 1 set, helper work ½ (rows: back 1, biceps ½, rear delts ½; presses: triceps ½ plus chest or side delts; hip hinges: hamstrings 1, glutes ½; and so on). Generic "Arms" slots count by the chosen exercise (curl → biceps, pushdown/extension/dip → triceps).
+- **Priority (0–7) per muscle, for any setup:** base (glutes, quads, hamstrings, back, chest 3; adductors, side delts, rear delts, core 2; calves, cuff, biceps, triceps 1); focus adds +2 to its group (+1 for calves or arms); Build adds +1 to the focus group; every active sport adds what it demands: shoulder/overhead sports (pickleball, tennis, volleyball, golf) rear delts +2, cuff +2, core +1; leg sports calves +1, adductors +1, and running/soccer/hockey hamstrings +1; climbing rear delts +1, cuff +1, back −1, biceps −1; pilates or yoga core −1.
+- **Trimming by priority:** when a day has to be cut (45-min sessions, supersets off at ≤60 min, a shortened day), the number of cuts stays the same as before but the lowest-priority accessories go first. A 30-min session keeps the highest-priority accessory.
+- **Weekly target per muscle:** 10 / 8 / 6 / 4 / 2 sets for priority 5+ / 4 / 3 / 2 / 1 (×0.6 in-season or in a deload week), capped at what the week's plan can deliver.
+- **Ledger:** sets ticked this week (any day) plus sets still required on unfinished days.
+- **Behind** (only after something was skipped on a finished day): later days first get back an exercise for that muscle that was trimmed for time, then one catch-up set on a remaining exercise for it.
+- **Covered:** a single-muscle isolation exercise on a later day becomes optional when its muscle is priority 2 or lower, has had work this week, and would still reach 125% of target without it.
+- **This week** shows each muscle's done / target and status (done, on track, behind).

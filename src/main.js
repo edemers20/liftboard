@@ -45,13 +45,14 @@ const INFO={
  heated:"Heated burns more.",
  progress:"↑ Up: hit the top of the range, ~5% more on lower lifts, ~2.5% on upper. = Hold: same weight, one more rep. ↓ Down: missed the bottom twice, rebuild at −10%. ! Fatigue: reps fell 4+ across sets; rest longer.",
  changes:"Everything this week's check-in and activities changed, grouped by cause.",
+ muscles:"Sets done this week against a target set by your focus and sports. Direct work counts 1 set; helper work counts ½ (a row also trains biceps and rear delts). The faint bar is what's still planned. Skip something and a later day brings back a trimmed exercise or adds a set; when a smaller muscle is already covered, its repeat on a later day becomes optional.",
  watch:"Targets and warnings to keep an eye on this week.",
  lifts:"Your top working set each session. The number is the latest weight; the change is since your first logged session.",
  weeks:"Saved each time you tap Start new week. Weigh-ins logged here calibrate maintenance after 3+ weeks.", spint:"Really hard burns more and adds 1 to recovery load.", ymin:"Class length."
 };
 SPORTS.forEach(a=>{ INFO[a]=sportInfo(a); INFO[minKey(a)]="Planned length per session."; });
 INFO.climb="Each session counts as about 75 minutes toward cardio. Pulling and arm work on lift days is trimmed so you don't double up.";INFO.yoga="Counts toward cardio."; INFO.pilates="Counts toward cardio at a light, yoga-like burn."; INFO[minKey("pilates")]="Class length."; INFO.spin="Counts toward cardio. Hard weeks cut a quad set.";
-const LBL={acts:"Activities",mainSport:"Main sport",focus:"Focus",season:"Season",ramp:"Ramp",deload:"Deload",mode:"Goal",rate:"Lose lb/week",share:"From cardio",sex:"Sex",age:"Age",height:"Height",weight:"Weight",bf:"Body fat",steps:"Steps",oura:"Daily burn",days:"Lifting days",time:"Session length",liftK:"Avg lift kcal",ready:"Readiness",sore:"Soreness",cycle:"Cycle",drink:"Drinking",load:"Recovery load",wAvg:"Avg weight",ymin:"Class length",heated:"Heated",spint:"Intensity",today:"Today",ss:"Supersets",progress:"Progress",changes:"Changes",watch:"Watch",lifts:"Main lifts",weeks:"Previous weeks",maint:"Maintenance"};
+const LBL={muscles:"Muscles",acts:"Activities",mainSport:"Main sport",focus:"Focus",season:"Season",ramp:"Ramp",deload:"Deload",mode:"Goal",rate:"Lose lb/week",share:"From cardio",sex:"Sex",age:"Age",height:"Height",weight:"Weight",bf:"Body fat",steps:"Steps",oura:"Daily burn",days:"Lifting days",time:"Session length",liftK:"Avg lift kcal",ready:"Readiness",sore:"Soreness",cycle:"Cycle",drink:"Drinking",load:"Recovery load",wAvg:"Avg weight",ymin:"Class length",heated:"Heated",spint:"Intensity",today:"Today",ss:"Supersets",progress:"Progress",changes:"Changes",watch:"Watch",lifts:"Main lifts",weeks:"Previous weeks",maint:"Maintenance"};
 ACT_IDS.forEach(a=>{ LBL[a]=ACT[a].name; LBL[minKey(a)]="Planned min"; });
 const POP={}; let popN=0;
 function hdr(title,keys,tag){ const id="p"+(++popN), t=tag||"h3";
@@ -246,6 +247,8 @@ function renderWeek(P){
     <div class="legend">${M.finK>0?`<span style="--c:var(--cardio)">Finishers ${r5(M.finK)}</span>`:""}<span style="--c:var(--warn)">Other activity ${r5(M.otherK+M.doneK)}</span><span style="--c:var(--accent)">Food ${r5(Math.max(0,M.target-M.cardioTotal))}</span></div>`}
     ${M.nLift&&M.nFin?`<p class="note">Remaining finishers: <strong>${M.m} min</strong> × ${M.nFin}</p>`:""}
   </div>
+  ${(P.ledger||[]).some(x=>x.target>0)?`<div class="panel">${hdr("Muscles this week",["muscles"])}<div class="mlist">${P.ledger.filter(x=>x.target>0).map(x=>{ const f=v=>String(Math.round(v*2)/2), pd=Math.min(100,x.done/x.target*100), pp=Math.min(100,(x.done+x.left)/x.target*100);
+    return `<div class="mrow ${x.status.replace(" ","")}"><span class="mn">${x.name}</span><span class="mbar" aria-hidden="true"><i class="pl" style="width:${pp}%"></i><i class="dn" style="width:${pd}%"></i></span><span class="mv">${f(x.done)}<small> / ${x.target}</small></span><span class="ms">${x.status}</span></div>`; }).join("")}</div></div>`:""}
   ${P.rules.length?`<div class="panel">${hdr("This week's changes",["changes"])}<ul>${P.rules.map(n=>`<li>${n}</li>`).join("")}</ul></div>`:""}
   ${P.notes.length?`<div class="panel">${hdr("Watch",["watch"])}<ul>${P.notes.map(n=>`<li>${n}</li>`).join("")}</ul></div>`:""}
   <button class="btn primary" id="newWeek" type="button">Start new week</button>`;
