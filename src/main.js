@@ -210,6 +210,8 @@ function renderSeason(P){
   ${moveHTML()}
   <div class="foot season-foot"><button class="btn" id="replayTour" type="button">Replay tour</button><button class="btn" id="resetProfile" type="button">Reset profile</button></div>`;
 }
+/* The weekly muscle ledger runs in the engine either way; this only controls whether This week shows it */
+const SHOW_MUSCLES=false;
 function renderWeek(P){
   const M=P.math, inS=inSeason(), build=wk.mode==="Build"||wk.mode==="Maintain", tot=Math.max(M.target,1);
   const pct=v=>Math.min(100,v/tot*100).toFixed(1);
@@ -247,7 +249,7 @@ function renderWeek(P){
     <div class="legend">${M.finK>0?`<span style="--c:var(--cardio)">Finishers ${r5(M.finK)}</span>`:""}<span style="--c:var(--warn)">Other activity ${r5(M.otherK+M.doneK)}</span><span style="--c:var(--accent)">Food ${r5(Math.max(0,M.target-M.cardioTotal))}</span></div>`}
     ${M.nLift&&M.nFin?`<p class="note">Remaining finishers: <strong>${M.m} min</strong> × ${M.nFin}</p>`:""}
   </div>
-  ${(P.ledger||[]).some(x=>x.target>0)?`<div class="panel">${hdr("Muscles this week",["muscles"])}<div class="mlist">${P.ledger.filter(x=>x.target>0).map(x=>{ const f=v=>String(Math.round(v*2)/2), pd=Math.min(100,x.done/x.target*100), pp=Math.min(100,(x.done+x.left)/x.target*100);
+  ${SHOW_MUSCLES&&(P.ledger||[]).some(x=>x.target>0)?`<div class="panel">${hdr("Muscles this week",["muscles"])}<div class="mlist">${P.ledger.filter(x=>x.target>0).map(x=>{ const f=v=>String(Math.round(v*2)/2), pd=Math.min(100,x.done/x.target*100), pp=Math.min(100,(x.done+x.left)/x.target*100);
     return `<div class="mrow ${x.status.replace(" ","")}"><span class="mn">${x.name}</span><span class="mbar" aria-hidden="true"><i class="pl" style="width:${pp}%"></i><i class="dn" style="width:${pd}%"></i></span><span class="mv">${f(x.done)}<small> / ${x.target}</small></span><span class="ms">${x.status}</span></div>`; }).join("")}</div></div>`:""}
   ${P.rules.length?`<div class="panel">${hdr("This week's changes",["changes"])}<ul>${P.rules.map(n=>`<li>${n}</li>`).join("")}</ul></div>`:""}
   ${P.notes.length?`<div class="panel">${hdr("Watch",["watch"])}<ul>${P.notes.map(n=>`<li>${n}</li>`).join("")}</ul></div>`:""}
