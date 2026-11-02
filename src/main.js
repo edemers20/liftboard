@@ -180,7 +180,8 @@ const moveHTML=()=>`  <details class="panel" id="moveBox"><summary><h3 style="di
 /* One line under the goal saying what the chosen pace means for muscle */
 function paceNote(P){ const M=P.math, pct=(M.pace||0)*100; if(!M.rateEff) return "";
   const t=pct<=0.5?"Muscle-friendly pace: room to keep building.":pct<=0.7?"Faster pace: expect to hold muscle and strength, not build.":"Aggressive pace: strength will likely slip. Best kept short.";
-  return `<p class="note">${M.rateEff} lb/week is ${pct.toFixed(1)}% of your weight. ${t}</p>`; }
+  return `<br><br><b>Your pace:</b> ${M.rateEff} lb/week is ${pct.toFixed(2)}% of your weight. ${t}`; }
+const RATE_INFO=INFO.rate;
 function renderSeason(P){
   if(!wk.setupDone) return `<div class="dayhead"><h2>Setup</h2></div>${planHTML(P)}<div class="panel">${profileHTML(true)}<button class="btn primary" id="setupSave" type="button">Save setup</button></div>${moveHTML()}`;
   const inS=inSeason(), build=wk.mode==="Build"||wk.mode==="Maintain", dl=deloadInfo();
@@ -196,9 +197,9 @@ function renderSeason(P){
     ${seasonBox}
     ${DAYS.length?`${dl.length&&wk.deload!=="Yes"?`<p class="flag">Deload suggested · ${dl.join(", ")}</p>`:""}${toggle("deload","Deload this week")}`:""}
   </div>
-  <div class="panel">${hdr("Goal",["mode","rate","share"])}
+  ${(INFO.rate=RATE_INFO+(build?"":paceNote(P)),"")}<div class="panel">${hdr("Goal",["mode","rate","share"])}
     ${seg("mode","Goal",GOALS)}
-    ${build?"":`<div class="nums two">${fld("rate","Lose lb / week","decimal")}${fld("share","From cardio %")}</div>${paceNote(P)}`}
+    ${build?"":`<div class="nums two">${fld("rate","Lose lb / week","decimal")}${fld("share","From cardio %")}</div>`}
   </div>
   ${DAYS.length||names.length?`<div class="panel">${hdr("Main lifts",["lifts"])}
    ${names.length?names.map(n=>{const h=exHist[n],a=h[0],z=h[h.length-1],dw=z.w-a.w;return `<div class="liftrow"><span class="ln">${esc(n)}</span>${spark(h)}<span class="lw"><b>${z.w}<small> lb</small></b>${h.length>1?`<em class="${dw<0?"neg":""}">${dw>0?"+":dw<0?"−":"±"}${Math.abs(dw)}</em>`:""}</span></div>`;}).join(""):`<p class="note">Appears after you mark days done.</p>`}
