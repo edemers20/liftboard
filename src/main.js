@@ -22,8 +22,8 @@ const INFO={
  season:"Off-season: full splits, weights go up. In-season: 1–3 full-body days, 2 sets each, no weight increases, support lifts for your sport.",
  ramp:"Adds one 45-min zone 2 session a week to build the aerobic base that prevents in-season fatigue.",
  deload:"One lighter week: about 60% of sets, ~90% weights, easy-pace cardio. Suggested after 6 off-season weeks or when 2+ main lifts stall.",
- mode:"Lose fat fast: fat loss comes first, at the rate you set. Lose fat, keep muscle: slower, capped at 0.5 lb a week with no more than 25% from cardio, so strength holds. Maintain: eat what you burn and keep lifting as normal. Build muscle: about 200 calories over, plus a set on main lifts.",
- rate:"Target loss per week. Sets the weekly deficit at 3,500 kcal per lb.",
+ mode:"Lose fat fast: fat loss comes first, at the rate you set. Lose fat, keep muscle: capped at 0.7% of your weight a week with no more than 25% from cardio, so muscle is protected. Maintain: eat what you burn and keep lifting as normal. Build muscle: about 200 calories over, plus a set on main lifts. On any fat-loss goal, food never drops so low that there isn't enough energy left for your training.",
+ rate:"Target loss per week. Sets the weekly deficit at 3,500 kcal per lb. Up to 0.5% of your weight a week leaves room to keep building muscle; 0.5–0.7% holds muscle; faster than that, strength usually slips, so keep it short.",
  share:"How much of the deficit should come from cardio. The rest comes from food.",
  sex:"Changes resting metabolism and the minimum weight jump. Other uses the midpoint.",
  age:"Used for resting metabolism.", height:"Used for resting metabolism.",
@@ -177,6 +177,10 @@ const moveHTML=()=>`  <details class="panel" id="moveBox"><summary><h3 style="di
       <textarea id="moveTxt" rows="4" placeholder="Paste data here" aria-label="Lift Board data"></textarea>
       <div class="nums two"><button class="btn" id="moveCopy" type="button">Copy my data</button><button class="btn primary" id="moveLoad" type="button">Load</button></div>
     </div></details>`;
+/* One line under the goal saying what the chosen pace means for muscle */
+function paceNote(P){ const M=P.math, pct=(M.pace||0)*100; if(!M.rateEff) return "";
+  const t=pct<=0.5?"Muscle-friendly pace: room to keep building.":pct<=0.7?"Faster pace: expect to hold muscle and strength, not build.":"Aggressive pace: strength will likely slip. Best kept short.";
+  return `<p class="note">${M.rateEff} lb/week is ${pct.toFixed(1)}% of your weight. ${t}</p>`; }
 function renderSeason(P){
   if(!wk.setupDone) return `<div class="dayhead"><h2>Setup</h2></div>${planHTML(P)}<div class="panel">${profileHTML(true)}<button class="btn primary" id="setupSave" type="button">Save setup</button></div>${moveHTML()}`;
   const inS=inSeason(), build=wk.mode==="Build"||wk.mode==="Maintain", dl=deloadInfo();
@@ -194,7 +198,7 @@ function renderSeason(P){
   </div>
   <div class="panel">${hdr("Goal",["mode","rate","share"])}
     ${seg("mode","Goal",GOALS)}
-    ${build?"":`<div class="nums two">${fld("rate","Lose lb / week","decimal")}${fld("share","From cardio %")}</div>`}
+    ${build?"":`<div class="nums two">${fld("rate","Lose lb / week","decimal")}${fld("share","From cardio %")}</div>${paceNote(P)}`}
   </div>
   ${DAYS.length||names.length?`<div class="panel">${hdr("Main lifts",["lifts"])}
    ${names.length?names.map(n=>{const h=exHist[n],a=h[0],z=h[h.length-1],dw=z.w-a.w;return `<div class="liftrow"><span class="ln">${esc(n)}</span>${spark(h)}<span class="lw"><b>${z.w}<small> lb</small></b>${h.length>1?`<em class="${dw<0?"neg":""}">${dw>0?"+":dw<0?"−":"±"}${Math.abs(dw)}</em>`:""}</span></div>`;}).join(""):`<p class="note">Appears after you mark days done.</p>`}

@@ -210,3 +210,32 @@ describe("muscle priorities and weekly balance", () => {
     expect(P.ledger.find(x => x.m === "rdelts").status).toBe("behind");
   });
 });
+
+describe("fat-loss pace guardrails", () => {
+  const base = { mig1: 1, mig2: 1, mig3: 1, sex: "Female", weight: 138, height: 63, days: 4, focus: "Lower" };
+  it("Lose fat, keep muscle caps at 0.7% of body weight, not a flat 0.5 lb", () => {
+    let P = fresh({ ...base, mode: "Recomp", rate: 1.5 });
+    expect(P.math.rateEff).toBeCloseTo(0.97, 2);
+    expect(P.notes.some(n => n.includes("caps loss at 1.0 lb/week"))).toBe(true);
+    P = fresh({ ...base, mode: "Recomp", rate: 0.75 });
+    expect(P.math.rateEff).toBe(0.75);
+    expect(P.notes.some(n => n.includes("hold muscle"))).toBe(true);
+    expect(P.notes.some(n => n.includes("period"))).toBe(true);
+  });
+  it("default 0.5 lb/week stays muscle-friendly with no pace warnings", () => {
+    const P = fresh({ ...base, mode: "Recomp", rate: 0.5 });
+    expect(P.math.fast).toBe(false);
+    expect(P.notes.some(n => n.includes("period") || n.includes("hold muscle"))).toBe(false);
+  });
+  it("raises food to the energy floor and says the loss will be slower", () => {
+    const P = fresh({ ...base, mode: "Deficit only", rate: 2, share: 0 });
+    expect(P.math.eaRaise).toBeGreaterThan(0);
+    expect(P.math.ea).toBeGreaterThanOrEqual(29.9);
+    expect(P.notes.some(n => n.startsWith("Food raised"))).toBe(true);
+  });
+  it("suggests Maintain after 8 fast weeks in a row", () => {
+    const weeks = Array.from({ length: 8 }, () => ({ fast: true }));
+    const P = fresh({ ...base, mode: "Recomp", rate: 0.9, weeks });
+    expect(P.notes.some(n => n.includes("8 weeks at a faster pace"))).toBe(true);
+  });
+});

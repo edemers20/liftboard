@@ -411,7 +411,9 @@ function plan(){
   });
   balanceWeek(P,MP,inS,deload);
   /* Cardio */
-  const rateEff=(build||maintain)?0:recomp?Math.min(num(wk.rate,0.5),0.5):num(wk.rate,0.5), shareEff=recomp?Math.min(num(wk.share,25),25):num(wk.share,25);
+  /* "Lose fat, keep muscle" allows up to 0.7% of body weight a week, the top of the muscle-friendly range */
+  const wLb=num(wk.weight,150), recompCap=Math.round(wLb*0.007*100)/100;
+  const rateEff=(build||maintain)?0:recomp?Math.min(num(wk.rate,0.5),recompCap):num(wk.rate,0.5), shareEff=recomp?Math.min(num(wk.share,25),25):num(wk.share,25);
   const target=rateEff*3500, cardioTarget=(build||maintain)?0:target*shareEff/100;
   const sess=(n,act,pl,rate)=>{let k=0;for(let i=0;i<n;i++)k+=num((act||[])[i],pl)*rate;return k;};
   let sportK=0; sportOn.forEach(([a,m])=>{ sportK+=m*perMin(ACT[a].met); });
@@ -453,15 +455,31 @@ function plan(){
   const act=baseM+stepsK+liftDay+cardioTotal/7, tef=act/9;
   const raw=useOura?ouraV*0.93:act+tef;
   const calib=num(wk.calib,0), tdee=raw+calib;
-  const intake=build?tdee+200:tdee-target/7;
-  P.math={doneK,otherK,target,cardioTarget,finK,cardioTotal,food,cap,m,nFin:fins.length,bmr,base:baseM,stepsK,tef,liftDay,nLift,raw,calib,tdee,intake,useOura};
+  let intake=build?tdee+200:tdee-target/7;
+  /* Energy floor: after exercise, keep at least ~30 calories per kg of lean mass. Below that, women in
+     particular risk hormonal and cycle disruption, poorer recovery and bone health. If the plan would go
+     under it, food comes up for the week and the loss slows. */
+  const ffmKg=kg()*(1-(bfOk?bf:wk.sex==="Male"?18:wk.sex==="Other"?23:28)/100);
+  const exDay=liftDay+cardioTotal/7, eaFloor=30*ffmKg+exDay;
+  let eaRaise=0;
+  if(!build&&!maintain&&target>0&&intake<eaFloor){ eaRaise=eaFloor-intake; intake=eaFloor; }
+  const ea=(intake-exDay)/Math.max(1,ffmKg);
+  const pace=rateEff/Math.max(1,wLb), fast=!build&&!maintain&&pace>0.005;
+  const foodAdj=food-eaRaise;
+  P.math={doneK,otherK,target,cardioTarget,finK,cardioTotal,food:foodAdj,cap,m,nFin:fins.length,bmr,base:baseM,stepsK,tef,liftDay,nLift,raw,calib,tdee,intake,useOura,ea,eaRaise,ffmKg,pace,fast,recompCap,rateEff};
   /* Watch */
   const lb=num(wk.weight,150), pr=(build||maintain)?[0.7,0.9]:[0.8,1.0];
   P.math.protein=[r5(lb*pr[0]),r5(lb*pr[1])];
   P.notes.push(`Protein ${P.math.protein[0]}–${P.math.protein[1]} g daily.`);
   const floor=wk.sex==="Male"?1800:1500;
   if(intake<floor) P.notes.push(`Eating ~${r5(intake)} kcal/day is too low. Slow the rate.`);
-  if(recomp&&num(wk.rate,0.5)>0.5) P.notes.push("Recomp caps loss at 0.5 lb/week.");
+  if(recomp&&num(wk.rate,0.5)>recompCap) P.notes.push(`Lose fat, keep muscle caps loss at ${recompCap.toFixed(1)} lb/week (0.7% of your weight).`);
+  if(eaRaise>0) P.notes.push(`Food raised to ~${r5(intake).toLocaleString()} kcal/day so you keep enough energy for your training this week. Expect ~${Math.max(0,(target/7-eaRaise)*7/3500).toFixed(1)} lb/week instead of ${rateEff} lb.`);
+  if(fast&&recomp) P.notes.push("At this pace, expect to hold muscle and strength rather than build.");
+  if(fast&&fem()) P.notes.push("On a faster cut, a late, missed or changed period is a sign to slow down.");
+  if(fast&&lastHard) P.notes.push("Reps are dropping on a faster cut. Easing the rate usually brings them back.");
+  const fastRun=(()=>{ let n=0; for(const w of (wk.weeks||[]).slice().reverse()){ if(w.fast) n++; else break; } return n; })();
+  if(fast&&fastRun>=8) P.notes.push(`${fastRun} weeks at a faster pace. A few weeks at Maintain lets training and recovery catch up.`);
   if(recomp&&num(wk.share,25)>25) P.notes.push("Recomp caps cardio at 25%.");
   if(!build&&!recomp&&!maintain&&num(wk.rate,0.5)>=0.75) P.notes.push(`${wk.rate} lb/week is aggressive; strength will stall.`);
   if(food>500) P.notes.push(`A ${r5(food)} kcal/day food deficit is steep.`);
@@ -633,7 +651,7 @@ function newWeek(){
   let sm=0; SPORTS.forEach(a=>{ if(ACT[a].noMin) return; for(let i=0;i<cnt(a);i++) sm+=num((wk[actKey(a)]||[])[i],plannedMin(a)); });
   const w=num(wk.wAvg,0)||null;
   wk.weeks=(wk.weeks||[]).concat([{start:wk.weekStart||Date.now(),season:inSeason()?"In-season":"Off-season",focus:wk.focus,mode:wk.mode,ramp:hasSport()&&!inSeason()&&wk.ramp==="Yes",deload:wk.deload==="Yes",
-    lifts:DAYS.length-missed.length,planned:DAYS.length,sport:sm,cardio:r5(P.math.cardioTotal),w,intake:r5(P.math.intake),raw:r5(P.math.raw)}]).slice(-52);
+    lifts:DAYS.length-missed.length,planned:DAYS.length,fast:!!P.math.fast,sport:sm,cardio:r5(P.math.cardioTotal),w,intake:r5(P.math.intake),raw:r5(P.math.raw)}]).slice(-52);
   if(missed.length&&missed.length<DAYS.length){
     const names=missed.map(d=>d.tab).join(" and ");
     if(wk.mode==="Deficit only"){ wk.upNext=DAYS[0].id; wk.missedNote={why:`missed ${names} last week`,txt:`reset to ${DAYS[0].tab}; recovery beats catching up in a deficit`}; }
