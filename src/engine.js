@@ -481,7 +481,11 @@ function plan(){ buildDefaults();
   const ea=(intake-exDay)/Math.max(1,ffmKg);
   const pace=rateEff/Math.max(1,wLb), fast=!build&&!maintain&&pace>0.005;
   const foodAdj=food-eaRaise;
-  P.math={doneK,otherK,target,cardioTarget,finK,cardioTotal,food:foodAdj,cap,m,nFin:fins.length,bmr,base:baseM,stepsK,tef,liftDay,nLift,raw,calib,tdee,intake,useOura,ea,eaRaise,ffmKg,pace,fast,recompCap,rateEff};
+  /* Everyday burn = maintenance without any training. It only moves when bio data or steps change, so
+     "eat vs everyday burn" moves whenever training does: the number to change your habits by. */
+  const everyday=tdee-liftDay-cardioTotal/7, vsEveryday=intake-everyday;
+  const lastWk=(wk.weeks||[]).slice(-1)[0], vsLast=lastWk&&lastWk.intake?r5(intake)-lastWk.intake:null;
+  P.math={doneK,otherK,target,cardioTarget,finK,cardioTotal,food:foodAdj,cap,m,nFin:fins.length,bmr,base:baseM,stepsK,tef,liftDay,nLift,raw,calib,tdee,intake,useOura,everyday,vsEveryday,vsLast,ea,eaRaise,ffmKg,pace,fast,recompCap,rateEff};
   /* Watch */
   const lb=num(wk.weight,150), pr=(build||maintain)?[0.7,0.9]:[0.8,1.0];
   P.math.protein=[r5(lb*pr[0]),r5(lb*pr[1])];
@@ -599,7 +603,7 @@ function diffFx(a,b){
   const di=b.intake-a.intake;
   /* Say why food moved: you burn more/less (same deficit), or the deficit itself changed */
   const why=a.target===b.target&&a.tdee!==b.tdee?(b.tdee>a.tdee?", you burn more":", you burn less"):"";
-  if(Math.abs(di)>=20) out.push(`Eat ${b.intake.toLocaleString()} kcal/day (${di>0?"+":"−"}${Math.abs(di)}${why})`);
+  if(Math.abs(di)>=20) out.push(`Eat ${Math.abs(di)} ${di>0?"more":"less"} a day, ${Math.abs(di)*7} a week${why}`);
   return out.slice(0,3);
 }
 function dayDiff(Pa,Pb,id){

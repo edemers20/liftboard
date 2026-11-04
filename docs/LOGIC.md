@@ -94,6 +94,7 @@ Score = sum of:
   - Finishers fill the gap, spread across the remaining lift days, up to the session-length cap.
   - Activity beyond plan shortens later finishers.
 - **Food:** whatever the deficit cardio doesn't cover. If activity covers it all, food flips to eating above maintenance, which protects muscle.
+- **What to act on:** *Everyday burn* is maintenance minus all training (lifting and cardio), so it only moves with body data or steps. *Eat vs everyday burn* = daily food minus everyday burn; it moves whenever training changes, so it's the number to set eating habits by. The Goal card also shows the change vs last week's food (per day and per week), and change toasts read "Eat N more a day, N×7 a week".
 - **Calibration:** after 3+ weekly weigh-ins, the last 6 weeks of weight are regressed against intake. Maintenance is corrected by up to ±400 kcal.
 - **Protein:** 0.8–1.0 g per lb (0.7–0.9 on Build).
 - **Floors:** a warning shows if intake drops below 1,500 kcal (1,800 for male).

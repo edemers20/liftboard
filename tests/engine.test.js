@@ -259,3 +259,13 @@ describe("days 5–7 don't copy earlier days", () => {
     expect(exs(E.DAYS[3]).includes("Overhead Press (Barbell)")).toBe(true);
   });
 });
+
+describe("food you can act on", () => {
+  const P = n => fresh({ mig1: 1, mig2: 1, mig3: 1, sex: "Female", weight: 138, height: 63, mode: "Recomp", rate: 0.5, days: n, weeks: [{ intake: 1800 }] });
+  it("an extra lift day shows up as eating more vs everyday burn and vs last week", () => {
+    const a = P(4).math, b = P(5).math;
+    expect(Math.abs(b.everyday - a.everyday)).toBeLessThan(10);
+    expect(b.vsEveryday - a.vsEveryday).toBeGreaterThan(15);
+    expect(b.vsLast).toBeGreaterThan(a.vsLast);
+  });
+});
