@@ -498,7 +498,7 @@ function plan(){ buildDefaults();
   if(recomp&&num(wk.share,25)>25) P.notes.push("Recomp caps cardio at 25%.");
   if(!build&&!recomp&&!maintain&&num(wk.rate,0.5)>=0.75) P.notes.push(`${wk.rate} lb/week is aggressive; strength will stall.`);
   if(food>500) P.notes.push(`A ${r5(food)} kcal/day food deficit is steep.`);
-  if(!build&&!maintain&&food<0) P.notes.push(`Your activity covers the whole deficit. Eat ${r5(-food)} kcal/day above baseline so it doesn't cost muscle.`);
+  if(!build&&!maintain&&food<0) P.notes.push(`Your activity covers the whole deficit. Eat ${r5(-food)} kcal/day above maintenance so it doesn't cost muscle.`);
   if(fins.length&&m>cap&&cap>0) P.notes.push(`Finishers run ${m} min, past a normal ${cap}-min finisher.`);
   if(ramp&&sp&&wk.spint==="Really hard") P.notes.push("Keep spin easy during the ramp; hard classes don't build base.");
   const nL=DAYS.length;
@@ -583,7 +583,7 @@ const TAGTXT={up:"Up",down:"Down",hold:"Hold",collapse:"Fatigue"};
 function fx(P){
   const o={};
   Object.entries(P.G).forEach(([c,l])=>{ o["r:"+c.replace(/ \d+ \(.*\)$/,"").replace(/^\d+ min /,"")]=`${c[0].toUpperCase()+c.slice(1)} → ${l.join(", ")}`; });
-  o.intake=r5(P.math.intake);
+  o.intake=r5(P.math.intake); o.tdee=r5(P.math.tdee); o.target=r5(P.math.target);
   o.fin=P.math.nLift?(P.math.nFin?`Finishers now ${P.math.m} min × ${P.math.nFin}`:"No finishers needed"):"";
   o.days=DAYS.length?`Days now: ${DAYS.map(d=>d.title.split(" · ")[0]).join(" · ")}`:"No lifting days";
   return o;
@@ -597,7 +597,9 @@ function diffFx(a,b){
   }
   if(a.fin!==b.fin&&b.fin) out.push(b.fin);
   const di=b.intake-a.intake;
-  if(Math.abs(di)>=20) out.push(`Eat ${b.intake.toLocaleString()} kcal/day (${di>0?"+":"−"}${Math.abs(di)})`);
+  /* Say why food moved: you burn more/less (same deficit), or the deficit itself changed */
+  const why=a.target===b.target&&a.tdee!==b.tdee?(b.tdee>a.tdee?", you burn more":", you burn less"):"";
+  if(Math.abs(di)>=20) out.push(`Eat ${b.intake.toLocaleString()} kcal/day (${di>0?"+":"−"}${Math.abs(di)}${why})`);
   return out.slice(0,3);
 }
 function dayDiff(Pa,Pb,id){

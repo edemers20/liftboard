@@ -247,7 +247,7 @@ function renderWeek(P){
       <div class="stat"><div class="k">Weekly deficit</div><div class="v">${r5(M.target).toLocaleString()} <small>kcal</small></div></div>
       <div class="stat"><div class="k">Cardio target</div><div class="v">${r5(M.cardioTarget).toLocaleString()} <small>kcal</small></div></div>
       <div class="stat"><div class="k">Cardio planned</div><div class="v">${r5(M.cardioTotal).toLocaleString()} <small>kcal</small></div></div>
-      <div class="stat"><div class="k">${M.food<0?"Eat above baseline":"Eat below baseline"}</div><div class="v">${M.food<0?"+":""}${r5(Math.abs(M.food))} <small>kcal / day</small></div></div>
+      <div class="stat"><div class="k">${M.food<0?"Eat over maintenance":"Deficit from food"}</div><div class="v">${r5(Math.abs(M.food))} <small>kcal / day</small></div></div>
     </div>
     <div class="bar" role="img" aria-label="Share of weekly deficit by source">
       <i style="width:${pct(M.finK)}%;background:var(--cardio)"></i><i style="width:${pct(M.otherK+M.doneK)}%;background:var(--warn)"></i><i style="width:${pct(Math.max(0,M.target-M.cardioTotal))}%;background:var(--accent)"></i></div>

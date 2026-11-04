@@ -93,7 +93,7 @@ Score = sum of:
   - Planned sport, climbing, yoga, pilates (3.0 MET, 50-min default class), spin and the pre-season zone 2 session count first.
   - Finishers fill the gap, spread across the remaining lift days, up to the session-length cap.
   - Activity beyond plan shortens later finishers.
-- **Food:** whatever the deficit cardio doesn't cover. If activity covers it all, food flips to eating above baseline, which protects muscle.
+- **Food:** whatever the deficit cardio doesn't cover. If activity covers it all, food flips to eating above maintenance, which protects muscle.
 - **Calibration:** after 3+ weekly weigh-ins, the last 6 weeks of weight are regressed against intake. Maintenance is corrected by up to ±400 kcal.
 - **Protein:** 0.8–1.0 g per lb (0.7–0.9 on Build).
 - **Floors:** a warning shows if intake drops below 1,500 kcal (1,800 for male).
