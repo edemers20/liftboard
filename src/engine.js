@@ -121,18 +121,21 @@ const ALL=[
   {label:"Hamstrings",trim:1,lower:1,opts:L.ham,sets:2,reps:"10–12"},
   {label:"Calves",support:1,sp:SUP.calves,opts:L.calves,sets:2,reps:"12–15"},
   {label:"Cardio finisher",cardio:1,opts:STEADY}]},
- {id:"g2",title:"Lower · Glute Volume",slots:[
-  {label:"Main glute",main:1,opts:L.mainGlute,sets:3,reps:"10–15"},
-  {label:"Unilateral",uni:1,lower:1,opts:L.uni,sets:3,reps:"10–12 / leg"},
-  {label:"Glute (light)",lower:1,opts:L.lightGlute,sets:3,reps:"12–15"},
-  {label:"Glute med",trim:1,lower:1,opts:L.gluteMed,sets:3,reps:"15–20"},
+ /* Third lower day for a lower focus. Day 1 is a heavy thrust + RDL; this one covers what the week is missing:
+    a different hinge, a lunge in place of the split squat, lying leg curls and back extensions. */
+ {id:"g2",title:"Lower · Glute & Hamstring",slots:[
+  {label:"Main hinge",main:1,opts:L.hinge,def:"Sumo Deadlift",sets:3,reps:"6–8"},
+  {label:"Unilateral",uni:1,lower:1,opts:L.uni,def:"Deficit Reverse Lunge (Dumbbell)",sets:3,reps:"10–12 / leg"},
+  {label:"Hamstrings",lower:1,opts:L.ham,def:"Leg Curl (Lying)",sets:3,reps:"10–12"},
+  {label:"Glute (light)",trim:1,lower:1,opts:L.lightGlute,def:"45° Back Extension (glute bias)",sets:3,reps:"12–15"},
+  {label:"Glute med",trim:1,lower:1,opts:L.gluteMed,def:"Cable Hip Abduction",sets:2,reps:"15–20"},
   {label:"Cardio finisher",cardio:1,opts:STEADY}]},
  {id:"u3",title:"Upper · Delts & Arms",slots:[
   {label:"Main press",main:1,upperMain:1,opts:L.press,sets:3,reps:"8–10"},
   {label:"Side delts",ss:"A1",upperAcc:1,opts:L.side,sets:3,reps:"12–20"},
   {label:"Rear delts",ss:"A2",upperAcc:1,opts:L.rear,sets:3,reps:"12–15"},
   {label:"Biceps",ss:"B1",arms:1,upperAcc:1,opts:L.arms,sets:3,reps:"10–15"},
-  {label:"Triceps",ss:"B2",arms:1,upperAcc:1,opts:L.arms,sets:3,reps:"10–15"},
+  {label:"Triceps",ss:"B2",arms:1,upperAcc:1,opts:L.arms,def:"Triceps Pushdown (Cable)",sets:3,reps:"10–15"},
   {label:"Lats",trim:1,lats:1,upperAcc:1,opts:L.lats,sets:2,reps:"12–15"},
   {label:"Cardio finisher",cardio:1,opts:STEADY}]}
 ];
@@ -177,7 +180,16 @@ function fixSports(w){ const en=a=>!!((w.acts||{})[a]);
   if(!w.mainSport) w.season="Off-season"; return w; }
 const inSeason=()=>hasSport()&&wk.season==="In-season";
 const plannedMin=a=>num(wk[minKey(a)],ACT[a].min||60);
-function exName(d,s,i){ const st=get(d.id,i); const c=st.choice??s.opts[0]; return c===CUSTOM?(st.custom||"Custom exercise"):c; }
+/* Default exercise for a slot. Days 5–7 repeat slots from days 1–4, so their defaults skip anything an
+   earlier day already uses (Day 5 never opens as a copy of Day 1). Days 1–4 keep their first option. */
+let DEFS={};
+function buildDefaults(){ DEFS={}; const used=new Set();
+  DAYS.forEach((d,k)=>{ DEFS[d.id]={}; d.slots.forEach((s,i)=>{ const st=get(d.id,i);
+    let c=st.choice??(s.def&&s.opts.includes(s.def)?s.def:s.opts[0]);
+    if(st.choice==null&&k>=4&&!s.cardio&&used.has(c)){ const j=s.opts.indexOf(c), rot=[...s.opts.slice(j),...s.opts.slice(0,j)]; c=rot.find(o=>!used.has(o))??c; }
+    DEFS[d.id][i]=c; if(!s.cardio) used.add(c===CUSTOM?(st.custom||""):c); }); }); }
+function defChoice(d,s,i){ return (DEFS[d.id]&&DEFS[d.id][i])??(s.def&&s.opts.includes(s.def)?s.def:s.opts[0]); }
+function exName(d,s,i){ const st=get(d.id,i); const c=st.choice??defChoice(d,s,i); return c===CUSTOM?(st.custom||"Custom exercise"):c; }
 
 
 
@@ -191,6 +203,9 @@ function init(storage){
   try{ exHist=JSON.parse(store.getItem(KEY3)||"{}")||{}; }catch(e){}
 
 if(!wk.mig1){ [["d1",4],["d2",7],["d3",5]].forEach(([d,i])=>{ if(slots[d]&&slots[d][i]){ slots[d][i+1]=slots[d][i]; delete slots[d][i]; } }); wk.mig1=1; }
+/* Day 5 (lower focus) was rebuilt: drop saved picks and logs that no longer fit their slot */
+if(slots.g2&&!wk.mig4){ ALL.find(d=>d.id==="g2").slots.forEach((s,i)=>{ const st=slots.g2[i]; if(st&&st.choice&&st.choice!==CUSTOM&&!s.opts.includes(st.choice)) delete slots.g2[i]; }); }
+wk.mig4=1;
 if(!wk.mig2){
   ALL.forEach(d=>d.slots.forEach((s,i)=>{ const st=slots[d.id]&&slots[d.id][i]; if(st&&st.hist&&st.hist.length){ const n=exName(d,s,i); exHist[n]=(exHist[n]||[]).concat(st.hist); delete st.hist; } }));
   if(hadStore) wk.setupDone=true;
@@ -228,7 +243,7 @@ function split(){
   const five=[...four,f==="Lower"?"g2":f==="Upper"?"u3":"fa"], extra=["fa","fb","fc"].filter(x=>!five.includes(x));
   return [...five,...extra].slice(0,n);
 }
-function syncDays(){ DAYS=split().map((id,i)=>({...ALL.find(t=>t.id===id),tab:`Day ${i+1}`})); }
+function syncDays(){ DAYS=split().map((id,i)=>({...ALL.find(t=>t.id===id),tab:`Day ${i+1}`})); buildDefaults(); }
 /* ---------- Muscles: what each slot trains, and how much each muscle matters to this person ----------
    Direct work counts 1 set, helper work ½ (a row is back work that also trains biceps and rear delts). */
 const MUSCLES={glutes:"Glutes",quads:"Quads",hams:"Hamstrings",adductors:"Adductors",calves:"Calves",chest:"Chest",back:"Back",sdelts:"Side delts",rdelts:"Rear delts",biceps:"Biceps",triceps:"Triceps",core:"Core",cuff:"Rotator cuff"};
@@ -315,7 +330,7 @@ function musclePriority(){
 const floorSets=p=>p>=5?10:p>=4?8:p>=3?6:p>=2?4:p>=1?2:0;
 
 /* ---------- Decision tree ---------- */
-function plan(){
+function plan(){ buildDefaults();
   syncDays();
   const P={days:{},notes:[]};
   const inS=inSeason(), sport=hasSport(), ramp=sport&&!inS&&wk.ramp==="Yes", deload=wk.deload==="Yes"&&DAYS.length>0;
@@ -399,7 +414,7 @@ function plan(){
         A.sets=Math.max(s.main?2:1,base+A.delta);
       }else{
         if(wk.time==30) A.skip="Trimmed for a 30-min session";
-        const st=get(d.id,i), choice=st.choice&&st.choice!==CUSTOM?st.choice:s.opts[0];
+        const st=get(d.id,i), choice=st.choice&&st.choice!==CUSTOM?st.choice:defChoice(d,s,i);
         const why=build?"build phase":deload?"deload":steadyD?dayCause:"";
         let use=choice;
         if(CARDIO[choice]&&CARDIO[choice].steady&&why){use=CARDIO[choice].steady;A.steady=why;}
@@ -670,4 +685,4 @@ function newWeek(){
   save(); return ["New week started. Check-in reset to normal."];
 }
 
-export { MUSCLES, slotMuscles, musclePriority, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk };
+export { defChoice, MUSCLES, slotMuscles, musclePriority, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk };

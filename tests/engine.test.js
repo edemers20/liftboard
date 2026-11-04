@@ -239,3 +239,23 @@ describe("fat-loss pace guardrails", () => {
     expect(P.notes.some(n => n.includes("8 weeks at a faster pace"))).toBe(true);
   });
 });
+
+describe("days 5–7 don't copy earlier days", () => {
+  const exs = d => d.slots.map((s, i) => s.cardio ? null : E.exName(d, s, i)).filter(Boolean);
+  it.each(["Lower", "Upper", "Balanced"])("%s focus, 5 days: day 5 shares no default exercise with days 1–4", focus => {
+    fresh({ mig1: 1, mig2: 1, mig3: 1, focus, days: 5 });
+    const early = new Set(E.DAYS.slice(0, 4).flatMap(exs));
+    const d5 = exs(E.DAYS[4]);
+    expect(d5.filter(x => early.has(x))).toEqual([]);
+  });
+  it("lower focus day 5 is the glute & hamstring day", () => {
+    fresh({ mig1: 1, mig2: 1, mig3: 1, focus: "Lower", days: 5 });
+    expect(E.DAYS[4].title).toBe("Lower · Glute & Hamstring");
+    expect(exs(E.DAYS[4])[0]).toBe("Sumo Deadlift");
+  });
+  it("days 1–4 keep their usual defaults", () => {
+    fresh({ mig1: 1, mig2: 1, mig3: 1, focus: "Lower", days: 5 });
+    expect(exs(E.DAYS[0])[0]).toBe("Hip Thrust (Barbell)");
+    expect(exs(E.DAYS[3]).includes("Overhead Press (Barbell)")).toBe(true);
+  });
+});

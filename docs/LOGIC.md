@@ -22,7 +22,8 @@ Every rule the app applies, by layer. Each layer feeds the next. The source of t
   - 2 days: Full A and B.
   - 3 days: Lower → Lower · Upper · Lower; Upper → Upper · Lower · Upper-pull; Balanced → Full A · B · C.
   - 4 days: the 3-day split plus an Upper pull day.
-  - 5 days: the 4-day split plus Glute volume (Lower), Delts & arms (Upper) or Full A (Balanced).
+  - 5 days: the 4-day split plus Glute & hamstring (Lower: sumo deadlift, reverse lunge, lying leg curl, back extension, cable abduction), Delts & arms (Upper) or Full A (Balanced).
+  - Days 5–7 never open as copies: each slot defaults to the first exercise in its list that days 1–4 don't already use. Days 1–4 keep their usual defaults. Anything you pick yourself sticks.
 - **Off-season full-body days** get +1 set on every lift.
 - **Support lifts** show only in-season, and only for your sport:
 
