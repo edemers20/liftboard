@@ -168,6 +168,7 @@ Per lift, from your last logged set:
 
 ## History tab (added)
 
+- **Position:** first tab (after setup is done).
 - **Session log** (`wk.sessions`, kept across weeks, last 500): finishing a lift day logs `{t, k:"lift", id, title}`; reopening the day removes it. Entering an activity's actual minutes logs `{t, k:<activity>, min}`; clearing the minutes removes it. Activities left at their planned minutes aren't dated, so they don't appear.
 - **Backfill:** on first load, past lift days are rebuilt from lift-history timestamps (titles unknown, shown as "Lift").
 - **Calendar view:** "How often" averages sessions, lifts and activities a week over the last 8 weeks (or since the first session), plus a bar per weekday showing how many of those weeks had a session that day (green if a lift, pink if only an activity). Below it, a month calendar with a dot per session; tap a day to see what you did.

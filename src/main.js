@@ -9,7 +9,7 @@ let cur="week";
 try{ const t=localStorage.getItem(KEY+".tab"); if(t) cur=t; }catch(e){}
 const actTabs=()=>ACT_IDS.filter(a=>a!=="lift"&&enabled(a));
 const rampOn=()=>hasSport()&&!inSeason()&&wk.ramp==="Yes";
-const TABS=()=>["season","week",...DAYS.map(d=>d.id),...(rampOn()?["zone2"]:[]),...actTabs(),...(wk.setupDone?["history"]:[])];
+const TABS=()=>[...(wk.setupDone?["history"]:[]),"season","week",...DAYS.map(d=>d.id),...(rampOn()?["zone2"]:[]),...actTabs()];
 if(!wk.setupDone) cur="season";
 const hsh=location.hash.slice(1); if(TABS().includes(hsh)) cur=hsh; if(!TABS().includes(cur)) cur="week";
 
