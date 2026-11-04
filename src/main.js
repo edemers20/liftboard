@@ -223,7 +223,7 @@ function renderWeek(P){
   const nd=P.days[P.nextId];
   const others=ACT_IDS.filter(a=>a!=="lift"&&enabled(a));
   const acts=others.map(a=>stepper(a,ACT[a].name+" sessions",[0,1,2,3,4,5,6,7])).join("");
-  INFO.maint=M.useOura?`Your wearable's daily burn minus 7%, plus this week's cardio.`:`Resting ${r5(M.bmr)} + light movement ${r5(M.base-M.bmr)} + steps ${r5(M.stepsK)}${M.nLift?` + lifting ${r5(M.liftDay)}`:""} + digestion ${r5(M.tef)}${wk.calibN?`, ${M.calib>=0?"+":""}${r5(M.calib)} calibrated from ${wk.calibN} weigh-ins`:""}. Everyday burn is all of that minus training, so it only moves when your body data or steps change. Eat vs everyday burn is the number to set your habits by: when it moves, eat that much more or less.`;
+  INFO.maint=M.useOura?`Your wearable's daily burn minus 7%, plus this week's cardio.`:`Resting ${r5(M.bmr)} + light movement ${r5(M.base-M.bmr)} + steps ${r5(M.stepsK)}${M.nLift?` + lifting ${r5(M.liftDay)}`:""} + digestion ${r5(M.tef)}${wk.calibN?`, ${M.calib>=0?"+":""}${r5(M.calib)} calibrated from ${wk.calibN} weigh-ins`:""}. Rest-day burn is what you'd burn on a day with no training, so it only moves when your body data or steps change. "Eat below a rest day" is the number to set your habits by: when it moves, eat that much more or less.`;
   return `<div class="dayhead"><h2>Weekly check-in</h2></div>
   ${nd&&nd.restSuggest?`<p class="flag">Reps dropped two sessions in a row. Take a rest day before ${DAYS.find(d=>d.id===P.nextId).tab}.</p>`:""}
   ${enabled("lift")?`<div class="panel">${hdr("Schedule",["days","time"])}
@@ -239,7 +239,7 @@ function renderWeek(P){
   <div class="panel">${hdr(esc(goalName(wk.mode)),["mode","maint"])}
     <div class="inset">
       <div class="k label">Daily maintenance${M.useOura?" · wearable −7%":wk.calibN?" · calibrated":" · estimated"}</div>
-      <p class="burn">Everyday burn ${r5(M.everyday).toLocaleString()} + this week's training ${r5(M.tdee-M.everyday)} = <strong>${r5(M.tdee).toLocaleString()}</strong></p>
+      <p class="burn">Rest-day burn ${r5(M.everyday).toLocaleString()} + this week's training ${r5(M.tdee-M.everyday)} = <strong>${r5(M.tdee).toLocaleString()}</strong></p>
       <p class="burn"><strong style="font-size:inherit">${r5(M.intake).toLocaleString()}</strong> kcal/day to eat</p>
       ${M.vsLast!=null&&Math.abs(M.vsLast)>=20?`<p class="burn" style="font-size:13px"><strong style="font-size:inherit">${M.vsLast>0?"+":"−"}${Math.abs(M.vsLast)} a day vs last week</strong> (${M.vsLast>0?"+":"−"}${Math.abs(M.vsLast)*7} this week)</p>`:""}
       ${!build&&M.cardioTotal>M.cardioTarget+35?`<p class="burn" style="font-size:13px">+${r5((M.cardioTotal-M.cardioTarget)/7)} kcal/day more than planned, from extra activity</p>`:""}
@@ -248,7 +248,7 @@ function renderWeek(P){
       <div class="stat"><div class="k">Weekly deficit</div><div class="v">${r5(M.target).toLocaleString()} <small>kcal</small></div></div>
       <div class="stat"><div class="k">Cardio target</div><div class="v">${r5(M.cardioTarget).toLocaleString()} <small>kcal</small></div></div>
       <div class="stat"><div class="k">Cardio planned</div><div class="v">${r5(M.cardioTotal).toLocaleString()} <small>kcal</small></div></div>
-      <div class="stat"><div class="k">Eat vs everyday burn</div><div class="v">${M.vsEveryday>=0?"+":"−"}${r5(Math.abs(M.vsEveryday))} <small>kcal / day</small></div></div>
+      <div class="stat"><div class="k">${M.vsEveryday>=0?"Eat above a rest day":"Eat below a rest day"}</div><div class="v">${r5(Math.abs(M.vsEveryday))} <small>kcal / day</small></div></div>
     </div>
     <div class="bar" role="img" aria-label="Share of weekly deficit by source">
       <i style="width:${pct(M.finK)}%;background:var(--cardio)"></i><i style="width:${pct(M.otherK+M.doneK)}%;background:var(--warn)"></i><i style="width:${pct(Math.max(0,M.target-M.cardioTotal))}%;background:var(--accent)"></i></div>
