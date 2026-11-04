@@ -144,7 +144,7 @@ let DAYS=[];
 /* ---------- State ---------- */
 const KEY="liftboard.v1", KEY2="liftboard.week.v2", KEY3="liftboard.hist.v1";
 const DEF={setupDone:false,sex:"Female",age:30,height:64,weight:150,bf:"",steps:8000,liftK:150,oura:"",
- acts:{lift:true},mainSport:"",sport2:"",stretch:"No",stretchDone:{},focus:"Balanced",
+ acts:{lift:true},sessions:[],mainSport:"",sport2:"",stretch:"No",stretchDone:{},focus:"Balanced",
  mode:"Recomp",rate:0.5,share:25,season:"Off-season",ramp:"No",zAct:[],
  days:3,time:60,ss:"Yes",ready:"Normal",sore:"None",cycle:"Not tracking",drink:"0",
  heated:"No",spint:"Hard",done:{},donePlan:{},today:{},wAvg:"",deload:"No",
@@ -206,6 +206,11 @@ if(!wk.mig1){ [["d1",4],["d2",7],["d3",5]].forEach(([d,i])=>{ if(slots[d]&&slots
 /* Day 5 (lower focus) was rebuilt: drop saved picks and logs that no longer fit their slot */
 if(slots.g2&&!wk.mig4){ ALL.find(d=>d.id==="g2").slots.forEach((s,i)=>{ const st=slots.g2[i]; if(st&&st.choice&&st.choice!==CUSTOM&&!s.opts.includes(st.choice)) delete slots.g2[i]; }); }
 wk.mig4=1;
+/* Session log for History: backfill lift days from lift history timestamps (and this week's finished days) */
+if(!wk.mig5){ const seen=new Set((wk.sessions||[]).map(s=>s.t)), add=[];
+  Object.entries(wk.doneT||{}).forEach(([id,t])=>{ const d=ALL.find(x=>x.id===id); if(t&&!seen.has(t)){ seen.add(t); add.push({t,k:"lift",id,title:d?d.title:"Lift"}); } });
+  Object.values(exHist).forEach(h=>(h||[]).forEach(x=>{ if(x.t&&!seen.has(x.t)){ seen.add(x.t); add.push({t:x.t,k:"lift",title:"Lift"}); } }));
+  wk.sessions=(wk.sessions||[]).concat(add).sort((a,b)=>a.t-b.t); wk.mig5=1; }
 if(!wk.mig2){
   ALL.forEach(d=>d.slots.forEach((s,i)=>{ const st=slots[d.id]&&slots[d.id][i]; if(st&&st.hist&&st.hist.length){ const n=exName(d,s,i); exHist[n]=(exHist[n]||[]).concat(st.hist); delete st.hist; } }));
   if(hadStore) wk.setupDone=true;
@@ -624,12 +629,24 @@ function dayDiff(Pa,Pb,id){
 }
 const UNI_RE=/single|bulgarian|split squat|lunge|step-up|copenhagen|side plank|suitcase|cossack|single-arm|one-arm|side-lying|kneeling single/i;
 const sideDefault=n=>{ const h=(exHist[n]||[]).slice().reverse().find(x=>x.side); return h&&h.side==="Left"?"Right":"Left"; };
+/** Log an activity session's actual minutes. Entering minutes is what dates the session for History;
+    clearing them takes it back off the calendar. */
+const ACT_OF_KEY=k=>k==="zAct"?"zone2":ACT_IDS.find(a=>actKey(a)===k)||k;
+function logAct(key,n,val){
+  wk[key]=(wk[key]||[]).slice(); wk[key][n]=val;
+  const src=`${key}:${n}:${wk.weekStart||0}`, has=String(val??"").trim()!=="";
+  const L=wk.sessions||[], i=L.findIndex(s=>s.src===src);
+  if(has&&i<0) wk.sessions=L.concat([{t:Date.now(),k:ACT_OF_KEY(key),min:num(val,0),src}]).slice(-500);
+  else if(has&&i>=0){ wk.sessions=L.slice(); wk.sessions[i]={...L[i],min:num(val,0)}; }
+  else if(!has&&i>=0) wk.sessions=L.filter((_,j)=>j!==i);
+}
 /** Mark a day done: logs history, detects fatigue, stores the next-time review. Returns toast lines. */
 function markDone(dayId){
   wk.done=wk.done||{};
   if(wk.done[dayId]){
     /* reopening a day takes back the history it wrote, so finishing it again doesn't double-count */
     const t=(wk.doneT||{})[dayId]; if(t) Object.keys(exHist).forEach(n=>{ exHist[n]=exHist[n].filter(x=>x.t!==t); });
+    if(t) wk.sessions=(wk.sessions||[]).filter(s=>s.t!==t);
     delete wk.done[dayId]; if(wk.review) delete wk.review[dayId]; if(wk.doneT) delete wk.doneT[dayId]; if(wk.wt&&wk.wt[dayId]) delete wk.wt[dayId].end; save(); return []; }
   const stamp=Date.now();
   const d=DAYS.find(x=>x.id===dayId); let drops=0;
@@ -641,6 +658,7 @@ function markDone(dayId){
     const sd=get(dayId,i).side||sideDefault(n); h.push({w:L.w,r:L.r,t:stamp,season:inSeason()?"In-season":"Off-season",...(UNI_RE.test(n)?{side:sd}:{})}); exHist[n]=h.slice(-24); });
   /* the day's set logs stay on screen until a new week starts */
   wk.doneT={...(wk.doneT||{}),[dayId]:stamp};
+  wk.sessions=(wk.sessions||[]).concat([{t:stamp,k:"lift",id:dayId,title:d.title}]).slice(-500);
   if(wk.wt&&wk.wt[dayId]&&wk.wt[dayId].start&&!wk.wt[dayId].end) wk.wt[dayId].end=stamp;
   wk.fatigue=(wk.fatigue||[]).concat([{t:Date.now(),day:dayId,drops}]).slice(-10);
   const P=plan(); let k=0;
@@ -691,4 +709,4 @@ function newWeek(){
   save(); return ["New week started. Check-in reset to normal."];
 }
 
-export { defChoice, MUSCLES, slotMuscles, musclePriority, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk };
+export { logAct, defChoice, MUSCLES, slotMuscles, musclePriority, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk };

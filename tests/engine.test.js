@@ -269,3 +269,27 @@ describe("food you can act on", () => {
     expect(b.vsLast).toBeGreaterThan(a.vsLast);
   });
 });
+
+describe("session log for History", () => {
+  it("finishing a lift day logs a session; reopening it takes it back", () => {
+    fresh({ mig1: 1, mig2: 1, mig3: 1, focus: "Lower", days: 4 });
+    const id = E.DAYS[0].id;
+    E.markDone(id);
+    expect(E.wk.sessions.filter(s => s.k === "lift" && s.id === id).length).toBe(1);
+    E.markDone(id);
+    expect(E.wk.sessions.filter(s => s.k === "lift").length).toBe(0);
+  });
+  it("entering activity minutes dates the session; clearing removes it", () => {
+    fresh({ mig1: 1, mig2: 1, mig3: 1, acts: { lift: true, pickle: true }, mainSport: "pickle", pickle: "2" });
+    E.logAct("pAct", 0, "80");
+    expect(E.wk.sessions.find(s => s.k === "pickle").min).toBe(80);
+    E.logAct("pAct", 0, "90");
+    expect(E.wk.sessions.filter(s => s.k === "pickle").length).toBe(1);
+    E.logAct("pAct", 0, "");
+    expect(E.wk.sessions.filter(s => s.k === "pickle").length).toBe(0);
+  });
+  it("backfills past lift days from lift history once", () => {
+    E.init(mem({ "liftboard.week.v2": JSON.stringify({ setupDone: true, mig1: 1, mig2: 1, mig3: 1 }), "liftboard.hist.v1": JSON.stringify({ "Hip Thrust (Barbell)": [{ w: 135, r: 8, t: 1000 }, { w: 140, r: 8, t: 2000 }], "Leg Curl (Seated)": [{ w: 60, r: 10, t: 2000 }] }) }));
+    expect(E.wk.sessions.map(s => s.t)).toEqual([1000, 2000]);
+  });
+});

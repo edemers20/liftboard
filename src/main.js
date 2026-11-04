@@ -1,6 +1,6 @@
 import "./styles.css";
 import { attachDials } from "./dial.js";
-import { defChoice, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk } from "./engine.js";
+import { logAct, defChoice, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk } from "./engine.js";
 
 const storage=(()=>{ try{ const k="__t"; localStorage.setItem(k,"1"); localStorage.removeItem(k); return localStorage; }catch(e){ const m=new Map(); return {getItem:k=>m.get(k)??null,setItem:(k,v)=>m.set(k,String(v))}; } })();
 init(storage);
@@ -9,7 +9,7 @@ let cur="week";
 try{ const t=localStorage.getItem(KEY+".tab"); if(t) cur=t; }catch(e){}
 const actTabs=()=>ACT_IDS.filter(a=>a!=="lift"&&enabled(a));
 const rampOn=()=>hasSport()&&!inSeason()&&wk.ramp==="Yes";
-const TABS=()=>["season","week",...DAYS.map(d=>d.id),...(rampOn()?["zone2"]:[]),...actTabs()];
+const TABS=()=>["season","week",...DAYS.map(d=>d.id),...(rampOn()?["zone2"]:[]),...actTabs(),...(wk.setupDone?["history"]:[])];
 if(!wk.setupDone) cur="season";
 const hsh=location.hash.slice(1); if(TABS().includes(hsh)) cur=hsh; if(!TABS().includes(cur)) cur="week";
 
@@ -48,6 +48,7 @@ const INFO={
  muscles:"Sets done this week against a target set by your focus and sports. Direct work counts 1 set; helper work counts ½ (a row also trains biceps and rear delts). The faint bar is what's still planned. Skip something and a later day brings back a trimmed exercise or adds a set; when a smaller muscle is already covered, its repeat on a later day becomes optional.",
  watch:"Targets and warnings to keep an eye on this week.",
  lifts:"Your top working set each session. The number is the latest weight; the change is since your first logged session.",
+ freq:"How many weeks each weekday had a session, out of the last 8 (or since you started). Green is a lift day; pink is a day with only an activity. Activities count once you enter their minutes.",
  weeks:"Saved each time you tap Start new week. Weigh-ins logged here calibrate maintenance after 3+ weeks.", spint:"Really hard burns more and adds 1 to recovery load.", ymin:"Class length."
 };
 SPORTS.forEach(a=>{ INFO[a]=sportInfo(a); INFO[minKey(a)]="Planned length per session."; });
@@ -141,7 +142,7 @@ function dialCfg(el){
   return null;
 }
 /* ---------- Rendering ---------- */
-function tabName(id){ if(id==="week") return "This week"; if(id==="zone2") return "Zone 2"; if(id==="season") return wk.setupDone?"Season":"Setup"; if(ACT[id]) return ACT[id].name; return DAYS.find(d=>d.id===id).tab; }
+function tabName(id){ if(id==="week") return "This week"; if(id==="zone2") return "Zone 2"; if(id==="history") return "History"; if(id==="season") return wk.setupDone?"Season":"Setup"; if(ACT[id]) return ACT[id].name; return DAYS.find(d=>d.id===id).tab; }
 const themeOf=id=>DAYS.some(d=>d.id===id)?"th-green":(ACT[id]||id==="zone2")?"th-pink":"th-orange";
 function renderTabs(P){
   const t=document.getElementById("tabs");
@@ -185,9 +186,6 @@ const RATE_INFO=INFO.rate;
 function renderSeason(P){
   if(!wk.setupDone) return `<div class="dayhead"><h2>Setup</h2></div>${planHTML(P)}<div class="panel">${profileHTML(true)}<button class="btn primary" id="setupSave" type="button">Save setup</button></div>${moveHTML()}`;
   const inS=inSeason(), build=wk.mode==="Build"||wk.mode==="Maintain", dl=deloadInfo();
-  const fmt=t=>new Date(t).toLocaleDateString(undefined,{month:"short",day:"numeric"});
-  const names=Object.keys(exHist).filter(n=>(exHist[n]||[]).length);
-  const H=(wk.weeks||[]).slice().reverse();
   const seasonBox=hasSport()?`${toggle("season","In-season",undefined,"In-season","Off-season")}
     ${inS?"":toggle("ramp","Season starts in ≤6 weeks")}
 `:`<p class="note">Pick a main sport in Profile to use seasons.</p>`;
@@ -201,12 +199,6 @@ function renderSeason(P){
     ${seg("mode","Goal",GOALS)}
     ${build?"":`<div class="nums two">${fld("rate","Lose lb / week","decimal")}${fld("share","From cardio %")}</div>`}
   </div>
-  ${DAYS.length||names.length?`<div class="panel">${hdr("Main lifts",["lifts"])}
-   ${names.length?names.map(n=>{const h=exHist[n],a=h[0],z=h[h.length-1],dw=z.w-a.w;return `<div class="liftrow"><span class="ln">${esc(n)}</span>${spark(h)}<span class="lw"><b>${z.w}<small> lb</small></b>${h.length>1?`<em class="${dw<0?"neg":""}">${dw>0?"+":dw<0?"−":"±"}${Math.abs(dw)}</em>`:""}</span></div>`;}).join(""):`<p class="note">Appears after you mark days done.</p>`}
-  </div>`:""}
-  <div class="panel">${hdr("Previous weeks",["weeks"])}
-   ${H.length?`<div style="overflow-x:auto"><table class="wk"><thead><tr><th>Week of</th><th>Plan</th><th>Lifts</th><th>Sport</th><th>Wt</th></tr></thead><tbody>${H.map(w=>`<tr><td>${fmt(w.start)}</td><td>${w.season==="In-season"?"In":"Off"}${w.ramp?" · ramp":""}${w.deload?" · deload":""} · ${esc(goalName(w.mode))}<br><span class="small">${esc(w.focus||w.priority||"")}</span></td><td>${w.lifts}/${w.planned}</td><td>${w.sport??w.pickle??0} min</td><td>${w.w||"–"}</td></tr>`).join("")}</tbody></table></div>`:`<p class="note">Saves when you tap Start new week.</p>`}
-  </div>
   ${enabled("lift")?`<div class="panel">${hdr("Training preferences",["ss","liftK"])}
     ${toggle("ss","Supersets")}
     ${toggle("stretch","Stretching after lifts")}
@@ -214,6 +206,68 @@ function renderSeason(P){
   <div class="panel" id="profileBox"><h3>Profile</h3>${profileHTML(false,{...wk,...(draft||{})})}<button class="btn primary" id="profSave" type="button"${draftDirty()?"":" disabled"}>Save changes</button></div>
   ${moveHTML()}
   <div class="foot season-foot"><button class="btn" id="replayTour" type="button">Replay tour</button><button class="btn" id="resetProfile" type="button">Reset profile</button></div>`;
+}
+/* ---------- History: calendar of sessions, previous weeks, main lifts ---------- */
+let histView="cal", calOff=0, calSel=null;
+try{ const h=localStorage.getItem(KEY+".hv"); if(h) histView=h; }catch(e){}
+const dowOf=t=>(new Date(t).getDay()+6)%7, dayKey=t=>{ const d=new Date(t); return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`; };
+const sessName=x=>x.k==="lift"?(x.title||"Lift"):x.k==="zone2"?"Zone 2":(ACT[x.k]?ACT[x.k].name:x.k);
+function freqHTML(S){
+  const now=Date.now(), first=S.length?S[0].t:now, N=Math.max(1,Math.min(8,Math.ceil((now-first+1)/6048e5)));
+  const win=S.filter(x=>x.t>now-N*6048e5);
+  const days={}; win.forEach(x=>{ const k=dayKey(x.t); days[k]=days[k]||{dow:dowOf(x.t),lift:0,act:0}; days[k][x.k==="lift"?"lift":"act"]++; });
+  const col=[0,1,2,3,4,5,6].map(()=>({lift:0,act:0}));
+  Object.values(days).forEach(d=>{ col[d.dow][d.lift?"lift":"act"]++; });
+  const nl=win.filter(x=>x.k==="lift").length, na=win.length-nl, f=n=>(n/N).toFixed(1).replace(/\.0$/,"");
+  const DL=["M","T","W","T","F","S","S"], DN=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+  return `<div class="panel">${hdr("How often",["freq"])}
+    <p class="note">Average a week · last ${N} week${N>1?"s":""}</p>
+    <div class="stats${na?" three":""}"><div class="stat"><div class="k">Sessions</div><div class="v">${f(win.length)}</div></div><div class="stat"><div class="k">Lifts</div><div class="v">${f(nl)}</div></div>${na?`<div class="stat"><div class="k">Activities</div><div class="v">${f(na)}</div></div>`:""}</div>
+    <div class="dow">${col.map((c,i)=>{ const t=c.lift+c.act; return `<div class="dowc" role="img" aria-label="${DN[i]}: trained ${t} of ${N} weeks${c.lift?`, ${c.lift} with a lift`:""}"><span class="down">${t||""}</span><div class="dowb"><i class="a" style="height:${c.act/N*100}%"></i><i class="l" style="height:${c.lift/N*100}%"></i></div><span class="dowl">${DL[i]}</span></div>`; }).join("")}</div>
+    <div class="legend"><span style="--c:var(--lift)">Lift day</span><span style="--c:var(--act)">Activity only</span></div>
+  </div>`;
+}
+function calHTML(){
+  const S=(wk.sessions||[]).slice().sort((a,b)=>a.t-b.t);
+  const now=new Date(), m0=new Date(now.getFullYear(),now.getMonth()+calOff,1), y=m0.getFullYear(), mo=m0.getMonth();
+  const lead=(m0.getDay()+6)%7, nd=new Date(y,mo+1,0).getDate(), by={};
+  S.forEach(x=>{ const k=dayKey(x.t); (by[k]=by[k]||[]).push(x); });
+  const todayK=dayKey(now.getTime());
+  let cells=""; for(let i=0;i<lead;i++) cells+=`<span class="cd pad" aria-hidden="true"></span>`;
+  for(let d=1;d<=nd;d++){ const k=`${y}-${mo}-${d}`, L=by[k]||[], lab=new Date(y,mo,d).toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"});
+    const dots=L.slice(0,3).map(x=>`<i class="${x.k==="lift"?"l":"a"}"></i>`).join("");
+    cells+=`<button type="button" class="cd${k===todayK?" today":""}${L.length?" has":""}" data-cd="${k}" aria-pressed="${calSel===k}" aria-label="${lab}${L.length?": "+L.map(sessName).join(", "):""}"${L.length?"":" disabled"}><span>${d}</span><span class="dots">${dots}</span></button>`; }
+  const sel=calSel&&by[calSel]?by[calSel]:null;
+  const selD=sel?new Date(sel[0].t).toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"}):"";
+  return `${S.length?freqHTML(S):""}
+  <div class="panel">
+    <div class="calhead"><button type="button" class="btn sm calnav" data-cal="-1" aria-label="Previous month">‹</button><h3>${m0.toLocaleDateString(undefined,{month:"long",year:"numeric"})}</h3><button type="button" class="btn sm calnav" data-cal="1" aria-label="Next month"${calOff>=0?" disabled":""}>›</button></div>
+    <div class="cal"><span class="cw">M</span><span class="cw">T</span><span class="cw">W</span><span class="cw">T</span><span class="cw">F</span><span class="cw">S</span><span class="cw">S</span>${cells}</div>
+    ${sel?`<div class="calsel"><b>${selD}</b>${sel.map(x=>`<span class="cs ${x.k==="lift"?"l":"a"}">${esc(sessName(x))}${x.min?` · ${x.min} min`:""}</span>`).join("")}</div>`:""}
+    ${S.length?"":`<p class="note">Sessions show up here when you finish a lift day or enter minutes for an activity.</p>`}
+  </div>`;
+}
+function liftsHTML(){
+  const names=Object.keys(exHist).filter(n=>(exHist[n]||[]).length);
+  return `<div class="panel">${hdr("Main lifts",["lifts"])}
+   ${names.length?names.map(n=>{const h=exHist[n],a=h[0],z=h[h.length-1],dw=z.w-a.w;return `<div class="liftrow"><span class="ln">${esc(n)}</span>${spark(h)}<span class="lw"><b>${z.w}<small> lb</small></b>${h.length>1?`<em class="${dw<0?"neg":""}">${dw>0?"+":dw<0?"−":"±"}${Math.abs(dw)}</em>`:""}</span></div>`;}).join(""):`<p class="note">Appears after you finish a lift day.</p>`}
+  </div>`;
+}
+function weeksHTML(){
+  const fmt=t=>new Date(t).toLocaleDateString(undefined,{month:"short",day:"numeric"});
+  const H=(wk.weeks||[]).slice().reverse();
+  return `<div class="panel">${hdr("Previous weeks",["weeks"])}
+   ${H.length?`<div class="wlist">${H.map(w=>`<div class="wrow"><div class="wtop"><b>Week of ${fmt(w.start)}</b>${w.w?`<span class="wwt">${w.w}<small> lb</small></span>`:""}</div>
+     <div class="wnums"><span class="${w.lifts<w.planned?"miss":""}"><b>${w.lifts}/${w.planned}</b> lifts</span>${(w.sport??w.pickle)?`<span><b>${w.sport??w.pickle}</b> min sport</span>`:""}${w.cardio?`<span><b>${Number(w.cardio).toLocaleString()}</b> kcal cardio</span>`:""}</div>
+     <p class="small">${w.season==="In-season"?"In-season":"Off-season"}${w.ramp?" · ramp":""}${w.deload?" · deload":""} · ${esc(goalName(w.mode))}${w.focus?` · ${esc(w.focus)} focus`:""}</p></div>`).join("")}</div>`:`<p class="note">Saves when you tap Start new week.</p>`}
+  </div>`;
+}
+function renderHistory(){
+  const V=[["cal","Calendar"],["weeks","Weeks"],["lifts","Lifts"]]; if(!V.some(x=>x[0]===histView)) histView="cal";
+  const body=histView==="weeks"?weeksHTML():histView==="lifts"?liftsHTML():calHTML();
+  return `<div class="dayhead"><h2>History</h2></div>
+  <div class="seg hseg" role="group" aria-label="History view">${V.map(([v,l])=>`<button type="button" data-hv="${v}" aria-pressed="${histView===v}">${l}</button>`).join("")}</div>
+  ${body}`;
 }
 /* The weekly muscle ledger runs in the engine either way; this only controls whether This week shows it */
 const SHOW_MUSCLES=false;
@@ -419,7 +473,7 @@ function render(){
   document.body.classList.remove("th-green","th-orange","th-pink"); document.body.classList.add(themeOf(cur)); { const m=document.querySelector('meta[name="theme-color"]'); if(m) m.content={"th-green":"#131615","th-orange":"#181513","th-pink":"#181416"}[themeOf(cur)]; }
   const v=document.getElementById("view");
   document.getElementById("foot").hidden=!DAYS.some(d=>d.id===cur);
-  v.innerHTML=cur==="week"?renderWeek(P):cur==="season"?renderSeason(P):(ACT[cur]||cur==="zone2")?renderAct(cur):renderDayHTML(DAYS.find(d=>d.id===cur),P);
+  v.innerHTML=cur==="history"?renderHistory():cur==="week"?renderWeek(P):cur==="season"?renderSeason(P):(ACT[cur]||cur==="zone2")?renderAct(cur):renderDayHTML(DAYS.find(d=>d.id===cur),P);
   if(cur!==lastCur){ const T=TABS(), dir=lastCur==null?"":T.indexOf(cur)>=T.indexOf(lastCur)?"fwd":"back";
     v.classList.remove("enter","fwd","back"); void v.offsetWidth; v.classList.add("enter"); if(dir) v.classList.add(dir); lastCur=cur;
     const tb=document.querySelector('.tab[aria-selected="true"]'); if(tb&&tb.scrollIntoView) tb.scrollIntoView({block:"nearest",inline:"nearest",behavior:"smooth"}); }
@@ -666,6 +720,9 @@ function dayComplete(id){
 }
 function bind(){
   const v=document.getElementById("view");
+  v.querySelectorAll("[data-hv]").forEach(b=>b.onclick=()=>{ histView=b.dataset.hv; try{localStorage.setItem(KEY+".hv",histView)}catch(e){}; render(); });
+  v.querySelectorAll("[data-cal]").forEach(b=>b.onclick=()=>{ calOff=Math.min(0,calOff+ +b.dataset.cal); calSel=null; render(); });
+  v.querySelectorAll("[data-cd]").forEach(b=>b.onclick=()=>{ calSel=calSel===b.dataset.cd?null:b.dataset.cd; render(); });
   attachDials(v,dialCfg);
   const inProf=el=>wk.setupDone&&!!el.closest("#profileBox");
   const stage=(k,val)=>{ draft=draft||{}; draft[k]=val; if(k==="acts"){ const f=fixSports({acts:val,mainSport:draft.mainSport??wk.mainSport,sport2:draft.sport2??wk.sport2,season:draft.season??wk.season}); draft.mainSport=f.mainSport; draft.sport2=f.sport2; draft.season=f.season; } render(); };
@@ -718,7 +775,7 @@ function bind(){
       if(k==="mainSport"&&!raw) wk.season="Off-season";
       if(k==="season"){ wk.days=raw==="In-season"?2:3; wk.done={}; wk.donePlan={}; wk.upNext=""; wk.missedNote=null; }
     }); }));
-  v.querySelectorAll("input[data-act]").forEach(el=>el.onchange=()=>change(()=>{ const k=el.dataset.act; wk[k]=(wk[k]||[]).slice(); wk[k][+el.dataset.n]=el.value; }));
+  v.querySelectorAll("input[data-act]").forEach(el=>el.onchange=()=>change(()=>{ const k=el.dataset.act; logAct(k,+el.dataset.n,el.value); }));
   v.querySelectorAll("input[data-w]").forEach(el=>el.onchange=()=>{ if(inProf(el)){ stage(el.dataset.w,el.value); return; } if(!wk.setupDone){ wk[el.dataset.w]=el.value; save(); return; } change(()=>{ wk[el.dataset.w]=el.value; }); });
   v.querySelectorAll("select").forEach(el=>el.onchange=()=>{ set(cur,+el.dataset.i,"choice",el.value); render(); if(el.value===CUSTOM){const c=document.getElementById(`cus-${cur}-${el.dataset.i}`); c&&c.focus();} });
   v.querySelectorAll(".custom").forEach(el=>{ el.oninput=()=>set(cur,+el.dataset.i,"custom",el.value); el.onchange=()=>render(); });

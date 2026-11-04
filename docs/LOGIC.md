@@ -165,3 +165,11 @@ Per lift, from your last logged set:
 - **Energy floor (all fat-loss goals):** intake never drops below 30 kcal per kg of lean mass plus the day's exercise (lifting days × lift kcal / 7 + all cardio / 7). Lean mass uses body fat if entered, otherwise 28% (female), 18% (male), 23% (other). If the plan would go under it, food comes up for the week and a note gives the slower expected loss.
 - **Watch notes when pace > 0.5% BW:** expect to hold rather than build (Lose fat, keep muscle); a late, missed or changed period is a sign to slow down (female/other); reps dropping in the last session suggests easing the rate.
 - **Time limit:** each finished week records whether it ran fast. After 8 fast weeks in a row, a note suggests a few weeks at Maintain.
+
+## History tab (added)
+
+- **Session log** (`wk.sessions`, kept across weeks, last 500): finishing a lift day logs `{t, k:"lift", id, title}`; reopening the day removes it. Entering an activity's actual minutes logs `{t, k:<activity>, min}`; clearing the minutes removes it. Activities left at their planned minutes aren't dated, so they don't appear.
+- **Backfill:** on first load, past lift days are rebuilt from lift-history timestamps (titles unknown, shown as "Lift").
+- **Calendar view:** "How often" averages sessions, lifts and activities a week over the last 8 weeks (or since the first session), plus a bar per weekday showing how many of those weeks had a session that day (green if a lift, pink if only an activity). Below it, a month calendar with a dot per session; tap a day to see what you did.
+- **Weeks view:** the weekly snapshots, moved from Season.
+- **Lifts view:** main lifts with sparklines, moved from Season.
