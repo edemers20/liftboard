@@ -608,9 +608,9 @@ function suggest(d,s,i,useLog,P){
   const now=useLog?lastSet(st.log,bw):null, last=now||h[h.length-1];
   if(!last||(!last.w&&!bw)||!last.r) return null;
   if(bw){ const [lo0,hi0]=range(s.reps), top0=isIso(s)?hi0+3:hi0;
-    if(last.r>=top0) return last.w>0?{w:last.w+5,r:lo0,why:"+5 lb"}:{w:0,r:top0+1,why:"top of the range · add a rep, slow the lowering, or hold 5–10 lb",bwUp:1};
+    if(last.r>=top0) return last.w>0?{w:last.w+5,r:lo0,why:"+5 lb"}:{w:0,r:top0+1,why:"add a rep or 5 lb",bwUp:1};
     if(last.r>=lo0) return {w:last.w,r:Math.min(top0,last.r+1),why:`${Math.min(top0,last.r+1)} reps`};
-    return {w:last.w,r:lo0,why:"hold · aim for the bottom of the range"}; }
+    return {w:last.w,r:lo0,why:"hold"}; }
   const prev=now?h[h.length-1]:h[h.length-2];
   const [lo,hi]=range(s.reps), top=isIso(s)?hi+3:hi;
   const D=(P&&P.days[d.id])||{};
@@ -622,11 +622,11 @@ function suggest(d,s,i,useLog,P){
     /* on a cut, missing the range is expected fatigue: keep the load; only ease 5% after three misses in a row */
     const seq=h.slice(); if(now) seq.push(now); let miss=0;
     for(let k=seq.length-1;k>=0&&seq[k].w===last.w&&seq[k].r<lo;k--) miss++;
-    if(miss>=3) return {w:roundW(n,last.w*0.95),r:lo,why:"3 misses in a row, ease 5%"};
-    return {w:last.w,r:lo,why:"hold the weight · holding is the win on a cut"};
+    if(miss>=3) return {w:roundW(n,last.w*0.95),r:lo,why:"3 misses · ease 5%"};
+    return {w:last.w,r:lo,why:"hold · fine on a cut"};
   }
   if(prev&&prev.w===last.w&&prev.r<lo) return {w:roundW(n,last.w*0.9),r:lo,why:"rebuild"};
-  return {w:last.w,r:lo,why:"hold the weight"};
+  return {w:last.w,r:lo,why:"hold"};
 }
 
 function review(d,s,i,P){
@@ -640,8 +640,8 @@ function review(d,s,i,P){
   const canUp=!inSeason()&&wk.deload!=="Yes"&&!D.cutD;
   if(canUp&&last.r>=top+3){ w=last.w+2*incFor(n,s,last.w); why="too light, bigger jump"; }
   else if(log.length>=2&&first.w===last.w&&first.r-last.r>=4){ w=last.w; why="reps fell off across sets; rest longer, same weight"; tag="collapse"; }
-  else if(last.r<lo&&base.why.startsWith("hold")){ why=cutting()?"under the range; hold the weight, that's the goal on a cut":"under the rep range; hold the weight"; }
-  if(log.length<(A.sets||0)) why+=` · ${log.length} of ${A.sets} sets done`;
+  else if(last.r<lo&&base.why.startsWith("hold")){ why=cutting()?"hold · fine on a cut":"hold"; }
+  if(log.length<(A.sets||0)) why+=` · ${log.length}/${A.sets} sets`;
   tag=tag||(w>last.w?"up":w<last.w?"down":"hold");
   return {n,w,why,tag};
 }

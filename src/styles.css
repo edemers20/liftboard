@@ -565,3 +565,4 @@ select,input,textarea,.setrow.now input,.nums input,.field input{border-color:tr
 .calsel>.plab{flex-basis:100%}
 .calsel>h3{flex-basis:100%;margin:-4px 0 2px}
 .effd{margin:-4px 0 4px;font-size:13px}
+.optlab{margin:14px 0 2px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}

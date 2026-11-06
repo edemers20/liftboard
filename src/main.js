@@ -204,7 +204,7 @@ function renderSeason(P){
   ${enabled("lift")?`<div class="panel">${hdr("Training preferences",["ss","liftK"])}
     ${toggle("ss","Supersets")}
     ${toggle("stretch","Stretching after lifts")}
-    ${toggle("sound","Rest timer sound",wk.sound||"Yes")}
+    ${toggle("sound","Rest timer sound",wk.sound||"Yes")}${(wk.sound||"Yes")==="Yes"?`<button type="button" class="btn mini" data-testsound>Play test sound</button>`:""}
     <div class="q"><span>Avg lift kcal</span>${fld("liftK","","numeric","","sm")}</div></div>`:""}
   <div class="panel" id="profileBox"><h3>Profile</h3>${profileHTML(false,{...wk,...(draft||{})})}<button class="btn primary" id="profSave" type="button"${draftDirty()?"":" disabled"}>Save changes</button></div>
   ${moveHTML()}
@@ -343,7 +343,22 @@ function activeIdx(d,D){
 const nextIdx=(d,D,i)=>{ const c=exCands(d,D), p=c.indexOf(i); return c.slice(p+1).find(j=>!exDone(d,D,j)) ?? c.find(j=>!exDone(d,D,j)&&j!==i); };
 const whyTxt=A=>{ const w=A.why.filter(x=>!x.includes("focus")&&!x.includes("feeling good")); return w.length?[...new Set(w.map(x=>x.split(" · ")[1]))].join(", "):""; };
 /* First-time starting weight, by equipment, when an exercise has no history yet */
+/* Guess a first weight from a related exercise you've logged: same movement list, same equipment.
+   One-arm/one-leg ≈ 55% of two. Rounded down a step to start conservative. */
+const EQ=n=>/bodyweight|push-up|pull-up|chin-up|plank/i.test(n)?"bw":/cable|pulldown|pushdown|face pull|straight arm|pull-through/i.test(n)?"cable":/machine|leg press|hack|pendulum|pec deck|smith/i.test(n)?"machine":/barbell|trap bar|deadlift|squat \(barbell|front squat|good morning|t-bar|pendlay|seal row/i.test(n)?"bar":/dumbbell|goblet|arnold|kettlebell/i.test(n)?"db":"other";
+const UNIF=n=>/single-arm|single arm|one-arm|kneeling single|single-leg/i.test(n)?0.55:1;
+function estW(name){
+  if(isBW(name)||(exHist[name]||[]).length) return null;
+  const lists=Object.values(L).filter(l=>l.includes(name)), eq=EQ(name); if(!lists.length||eq==="other"||eq==="bw") return null;
+  let best=null;
+  lists.flat().forEach(o=>{ if(o===name||EQ(o)!==eq) return; const h=exHist[o]||[], x=h[h.length-1]; if(!x||!x.w) return;
+    if(!best||x.t>best.t) best={n:o,w:x.w,t:x.t}; });
+  if(!best) return null;
+  const raw=best.w*UNIF(name)/UNIF(best.n)*0.9, w=eq==="db"?Math.floor(raw/2.5)*2.5:Math.floor(raw/5)*5;
+  return w>0?{w,from:best.n,fromW:best.w}:null;
+}
 function startW(name,s){
+  { const g=estW(name); if(g) return g.w; }
   const n=name.toLowerCase(), main=!!s.main;
   if(isBW(name)) return 0;
   if(/band|plank|push-up|pull-up|chin-up|dead bug|bird dog|copenhagen|nordic|inverted|stability ball|sliding|knee raise|ab wheel|frog pump|back extension \(glute/.test(n)&&!/weighted/.test(n)) return 0;
@@ -379,7 +394,12 @@ function renderDayHTML(d,P){
   const rv=D.done&&(wk.review||{})[d.id];
   if(rv&&rv.items.length) html+=`<div class="panel"><h3>Next time</h3><div class="rev">${rv.items.map(r=>`<p>${tagH(r.tag)}<b>${esc(r.n)}</b> · ${r.w} lb · ${esc(r.why)}</p>`).join("")}</div>${rv.note?`<p class="adj">${esc(rv.note)}</p>`:""}</div>`;
   html+=`<div class="list">`;
-  slotOrder(d).forEach(i=>{ const s=d.slots[i];
+  /* required lifts, then what you added, then optional ones (trimmed/covered), then the cardio finisher */
+  const ord0=slotOrder(d), isOpt=i=>!d.slots[i].cardio&&D.slots[i]&&D.slots[i].skip&&D.slots[i].skip!=="hidden";
+  const ord=[...ord0.filter(i=>!d.slots[i].cardio&&!isOpt(i)),...ord0.filter(isOpt),...ord0.filter(i=>d.slots[i].cardio)];
+  const firstOpt=ord.find(isOpt);
+  ord.forEach(i=>{ const s=d.slots[i];
+    if(i===firstOpt) html+=`<p class="optlab">Optional</p>`;
     const st=get(d.id,i), A=D.slots[i], base=`${d.id}-${i}`;
     if(A.skip==="hidden") return;
     if(A.skip&&i!==act){ const lg=(st.log||[]).filter(x=>x.d).length, dn=s.cardio?!!st.cdone:lg>=(A.sets||1);
@@ -404,7 +424,8 @@ function renderDayHTML(d,P){
       <div class="nums ${cs.label?"two":"one"}"><label class="field" for="act-${base}"><span>Minutes done</span><input id="act-${base}" data-i="${i}" data-k="act" inputmode="numeric" placeholder="${A.min||""}" value="${esc(st.act||"")}"></label>${cs.label?`<label class="field" for="load-${base}"><span>${cs.label}</span><input id="load-${base}" data-i="${i}" data-k="load" placeholder="${esc(cs.ph)}" value="${esc(st.load||"")}"></label>`:""}</div>
       ${D.done||st.cdone?"":`<button type="button" class="btn primary cdone wide" data-i="${i}">Finish cardio</button>`}`;
     }else{
-      const today=suggest(d,s,i,false,P), nm=exName(d,s,i);
+      const today=suggest(d,s,i,false,P), nm=exName(d,s,i), est=today?null:estW(nm);
+      if(est&&!D.done) html+=`<p class="carry"><span>New exercise · starting guess <b>${est.w} lb</b> from ${esc(est.from)} at ${est.fromW}</span></p>`;
       const carry=(wk.next||{})[nm];
       if(carry&&carry.t!==(wk.doneT||{})[d.id]) html+=`<p class="carry">${tagH(carry.tag)}<span>${isBW(nm)?(carry.w>0?`${{up:"Go up to",down:"Ease to"}[carry.tag]||"Stay at"} <b>BW+${carry.w} lb</b> · `:carry.tag==="up"?"<b>Up</b> · ":"<b>Same</b> · "):`${{up:"Go up to",down:"Ease to"}[carry.tag]||"Stay at"} <b>${carry.w} lb</b> · `}${esc(carry.why)}</span></p>`;
       const [lo,hi]=range(s.reps), top=(s.upperAcc||s.support||s.label==="Glute med")?hi+3:hi;
@@ -417,7 +438,7 @@ function renderDayHTML(d,P){
       html+=`<div class="sets">`;
       for(let k=0;k<nRows;k++){ const x=log[k]||{}, pw=k>0&&+(log[k-1]||{}).w>0?(log[k-1]||{}).w:"";
         html+=`<div class="setrow${x.d?" done":""}${k===ticks&&!fin?" now":""}"><span class="sn">${k+1}</span>
-          <input id="w-${base}-${k}" data-i="${i}" data-set="${k}" data-f="w" inputmode="decimal" placeholder="${isBW(nm)?(D.done?"BW":pw||(today&&today.w?today.w:"BW")):D.done?"lb":pw||(today?today.w:"lb")}" aria-label="Set ${k+1} ${isBW(nm)?"added weight (blank for bodyweight)":"weight"}" value="${esc(x.w||"")}"><span class="u">${isBW(nm)?"+lb":"lb"}</span>
+          <input id="w-${base}-${k}" data-i="${i}" data-set="${k}" data-f="w" inputmode="decimal" placeholder="${isBW(nm)?(D.done?"BW":pw||(today&&today.w?today.w:"BW")):D.done?"lb":pw||(today?today.w:est?est.w:"lb")}" aria-label="Set ${k+1} ${isBW(nm)?"added weight (blank for bodyweight)":"weight"}" value="${esc(x.w||"")}"><span class="u">${isBW(nm)?"+lb":"lb"}</span>
           <input id="r-${base}-${k}" data-i="${i}" data-set="${k}" data-f="r" inputmode="numeric" placeholder="${D.done?"reps":today&&today.r?today.r:range(s.reps)[0]}" aria-label="Set ${k+1} reps" value="${esc(x.r||"")}">
           <button type="button" class="chk${fxOnce.chk===`${base}-${k}`?" pop":""}" data-i="${i}" data-set="${k}" aria-pressed="${!!x.d}" aria-label="Set ${k+1} done">✓</button></div>`; }
       html+=`<button type="button" class="btn addset" data-i="${i}">+ Set</button></div>`;
@@ -654,14 +675,17 @@ function logSet(i,k,f,val){ const st=get(cur,i); const log=(st.log||[]).slice();
    20s after the first half of a superset. Your ±15s for an exercise replaces its base. */
 const mmss=t=>{ t=Math.max(0,Math.round(t)); return `${Math.floor(t/60)}:${String(t%60).padStart(2,"0")}`; };
 const ISO_LBL=/^(Side delts|Rear delts|Arms|Biceps|Triceps|Glute med|Glute \(light\)|Calves|Adductors|Rotator cuff|Core|Lats)$/;
-function restPlan(s,name,k){
-  if(s.ss&&wk.ss!=="No"&&/1$/.test(s.ss)) return {base:20,bump:0,fixed:1};
+function restPlan(s,name,k,d){
+  /* Short superset transition only once you're actually alternating: the partner (A2 for A1) already has a set ticked.
+     Straight sets of the first exercise get full rest. */
+  if(s.ss&&wk.ss!=="No"&&/1$/.test(s.ss)&&d){ const pi=d.slots.findIndex(x=>x.ss===s.ss.replace(/1$/,"2"));
+    if(pi>=0&&((get(d.id,pi).log||[]).some(x=>x.d))) return {base:20,bump:0,fixed:1}; }
   const iso=ISO_LBL.test(s.label), lo=+((String(s.reps).match(/\d+/)||[8])[0]);
   const base=s.main?(lo<=5?180:150):iso?75:90, uni=/single|bulgarian|split squat|lunge|step-up|single-arm|one-arm|cossack/i.test(name)?15:0;
   return {base:base+uni,bump:k===0&&!iso?30:0};
 }
 const restFor=(name,p)=>((wk.restFor||{})[name])||p.base;
-function startRest(name,s,k){ const p=restPlan(s,name,k), secs=p.fixed?p.base:restFor(name,p)+p.bump;
+function startRest(name,s,k,d){ const p=restPlan(s,name,k,d), secs=p.fixed?p.base:restFor(name,p)+p.bump;
   wk.rest={end:Date.now()+secs*1000,name,base:p.fixed?null:p.base,bump:p.bump}; save(); schedChime(secs); tickTimers(); }
 function adjRest(d){ const r=wk.rest; if(!r) return;
   if(r.base==null){ r.end=Math.max(Date.now()+5000,r.end+d*1000); save(); schedChime((r.end-Date.now())/1000); tickTimers(); return; }
@@ -671,7 +695,12 @@ function endRest(){ wk.rest=null; stopChime(); save(); tickTimers(); }
 /* Chime: scheduled on the audio clock when rest starts (a tap unlocks sound), so it still plays if the
    screen dims. A locked phone or the silent switch can still mute it; the vibration stays as a backup. */
 let AC=null, chimeNodes=[], chimeAt=0;
-function audio(){ try{ AC=AC||new (window.AudioContext||window.webkitAudioContext)(); if(AC.state==="suspended") AC.resume(); }catch(e){ AC=null; } return AC; }
+function audio(){ try{
+    /* iPhone: the ring/silent switch mutes web audio unless the page is in "playback" mode */
+    if(navigator.audioSession&&navigator.audioSession.type!=="playback") navigator.audioSession.type="playback";
+    AC=AC||new (window.AudioContext||window.webkitAudioContext)(); if(AC.state!=="running") AC.resume();
+    if(!audio.unlocked){ audio.unlocked=1; const b=AC.createBuffer(1,1,22050), src=AC.createBufferSource(); src.buffer=b; src.connect(AC.destination); src.start(0); }
+  }catch(e){ AC=null; } return AC; }
 function stopChime(){ chimeNodes.forEach(o=>{ try{o.stop(0)}catch(e){} }); chimeNodes=[]; chimeAt=0; }
 function chimeIn(secs){ const ac=audio(); if(!ac) return; const t0=ac.currentTime+Math.max(0,secs);
   [[784,0],[1047,.16],[1319,.32]].forEach(([f,dt])=>{ const o=ac.createOscillator(), g=ac.createGain(); o.type="sine"; o.frequency.value=f;
@@ -774,6 +803,7 @@ function dayComplete(id){
 }
 function bind(){
   const v=document.getElementById("view");
+  v.querySelectorAll("[data-testsound]").forEach(b=>b.onclick=()=>chimeIn(0));
   v.querySelectorAll("[data-collapse]").forEach(r=>{ const go=()=>{ wk.active={...(wk.active||{}),[cur]:-1}; save(); render(); };
     r.onclick=go; r.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } }; });
   v.querySelectorAll("[data-addex]").forEach(b=>b.onclick=()=>{ const a=b.dataset.addex;
@@ -817,7 +847,7 @@ function bind(){
     if(!x.w){ const ph=document.getElementById(`w-${cur}-${i}-${k}`).placeholder; if(+ph>0) logSet(i,k,"w",ph); }
     if(!x.r){ const ph=document.getElementById(`r-${cur}-${i}-${k}`).placeholder; if(+ph>0) logSet(i,k,"r",ph); }
     if(!x.d) wtStart(cur);
-    logSet(i,k,"d",!x.d); if(!x.d){ const d0=DAYS.find(z=>z.id===cur), s0=d0.slots[i]; startRest(exName(d0,s0,i),s0,k); }
+    logSet(i,k,"d",!x.d); if(!x.d){ const d0=DAYS.find(z=>z.id===cur), s0=d0.slots[i]; startRest(exName(d0,s0,i),s0,k,d0); }
     if(!x.d) closeSheet();
     if(!x.d&&!(wk.done||{})[cur]&&dayComplete(cur)){ const id=cur, n=setsLogged(id); markDone(id); render(); dayDone(id,n); return; }
     let finished=false;
