@@ -1,6 +1,6 @@
 import "./styles.css";
 import { attachDials } from "./dial.js";
-import { logAct, defChoice, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk } from "./engine.js";
+import { cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk } from "./engine.js";
 
 const storage=(()=>{ try{ const k="__t"; localStorage.setItem(k,"1"); localStorage.removeItem(k); return localStorage; }catch(e){ const m=new Map(); return {getItem:k=>m.get(k)??null,setItem:(k,v)=>m.set(k,String(v))}; } })();
 init(storage);
@@ -202,6 +202,7 @@ function renderSeason(P){
   ${enabled("lift")?`<div class="panel">${hdr("Training preferences",["ss","liftK"])}
     ${toggle("ss","Supersets")}
     ${toggle("stretch","Stretching after lifts")}
+    ${toggle("sound","Rest timer sound",wk.sound||"Yes")}
     <div class="q"><span>Avg lift kcal</span>${fld("liftK","","numeric","","sm")}</div></div>`:""}
   <div class="panel" id="profileBox"><h3>Profile</h3>${profileHTML(false,{...wk,...(draft||{})})}<button class="btn primary" id="profSave" type="button"${draftDirty()?"":" disabled"}>Save changes</button></div>
   ${moveHTML()}
@@ -227,6 +228,8 @@ function freqHTML(S){
     <div class="legend"><span style="--c:var(--lift)">Lift day</span><span style="--c:var(--act)">Activity only</span></div>
   </div>`;
 }
+/* A logged session's exercises; older sessions are rebuilt from lift history (last logged set). */
+function sessEx(x){ if(x.ex) return x.ex; return Object.entries(exHist).map(([n,h])=>{ const e=(h||[]).find(y=>y.t===x.t); return e?{n,w:e.w,r:e.r}:null; }).filter(Boolean); }
 function calHTML(){
   const S=(wk.sessions||[]).slice().sort((a,b)=>a.t-b.t);
   const now=new Date(), m0=new Date(now.getFullYear(),now.getMonth()+calOff,1), y=m0.getFullYear(), mo=m0.getMonth();
@@ -243,7 +246,7 @@ function calHTML(){
   <div class="panel">
     <div class="calhead"><button type="button" class="btn sm calnav" data-cal="-1" aria-label="Previous month">‹</button><h3>${m0.toLocaleDateString(undefined,{month:"long",year:"numeric"})}</h3><button type="button" class="btn sm calnav" data-cal="1" aria-label="Next month"${calOff>=0?" disabled":""}>›</button></div>
     <div class="cal"><span class="cw">M</span><span class="cw">T</span><span class="cw">W</span><span class="cw">T</span><span class="cw">F</span><span class="cw">S</span><span class="cw">S</span>${cells}</div>
-    ${sel?`<div class="calsel"><b>${selD}</b>${sel.map(x=>`<span class="cs ${x.k==="lift"?"l":"a"}">${esc(sessName(x))}${x.min?` · ${x.min} min`:""}</span>`).join("")}</div>`:""}
+    ${sel?`<div class="calsel"><b>${selD}</b>${sel.map(x=>`<div class="csx"><span class="cs ${x.k==="lift"?"l":"a"}">${esc(sessName(x))}${x.min?` · ${x.min} min`:""}</span>${x.k==="lift"?workoutRows(sessEx(x)):""}</div>`).join("")}</div>`:""}
     ${S.length?"":`<p class="note">Sessions show up here when you finish a lift day or enter minutes for an activity.</p>`}
   </div>`;
 }
@@ -317,7 +320,7 @@ function renderWeek(P){
 }
 /* ---------- Day: one focused exercise at a time ---------- */
 const exDone=(d,D,i)=>{ const s=d.slots[i], A=D.slots[i]; if(A.skip) return true; if(D.done) return true; const st=get(d.id,i); return s.cardio?!!st.cdone:(st.log||[]).filter(x=>x.d).length>=A.sets; };
-const exCands=(d,D)=>d.slots.map((_,i)=>i).filter(i=>!D.slots[i].skip);
+const exCands=(d,D)=>slotOrder(d).filter(i=>!D.slots[i].skip);
 function skipWhy(A){
   const k=A.skip||"";
   if(A.flag) return A.flag;
@@ -333,7 +336,7 @@ function activeIdx(d,D){
   if(a!=null&&d.slots[a]&&D.slots[a]&&D.slots[a].skip!=="hidden") return a;
   return c.find(i=>!exDone(d,D,i)) ?? c[c.length-1];
 }
-const nextIdx=(d,D,i)=>exCands(d,D).find(j=>j>i&&!exDone(d,D,j)) ?? exCands(d,D).find(j=>!exDone(d,D,j)&&j!==i);
+const nextIdx=(d,D,i)=>{ const c=exCands(d,D), p=c.indexOf(i); return c.slice(p+1).find(j=>!exDone(d,D,j)) ?? c.find(j=>!exDone(d,D,j)&&j!==i); };
 const whyTxt=A=>{ const w=A.why.filter(x=>!x.includes("focus")&&!x.includes("feeling good")); return w.length?[...new Set(w.map(x=>x.split(" · ")[1]))].join(", "):""; };
 /* First-time starting weight, by equipment, when an exercise has no history yet */
 function startW(name,s){
@@ -371,23 +374,23 @@ function renderDayHTML(d,P){
   const rv=D.done&&(wk.review||{})[d.id];
   if(rv&&rv.items.length) html+=`<div class="panel"><h3>Next time</h3><div class="rev">${rv.items.map(r=>`<p>${tagH(r.tag)}<b>${esc(r.n)}</b> · ${r.w} lb · ${esc(r.why)}</p>`).join("")}</div>${rv.note?`<p class="adj">${esc(rv.note)}</p>`:""}</div>`;
   html+=`<div class="list">`;
-  d.slots.forEach((s,i)=>{
+  slotOrder(d).forEach(i=>{ const s=d.slots[i];
     const st=get(d.id,i), A=D.slots[i], base=`${d.id}-${i}`;
     if(A.skip==="hidden") return;
     if(A.skip&&i!==act){ const lg=(st.log||[]).filter(x=>x.d).length, dn=s.cardio?!!st.cdone:lg>=(A.sets||1);
       html+=`<button type="button" class="exrow opt${dn?" done":""}" data-ex="${i}" aria-label="Optional: ${esc(exName(d,s,i))}"><span class="label">${s.label} · optional</span><span class="mk" aria-hidden="true">${dn?"✓":"›"}</span><span class="exname">${esc(exName(d,s,i))}</span></button>`; return; }
     if(i!==act){ const dn=exDone(d,D,i);
-      html+=`<button type="button" class="exrow${dn?" done":""}" data-ex="${i}" aria-label="${dn?"Done":"Start"} ${esc(exName(d,s,i))}"><span class="label">${s.label}${s.ss&&wk.ss!=="No"?` · ${s.ss}`:""}</span><span class="mk" aria-hidden="true">${dn?"✓":"›"}</span><span class="exname">${esc(exName(d,s,i))}</span></button>`; return; }
+      html+=`<button type="button" class="exrow${dn?" done":""}" data-ex="${i}" aria-label="${dn?"Done":"Start"} ${esc(exName(d,s,i))}"><span class="label">${s.extra?`Added · ${s.label}`:s.label}${s.ss&&wk.ss!=="No"?` · ${s.ss}`:""}</span><span class="mk" aria-hidden="true">${dn?"✓":"›"}</span><span class="exname">${esc(exName(d,s,i))}</span></button>`; return; }
     const choice=st.choice ?? defChoice(d,s,i), isCustom=choice===CUSTOM;
     const opts=[...s.opts,CUSTOM].map(o=>`<option${o===choice?" selected":""}>${esc(o)}</option>`).join("");
     const log=st.log||[], ticks=log.filter(x=>x.d).length, fin=s.cardio?!!st.cdone||D.done:ticks>=A.sets;
     const nRows=Math.max(A.sets||0,log.length);
     const pill=s.cardio?(D.done?`~${r5(A.doneK||0)} kcal`:A.min?`${A.min} min`:"Optional"):fin?"Done":`Set ${Math.min(ticks+1,A.sets)} of ${A.sets}`;
     html+=`<section class="slot cur${s.ss&&wk.ss!=="No"?" ss":""}${fxOnce.slot===base?" justdone":""}" aria-current="step">
-      <div class="row1"><span class="label hdr">${s.label}${s.ss&&wk.ss!=="No"?` · Superset ${s.ss}`:""}</span><span class="pill">${pill}</span></div>
+      <div class="row1"><span class="label hdr">${s.extra?`Added · ${s.label}`:s.label}${s.ss&&wk.ss!=="No"?` · Superset ${s.ss}`:""}</span><span class="pill">${pill}</span></div>
       ${s.cardio?"":`<div class="bars" style="--n:${nRows}" aria-hidden="true">${Array.from({length:nRows},(_,k)=>`<i class="${k<ticks?"on":k===ticks&&!fin?"now":""}"></i>`).join("")}</div>`}
-      <select id="sel-${base}" data-i="${i}" aria-label="${esc(s.label)} exercise">${opts}</select>
-      <input id="cus-${base}" class="custom${isCustom?" on":""}" data-i="${i}" placeholder="Exercise name" value="${esc(st.custom||"")}">`;
+      ${s.extra?`<div class="xname"><b>${esc(exName(d,s,i))}</b>${(st.log||[]).some(x=>x.d)?"":`<button type="button" class="btn mini" data-xrm="${i-(d.slots.length-((wk.extra||{})[d.id]||[]).length)}">Remove</button>`}</div>`:`<select id="sel-${base}" data-i="${i}" aria-label="${esc(s.label)} exercise">${opts}</select>
+      <input id="cus-${base}" class="custom${isCustom?" on":""}" data-i="${i}" placeholder="Exercise name" value="${esc(st.custom||"")}">`}`;
     if(s.cardio){
       const cn=exName(d,s,i), cs=cardioSetting(cn), isInt=INTERVAL.includes(cn)&&!A.steady;
       const planLine=A.min?`${A.min} min ${isInt?"· rounds of 30s hard, 90s easy":"at a steady, talkable pace"}${A.kcal?` · ~${r5(A.kcal)} kcal`:""}`:"";
@@ -397,6 +400,8 @@ function renderDayHTML(d,P){
       ${D.done||st.cdone?"":`<button type="button" class="btn primary cdone wide" data-i="${i}">Finish cardio</button>`}`;
     }else{
       const today=suggest(d,s,i,false,P), nm=exName(d,s,i);
+      const carry=(wk.next||{})[nm];
+      if(carry&&carry.t!==(wk.doneT||{})[d.id]) html+=`<p class="carry">${tagH(carry.tag)}<span><b>From last time:</b> ${{up:"go up to",down:"ease to"}[carry.tag]||"stay at"} ${carry.w} lb · ${esc(carry.why)}</span></p>`;
       const [lo,hi]=range(s.reps), top=(s.upperAcc||s.support||s.label==="Glute med")?hi+3:hi;
       const lastT=log.slice(0,ticks).reverse().find(x=>x.d&&+x.w>0&&+x.r>0);
       if(!D.done&&!fin&&lastT&&st.nudged!==ticks){ const w0=+lastT.w, r0=+lastT.r, inc=incFor(nm,s,w0);
@@ -414,12 +419,26 @@ function renderDayHTML(d,P){
     }
     html+=`</section>`;
   });
-  html+=`</div>`;
+  html+=`</div>`+addExHTML(d);
   if(wk.stretch==="Yes"){ const sd=!!(wk.stretchDone||{})[d.id], list=stretchesFor(d);
     html+=`<section class="slot stretch${sd?" sdone":""}"><div class="row1"><span class="label hdr">Stretch · optional</span><span class="pill">${sd?"Done":"~8 min"}</span></div>
       <ul class="slist">${list.map(([n,t])=>`<li><span>${n}</span><small>${t}</small></li>`).join("")}</ul>
       <button type="button" class="btn ${sd?"":"primary "}wide" id="stretchBtn">${sd?"✓ Stretched":"Done stretching"}</button></section>`; }
   return html+`<button class="btn primary" id="doneBtn" type="button"${D.done?' disabled aria-disabled="true"':""}>${D.done?"✓ Day done":"Mark day done"}</button>`;
+}
+/* ---------- Add an exercise to the end of a day ---------- */
+let addOpen=null, addPick="", addCustom="", addCat="";
+function addExHTML(d){
+  if(addOpen!==d.id) return `<button type="button" class="btn wide addex" data-addex="open">+ Add exercise</button>`;
+  const used=new Set(); const groups=XGROUPS.map(([g,keys])=>{ const o=[]; keys.forEach(k=>(L[k]||[]).forEach(n=>{ if(!used.has(n)){ used.add(n); o.push(n); } })); return `<optgroup label="${g}">${o.map(n=>`<option${n===addPick?" selected":""}>${esc(n)}</option>`).join("")}</optgroup>`; }).join("");
+  const isC=addPick===CUSTOM, guess=isC?(addCat||catOf(addCustom)||""):"";
+  const cats=XGROUPS.map(([g,keys])=>`<optgroup label="${g}">${keys.map(k=>`<option value="${k}"${k===guess?" selected":""}>${XCAT[k][0]}</option>`).join("")}</optgroup>`).join("");
+  const cat=isC?guess:catOf(addPick);
+  return `<section class="slot addpanel"><div class="row1"><span class="label hdr">Add exercise</span><button type="button" class="nx" data-addex="close" aria-label="Close">×</button></div>
+    <select id="addPick" aria-label="Exercise"><option value=""${addPick?"":" selected"}>Choose an exercise…</option>${groups}<option${isC?" selected":""}>${CUSTOM}</option></select>
+    ${isC?`<input id="addCustom" placeholder="Exercise name" value="${esc(addCustom)}"><label class="field" for="addCat"><span>Counts as</span><select id="addCat"><option value="">Choose…</option>${cats}</select></label>`:""}
+    ${cat?`<p class="small">Counts as ${XCAT[cat][0].toLowerCase()} · ${XCAT[cat][1]} reps. It goes into this week's muscle totals.</p>`:""}
+    <button type="button" class="btn primary wide" data-addex="add"${(isC?addCustom.trim()&&cat:addPick)?"":" disabled"}>Add to ${esc(d.tab)}</button></section>`;
 }
 /* ---------- Small sheets: today's plan for an exercise, and next time after it ---------- */
 let sheetT=null;
@@ -622,21 +641,43 @@ window.addEventListener("scroll",()=>closePop(),{passive:true});
 function logSet(i,k,f,val){ const st=get(cur,i); const log=(st.log||[]).slice(); while(log.length<=k) log.push({}); log[k]={...log[k],[f]:val}; set(cur,i,"log",log); if((wk.done||{})[cur]) resyncDone(cur); }
 /* ---------- Timers ----------
    Both run off saved timestamps, not a countdown, so locking the phone or leaving the app
-   doesn't pause them: on return they show the true time. Rest length per exercise is the
-   default (2:00 main lifts, 1:15 everything else) plus whatever ±15s you last set for it. */
+   doesn't pause them: on return they show the true time.
+   Rest by exercise type: main lifts 2:30 (3:00 at 5 reps or fewer), other compounds 1:30, isolation 1:15;
+   +15s for one-side-at-a-time work; +30s after the first (heaviest) set of a main or compound lift;
+   20s after the first half of a superset. Your ±15s for an exercise replaces its base. */
 const mmss=t=>{ t=Math.max(0,Math.round(t)); return `${Math.floor(t/60)}:${String(t%60).padStart(2,"0")}`; };
-const restFor=(name,main)=>((wk.restFor||{})[name])||(main?120:75);
-function startRest(name,main){ wk.rest={end:Date.now()+restFor(name,main)*1000,name,main:!!main}; save(); tickTimers(); }
-function adjRest(d){ const r=wk.rest; if(!r) return; const base=restFor(r.name,r.main), nb=Math.max(30,Math.min(300,base+d));
-  wk.restFor={...(wk.restFor||{}),[r.name]:nb}; r.end=Math.max(Date.now()+5000,r.end+(nb-base)*1000); save(); tickTimers(); }
-function endRest(){ wk.rest=null; save(); tickTimers(); }
+const ISO_LBL=/^(Side delts|Rear delts|Arms|Biceps|Triceps|Glute med|Glute \(light\)|Calves|Adductors|Rotator cuff|Core|Lats)$/;
+function restPlan(s,name,k){
+  if(s.ss&&wk.ss!=="No"&&/1$/.test(s.ss)) return {base:20,bump:0,fixed:1};
+  const iso=ISO_LBL.test(s.label), lo=+((String(s.reps).match(/\d+/)||[8])[0]);
+  const base=s.main?(lo<=5?180:150):iso?75:90, uni=/single|bulgarian|split squat|lunge|step-up|single-arm|one-arm|cossack/i.test(name)?15:0;
+  return {base:base+uni,bump:k===0&&!iso?30:0};
+}
+const restFor=(name,p)=>((wk.restFor||{})[name])||p.base;
+function startRest(name,s,k){ const p=restPlan(s,name,k), secs=p.fixed?p.base:restFor(name,p)+p.bump;
+  wk.rest={end:Date.now()+secs*1000,name,base:p.fixed?null:p.base,bump:p.bump}; save(); schedChime(secs); tickTimers(); }
+function adjRest(d){ const r=wk.rest; if(!r) return;
+  if(r.base==null){ r.end=Math.max(Date.now()+5000,r.end+d*1000); save(); schedChime((r.end-Date.now())/1000); tickTimers(); return; }
+  const base=restFor(r.name,{base:r.base}), nb=Math.max(30,Math.min(300,base+d));
+  wk.restFor={...(wk.restFor||{}),[r.name]:nb}; r.end=Math.max(Date.now()+5000,r.end+(nb-base)*1000); save(); schedChime((r.end-Date.now())/1000); tickTimers(); }
+function endRest(){ wk.rest=null; stopChime(); save(); tickTimers(); }
+/* Chime: scheduled on the audio clock when rest starts (a tap unlocks sound), so it still plays if the
+   screen dims. A locked phone or the silent switch can still mute it; the vibration stays as a backup. */
+let AC=null, chimeNodes=[], chimeAt=0;
+function audio(){ try{ AC=AC||new (window.AudioContext||window.webkitAudioContext)(); if(AC.state==="suspended") AC.resume(); }catch(e){ AC=null; } return AC; }
+function stopChime(){ chimeNodes.forEach(o=>{ try{o.stop(0)}catch(e){} }); chimeNodes=[]; chimeAt=0; }
+function chimeIn(secs){ const ac=audio(); if(!ac) return; const t0=ac.currentTime+Math.max(0,secs);
+  [[784,0],[1047,.16],[1319,.32]].forEach(([f,dt])=>{ const o=ac.createOscillator(), g=ac.createGain(); o.type="sine"; o.frequency.value=f;
+    g.gain.setValueAtTime(0.0001,t0+dt); g.gain.exponentialRampToValueAtTime(0.4,t0+dt+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t0+dt+0.6);
+    o.connect(g); g.connect(ac.destination); o.start(t0+dt); o.stop(t0+dt+0.65); chimeNodes.push(o); }); }
+function schedChime(secs){ stopChime(); if(wk.sound==="No") return; chimeIn(secs); chimeAt=wk.rest?wk.rest.end:0; }
 let buzzed=0;
 function tickTimers(){
   const bar=document.getElementById("rest"), r=wk.rest, now=Date.now();
   if(r){ const left=(r.end-now)/1000;
     if(left<-300){ wk.rest=null; save(); }
     else { const over=left<=0;
-      if(over&&buzzed!==r.end){ buzzed=r.end; try{ navigator.vibrate&&navigator.vibrate([200,100,200]); }catch(e){} }
+      if(over&&buzzed!==r.end){ buzzed=r.end; try{ navigator.vibrate&&navigator.vibrate([200,100,200]); }catch(e){} if(chimeAt!==r.end&&left>-3&&wk.sound!=="No") chimeIn(0); }
       if(bar.hidden||bar.dataset.end!==String(r.end)){ bar.dataset.end=r.end;
         bar.innerHTML=`<button type="button" class="rb" data-rest="-15" aria-label="15 seconds less">−15</button><span class="rt" aria-live="off"></span><button type="button" class="rb" data-rest="15" aria-label="15 seconds more">+15</button><button type="button" class="rb skip" data-rest="skip">Skip</button>`;
         bar.querySelectorAll("[data-rest]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); const v=b.dataset.rest; if(v==="skip") endRest(); else adjRest(+v); }); }
@@ -693,15 +734,19 @@ function setupDone(){
   showDone({eyebrow:"Setup saved",title:"Your plan is ready",body:`<p class="psent">${sentenceHTML(planSentence(P))}</p>`,
     cta:"See this week",onCta:()=>goTab("week")});
 }
+/* Each exercise with its top set; the arrow is what happens next time (↑ up, = held, ↓ ease). */
+function workoutRows(S,items){
+  if(!S.length) return `<p class="dnote">No sets logged.</p>`;
+  return `<div class="drows wo">${S.map(x=>{ const r=(items||[]).find(y=>y.n===x.n);
+    return `<div class="prow"><span>${esc(x.n)}${x.extra?` <small>added</small>`:""}</span><b class="${r&&r.tag==="up"?"a":""}">${x.cardio?`${x.min?x.min+" min":"done"}`:`${x.w} × ${x.r}`}${r?` <i aria-label="Next time: ${TAGTXT[r.tag]}">${TAGICON[r.tag]}</i>`:""}</b></div>`; }).join("")}</div>`;
+}
 function dayDone(id,sets){
   const d=DAYS.find(x=>x.id===id), rv=(wk.review||{})[id]||{items:[]}, c=t=>rv.items.filter(x=>x.tag===t).length;
   const ease=c("down")+c("collapse"), nxt=DAYS.find(x=>!(wk.done||{})[x.id]);
   const T=(wk.wt||{})[id];
-  const top=rv.items.filter(x=>x.tag==="up").concat(rv.items.filter(x=>x.tag!=="up")).slice(0,3);
-  showDone({eyebrow:`${d.tab} · ${d.title.split(" · ")[0]}`,title:"Day done",
-    body:dTiles([...(T&&T.start&&T.end?[["Time",`${Math.max(1,Math.round((T.end-T.start)/60000))} min`]]:[]),["Sets",String(sets)],ease?["Ease",String(ease)]:["Up",String(c("up"))],...(T&&T.start&&T.end?[]:[["Hold",String(c("hold"))]])])
-      +(top.length?`<div class="drows"><span class="dl">Next time</span>${top.map(x=>`<div class="prow"><span>${esc(x.n)}</span><b class="${x.tag==="up"?"a":""}">${TAGICON[x.tag]} ${x.w} lb</b></div>`).join("")}</div>`:"")
-      +(rv.note?`<p class="dnote">${esc(rv.note)}</p>`:""),
+  const S=daySummary(id), mins=T&&T.start&&T.end?Math.max(1,Math.round((T.end-T.start)/60000)):0;
+  showDone({eyebrow:`${d.tab} · ${d.title}${mins?` · ${mins} min`:""}`,title:"Day done",
+    body:workoutRows(S,rv.items)+(rv.note?`<p class="dnote">${esc(rv.note)}</p>`:""),
     cta:nxt?`Up next: ${nxt.tab}`:"Done",onCta:nxt?()=>goTab(nxt.id):null});
 }
 function weekDone(s){
@@ -720,6 +765,17 @@ function dayComplete(id){
 }
 function bind(){
   const v=document.getElementById("view");
+  v.querySelectorAll("[data-addex]").forEach(b=>b.onclick=()=>{ const a=b.dataset.addex;
+    if(a==="open"){ addOpen=cur; addPick=""; addCustom=""; addCat=""; render(); return; }
+    if(a==="close"){ addOpen=null; render(); return; }
+    const isC=addPick===CUSTOM, name=isC?addCustom:addPick, cat=isC?(addCat||catOf(addCustom)):catOf(addPick);
+    if(!name||!cat) return; addExtra(cur,name,cat); addOpen=null;
+    const d=DAYS.find(x=>x.id===cur); if(d){ wk.active={...(wk.active||{}),[cur]:d.slots.length-1}; save(); }
+    render(); toast([`Added ${name}`,`Counts as ${XCAT[cat][0].toLowerCase()} this week`]); });
+  { const ap=v.querySelector("#addPick"); if(ap) ap.onchange=()=>{ addPick=ap.value; render(); };
+    const ac=v.querySelector("#addCustom"); if(ac) ac.oninput=()=>{ addCustom=ac.value; }; if(ac) ac.onchange=()=>render();
+    const at=v.querySelector("#addCat"); if(at) at.onchange=()=>{ addCat=at.value; render(); }; }
+  v.querySelectorAll("[data-xrm]").forEach(b=>b.onclick=()=>{ removeExtra(cur,+b.dataset.xrm); render(); });
   v.querySelectorAll("[data-hv]").forEach(b=>b.onclick=()=>{ histView=b.dataset.hv; try{localStorage.setItem(KEY+".hv",histView)}catch(e){}; render(); });
   v.querySelectorAll("[data-cal]").forEach(b=>b.onclick=()=>{ calOff=Math.min(0,calOff+ +b.dataset.cal); calSel=null; render(); });
   v.querySelectorAll("[data-cd]").forEach(b=>b.onclick=()=>{ calSel=calSel===b.dataset.cd?null:b.dataset.cd; render(); });
@@ -749,7 +805,7 @@ function bind(){
     if(!x.w){ const ph=document.getElementById(`w-${cur}-${i}-${k}`).placeholder; if(+ph>0) logSet(i,k,"w",ph); }
     if(!x.r){ const ph=document.getElementById(`r-${cur}-${i}-${k}`).placeholder; if(+ph>0) logSet(i,k,"r",ph); }
     if(!x.d) wtStart(cur);
-    logSet(i,k,"d",!x.d); if(!x.d){ const d0=DAYS.find(z=>z.id===cur), s0=d0.slots[i]; startRest(exName(d0,s0,i),s0.main); }
+    logSet(i,k,"d",!x.d); if(!x.d){ const d0=DAYS.find(z=>z.id===cur), s0=d0.slots[i]; startRest(exName(d0,s0,i),s0,k); }
     if(!x.d) closeSheet();
     if(!x.d&&!(wk.done||{})[cur]&&dayComplete(cur)){ const id=cur, n=setsLogged(id); markDone(id); render(); dayDone(id,n); return; }
     let finished=false;
@@ -777,7 +833,7 @@ function bind(){
     }); }));
   v.querySelectorAll("input[data-act]").forEach(el=>el.onchange=()=>change(()=>{ const k=el.dataset.act; logAct(k,+el.dataset.n,el.value); }));
   v.querySelectorAll("input[data-w]").forEach(el=>el.onchange=()=>{ if(inProf(el)){ stage(el.dataset.w,el.value); return; } if(!wk.setupDone){ wk[el.dataset.w]=el.value; save(); return; } change(()=>{ wk[el.dataset.w]=el.value; }); });
-  v.querySelectorAll("select").forEach(el=>el.onchange=()=>{ set(cur,+el.dataset.i,"choice",el.value); render(); if(el.value===CUSTOM){const c=document.getElementById(`cus-${cur}-${el.dataset.i}`); c&&c.focus();} });
+  v.querySelectorAll("select[data-i]").forEach(el=>el.onchange=()=>{ set(cur,+el.dataset.i,"choice",el.value); render(); if(el.value===CUSTOM){const c=document.getElementById(`cus-${cur}-${el.dataset.i}`); c&&c.focus();} });
   v.querySelectorAll(".custom").forEach(el=>{ el.oninput=()=>set(cur,+el.dataset.i,"custom",el.value); el.onchange=()=>render(); });
   v.querySelectorAll(".nums input[data-k]").forEach(el=>{ el.oninput=()=>set(cur,+el.dataset.i,el.dataset.k,el.value); if(el.dataset.k==="act"){ el.onfocus=()=>{ el._fx=fx(plan()); }; el.onchange=()=>{ const b=fx(plan()); render(); toast(diffFx(el._fx||b,b)); }; } });
 }

@@ -293,3 +293,78 @@ describe("session log for History", () => {
     expect(E.wk.sessions.map(s => s.t)).toEqual([1000, 2000]);
   });
 });
+
+describe("cut-aware overload", () => {
+  const setup = (mode, rate) => { fresh({ mig1: 1, mig2: 1, mig3: 1, focus: "Lower", days: 4, mode, rate, weight: 138 }); return E.DAYS[0]; };
+  const hist = (n, rows) => { rows.forEach((x, k) => { (E.exHist[n] = E.exHist[n] || []).push({ ...x, t: k + 1 }); }); };
+  it("on a cut, two misses keep the weight instead of dropping 10%", () => {
+    const d = setup("Deficit only", 0.5), s = d.slots[0], n = E.exName(d, s, 0);
+    hist(n, [{ w: 145, r: 5 }, { w: 145, r: 5 }]);
+    const t = E.suggest(d, s, 0, false, E.plan());
+    expect(t.w).toBe(145); expect(t.why).toMatch(/hold/);
+  });
+  it("on a cut, three misses ease 5%", () => {
+    const d = setup("Deficit only", 0.5), s = d.slots[0], n = E.exName(d, s, 0);
+    hist(n, [{ w: 140, r: 5 }, { w: 140, r: 5 }, { w: 140, r: 5 }]);
+    expect(E.suggest(d, s, 0, false, E.plan()).w).toBeLessThan(140);
+    expect(E.suggest(d, s, 0, false, E.plan()).w).toBeGreaterThanOrEqual(130);
+  });
+  it("not cutting (recomp at 0.5 lb): two misses still rebuild 10%", () => {
+    const d = setup("Recomp", 0.5), s = d.slots[0], n = E.exName(d, s, 0);
+    hist(n, [{ w: 140, r: 5 }, { w: 140, r: 5 }]);
+    expect(E.cutting()).toBe(false);
+    expect(E.suggest(d, s, 0, false, E.plan()).why).toBe("rebuild");
+  });
+  it("on a cut, an accessory you missed loses a set; a goal note explains", () => {
+    const d = setup("Deficit only", 0.5); const i = d.slots.findIndex(s => !s.main && !s.cardio);
+    const n = E.exName(d, d.slots[i], i), before = E.plan().days[d.id].slots[i].sets;
+    hist(n, [{ w: 30, r: 4 }]);
+    const P = E.plan();
+    expect(P.days[d.id].slots[i].sets).toBe(before - 1);
+    expect(P.notes.some(x => x.startsWith("On a cut, holding"))).toBe(true);
+  });
+});
+
+describe("added exercises", () => {
+  it("categorizes, counts toward the weekly ledger, and is never trimmed", () => {
+    fresh({ mig1: 1, mig2: 1, mig3: 1, focus: "Lower", days: 4, time: 30 });
+    const id = E.DAYS[1].id, len = E.DAYS[1].slots.length;
+    const before = (E.plan().ledger.find(x => x.m === "biceps") || { left: 0 }).left;
+    E.addExtra(id, "Hammer Curl (Dumbbell)");
+    const d = E.DAYS[1];
+    expect(d.slots.length).toBe(len + 1);
+    expect(d.slots[len].label).toBe("Arms");
+    const P = E.plan();
+    expect(P.days[id].slots[len].skip).toBe("");
+    expect(P.ledger.find(x => x.m === "biceps").left).toBeGreaterThan(before);
+    expect(E.slotOrder(d).at(-1)).toBe(d.slots.findIndex(s => s.cardio));
+  });
+  it("guesses a category for a custom name", () => {
+    expect(E.catOf("Banded frog pump")).toBe("lightGlute");
+    expect(E.catOf("Nordic curl")).toBe("ham");
+    expect(E.catOf("Cable crunch")).toBe("core");
+  });
+  it("finishing the day records the extra with its top set; a new week clears it", () => {
+    fresh({ mig1: 1, mig2: 1, mig3: 1, focus: "Lower", days: 4 });
+    const id = E.DAYS[0].id; E.addExtra(id, "Cable Kickback", "lightGlute");
+    const i = E.DAYS[0].slots.length - 1;
+    E.set(id, i, "log", [{ w: 20, r: 12, d: true }, { w: 25, r: 10, d: true }]);
+    E.markDone(id);
+    const ex = E.wk.sessions.at(-1).ex;
+    expect(ex.find(x => x.n === "Cable Kickback")).toMatchObject({ w: 25, r: 10, sets: 2, extra: true });
+    E.newWeek();
+    expect(E.DAYS[0].slots.some(s => s.extra)).toBe(false);
+  });
+});
+
+describe("next-time notes carry over", () => {
+  it("finishing a day saves a note per exercise; reopening the day removes it", () => {
+    fresh({ mig1: 1, mig2: 1, mig3: 1, focus: "Lower", days: 4 });
+    const d = E.DAYS[0], n = E.exName(d, d.slots[0], 0);
+    E.set(d.id, 0, "log", [{ w: 135, r: 10, d: true }]);
+    E.markDone(d.id);
+    expect(E.wk.next[n]).toMatchObject({ tag: "up" });
+    E.markDone(d.id);
+    expect(E.wk.next[n]).toBeUndefined();
+  });
+});

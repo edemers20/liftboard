@@ -174,3 +174,12 @@ Per lift, from your last logged set:
 - **Calendar view:** "How often" averages sessions, lifts and activities a week over the last 8 weeks (or since the first session), plus a bar per weekday showing how many of those weeks had a session that day (green if a lift, pink if only an activity). Below it, a month calendar with a dot per session; tap a day to see what you did.
 - **Weeks view:** the weekly snapshots, moved from Season.
 - **Lifts view:** main lifts with sparklines, moved from Season.
+
+## Cuts, rest, added exercises, summaries (added)
+
+- **On a cut** (Lose fat fast, or any fat-loss pace over 0.5% of body weight a week): missing the rep range keeps the weight ("hold the weight · holding is the win on a cut"); only three misses in a row at the same weight ease it 5%. Not on a cut, two misses still drop 10% ("rebuild"). An accessory that missed its range last time loses one set before any weight comes off. A Goal note says holding is the goal. Adding weight at the top of the range is unchanged.
+- **Rest:** main lifts 2:30 (3:00 at ≤5 reps), other compounds 1:30, isolation 1:15; +15s for one-side work; +30s after the first set of a main or compound lift; 20s after the first half of a superset. ±15s on the bar sets that exercise's base. Old per-exercise tweaks were reset once when this changed. A chime plays when rest ends (Training preferences → Rest timer sound); vibration stays as backup.
+- **Added exercises:** "+ Add exercise" at the end of a lift day. Pick from the list (grouped by area) or type a custom name and choose what it counts as (guessed from the name). The category sets the slot label (so the weekly muscle ledger counts it), the rep range and progression. Added exercises sit after the day's lifts and before the cardio finisher, are never trimmed or marked covered, and are cleared when a new week starts. Remove is available until a set is ticked.
+- **Day done report:** each exercise with its top set (heaviest, then most reps) and the next-time arrow (↑ up, = held, ↓ ease).
+- **History calendar:** tapping a day lists each workout's exercises with top sets (older days rebuilt from lift history).
+- **Next-time notes carry over:** finishing a day saves a note per exercise (`wk.next`); it shows on that exercise the next time you do it ("From last time: go up to 150 lb · ~6 reps"). Reopening the day removes its notes.

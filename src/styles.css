@@ -523,7 +523,7 @@ select,input,textarea,.setrow.now input,.nums input,.field input{border-color:tr
 .cd .dots i.l,.cs.l::before{background:var(--lift)}
 .cd .dots i.a,.cs.a::before{background:var(--act)}
 .calsel{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin-top:12px;padding-top:10px;border-top:1px solid var(--line);font-size:14px}
-.calsel b{flex-basis:100%;font-weight:600}
+.calsel>b{flex-basis:100%;font-weight:600}
 .cs{display:inline-flex;align-items:center;gap:6px}
 .cs::before{content:"";width:8px;height:8px;border-radius:50%}
 .stats.three{grid-template-columns:repeat(3,minmax(0,1fr))}
@@ -538,3 +538,24 @@ select,input,textarea,.setrow.now input,.nums input,.field input{border-color:tr
 .wnums b{font:500 14px 'Noto Sans Mono',monospace;color:var(--fg)}
 .wnums .miss b{color:var(--accent)}
 .wrow .small{margin:0;color:var(--muted);font-size:13px}
+/* added exercises, carry-over notes, workout summary */
+.addex{margin-top:10px;background:var(--surface);border-color:transparent}
+.addpanel{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+.addpanel select,.addpanel input{width:100%}
+.addpanel .small{margin:0;color:var(--muted);font-size:13px}
+.xname{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:16px}
+.xname b{font-weight:600}
+.carry{display:flex;gap:8px;align-items:flex-start;margin:2px 0 6px;padding:8px 10px;border-radius:10px;background:var(--accent-soft);font-size:13px;color:var(--tx2)}
+.carry b{color:var(--fg);font-weight:600}
+.drows.wo .prow{padding:5px 0;border-left:0;border-top:1px solid var(--line);font-size:14px}
+.drows.wo .prow:first-child{border-top:0}
+.drows.wo .prow span{flex:1 1 auto;min-width:0}
+.drows.wo .prow small{color:var(--muted);font-size:11px}
+.drows.wo .prow b{font-size:14px;white-space:nowrap}
+.drows.wo .prow b i{font-style:normal;color:var(--muted);margin-left:4px}
+.drows.wo .prow b.a i{color:var(--accent)}
+.csx{flex-basis:100%;display:flex;flex-direction:column;gap:4px}
+.csx .drows{padding-left:14px}
+.drows.wo{grid-template-columns:minmax(0,1fr);width:100%}
+.csx{min-width:0;width:100%;box-sizing:border-box}
+.csx .drows{box-sizing:border-box}
