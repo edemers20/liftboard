@@ -7,32 +7,35 @@ const CARDIO={
  "Bike Intervals":{met:8.5,steady:"Bike (steady)"},"Rower Intervals":{met:8.5,steady:"Rower (steady)"},
  "Assault Bike Intervals":{met:10,steady:"Bike (steady)"},"Sled Push Intervals":{met:9,steady:"Incline Walk"}
 };
-const PICKLE_MET=4.5, CLIMB_MET=5.0, YOGA_MET={No:2.8,Yes:4.0}, SPIN_MET={"Hard":8.5,"Really hard":10.5}, SPIN_MIN=45;
+const PICKLE_MET=4.5, CLIMB_MET=5.0, YOGA_MET={No:2.8,Yes:4.0},
+  /* Effort for mind-body classes. Yoga: restorative/yin, flow/hatha, power. Pilates: stretch-based mat,
+     most mat or reformer, sculpt/jump-board. Heated yoga adds about 1 MET. */
+  YOGA_EFF={Light:2.3,Moderate:3.0,Hard:4.0}, PIL_EFF={Light:2.5,Moderate:3.0,Hard:4.3}, SPIN_MET={"Hard":8.5,"Really hard":10.5}, SPIN_MIN=45;
 const STEADY=["Incline Walk","Stairmaster","Incline Treadmill Hike (15%)","Bike (steady)","Rower (steady)","Elliptical (steady)","Outdoor Walk (brisk)"];
 const INTERVAL=["Bike Intervals","Rower Intervals","Assault Bike Intervals","Sled Push Intervals"];
 
 /* ---------- Exercise libraries ---------- */
 const L={
- mainGlute:["Hip Thrust (Barbell)","Hip Thrust (Machine)","Smith Hip Thrust","Glute Bridge (Barbell)","B-Stance Hip Thrust (Barbell)","Hip Thrust (Dumbbell)","Banded Hip Thrust"],
- hinge:["Romanian Deadlift (Barbell)","Romanian Deadlift (Dumbbell)","Single-Leg RDL (Dumbbell)","Stiff-Leg Deadlift","Sumo Deadlift","Trap Bar Deadlift","Good Morning","Cable Pull-Through","45° Back Extension (weighted)","Reverse Hyper"],
- uni:["Bulgarian Split Squat","Bulgarian Split Squat (Smith)","Deficit Reverse Lunge (Dumbbell)","Reverse Lunge (Dumbbell)","Walking Lunge (Dumbbell)","Curtsy Lunge","Step-Up (Dumbbell)","Lateral Step-Up","Split Squat (Front-Foot Elevated)","Single-Leg Leg Press"],
- gluteMed:["Hip Abductor (Machine)","Hip Abductor (Machine, leaning forward)","Cable Hip Abduction","Banded Lateral Walk","Side-Lying Hip Abduction (ankle weight)","Banded Seated Abduction"],
- press:["Overhead Press (Barbell)","Overhead Press (Dumbbell, seated)","Overhead Press (Dumbbell, standing)","Arnold Press","Shoulder Press (Machine)","Landmine Press","Half-Kneeling Landmine Press","Smith Overhead Press"],
- vpull:["Lat Pulldown (Single Arm)","Lat Pulldown (Wide)","Lat Pulldown (Close Neutral Grip)","Lat Pulldown (Underhand)","Assisted Pull-Up","Pull-Up","Chin-Up","Negative Pull-Up","Kneeling Single-Arm Cable Pulldown"],
- chest:["Incline Chest Press (Machine)","Incline Dumbbell Press","Incline Barbell Bench","Chest Press (Machine)","Flat Dumbbell Press","Push-Up (deficit or weighted)","Cable Fly","Pec Deck"],
- hrow:["Seated Row (Cable)","Seated Row (Cable, wide bar)","Single-Arm Cable Row","Chest-Supported Row (Dumbbell)","Chest-Supported Row (Machine)","Bent-Over Row (Dumbbell)","Single-Arm Dumbbell Row","Machine Row","Inverted Row"],
+ mainGlute:["Hip Thrust (Barbell)","Hip Thrust (Machine)","Smith Hip Thrust","Glute Bridge (Barbell)","B-Stance Hip Thrust (Barbell)","Hip Thrust (Dumbbell)","Banded Hip Thrust","Glute Bridge (bodyweight)"],
+ hinge:["Romanian Deadlift (Barbell)","Romanian Deadlift (Dumbbell)","Single-Leg RDL (Dumbbell)","Stiff-Leg Deadlift","Sumo Deadlift","Trap Bar Deadlift","Good Morning","Cable Pull-Through","45° Back Extension (weighted)","Reverse Hyper","Single-Leg RDL (bodyweight)","Back Extension (bodyweight)"],
+ uni:["Bulgarian Split Squat","Bulgarian Split Squat (Smith)","Deficit Reverse Lunge (Dumbbell)","Reverse Lunge (Dumbbell)","Walking Lunge (Dumbbell)","Curtsy Lunge","Step-Up (Dumbbell)","Lateral Step-Up","Split Squat (Front-Foot Elevated)","Single-Leg Leg Press","Bulgarian Split Squat (bodyweight)","Reverse Lunge (bodyweight)","Walking Lunge (bodyweight)","Step-Up (bodyweight)","Skater Squat","Pistol Squat (to box)"],
+ gluteMed:["Hip Abductor (Machine)","Hip Abductor (Machine, leaning forward)","Cable Hip Abduction","Banded Lateral Walk","Side-Lying Hip Abduction (ankle weight)","Banded Seated Abduction","Side-Lying Hip Abduction (bodyweight)","Clamshell","Fire Hydrant","Side Plank Hip Abduction"],
+ press:["Overhead Press (Barbell)","Overhead Press (Dumbbell, seated)","Overhead Press (Dumbbell, standing)","Arnold Press","Shoulder Press (Machine)","Landmine Press","Half-Kneeling Landmine Press","Smith Overhead Press","Pike Push-Up"],
+ vpull:["Lat Pulldown (Single Arm)","Lat Pulldown (Wide)","Lat Pulldown (Close Neutral Grip)","Lat Pulldown (Underhand)","Assisted Pull-Up","Pull-Up","Chin-Up","Negative Pull-Up","Kneeling Single-Arm Cable Pulldown","Scapular Pull-Up"],
+ chest:["Incline Chest Press (Machine)","Incline Dumbbell Press","Incline Barbell Bench","Chest Press (Machine)","Flat Dumbbell Press","Push-Up (deficit or weighted)","Cable Fly","Pec Deck","Push-Up","Incline Push-Up","Decline Push-Up","Dips"],
+ hrow:["Seated Row (Cable)","Seated Row (Cable, wide bar)","Single-Arm Cable Row","Chest-Supported Row (Dumbbell)","Chest-Supported Row (Machine)","Bent-Over Row (Dumbbell)","Single-Arm Dumbbell Row","Machine Row","Inverted Row","Inverted Row (feet elevated)"],
  mainRow:["Bent-Over Row (Dumbbell)","Bent-Over Row (Barbell)","Pendlay Row","Chest-Supported Row (Dumbbell)","Chest-Supported Row (Machine)","Seal Row","T-Bar Row","Meadows Row","Seated Row (Cable)","Single-Arm Dumbbell Row"],
  side:["Lateral Raise (Dumbbell)","Cable Lateral Raise","Lateral Raise (Machine)","Lean-Away Lateral Raise","Seated Lateral Raise","Lateral Raise Partials (burnout)","Upright Row (Cable, wide)"],
  rear:["Face Pull (Cable)","Reverse Fly (Cable)","Reverse Fly (Machine)","Reverse Fly (Dumbbell, chest-supported)","Band Pull-Apart","Rear Delt Row (Cable)"],
- arms:["Bicep Curl (Dumbbell)","Hammer Curl","Incline Dumbbell Curl","Cable Curl","Preacher Curl (Machine)","Triceps Pushdown (Cable)","Overhead Triceps Extension (Cable)","Skull Crusher (EZ bar)","Dips (assisted)"],
- quad:["Hack Squat","Box Squat (Barbell)","Back Squat (Barbell)","Front Squat","Smith Squat","Leg Press","Pendulum Squat","Goblet Squat (heel-elevated)","Belt Squat"],
- lightGlute:["Single-Leg Hip Thrust","Glute Bridge (Barbell)","Hip Thrust (Barbell), 60–70%","Cable Kickback","Glute Kickback (Machine)","45° Back Extension (glute bias)","Frog Pump (Dumbbell)"],
- ham:["Leg Curl (Seated)","Leg Curl (Lying)","Single-Leg Leg Curl","Nordic Curl (assisted)","Stability Ball Curl","Sliding Leg Curl"],
+ arms:["Bicep Curl (Dumbbell)","Hammer Curl","Incline Dumbbell Curl","Cable Curl","Preacher Curl (Machine)","Triceps Pushdown (Cable)","Overhead Triceps Extension (Cable)","Skull Crusher (EZ bar)","Dips (assisted)","Bench Dip","Diamond Push-Up"],
+ quad:["Hack Squat","Box Squat (Barbell)","Back Squat (Barbell)","Front Squat","Smith Squat","Leg Press","Pendulum Squat","Goblet Squat (heel-elevated)","Belt Squat","Air Squat","Jump Squat","Wall Sit","Sissy Squat"],
+ lightGlute:["Single-Leg Hip Thrust","Glute Bridge (Barbell)","Hip Thrust (Barbell), 60–70%","Cable Kickback","Glute Kickback (Machine)","45° Back Extension (glute bias)","Frog Pump (Dumbbell)","Single-Leg Glute Bridge (bodyweight)","Frog Pump (bodyweight)","Donkey Kick (bodyweight)"],
+ ham:["Leg Curl (Seated)","Leg Curl (Lying)","Single-Leg Leg Curl","Nordic Curl (assisted)","Stability Ball Curl","Sliding Leg Curl","Nordic Curl","Single-Leg Sliding Leg Curl"],
  lats:["Straight Arm Pulldown","Cable Pullover","Dumbbell Pullover","Lat Pulldown (Single Arm)","Kneeling Single-Arm Cable Pulldown"],
- calves:["Standing Calf Raise (Machine)","Seated Calf Raise","Single-Leg Calf Raise (Dumbbell)","Smith Calf Raise","Leg Press Calf Raise"],
- adductor:["Copenhagen Plank","Hip Adductor (Machine)","Cable Hip Adduction","Lateral Lunge (Dumbbell)","Cossack Squat"],
+ calves:["Standing Calf Raise (Machine)","Seated Calf Raise","Single-Leg Calf Raise (Dumbbell)","Smith Calf Raise","Leg Press Calf Raise","Calf Raise (bodyweight)","Single-Leg Calf Raise (bodyweight)"],
+ adductor:["Copenhagen Plank","Hip Adductor (Machine)","Cable Hip Adduction","Lateral Lunge (Dumbbell)","Cossack Squat","Side-Lying Adduction (bodyweight)"],
  cuff:["Cable External Rotation","Side-Lying External Rotation (Dumbbell)","Band External Rotation","Prone Y-Raise","Face Pull (Cable)"],
- core:["Pallof Press","Dead Bug","Hanging Knee Raise","Ab Wheel","Cable Crunch","Side Plank","Copenhagen Plank","Suitcase Carry"],
+ core:["Pallof Press","Dead Bug","Hanging Knee Raise","Ab Wheel","Cable Crunch","Side Plank","Copenhagen Plank","Suitcase Carry","Plank","Hollow Hold","Hanging Leg Raise","Reverse Crunch","Bird Dog","Mountain Climber","V-Up"],
 };
 /* ---------- Activities ---------- */
 const ACT={
@@ -50,6 +53,7 @@ const ACT={
  spin:{name:"Spin",cls:1}
 };
 const ACT_IDS=Object.keys(ACT), SPORTS=ACT_IDS.filter(a=>ACT[a].sport);
+const yogaMet=()=>(YOGA_EFF[wk.yeff]||3.0)+(wk.heated==="Yes"?1.0:0), pilMet=()=>PIL_EFF[wk.peff]||3.0;
 const actKey=a=>({pickle:"pAct",yoga:"yAct",spin:"sAct"})[a]||a+"Act";
 const minKey=a=>({pickle:"pmin",climb:"cmin",yoga:"ymin"})[a]||a+"min";
 
@@ -147,7 +151,7 @@ const DEF={setupDone:false,sex:"Female",age:30,height:64,weight:150,bf:"",steps:
  acts:{lift:true},sessions:[],extra:{},next:{},sound:"Yes",mainSport:"",sport2:"",stretch:"No",stretchDone:{},focus:"Balanced",
  mode:"Recomp",rate:0.5,share:25,season:"Off-season",ramp:"No",zAct:[],
  days:3,time:60,ss:"Yes",ready:"Normal",sore:"None",cycle:"Not tracking",drink:"0",
- heated:"No",spint:"Hard",done:{},donePlan:{},today:{},wAvg:"",deload:"No",
+ heated:"No",yeff:"Moderate",peff:"Moderate",spint:"Hard",done:{},donePlan:{},today:{},wAvg:"",deload:"No",
  weeks:[],fatigue:[],upNext:"",missedNote:null,calib:0,calibN:0};
 ACT_IDS.forEach(a=>{ if(a==="lift") return; DEF[a]="0"; DEF[actKey(a)]=[]; if(ACT[a].min) DEF[minKey(a)]=ACT[a].min; });
 DEF.ymin=60;
@@ -360,7 +364,7 @@ function musclePriority(){
     if(A.leg>=1){ bump("adductors",1,nm); bump("calves",1,nm); }
     if(A.leg>=2){ bump("hams",1,nm); }
     if(A.pull){ bump("rdelts",1,nm); bump("cuff",1,nm); bump("back",-1,nm+" already trains it"); bump("biceps",-1,nm+" already trains it"); } });
-  ["pilates","yoga"].forEach(a=>{ if(enabled(a)&&cnt(a)>0) bump("core",-1,ACT[a].name.toLowerCase()+" already trains it"); });
+  ["pilates","yoga"].forEach(a=>{ if(enabled(a)&&cnt(a)>0&&wk[a==="yoga"?"yeff":"peff"]!=="Light") bump("core",-1,ACT[a].name.toLowerCase()+" already trains it"); });
   return {P,why};
 }
 const floorSets=p=>p>=5?10:p>=4?8:p>=3?6:p>=2?4:p>=1?2:0;
@@ -471,8 +475,8 @@ function plan(){ buildDefaults(); const cut=cutting();
   const sess=(n,act,pl,rate)=>{let k=0;for(let i=0;i<n;i++)k+=num((act||[])[i],pl)*rate;return k;};
   let sportK=0; sportOn.forEach(([a,m])=>{ sportK+=m*perMin(ACT[a].met); });
   const climbK=cl*75*perMin(ACT.climb.met);
-  const pilK=sess(cnt("pilates"),wk[actKey("pilates")],plannedMin("pilates"),perMin(ACT.pilates.met));
-  const yogaK=sess(yg,wk.yAct,num(wk.ymin,60),perMin(YOGA_MET[wk.heated]||2.8));
+  const pilK=sess(cnt("pilates"),wk[actKey("pilates")],plannedMin("pilates"),perMin(pilMet()));
+  const yogaK=sess(yg,wk.yAct,num(wk.ymin,60),perMin(yogaMet()));
   const spinK=sess(sp,wk.sAct,SPIN_MIN,perMin(SPIN_MET[wk.spint]||8.5));
   const zoneK=ramp?num((wk.zAct||[])[0],45)*perMin(CARDIO["Bike (steady)"].met):0;
   let doneK=0; const cand=[];
@@ -587,7 +591,10 @@ function deloadInfo(){
 
 /* ---------- Progression ---------- */
 const range=r=>{const m=String(r).match(/\d+/g)||[];return m.length?[+m[0],+(m[1]||m[0])]:[8,12];};
-const lastSet=log=>{for(let k=(log||[]).length-1;k>=0;k--){const x=log[k];if(num(x.w,0)>0&&num(x.r,0)>0)return{w:num(x.w,0),r:num(x.r,0)};}return null;};
+/* Bodyweight exercises: the weight field is added load (blank or 0 = just bodyweight), so a set counts with reps alone. */
+const BW_RE=/\(bodyweight\)|push-up|(?<!assisted )pull-up|chin-up|inverted row|plank|dead bug|bird dog|hollow|^nordic curl$|knee raise|leg raise|reverse crunch|mountain climber|v-up|air squat|jump squat|wall sit|sissy squat|skater squat|pistol squat|clamshell|fire hydrant|^dips$|bench dip|sliding leg curl|stability ball curl/i;
+const isBW=n=>BW_RE.test(String(n||""))&&!/assisted|machine|cable/i.test(String(n||""));
+const lastSet=(log,bw)=>{for(let k=(log||[]).length-1;k>=0;k--){const x=log[k];if((bw||num(x.w,0)>0)&&num(x.r,0)>0)return{w:num(x.w,0),r:num(x.r,0)};}return null;};
 const isDB=n=>/dumbbell/i.test(n);
 const roundW=(n,w)=>isDB(n)?Math.round(w/2.5)*2.5:r5(w);
 function incFor(n,s,w){ if(isDB(n)) return w<=20?2.5:5; const lowerMain=s.main&&!s.upperMain; const pct=lowerMain?0.05:s.main?0.025:0.05; const min=lowerMain&&wk.sex==="Male"?10:5; return Math.max(min,r5(w*pct)); }
@@ -597,9 +604,13 @@ function cutting(){ const m=wk.mode; if(m==="Build"||m==="Maintain") return fals
 const missedLast=n=>{ const h=exHist[n]||[], x=h[h.length-1]; return x?x:null; };
 const isIso=s=>!!(s.upperAcc||s.support||s.label==="Glute med");
 function suggest(d,s,i,useLog,P){
-  const n=exName(d,s,i), st=get(d.id,i), h=exHist[n]||[];
-  const now=useLog?lastSet(st.log):null, last=now||h[h.length-1];
-  if(!last||!last.w) return null;
+  const n=exName(d,s,i), st=get(d.id,i), h=exHist[n]||[], bw=isBW(n);
+  const now=useLog?lastSet(st.log,bw):null, last=now||h[h.length-1];
+  if(!last||(!last.w&&!bw)||!last.r) return null;
+  if(bw){ const [lo0,hi0]=range(s.reps), top0=isIso(s)?hi0+3:hi0;
+    if(last.r>=top0) return last.w>0?{w:last.w+5,r:lo0,why:"+5 lb"}:{w:0,r:top0+1,why:"top of the range · add a rep, slow the lowering, or hold 5–10 lb",bwUp:1};
+    if(last.r>=lo0) return {w:last.w,r:Math.min(top0,last.r+1),why:`${Math.min(top0,last.r+1)} reps`};
+    return {w:last.w,r:lo0,why:"hold · aim for the bottom of the range"}; }
   const prev=now?h[h.length-1]:h[h.length-2];
   const [lo,hi]=range(s.reps), top=isIso(s)?hi+3:hi;
   const D=(P&&P.days[d.id])||{};
@@ -619,9 +630,10 @@ function suggest(d,s,i,useLog,P){
 }
 
 function review(d,s,i,P){
-  const st=get(d.id,i), log=(st.log||[]).map(x=>({w:num(x.w,0),r:num(x.r,0)})).filter(x=>x.w>0&&x.r>0);
+  const bw=isBW(exName(d,s,i)), st=get(d.id,i), log=(st.log||[]).map(x=>({w:num(x.w,0),r:num(x.r,0)})).filter(x=>(bw||x.w>0)&&x.r>0);
   if(!log.length) return null;
   const base=suggest(d,s,i,true,P); if(!base) return null;
+  if(bw){ const L0=log[log.length-1]; return {n:exName(d,s,i),w:base.w,why:base.why,tag:base.bwUp||base.w>L0.w?"up":"hold",bw:1}; }
   const n=exName(d,s,i), last=log[log.length-1], first=log[0], A=P.days[d.id].slots[i], D=P.days[d.id];
   const [lo,hi]=range(s.reps), top=isIso(s)?hi+3:hi;
   let {w,why}=base, tag="";
@@ -690,7 +702,7 @@ function daySummary(dayId){ const d=DAYS.find(x=>x.id===dayId); if(!d) return []
   return slotOrder(d).map(i=>{ const s=d.slots[i]; if(s.cardio){ const st=get(dayId,i); return st.cdone||num(st.act,0)>0?{n:exName(d,s,i),cardio:1,min:num(st.act,0)}:null; }
     const log=(get(dayId,i).log||[]).map(x=>({w:num(x.w,0),r:num(x.r,0),d:x.d})).filter(x=>x.d&&x.r>0); if(!log.length) return null;
     const top=log.reduce((a,x)=>x.w>a.w||(x.w===a.w&&x.r>a.r)?x:a); return {n:exName(d,s,i),w:top.w,r:top.r,sets:log.length,extra:!!s.extra}; }).filter(Boolean); }
-function stampNotes(items,t){ wk.next={...(wk.next||{})}; items.forEach(r=>{ wk.next[r.n]={w:r.w,why:r.why,tag:r.tag,t}; }); }
+function stampNotes(items,t){ wk.next={...(wk.next||{})}; items.forEach(r=>{ wk.next[r.n]={w:r.w,why:r.why,tag:r.tag,t,...(r.bw?{bw:1}:{})}; }); }
 /** Mark a day done: logs history, detects fatigue, stores the next-time review. Returns toast lines. */
 function markDone(dayId){
   wk.done=wk.done||{};
@@ -704,7 +716,7 @@ function markDone(dayId){
   const d=DAYS.find(x=>x.id===dayId); let drops=0;
   const P0=plan(), items=[];
   d.slots.forEach((s,i)=>{ if(s.cardio||P0.days[dayId].slots[i].skip) return; const r=review(d,s,i,P0); if(r) items.push(r); });
-  d.slots.forEach((s,i)=>{ if(s.cardio) return; const L=lastSet(get(dayId,i).log); if(!L) return; const n=exName(d,s,i), h=exHist[n]||[], pv=h[h.length-1];
+  d.slots.forEach((s,i)=>{ if(s.cardio) return; const n=exName(d,s,i), L=lastSet(get(dayId,i).log,isBW(n)); if(!L) return; const h=exHist[n]||[], pv=h[h.length-1];
     const rv=items.find(x=>x.n===n);
     if((pv&&wk.deload!=="Yes"&&L.w>=pv.w&&L.r<=pv.r-2)||(rv&&rv.tag==="collapse")) drops++;
     const sd=get(dayId,i).side||sideDefault(n); h.push({w:L.w,r:L.r,t:stamp,season:inSeason()?"In-season":"Off-season",...(UNI_RE.test(n)?{side:sd}:{})}); exHist[n]=h.slice(-24); });
@@ -729,7 +741,7 @@ function markDone(dayId){
 function resyncDone(dayId){
   const t=(wk.doneT||{})[dayId], d=DAYS.find(x=>x.id===dayId); if(!t||!d) return;
   const P=plan(), items=[];
-  d.slots.forEach((s,i)=>{ if(s.cardio) return; const n=exName(d,s,i), L=lastSet(get(dayId,i).log); let h=(exHist[n]||[]).filter(x=>x.t!==t);
+  d.slots.forEach((s,i)=>{ if(s.cardio) return; const n=exName(d,s,i), L=lastSet(get(dayId,i).log,isBW(n)); let h=(exHist[n]||[]).filter(x=>x.t!==t);
     if(L){ const pv=h[h.length-1]; exHist[n]=h; const r=(!P.days[dayId].slots[i].skip)&&review(d,s,i,P); if(r) items.push(r);
       h.push({w:L.w,r:L.r,t,season:inSeason()?"In-season":"Off-season",...(UNI_RE.test(n)?{side:get(dayId,i).side||sideDefault(n)}:{})}); exHist[n]=h.slice(-24); }
     else exHist[n]=h; });
@@ -767,4 +779,4 @@ function newWeek(){
   save(); return ["New week started. Check-in reset to normal."];
 }
 
-export { cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, MUSCLES, slotMuscles, musclePriority, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk };
+export { isBW, yogaMet, pilMet, YOGA_EFF, PIL_EFF, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, MUSCLES, slotMuscles, musclePriority, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk };

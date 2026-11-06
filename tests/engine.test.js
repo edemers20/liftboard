@@ -368,3 +368,34 @@ describe("next-time notes carry over", () => {
     expect(E.wk.next[n]).toBeUndefined();
   });
 });
+
+describe("bodyweight exercises", () => {
+  it("library has bodyweight options and detects them", () => {
+    expect(E.L.chest).toContain("Push-Up");
+    expect(E.L.core).toContain("Plank");
+    expect(E.isBW("Push-Up")).toBe(true);
+    expect(E.isBW("Assisted Pull-Up")).toBe(false);
+    expect(E.isBW("Hip Thrust (Barbell)")).toBe(false);
+  });
+  it("a bodyweight set counts with reps only, and progresses by reps", () => {
+    fresh({ mig1: 1, mig2: 1, mig3: 1, focus: "Lower", days: 4 });
+    const id = E.DAYS[0].id; E.addExtra(id, "Push-Up", "chest");
+    const d = E.DAYS[0], i = d.slots.length - 1;
+    E.set(id, i, "log", [{ w: "", r: 12, d: true }]);
+    E.markDone(id);
+    expect(E.exHist["Push-Up"].at(-1)).toMatchObject({ w: 0, r: 12 });
+    expect(E.wk.sessions.at(-1).ex.find(x => x.n === "Push-Up")).toMatchObject({ w: 0, r: 12 });
+    expect(E.wk.next["Push-Up"].tag).toBe("up");
+  });
+});
+
+describe("yoga and pilates effort", () => {
+  it("effort sets calories; light classes don't count as core work", () => {
+    const k = eff => fresh({ mig1: 1, mig2: 1, mig3: 1, acts: { lift: true, pilates: true }, pilates: "2", peff: eff }).math.otherK;
+    expect(k("Hard")).toBeGreaterThan(k("Moderate"));
+    expect(k("Moderate")).toBeGreaterThan(k("Light"));
+    const P = fresh({ mig1: 1, mig2: 1, mig3: 1, acts: { lift: true, pilates: true }, pilates: "2", peff: "Light" });
+    const Q = fresh({ mig1: 1, mig2: 1, mig3: 1, acts: { lift: true, pilates: true }, pilates: "2", peff: "Moderate" });
+    expect(P.priority.P.core).toBeGreaterThan(Q.priority.P.core);
+  });
+});

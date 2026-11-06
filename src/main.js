@@ -1,6 +1,6 @@
 import "./styles.css";
 import { attachDials } from "./dial.js";
-import { cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk } from "./engine.js";
+import { isBW, yogaMet, pilMet, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk } from "./engine.js";
 
 const storage=(()=>{ try{ const k="__t"; localStorage.setItem(k,"1"); localStorage.removeItem(k); return localStorage; }catch(e){ const m=new Map(); return {getItem:k=>m.get(k)??null,setItem:(k,v)=>m.set(k,String(v))}; } })();
 init(storage);
@@ -42,7 +42,9 @@ const INFO={
  wAvg:"Optional. After 3+ weeks, maintenance corrects itself from your real change. Assumes you ate close to target.",
  ss:"No: exercises run as straight sets. At 60 min or less, optional accessories are cut to fit the time.",
  today:"Good: −1 recovery load and a push-your-top-set cue. Normal: plan as written. Rough gives a shortened day: −1 set on everything, optional accessories cut, easy-pace finisher, no weight increases.",
- heated:"Heated burns more.",
+ heated:"Heated adds roughly a third more calories.",
+ yeff:"How hard the class usually is. Sets calories burned. Light classes don't count toward your core work; moderate and hard ones do, so the app eases off core accessories.",
+ peff:"How hard the class usually is. Sets calories burned. Light classes don't count toward your core work; moderate and hard ones do, so the app eases off core accessories.",
  progress:"↑ Up: hit the top of the range, ~5% more on lower lifts, ~2.5% on upper. = Hold: same weight, one more rep. ↓ Down: missed the bottom twice, rebuild at −10%. ! Fatigue: reps fell 4+ across sets; rest longer.",
  changes:"Everything this week's check-in and activities changed, grouped by cause.",
  muscles:"Sets done this week against a target set by your focus and sports. Direct work counts 1 set; helper work counts ½ (a row also trains biceps and rear delts). The faint bar is what's still planned. Skip something and a later day brings back a trimmed exercise or adds a set; when a smaller muscle is already covered, its repeat on a later day becomes optional.",
@@ -53,7 +55,7 @@ const INFO={
 };
 SPORTS.forEach(a=>{ INFO[a]=sportInfo(a); INFO[minKey(a)]="Planned length per session."; });
 INFO.climb="Each session counts as about 75 minutes toward cardio. Pulling and arm work on lift days is trimmed so you don't double up.";INFO.yoga="Counts toward cardio."; INFO.pilates="Counts toward cardio at a light, yoga-like burn."; INFO[minKey("pilates")]="Class length."; INFO.spin="Counts toward cardio. Hard weeks cut a quad set.";
-const LBL={muscles:"Muscles",acts:"Activities",mainSport:"Main sport",focus:"Focus",season:"Season",ramp:"Ramp",deload:"Deload",mode:"Goal",rate:"Lose lb/week",share:"From cardio",sex:"Sex",age:"Age",height:"Height",weight:"Weight",bf:"Body fat",steps:"Steps",oura:"Daily burn",days:"Lifting days",time:"Session length",liftK:"Avg lift kcal",ready:"Readiness",sore:"Soreness",cycle:"Cycle",drink:"Drinking",load:"Recovery load",wAvg:"Avg weight",ymin:"Class length",heated:"Heated",spint:"Intensity",today:"Today",ss:"Supersets",progress:"Progress",changes:"Changes",watch:"Watch",lifts:"Main lifts",weeks:"Previous weeks",maint:"Maintenance"};
+const LBL={muscles:"Muscles",acts:"Activities",mainSport:"Main sport",focus:"Focus",season:"Season",ramp:"Ramp",deload:"Deload",mode:"Goal",rate:"Lose lb/week",share:"From cardio",sex:"Sex",age:"Age",height:"Height",weight:"Weight",bf:"Body fat",steps:"Steps",oura:"Daily burn",days:"Lifting days",time:"Session length",liftK:"Avg lift kcal",ready:"Readiness",sore:"Soreness",cycle:"Cycle",drink:"Drinking",load:"Recovery load",wAvg:"Avg weight",ymin:"Class length",heated:"Heated",yeff:"Effort",peff:"Effort",spint:"Intensity",today:"Today",ss:"Supersets",progress:"Progress",changes:"Changes",watch:"Watch",lifts:"Main lifts",weeks:"Previous weeks",maint:"Maintenance"};
 ACT_IDS.forEach(a=>{ LBL[a]=ACT[a].name; LBL[minKey(a)]="Planned min"; });
 const POP={}; let popN=0;
 function hdr(title,keys,tag){ const id="p"+(++popN), t=tag||"h3";
@@ -131,7 +133,7 @@ function dialCfg(el){
   const d=el.dataset;
   if(d.f==="w"||d.f==="r"){
     const log=get(cur,+d.i).log||[], k=+d.set, prev=log[k-1]||{}, day=DAYS.find(x=>x.id===cur), slot=day&&day.slots[+d.i];
-    if(d.f==="w") return {label:"Weight",min:0,max:600,step:2.5,unit:"lb",start:prev.w||(+el.placeholder>0?el.placeholder:(slot?startW(exName(day,slot,+d.i),slot):45))};
+    if(d.f==="w") return {label:slot&&isBW(exName(day,slot,+d.i))?"Added weight":"Weight",min:0,max:600,step:2.5,unit:"lb",start:prev.w||(+el.placeholder>0?el.placeholder:(slot?startW(exName(day,slot,+d.i),slot):45))};
     return {label:"Reps",min:0,max:40,step:1,start:prev.r||(slot?range(slot.reps)[1]:10)};
   }
   if(d.k==="act") return {label:"Actual minutes",min:0,max:120,step:1,unit:"min",start:el.placeholder};
@@ -343,6 +345,7 @@ const whyTxt=A=>{ const w=A.why.filter(x=>!x.includes("focus")&&!x.includes("fee
 /* First-time starting weight, by equipment, when an exercise has no history yet */
 function startW(name,s){
   const n=name.toLowerCase(), main=!!s.main;
+  if(isBW(name)) return 0;
   if(/band|plank|push-up|pull-up|chin-up|dead bug|bird dog|copenhagen|nordic|inverted|stability ball|sliding|knee raise|ab wheel|frog pump|back extension \(glute/.test(n)&&!/weighted/.test(n)) return 0;
   if(/smith/.test(n)) return main?95:65;
   if(/barbell|trap bar|deadlift|good morning|pendlay|seal row|t-bar|box squat|back squat|front squat|belt squat/.test(n)) return main?95:65;
@@ -403,7 +406,7 @@ function renderDayHTML(d,P){
     }else{
       const today=suggest(d,s,i,false,P), nm=exName(d,s,i);
       const carry=(wk.next||{})[nm];
-      if(carry&&carry.t!==(wk.doneT||{})[d.id]) html+=`<p class="carry">${tagH(carry.tag)}<span>${{up:"Go up to",down:"Ease to"}[carry.tag]||"Stay at"} <b>${carry.w} lb</b> · ${esc(carry.why)}</span></p>`;
+      if(carry&&carry.t!==(wk.doneT||{})[d.id]) html+=`<p class="carry">${tagH(carry.tag)}<span>${isBW(nm)?(carry.w>0?`${{up:"Go up to",down:"Ease to"}[carry.tag]||"Stay at"} <b>BW+${carry.w} lb</b> · `:carry.tag==="up"?"<b>Up</b> · ":"<b>Same</b> · "):`${{up:"Go up to",down:"Ease to"}[carry.tag]||"Stay at"} <b>${carry.w} lb</b> · `}${esc(carry.why)}</span></p>`;
       const [lo,hi]=range(s.reps), top=(s.upperAcc||s.support||s.label==="Glute med")?hi+3:hi;
       const lastT=log.slice(0,ticks).reverse().find(x=>x.d&&+x.w>0&&+x.r>0);
       if(!D.done&&!fin&&lastT&&st.nudged!==ticks){ const w0=+lastT.w, r0=+lastT.r, inc=incFor(nm,s,w0);
@@ -414,7 +417,7 @@ function renderDayHTML(d,P){
       html+=`<div class="sets">`;
       for(let k=0;k<nRows;k++){ const x=log[k]||{}, pw=k>0&&+(log[k-1]||{}).w>0?(log[k-1]||{}).w:"";
         html+=`<div class="setrow${x.d?" done":""}${k===ticks&&!fin?" now":""}"><span class="sn">${k+1}</span>
-          <input id="w-${base}-${k}" data-i="${i}" data-set="${k}" data-f="w" inputmode="decimal" placeholder="${D.done?"lb":pw||(today?today.w:"lb")}" aria-label="Set ${k+1} weight" value="${esc(x.w||"")}"><span class="u">lb</span>
+          <input id="w-${base}-${k}" data-i="${i}" data-set="${k}" data-f="w" inputmode="decimal" placeholder="${isBW(nm)?(D.done?"BW":pw||(today&&today.w?today.w:"BW")):D.done?"lb":pw||(today?today.w:"lb")}" aria-label="Set ${k+1} ${isBW(nm)?"added weight (blank for bodyweight)":"weight"}" value="${esc(x.w||"")}"><span class="u">${isBW(nm)?"+lb":"lb"}</span>
           <input id="r-${base}-${k}" data-i="${i}" data-set="${k}" data-f="r" inputmode="numeric" placeholder="${D.done?"reps":today&&today.r?today.r:range(s.reps)[0]}" aria-label="Set ${k+1} reps" value="${esc(x.r||"")}">
           <button type="button" class="chk${fxOnce.chk===`${base}-${k}`?" pop":""}" data-i="${i}" data-set="${k}" aria-pressed="${!!x.d}" aria-label="Set ${k+1} done">✓</button></div>`; }
       html+=`<button type="button" class="btn addset" data-i="${i}">+ Set</button></div>`;
@@ -473,15 +476,17 @@ function rows(key,n,pl,rate,label,noK){
     <div class="nums two"><label for="${key}-${i}">Actual min<input id="${key}-${i}" data-act="${key}" data-n="${i}" inputmode="numeric" placeholder="${pl}" value="${esc(v)}"></label></div></div>`; }
   return h;
 }
+/* Effort for yoga and pilates: sets calories, and light classes don't count as core work */
+function effortSeg(key,desc){ const v=wk[key]||"Moderate"; return `${seg(key,"Effort",["Light","Moderate","Hard"],v)}<p class="small effd">${desc[v]}</p>`; }
 function renderAct(a){
   if(a==="zone2") return `<div class="dayhead"><h2>Zone 2</h2></div>
   <div class="list">${rows("zAct",1,45,perMin(CARDIO["Bike (steady)"].met),"Zone 2 session")}</div>`;
   const n=cnt(a), A=ACT[a];
   if(A.noMin) return `<div class="dayhead"><h2>${A.name}</h2></div><div class="panel">${hdr("This week",[a])}${stepper(a,"Sessions",[0,1,2,3,4,5,6,7])}</div>`;
-  if(a==="yoga") return `<div class="dayhead"><h2>Yoga</h2></div><div class="panel" style="margin-top:12px">${hdr("This week",["yoga","ymin","heated"])}${stepper("yoga","Sessions",[0,1,2,3,4,5,6,7])}${stepper("ymin","Class length",[45,60,75,90],"min")}${toggle("heated","Heated")}</div>
-  <div class="list" style="margin-top:12px">${rows("yAct",n,num(wk.ymin,60),perMin(YOGA_MET[wk.heated]||2.8),"Class")}</div>`;
-  if(a==="pilates") return `<div class="dayhead"><h2>Pilates</h2></div><div class="panel" style="margin-top:12px">${hdr("This week",["pilates",minKey("pilates")])}${stepper("pilates","Sessions",[0,1,2,3,4,5,6,7])}${stepper(minKey("pilates"),"Class length",[45,50,55,60],"min")}</div>
-  <div class="list" style="margin-top:12px">${rows(actKey("pilates"),n,plannedMin("pilates"),perMin(A.met),"Class")}</div>`;
+  if(a==="yoga") return `<div class="dayhead"><h2>Yoga</h2></div><div class="panel" style="margin-top:12px">${hdr("This week",["yoga","ymin","yeff","heated"])}${stepper("yoga","Sessions",[0,1,2,3,4,5,6,7])}${stepper("ymin","Class length",[45,60,75,90],"min")}${effortSeg("yeff",{Light:"Restorative, yin, gentle stretch",Moderate:"Flow, vinyasa or hatha",Hard:"Power or sculpt; sweaty and shaky"})}${toggle("heated","Heated")}</div>
+  <div class="list" style="margin-top:12px">${rows("yAct",n,num(wk.ymin,60),perMin(yogaMet()),"Class")}</div>`;
+  if(a==="pilates") return `<div class="dayhead"><h2>Pilates</h2></div><div class="panel" style="margin-top:12px">${hdr("This week",["pilates",minKey("pilates"),"peff"])}${stepper("pilates","Sessions",[0,1,2,3,4,5,6,7])}${stepper(minKey("pilates"),"Class length",[45,50,55,60],"min")}${effortSeg("peff",{Light:"Stretch-based or beginner mat",Moderate:"Most mat or reformer classes",Hard:"Sculpt, jump board or burn-style"})}</div>
+  <div class="list" style="margin-top:12px">${rows(actKey("pilates"),n,plannedMin("pilates"),perMin(pilMet()),"Class")}</div>`;
   if(a==="spin") return `<div class="dayhead"><h2>Spin</h2></div><div class="panel" style="margin-top:12px">${hdr("This week",["spin","spint"])}${stepper("spin","Sessions",[0,1,2,3,4,5,6,7])}${seg("spint","Intensity",["Hard","Really hard"])}</div>
   <div class="list" style="margin-top:12px">${rows("sAct",n,SPIN_MIN,perMin(SPIN_MET[wk.spint]||8.5),"Class")}</div>`;
   return `<div class="dayhead"><h2>${A.name}</h2></div><div class="panel" style="margin-top:12px">${hdr("This week",[a,minKey(a)])}${stepper(a,"Sessions",[0,1,2,3,4,5,6,7])}
@@ -736,11 +741,13 @@ function setupDone(){
   showDone({eyebrow:"Setup saved",title:"Your plan is ready",body:`<p class="psent">${sentenceHTML(planSentence(P))}</p>`,
     cta:"See this week",onCta:()=>goTab("week")});
 }
+/* "145 × 8"; bodyweight shows "BW × 12" or "BW+10 × 8" */
+const fmtSet=(n,w,r)=>`${isBW(n)?(+w>0?`BW+${w}`:"BW"):w} × ${r}`;
 /* Each exercise with its top set; the arrow is what happens next time (↑ up, = held, ↓ ease). */
 function workoutRows(S,items){
   if(!S.length) return `<p class="dnote">No sets logged.</p>`;
   return `<div class="drows wo">${S.map(x=>{ const r=(items||[]).find(y=>y.n===x.n);
-    return `<div class="prow"><span>${esc(x.n)}${x.extra?` <small>added</small>`:""}</span><b class="${r&&r.tag==="up"?"a":""}">${x.cardio?`${x.min?x.min+" min":"done"}`:`${x.w} × ${x.r}`}${r?` <i aria-label="Next time: ${TAGTXT[r.tag]}">${TAGICON[r.tag]}</i>`:""}</b></div>`; }).join("")}</div>`;
+    return `<div class="prow"><span>${esc(x.n)}${x.extra?` <small>added</small>`:""}</span><b class="${r&&r.tag==="up"?"a":""}">${x.cardio?`${x.min?x.min+" min":"done"}`:fmtSet(x.n,x.w,x.r)}${r?` <i aria-label="Next time: ${TAGTXT[r.tag]}">${TAGICON[r.tag]}</i>`:""}</b></div>`; }).join("")}</div>`;
 }
 function dayDone(id,sets){
   const d=DAYS.find(x=>x.id===id), rv=(wk.review||{})[id]||{items:[]}, c=t=>rv.items.filter(x=>x.tag===t).length;
