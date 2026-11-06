@@ -208,6 +208,9 @@ function renderSeason(P){
     <div class="q"><span>Avg lift kcal</span>${fld("liftK","","numeric","","sm")}</div></div>`:""}
   <div class="panel" id="profileBox"><h3>Profile</h3>${profileHTML(false,{...wk,...(draft||{})})}<button class="btn primary" id="profSave" type="button"${draftDirty()?"":" disabled"}>Save changes</button></div>
   ${moveHTML()}
+  <div class="panel"><h3>Your data</h3><p class="small">Everything lives on this phone only. Download a backup now and then; restoring replaces what's here.</p>
+    <div class="foot" style="margin:0"><button class="btn" id="bkDown" type="button">Download backup</button><label class="btn" for="bkFile">Restore backup<input id="bkFile" type="file" accept="application/json,.json" hidden></label></div></div>
+  <p class="small disclaimer">Lift Board gives general training and nutrition estimates, not medical advice. Check with a doctor before big changes, especially if you're pregnant, injured or managing a health condition.</p>
   <div class="foot season-foot"><button class="btn" id="replayTour" type="button">Replay tour</button><button class="btn" id="resetProfile" type="button">Reset profile</button></div>`;
 }
 /* ---------- History: calendar of sessions, previous weeks, main lifts ---------- */
@@ -803,6 +806,15 @@ function dayComplete(id){
 }
 function bind(){
   const v=document.getElementById("view");
+  { const bd=v.querySelector("#bkDown"); if(bd) bd.onclick=()=>{ const data={app:"liftboard",v:1,at:new Date().toISOString(),keys:{}};
+      ["liftboard.v1","liftboard.week.v2","liftboard.hist.v1"].forEach(k=>{ try{ data.keys[k]=localStorage.getItem(k); }catch(e){} });
+      const url=URL.createObjectURL(new Blob([JSON.stringify(data)],{type:"application/json"})), a=document.createElement("a");
+      a.href=url; a.download=`liftboard-backup-${new Date().toISOString().slice(0,10)}.json`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),2000);
+      try{ wk.lastBackup=Date.now(); save(); }catch(e){} toast(["Backup downloaded"]); };
+    const bf=v.querySelector("#bkFile"); if(bf) bf.onchange=()=>{ const f=bf.files&&bf.files[0]; if(!f) return; const r=new FileReader();
+      r.onload=()=>{ try{ const d=JSON.parse(r.result); if(d.app!=="liftboard"||!d.keys) throw 0;
+        askSure({title:"Restore backup?",text:`Replaces everything on this phone with the backup from ${new Date(d.at).toLocaleDateString()}.`,ok:"Restore",onOk:()=>{ Object.entries(d.keys).forEach(([k,x])=>{ if(x!=null) localStorage.setItem(k,x); }); location.reload(); }}); }
+        catch(e){ toast(["That file isn't a Lift Board backup"]); } }; r.readAsText(f); }; }
   v.querySelectorAll("[data-testsound]").forEach(b=>b.onclick=()=>chimeIn(0));
   v.querySelectorAll("[data-collapse]").forEach(r=>{ const go=()=>{ wk.active={...(wk.active||{}),[cur]:-1}; save(); render(); };
     r.onclick=go; r.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } }; });
