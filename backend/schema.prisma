@@ -1,0 +1,147 @@
+// Lift Board · proposed database schema (Postgres on Vercel via Neon). Draft for review.
+// Source of truth = what the person entered (profile, settings, check-ins) + what they did (set logs, activity sessions).
+// Everything the app computes (plan, targets, history charts, summaries) is derived on the device from these.
+
+generator client { provider = "prisma-client-js" }
+datasource db { provider = "postgresql"; url = env("DATABASE_URL") }
+
+model User {
+  id         String   @id @default(cuid())
+  email      String   @unique
+  createdAt  DateTime @default(now())
+  profile    Profile?
+  settings   Settings?
+  weeks      Week[]
+  setLogs    SetLog[]
+  activities ActivitySession[]
+  notes      NextNote[]
+  exercises  Exercise[]          // custom exercises this person created
+}
+
+model Profile {                  // Bio data: health data, so covered by consent + export + delete
+  userId    String   @id
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sex       String              // Female | Male | Other
+  birthYear Int?
+  heightIn  Float
+  weightLb  Float
+  bodyFat   Float?
+  steps     Int?
+  dailyBurn Int?               // from a wearable, optional
+  units     String   @default("lb")
+  updatedAt DateTime @updatedAt
+}
+
+model Settings {                 // Season + goal + preferences (today's `wk` minus weekly check-ins)
+  userId       String   @id
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mainSport    String?
+  sport2       String?
+  season       String   @default("Off-season")
+  ramp         Boolean  @default(false)
+  goal         String   @default("Recomp")   // Deficit only | Recomp | Maintain | Build
+  rateLbWk     Float    @default(0.5)
+  cardioShare  Int      @default(25)
+  focus        String   @default("Balanced")
+  sessionMin   Int      @default(60)
+  supersets    Boolean  @default(true)
+  stretching   Boolean  @default(false)
+  timerSound   Boolean  @default(true)
+  guidance     String   @default("More")     // More | Less
+  activities   Json                          // {pickle:true, pilates:true, ...} + per-activity prefs (effort, class length)
+  updatedAt    DateTime @updatedAt
+}
+
+model Week {                     // One check-in period; starts when the person taps Start new week
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  startedAt  DateTime
+  endedAt    DateTime?
+  liftDays   Int
+  checkIn    Json                // readiness, soreness, cycle, drinking, deload, sessions per activity, avg weight
+  snapshot   Json?               // written at close: goal, focus, lifts done/planned, intake, calibration, fast pace
+  days       PlannedDay[]
+  @@index([userId, startedAt])
+}
+
+model PlannedDay {
+  id        String   @id @default(cuid())
+  weekId    String
+  week      Week     @relation(fields: [weekId], references: [id], onDelete: Cascade)
+  templateId String              // d1, d2, g2 … (engine template)
+  position  Int                  // Day 1..7
+  feel      String?              // how do you feel today
+  startedAt DateTime?            // workout timer
+  doneAt    DateTime?
+  slots     Slot[]
+}
+
+model Slot {
+  id          String   @id @default(cuid())
+  dayId       String
+  day         PlannedDay @relation(fields: [dayId], references: [id], onDelete: Cascade)
+  index       Int                // template slot index; added exercises come after the template
+  added       Boolean  @default(false)
+  category    String?            // for added exercises: hinge, side, core …
+  exerciseId  String
+  exercise    Exercise @relation(fields: [exerciseId], references: [id])
+  startSide   String?
+  sets        SetLog[]
+}
+
+model Exercise {                 // Stable IDs fix today's "history keyed by name" problem
+  id        String  @id         // built-ins use slugs: hip-thrust-barbell
+  name      String
+  lists     String[]            // movement lists it belongs to (mainGlute, uni …)
+  equipment String              // bar | db | cable | machine | bw | other
+  bodyweight Boolean @default(false)
+  ownerId   String?             // null = built-in
+  owner     User?   @relation(fields: [ownerId], references: [id])
+  slots     Slot[]
+  setLogs   SetLog[]
+}
+
+model SetLog {                   // The source of truth for history, overload, summaries and the muscle ledger
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  slotId      String?
+  slot        Slot?    @relation(fields: [slotId], references: [id], onDelete: SetNull)
+  exerciseId  String
+  exercise    Exercise @relation(fields: [exerciseId], references: [id])
+  setIndex    Int
+  weightLb    Float?             // added load for bodyweight exercises
+  reps        Int?
+  done        Boolean  @default(false)
+  side        String?
+  loggedAt    DateTime @default(now())
+  clientId    String   @unique   // generated on the phone so offline writes don't duplicate
+  updatedAt   DateTime @updatedAt
+  @@index([userId, exerciseId, loggedAt])
+}
+
+model ActivitySession {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  weekId    String?
+  kind      String               // pickle, pilates, yoga, spin, zone2, finisher …
+  minutes   Int?
+  effort    String?
+  at        DateTime
+  clientId  String   @unique
+  updatedAt DateTime @updatedAt
+}
+
+model NextNote {                 // "Go up to 150 lb · ~6 reps", shown next time
+  userId     String
+  user       User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exerciseId String
+  targetLb   Float?
+  tag        String              // up | hold | down | collapse
+  why        String
+  fromDayId  String?
+  updatedAt  DateTime @updatedAt
+  @@id([userId, exerciseId])
+}
