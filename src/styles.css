@@ -559,3 +559,8 @@ select,input,textarea,.setrow.now input,.nums input,.field input{border-color:tr
 .drows.wo{grid-template-columns:minmax(0,1fr);width:100%}
 .csx{min-width:0;width:100%;box-sizing:border-box}
 .csx .drows{box-sizing:border-box}
+#doneBtn:disabled{background:var(--surface);color:var(--muted);opacity:1}
+.slot.cur .row1[data-collapse]{cursor:pointer}
+.calsel{scroll-margin-top:72px}
+.calsel>.plab{flex-basis:100%}
+.calsel>h3{flex-basis:100%;margin:-4px 0 2px}

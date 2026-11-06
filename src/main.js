@@ -163,7 +163,7 @@ function profileHTML(withGoal,src){
   ${sports.length?G(`<div class="q"><span>Sports in season<small> · up to two. Tap a picked sport again to make it primary.</small></span><div class="seg sportseg">${[["","None"],...sports.map(a=>[a,ACT[a].name])].map(([a,l])=>{ const p=a&&src.mainSport===a, q=a&&src.sport2===a, on=a?p||q:!src.mainSport;
     return `<button type="button" data-sp="${a}" aria-pressed="${!!on}">${l}${p&&src.sport2?`<small class="prim">primary</small>`:""}</button>`; }).join("")}</div></div>
   ${withGoal&&hs?toggle("season","In-season",src.season,"In-season","Off-season"):""}`):""}
-  ${en("lift")?G(`${hdr("Lifting",["focus","days"])}${stepper("days","Lifting days",(src.season==="In-season"&&hs?[0,1,2,3]:[0,1,2,3,4,5,6,7]),"",src.days)}${String(src.days)==="0"?"":seg("focus","Focus",[["Lower","Lower body"],["Balanced","Balanced"],["Upper","Upper body"]],src.focus)}`):""}
+  ${en("lift")?G(`${hdr("Lifting",withGoal?["focus","days"]:["focus"])}${withGoal?stepper("days","Lifting days",(src.season==="In-season"&&hs?[0,1,2,3]:[0,1,2,3,4,5,6,7]),"",src.days):""}${String(src.days)==="0"?"":seg("focus","Focus",[["Lower","Lower body"],["Balanced","Balanced"],["Upper","Upper body"]],src.focus)}`):""}
   ${withGoal?G(`${hdr("Goal",["mode"])}${seg("mode","Goal",GOALS)}`):""}
   ${G(`${hdr("Bio Data",["sex","age","height","weight","bf","steps","oura"])}
   ${seg("sex","Sex",["Female","Male","Other"],src.sex)}
@@ -241,12 +241,13 @@ function calHTML(){
     const dots=L.slice(0,3).map(x=>`<i class="${x.k==="lift"?"l":"a"}"></i>`).join("");
     cells+=`<button type="button" class="cd${k===todayK?" today":""}${L.length?" has":""}" data-cd="${k}" aria-pressed="${calSel===k}" aria-label="${lab}${L.length?": "+L.map(sessName).join(", "):""}"${L.length?"":" disabled"}><span>${d}</span><span class="dots">${dots}</span></button>`; }
   const sel=calSel&&by[calSel]?by[calSel]:null;
-  const selD=sel?new Date(sel[0].t).toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"}):"";
+  const selD=sel?new Date(sel[0].t).toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric"}):"";
+  const selT=sel?[...new Set(sel.map(x=>x.k==="lift"?(x.title&&x.title!=="Lift"?x.title.split(" · ").pop():"Lift"):sessName(x)))].join(" + "):"";
   return `${S.length?freqHTML(S):""}
   <div class="panel">
     <div class="calhead"><button type="button" class="btn sm calnav" data-cal="-1" aria-label="Previous month">‹</button><h3>${m0.toLocaleDateString(undefined,{month:"long",year:"numeric"})}</h3><button type="button" class="btn sm calnav" data-cal="1" aria-label="Next month"${calOff>=0?" disabled":""}>›</button></div>
     <div class="cal"><span class="cw">M</span><span class="cw">T</span><span class="cw">W</span><span class="cw">T</span><span class="cw">F</span><span class="cw">S</span><span class="cw">S</span>${cells}</div>
-    ${sel?`<div class="calsel"><b>${selD}</b>${sel.map(x=>`<div class="csx"><span class="cs ${x.k==="lift"?"l":"a"}">${esc(sessName(x))}${x.min?` · ${x.min} min`:""}</span>${x.k==="lift"?workoutRows(sessEx(x)):""}</div>`).join("")}</div>`:""}
+    ${sel?`<div class="calsel" id="calsel"><span class="plab">${selD}</span><h3>${esc(selT)}</h3>${sel.map(x=>`<div class="csx">${sel.length>1||x.min?`<span class="cs ${x.k==="lift"?"l":"a"}">${esc(sessName(x))}${x.min?` · ${x.min} min`:""}</span>`:""}${x.k==="lift"?workoutRows(sessEx(x)):""}</div>`).join("")}</div>`:""}
     ${S.length?"":`<p class="note">Sessions show up here when you finish a lift day or enter minutes for an activity.</p>`}
   </div>`;
 }
@@ -333,6 +334,7 @@ function skipWhy(A){
 }
 function activeIdx(d,D){
   const c=exCands(d,D), a=(wk.active||{})[d.id];
+  if(a===-1) return -1;
   if(a!=null&&d.slots[a]&&D.slots[a]&&D.slots[a].skip!=="hidden") return a;
   return c.find(i=>!exDone(d,D,i)) ?? c[c.length-1];
 }
@@ -387,7 +389,7 @@ function renderDayHTML(d,P){
     const nRows=Math.max(A.sets||0,log.length);
     const pill=s.cardio?(D.done?`~${r5(A.doneK||0)} kcal`:A.min?`${A.min} min`:"Optional"):fin?"Done":`Set ${Math.min(ticks+1,A.sets)} of ${A.sets}`;
     html+=`<section class="slot cur${s.ss&&wk.ss!=="No"?" ss":""}${fxOnce.slot===base?" justdone":""}" aria-current="step">
-      <div class="row1"><span class="label hdr">${s.extra?`Added · ${s.label}`:s.label}${s.ss&&wk.ss!=="No"?` · Superset ${s.ss}`:""}</span><span class="pill">${pill}</span></div>
+      <div class="row1" role="button" tabindex="0" data-collapse aria-expanded="true" aria-label="Collapse ${esc(exName(d,s,i))}"><span class="label hdr">${s.extra?`Added · ${s.label}`:s.label}${s.ss&&wk.ss!=="No"?` · Superset ${s.ss}`:""}</span><span class="pill">${pill}</span></div>
       ${s.cardio?"":`<div class="bars" style="--n:${nRows}" aria-hidden="true">${Array.from({length:nRows},(_,k)=>`<i class="${k<ticks?"on":k===ticks&&!fin?"now":""}"></i>`).join("")}</div>`}
       ${s.extra?`<div class="xname"><b>${esc(exName(d,s,i))}</b>${(st.log||[]).some(x=>x.d)?"":`<button type="button" class="btn mini" data-xrm="${i-(d.slots.length-((wk.extra||{})[d.id]||[]).length)}">Remove</button>`}</div>`:`<select id="sel-${base}" data-i="${i}" aria-label="${esc(s.label)} exercise">${opts}</select>
       <input id="cus-${base}" class="custom${isCustom?" on":""}" data-i="${i}" placeholder="Exercise name" value="${esc(st.custom||"")}">`}`;
@@ -401,7 +403,7 @@ function renderDayHTML(d,P){
     }else{
       const today=suggest(d,s,i,false,P), nm=exName(d,s,i);
       const carry=(wk.next||{})[nm];
-      if(carry&&carry.t!==(wk.doneT||{})[d.id]) html+=`<p class="carry">${tagH(carry.tag)}<span><b>From last time:</b> ${{up:"go up to",down:"ease to"}[carry.tag]||"stay at"} ${carry.w} lb · ${esc(carry.why)}</span></p>`;
+      if(carry&&carry.t!==(wk.doneT||{})[d.id]) html+=`<p class="carry">${tagH(carry.tag)}<span>${{up:"Go up to",down:"Ease to"}[carry.tag]||"Stay at"} <b>${carry.w} lb</b> · ${esc(carry.why)}</span></p>`;
       const [lo,hi]=range(s.reps), top=(s.upperAcc||s.support||s.label==="Glute med")?hi+3:hi;
       const lastT=log.slice(0,ticks).reverse().find(x=>x.d&&+x.w>0&&+x.r>0);
       if(!D.done&&!fin&&lastT&&st.nudged!==ticks){ const w0=+lastT.w, r0=+lastT.r, inc=incFor(nm,s,w0);
@@ -765,6 +767,8 @@ function dayComplete(id){
 }
 function bind(){
   const v=document.getElementById("view");
+  v.querySelectorAll("[data-collapse]").forEach(r=>{ const go=()=>{ wk.active={...(wk.active||{}),[cur]:-1}; save(); render(); };
+    r.onclick=go; r.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } }; });
   v.querySelectorAll("[data-addex]").forEach(b=>b.onclick=()=>{ const a=b.dataset.addex;
     if(a==="open"){ addOpen=cur; addPick=""; addCustom=""; addCat=""; render(); return; }
     if(a==="close"){ addOpen=null; render(); return; }
@@ -778,7 +782,8 @@ function bind(){
   v.querySelectorAll("[data-xrm]").forEach(b=>b.onclick=()=>{ removeExtra(cur,+b.dataset.xrm); render(); });
   v.querySelectorAll("[data-hv]").forEach(b=>b.onclick=()=>{ histView=b.dataset.hv; try{localStorage.setItem(KEY+".hv",histView)}catch(e){}; render(); });
   v.querySelectorAll("[data-cal]").forEach(b=>b.onclick=()=>{ calOff=Math.min(0,calOff+ +b.dataset.cal); calSel=null; render(); });
-  v.querySelectorAll("[data-cd]").forEach(b=>b.onclick=()=>{ calSel=calSel===b.dataset.cd?null:b.dataset.cd; render(); });
+  v.querySelectorAll("[data-cd]").forEach(b=>b.onclick=()=>{ calSel=calSel===b.dataset.cd?null:b.dataset.cd; render();
+    const el=document.getElementById("calsel"); if(el) el.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"start"}); });
   attachDials(v,dialCfg);
   const inProf=el=>wk.setupDone&&!!el.closest("#profileBox");
   const stage=(k,val)=>{ draft=draft||{}; draft[k]=val; if(k==="acts"){ const f=fixSports({acts:val,mainSport:draft.mainSport??wk.mainSport,sport2:draft.sport2??wk.sport2,season:draft.season??wk.season}); draft.mainSport=f.mainSport; draft.sport2=f.sport2; draft.season=f.season; } render(); };
