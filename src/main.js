@@ -208,6 +208,7 @@ function renderSeason(P){
     <div class="q"><span>Avg lift kcal</span>${fld("liftK","","numeric","","sm")}</div></div>`:""}
   <div class="panel" id="profileBox"><h3>Profile</h3>${profileHTML(false,{...wk,...(draft||{})})}<button class="btn primary" id="profSave" type="button"${draftDirty()?"":" disabled"}>Save changes</button></div>
   ${moveHTML()}
+  <div class="panel"><h3>Tips</h3>${seg("guide","",[["More","More guidance"],["Less","Fewer tips"]],wk.guide||"More")}<p class="small">${(wk.guide||"More")==="Less"?"No first-visit tips, shorter change popups and no reasons under exercises. Watch notes and (i) explanations stay.":"First-visit tips on each tab, full change popups and the reason behind each exercise change."}</p></div>
   <div class="panel"><h3>Your data</h3><p class="small">Everything lives on this phone only. Download a backup now and then; restoring replaces what's here.</p>
     <div class="foot" style="margin:0"><button class="btn" id="bkDown" type="button">Download backup</button><label class="btn" for="bkFile">Restore backup<input id="bkFile" type="file" accept="application/json,.json" hidden></label></div></div>
   <p class="small disclaimer">Lift Board gives general training and nutrition estimates, not medical advice. Check with a doctor before big changes, especially if you're pregnant, injured or managing a health condition.</p>
@@ -481,7 +482,7 @@ const XBTN=`<button type="button" class="dx" data-x aria-label="Close"><svg widt
 function planSheet(id,i){
   const d=DAYS.find(x=>x.id===id); if(!d) return;
   const P=plan(), s=d.slots[i], A=P.days[id].slots[i]; if(A.skip&&s.cardio) return;
-  const t=s.cardio?null:suggest(d,s,i,false,P), why=s.cardio?(A.steady?`Easy pace · ${A.steady}`:A.flag||""):whyTxt(A);
+  const t=s.cardio?null:suggest(d,s,i,false,P), why=s.cardio?(A.steady?`Easy pace · ${A.steady}`:A.flag||""):wk.guide==="Less"?"":whyTxt(A);
   const main=s.cardio?`${A.min} min · ~${r5(A.kcal||0)} kcal`:`${A.sets} × ${esc(s.reps)}${t?` · start ${t.w} lb`:""}`;
   showSheet(`<div class="shgrid"><span class="plab">Today's plan · ${esc(s.label)}</span><button type="button" class="shbtn" data-x>Begin</button><span class="shmain">${main}</span>${why?`<span class="shsub">${esc(why)}</span>`:""}</div>`);
 }
@@ -625,7 +626,7 @@ function showCoach(){
   const el=document.getElementById("coach"); if(!el) return;
   const busy=["tour","done","confirm","dial"].some(x=>{ const n=document.getElementById(x); return n&&!n.hidden; });
   const k=coachKey(cur), t=coachText(cur);
-  if(tour||busy||!t||(wk.seenTabs||{})[k]||(!wk.setupDone&&cur!=="season")){ return; }
+  if(tour||busy||!t||(wk.seenTabs||{})[k]||(!wk.setupDone&&cur!=="season")||(wk.setupDone&&wk.guide==="Less")){ return; }
   const tab=document.querySelector('.tab[aria-selected="true"]'); if(!tab) return;
   window.scrollTo({top:0}); const r=tab.getBoundingClientRect(), w=Math.min(320,window.innerWidth-32);
   const left=Math.max(16,Math.min(window.innerWidth-w-16,r.left+r.width/2-w/2));
@@ -643,7 +644,7 @@ let toastT=null;
 function toast(lines,ms){
   if(!lines.length) return;
   const t=document.getElementById("toast");
-  t.innerHTML=`<div class="tin">${lines.slice(0,5).map(l=>`<p>${esc(l)}</p>`).join("")}</div>`;
+  t.innerHTML=`<div class="tin">${lines.slice(0,wk.guide==="Less"?2:5).map(l=>`<p>${esc(l)}</p>`).join("")}</div>`;
   t.classList.remove("show"); void t.offsetWidth; t.classList.add("show");
   clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"),ms||4500);
 }
