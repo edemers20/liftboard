@@ -69,6 +69,23 @@ function stepper(key,label,vals,unit,val){ const v=String(val!==undefined?val:wk
   return `<div class="q"><span>${label}</span><div class="seg stepper" data-key="${key}">${b(-1,"Decrease","−")}<output aria-live="polite">${arr[i]}${unit?`<small> ${unit}</small>`:""}</output>${b(1,"Increase","+")}</div></div>`; }
 function toggle(key,label,val,onV="Yes",offV="No"){ const on=String(val!==undefined?val:wk[key])===onV;
   return `<div class="q tgl"><span id="tg-${key}">${label}</span><div class="seg toggle" data-key="${key}"><button type="button" role="switch" aria-checked="${on}" aria-labelledby="tg-${key}" data-v="${on?offV:onV}"><i aria-hidden="true"></i></button></div></div>`; }
+/* Units: everything is stored and calculated in lb. kg is display + input only: values convert on the way
+   in (inputs, dial) and on the way out (a pass over rendered text that rewrites "150 lb" as "68 kg"). */
+const KG=()=>wk.units==="kg", L2K=2.20462;
+const toU=lb=>KG()?Math.round(+lb/L2K*2)/2:+lb, fromU=v=>KG()&&v!==""&&!isNaN(+v)?String(Math.round(+v*L2K*100)/100):v;
+const U_KEYS=new Set(["weight","wAvg","rate"]);
+function localize(root){
+  if(!KG()||!root) return;
+  root.querySelectorAll&&root.querySelectorAll('input[data-f="w"]:not([data-uc]),input[data-w]:not([data-uc])').forEach(el=>{
+    if(el.dataset.w&&!U_KEYS.has(el.dataset.w)) return; el.dataset.uc=1;
+    const conv=v=>v!==""&&!isNaN(+v)?(el.dataset.w==="rate"?String(Math.round(+v/L2K*100)/100):String(toU(v))):v;
+    if(el.value) el.value=conv(el.value); if(el.placeholder) el.placeholder=conv(el.placeholder); });
+  root.querySelectorAll&&root.querySelectorAll("[data-nudge]:not([data-uc])").forEach(b=>{ b.dataset.uc=1; b.textContent=b.textContent.replace(/[\d.]+/,String(toU(b.dataset.nudge))); });
+  const tw=document.createTreeWalker(root,NodeFilter.SHOW_TEXT); const ns=[]; while(tw.nextNode()) ns.push(tw.currentNode);
+  ns.forEach(n=>{ const t=n.nodeValue; if(!/\blb\b/.test(t)) return;
+    n.nodeValue=t.replace(/(\d[\d,]*(?:\.\d+)?)(\s?)lb\b/g,(m,x,sp)=>{ const v=+x.replace(/,/g,""); return `${Math.abs(v)<5&&/\./.test(x)?Math.round(v/L2K*100)/100:toU(v)}${sp}kg`; }).replace(/\blb\b/g,"kg"); });
+}
+new MutationObserver(ms=>{ if(!KG()) return; ms.forEach(m=>{ m.addedNodes.forEach(n=>{ if(n.nodeType===1) localize(n); else if(n.nodeType===3&&n.parentNode) localize(n.parentNode); }); if(m.type==="characterData"&&m.target.parentNode) localize(m.target.parentNode); }); }).observe(document.documentElement,{childList:true,subtree:true,characterData:true});
 function fld(key,label,mode,ph,cls,val){ return `<label class="field${cls?" "+cls:""}" for="${key}"><span>${label}</span><input id="${key}" data-w="${key}" inputmode="${mode||"numeric"}" placeholder="${ph||""}" value="${esc((val!==undefined?val:wk[key])??"")}"></label>`; }
 
 /* Goal values stay as stored; these are the words people see */
@@ -133,12 +150,13 @@ function dialCfg(el){
   const d=el.dataset;
   if(d.f==="w"||d.f==="r"){
     const log=get(cur,+d.i).log||[], k=+d.set, prev=log[k-1]||{}, day=DAYS.find(x=>x.id===cur), slot=day&&day.slots[+d.i];
-    if(d.f==="w") return {label:slot&&isBW(exName(day,slot,+d.i))?"Added weight":"Weight",min:0,max:600,step:2.5,unit:"lb",start:prev.w||(+el.placeholder>0?el.placeholder:(slot?startW(exName(day,slot,+d.i),slot):45))};
+    if(d.f==="w") return {label:slot&&isBW(exName(day,slot,+d.i))?"Added weight":"Weight",min:0,max:KG()?270:600,step:KG()?0.5:2.5,unit:KG()?"kg":"lb",start:(prev.w?toU(prev.w):0)||(+el.placeholder>0?el.placeholder:toU(slot?startW(exName(day,slot,+d.i),slot):45))};
     return {label:"Reps",min:0,max:40,step:1,start:prev.r||(slot?range(slot.reps)[1]:10)};
   }
   if(d.k==="act") return {label:"Actual minutes",min:0,max:120,step:1,unit:"min",start:el.placeholder};
   if(d.act) return {label:"Actual minutes",min:0,max:360,step:1,unit:"min",start:el.placeholder};
   const k=d.w||d.tw; if(!k) return null;
+  if(DIAL[k]&&KG()&&U_KEYS.has(k)) return k==="rate"?{...DIAL[k],max:1,step:0.1,unit:"kg"}:{...DIAL[k],min:30,max:180,step:0.1,unit:"kg",start:k==="wAvg"&&!el.value?toU(wk.weight):el.placeholder||el.value};
   if(DIAL[k]) return {...DIAL[k],start:DIAL[k].start??(k==="wAvg"?wk.weight:el.placeholder)};
   if(/min$/.test(k)) return {label:"Planned minutes",min:15,max:360,step:5,unit:"min",start:el.placeholder};
   return null;
@@ -208,6 +226,7 @@ function renderSeason(P){
     <div class="q"><span>Avg lift kcal</span>${fld("liftK","","numeric","","sm")}</div></div>`:""}
   <div class="panel" id="profileBox"><h3>Profile</h3>${profileHTML(false,{...wk,...(draft||{})})}<button class="btn primary" id="profSave" type="button"${draftDirty()?"":" disabled"}>Save changes</button></div>
   ${moveHTML()}
+  <div class="panel"><h3>Units</h3>${seg("units","",[["lb","Pounds (lb)"],["kg","Kilograms (kg)"]],wk.units||"lb")}</div>
   <div class="panel"><h3>Tips</h3>${seg("guide","",[["More","More guidance"],["Less","Fewer tips"]],wk.guide||"More")}<p class="small">${(wk.guide||"More")==="Less"?"No first-visit tips, shorter change popups and no reasons under exercises. Watch notes and (i) explanations stay.":"First-visit tips on each tab, full change popups and the reason behind each exercise change."}</p></div>
   <div class="panel"><h3>Your data</h3><p class="small">Everything lives on this phone only. Download a backup now and then; restoring replaces what's here.</p>
     <div class="foot" style="margin:0"><button class="btn" id="bkDown" type="button">Download backup</button><label class="btn" for="bkFile">Restore backup<input id="bkFile" type="file" accept="application/json,.json" hidden></label></div></div>
@@ -775,7 +794,7 @@ function setupDone(){
     cta:"See this week",onCta:()=>goTab("week")});
 }
 /* "145 × 8"; bodyweight shows "BW × 12" or "BW+10 × 8" */
-const fmtSet=(n,w,r)=>`${isBW(n)?(+w>0?`BW+${w}`:"BW"):w} × ${r}`;
+const fmtSet=(n,w,r)=>`${isBW(n)?(+w>0?`BW+${toU(w)}`:"BW"):toU(w)} × ${r}`;
 /* Each exercise with its top set; the arrow is what happens next time (↑ up, = held, ↓ ease). */
 function workoutRows(S,items){
   if(!S.length) return `<p class="dnote">No sets logged.</p>`;
@@ -855,7 +874,7 @@ function bind(){
   v.querySelectorAll(".cdone").forEach(b=>b.onclick=()=>{ const i=+b.dataset.i, A=plan().days[cur].slots[i], st=get(cur,i); if(!st.act&&A.min) set(cur,i,"act",String(A.min)); set(cur,i,"cdone",true); fxOnce.slot=`${cur}-${i}`;
     if(!(wk.done||{})[cur]&&dayComplete(cur)){ const id=cur, n=setsLogged(id); markDone(id); render(); dayDone(id,n); return; }
     const d=DAYS.find(x=>x.id===cur), n=nextIdx(d,plan().days[cur],i); if(n!=null){ wk.active={...(wk.active||{}),[cur]:n}; save(); } render(); });
-  v.querySelectorAll("input[data-set]").forEach(el=>{ el.oninput=()=>logSet(+el.dataset.i,+el.dataset.set,el.dataset.f,el.value); el.onchange=()=>render(); });
+  v.querySelectorAll("input[data-set]").forEach(el=>{ el.oninput=()=>logSet(+el.dataset.i,+el.dataset.set,el.dataset.f,el.dataset.f==="w"?fromU(el.value):el.value); el.onchange=()=>render(); });
   v.querySelectorAll(".chk").forEach(b=>b.onclick=()=>{ const i=+b.dataset.i,k=+b.dataset.set, x=(get(cur,i).log||[])[k]||{};
     if(!x.w){ const ph=document.getElementById(`w-${cur}-${i}-${k}`).placeholder; if(+ph>0) logSet(i,k,"w",ph); }
     if(!x.r){ const ph=document.getElementById(`r-${cur}-${i}-${k}`).placeholder; if(+ph>0) logSet(i,k,"r",ph); }
@@ -887,7 +906,8 @@ function bind(){
       if(k==="season"){ wk.days=raw==="In-season"?2:3; wk.done={}; wk.donePlan={}; wk.upNext=""; wk.missedNote=null; }
     }); }));
   v.querySelectorAll("input[data-act]").forEach(el=>el.onchange=()=>change(()=>{ const k=el.dataset.act; logAct(k,+el.dataset.n,el.value); }));
-  v.querySelectorAll("input[data-w]").forEach(el=>el.onchange=()=>{ if(inProf(el)){ stage(el.dataset.w,el.value); return; } if(!wk.setupDone){ wk[el.dataset.w]=el.value; save(); return; } change(()=>{ wk[el.dataset.w]=el.value; }); });
+  v.querySelectorAll("input[data-w]").forEach(el=>el.onchange=()=>{ if(U_KEYS.has(el.dataset.w)&&KG()&&!el._uv){ el._uv=1; el.value=el.dataset.w==="rate"?String(Math.round(+el.value*L2K*100)/100):fromU(el.value); }
+    if(inProf(el)){ stage(el.dataset.w,el.value); return; } if(!wk.setupDone){ wk[el.dataset.w]=el.value; save(); return; } change(()=>{ wk[el.dataset.w]=el.value; }); });
   v.querySelectorAll("select[data-i]").forEach(el=>el.onchange=()=>{ set(cur,+el.dataset.i,"choice",el.value); render(); if(el.value===CUSTOM){const c=document.getElementById(`cus-${cur}-${el.dataset.i}`); c&&c.focus();} });
   v.querySelectorAll(".custom").forEach(el=>{ el.oninput=()=>set(cur,+el.dataset.i,"custom",el.value); el.onchange=()=>render(); });
   v.querySelectorAll(".nums input[data-k]").forEach(el=>{ el.oninput=()=>set(cur,+el.dataset.i,el.dataset.k,el.value); if(el.dataset.k==="act"){ el.onfocus=()=>{ el._fx=fx(plan()); }; el.onchange=()=>{ const b=fx(plan()); render(); toast(diffFx(el._fx||b,b)); }; } });

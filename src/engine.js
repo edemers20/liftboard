@@ -148,7 +148,7 @@ let DAYS=[];
 /* ---------- State ---------- */
 const KEY="liftboard.v1", KEY2="liftboard.week.v2", KEY3="liftboard.hist.v1";
 const DEF={setupDone:false,sex:"Female",age:30,height:64,weight:150,bf:"",steps:8000,liftK:150,oura:"",
- acts:{lift:true},sessions:[],extra:{},next:{},sound:"Yes",guide:"More",mainSport:"",sport2:"",stretch:"No",stretchDone:{},focus:"Balanced",
+ acts:{lift:true},sessions:[],extra:{},next:{},sound:"Yes",guide:"More",units:"lb",mainSport:"",sport2:"",stretch:"No",stretchDone:{},focus:"Balanced",
  mode:"Recomp",rate:0.5,share:25,season:"Off-season",ramp:"No",zAct:[],
  days:3,time:60,ss:"Yes",ready:"Normal",sore:"None",cycle:"Not tracking",drink:"0",
  heated:"No",yeff:"Moderate",peff:"Moderate",spint:"Hard",done:{},donePlan:{},today:{},wAvg:"",deload:"No",
