@@ -293,8 +293,8 @@ function renderWorkouts(P){
     else if(past&&!ss.length) cards.push(`<section class="wcard open"><span class="weye">Rest</span><h3>Nothing logged</h3></section>`);
   }
   ss.filter(s=>s.k!=="lift").forEach(s=>cards.push(sessCard(s)));
-  const canLog=wOff===0&&!(sel>today), acts=actList().filter(a=>plannedOf(a)>0||loggedOf(a)>0);
-  const logH=canLog&&acts.length?`<div class="wlog"><span class="wlab">Log activity</span><div class="chips">${acts.map(a=>`<button type="button" class="chip act" data-log="${a}"><i aria-hidden="true">+</i>${esc(actName(a))} <small>${loggedOf(a)} of ${plannedOf(a)}</small></button>`).join("")}</div></div>`:"";
+  const canLog=wOff===0&&!(sel>today), acts=actList();
+  const logH=canLog&&acts.length?`<div class="wlog"><span class="wlab">Log activity</span><div class="chips">${acts.map(a=>`<button type="button" class="chip act" data-log="${a}"><i aria-hidden="true">+</i>${esc(actName(a))} ${plannedOf(a)>0?`<small>${loggedOf(a)} of ${plannedOf(a)}</small>`:loggedOf(a)?`<small>${loggedOf(a)}</small>`:""}</button>`).join("")}</div></div>`:"";
   const Mth=P.math, food=isToday&&wk.setupDone?`<button type="button" class="wfood" data-nav2="plan"><span>Eat today</span><b>${r5(Mth.intake).toLocaleString()} <small>kcal</small></b><small>Your base ${r5(Mth.everyday).toLocaleString()}</small></button>`:"";
   return `<div class="whead"><h1>Lift Board</h1><button type="button" class="todayb" data-sel="0"${isToday?" disabled":""}>Today</button></div>
   <div class="wstrip">${nav0}<div class="wcells">${cells}</div>${nav1}</div>
@@ -1320,6 +1320,8 @@ function renderTour(focus){
 /* ---------- Onboarding: welcome → what it's for → help level demo → six setup steps ----------
    Shows on every load for now. Answers start from your current settings; Skip leaves them as they are. */
 let onb=null;
+/* weekly activities on the lift-days step: classes always, plus anything else already switched on (not the main sport) */
+const ONB_ACTS=()=>ACT_IDS.filter(a=>a!=="lift"&&(ACT[a].cls||enabled(a))&&a!==(onb?onb.sport:wk.mainSport));
 const ONB_SPORTS=[["pickle","Pickleball"],["tennis","Tennis"],["run","Running"],["soccer","Soccer"],["volleyball","Volleyball"],["climb","Climbing"],["golf","Golf"],["hockey","Hockey"],["","None"]];
 const ONB_GOALS=[["Deficit only","Lose weight fast","Up to 1% of your weight a week. Your lifts may slip."],["Recomp","Lose fat, keep strength","Up to 0.7% of your weight a week while you hold your lifts."],["Maintain","Maintain","Eat what you burn and train as normal."],["Build","Build muscle","Eat a little over. Extra sets go to your focus."]];
 const ONB_Q=[["What do you play?","Your main sport sets the season. In-season, lifting backs off so you’re fresh to play."],
@@ -1331,7 +1333,7 @@ const ONB_Q=[["What do you play?","Your main sport sets the season. In-season, l
 function openOnb(){
   closePop(); const sp=SPORTS.includes(wk.mainSport)?wk.mainSport:"";
   onb={s:wk.setupDone?1:0,lvl:1,sport:sp,inS:wk.season==="In-season",goal:wk.mode||"Recomp",days:wk.setupDone?ldays():(LDEF[3]||[]).slice(),
-    pb:sp?(cnt(sp)||2):0,pil:enabled("pilates")?cnt("pilates"):0,focus:wk.focus||"Balanced",sex:wk.sex||"Female",age:wk.age||"",height:wk.height||"",weight:wk.weight||"",bf:wk.bf||""};
+    pb:sp?(cnt(sp)||2):0,ac:Object.fromEntries(ONB_ACTS().map(a=>[a,enabled(a)?cnt(a):0])),focus:wk.focus||"Balanced",sex:wk.sex||"Female",age:wk.age||"",height:wk.height||"",weight:wk.weight||"",bf:wk.bf||""};
   renderOnb(true);
 }
 function closeOnb(){ onb=null; const el=document.getElementById("tour"); el.classList.add("out");
@@ -1340,7 +1342,7 @@ function closeOnb(){ onb=null; const el=document.getElementById("tour"); el.clas
 function applyOnb(o,real){
   wk.acts={...(wk.acts||{}),lift:true}; if(o.sport){ wk.acts[o.sport]=true; wk[o.sport]=o.pb; }
   wk.mainSport=o.sport; wk.season=o.sport&&o.inS?"In-season":"Off-season";
-  if(o.pil>0){ wk.acts.pilates=true; } if(enabled("pilates")) wk.pilates=o.pil;
+  Object.entries(o.ac||{}).forEach(([a,c])=>{ if(a===o.sport) return; if(c>0) wk.acts[a]=true; if(enabled(a)) wk[a]=c; });
   wk.mode=o.goal; wk.ldays=o.days.slice().sort(); wk.days=o.days.length; wk.focus=o.focus; wk.sex=o.sex;
   ["age","height","weight","bf"].forEach(k=>{ if(String(o[k]).trim()!=="") wk[k]=String(o[k]); });
   fixSports(wk); syncDays(); fitPace();
@@ -1382,20 +1384,20 @@ function renderOnb(focus){
     if(n===1) body=`<div class="ogrid three">${ONB_SPORTS.map(([a,l])=>chip(o.sport===a,`data-os="${a}"`,l)).join("")}</div>
       ${o.sport?`<div class="q tgl"><span id="oinS">In-season now</span><div class="seg toggle"><button type="button" role="switch" aria-checked="${o.inS}" aria-labelledby="oinS" data-oin><i aria-hidden="true"></i></button></div></div>`:""}`;
     if(n===2) body=`<div class="ogoals">${ONB_GOALS.map(([v,l,d])=>`<button type="button" data-og="${v}" aria-pressed="${o.goal===v}"><b>${l}</b><span>${d}</span></button>`).join("")}</div>`;
-    if(n===3){ const acts=[...(o.sport?[[o.sport,"pb",ACT[o.sport].name]]:[]),["pilates","pil","Pilates"]];
+    if(n===3){ const acts=[...(o.sport?[[o.sport,"pb",ACT[o.sport].name]]:[]),...ONB_ACTS().map(a=>[a,"ac:"+a,ACT[a].name])], val=k=>k.startsWith("ac:")?(o.ac[k.slice(3)]||0):o[k];
       body=`<span class="plab">Usual lift days · ${o.days.length} a week</span><div class="ldgrid">${"MTWTFSS".split("").map((c,k)=>`<button type="button" data-od="${k}" aria-pressed="${o.days.includes(k)}" aria-label="${WD[k]}">${c}</button>`).join("")}</div>
-      <span class="plab">Other activities · per week, any day</span>${acts.map(([a,k,l])=>`<div class="ostep"><span>${l}</span><span><button type="button" data-oc="${k}" data-d="-1" aria-label="Fewer ${l}">−</button><output>${o[k]}</output><button type="button" data-oc="${k}" data-d="1" aria-label="More ${l}">+</button></span></div>`).join("")}`; }
+      <span class="plab">Other activities · per week, any day</span>${acts.map(([a,k,l])=>`<div class="ostep"><span>${l}</span><span><button type="button" data-oc="${k}" data-d="-1" aria-label="Fewer ${l}">−</button><output>${val(k)}</output><button type="button" data-oc="${k}" data-d="1" aria-label="More ${l}">+</button></span></div>`).join("")}`; }
     if(n===4) body=`<div class="ogrid three">${[["Lower","Lower body"],["Balanced","Balanced"],["Upper","Upper body"]].map(([v,l])=>chip(o.focus===v,`data-of="${v}"`,l)).join("")}</div>`;
     if(n===5) body=`<div class="ogrid three">${["Female","Male","Other"].map(v=>chip(o.sex===v,`data-ox="${v}"`,v)).join("")}</div>
       <div class="nums two">${[["age","Age","numeric"],["height","Height (in)","decimal"],["weight",`Weight (${KG()?"kg":"lb"})`,"decimal"],["bf","Body fat %","decimal"]].map(([k,l,m])=>`<label class="field" for="o-${k}"><span>${l}</span><input id="o-${k}" data-oi="${k}" inputmode="${m}" value="${esc(k==="weight"&&o[k]!==""?toU(o[k]):o[k])}"${k==="bf"?' placeholder="optional"':""}></label>`).join("")}</div>`;
     const pv=n>=5||n===6?onbPreview(o):null;
     if(n===6){ const D=pv.days, today=monIdx(new Date()), ds=o.days.slice().sort(), nextD=ds.find(d=>d>=today)??ds[0];
       const order=ds.filter(d=>d>=today).concat(ds.filter(d=>d<today));
-      const rest=order.slice(1).map((d,i)=>({t:(D[(i+1)%D.length]||{}).title||"Lift",d:WD[d],a:0})).concat([[o.sport,o.pb],["pilates",o.pil]].filter(([a,c])=>a&&c).map(([a,c])=>({t:ACT[a].name+(c>1?` ×${c}`:""),d:"Any day",a:1})));
+      const rest=order.slice(1).map((d,i)=>({t:(D[(i+1)%D.length]||{}).title||"Lift",d:WD[d],a:0})).concat([[o.sport,o.pb],...Object.entries(o.ac||{}).filter(([a])=>a!==o.sport)].filter(([a,c])=>a&&c).map(([a,c])=>({t:ACT[a].name+(c>1?` ×${c}`:""),d:"Any day",a:1})));
       body=`<section class="ofirst"><span class="weye">First workout · ${D.length?(nextD===today?"Today":WD[nextD]):"whenever you like"}</span><h3>${esc(D.length?D[0].title:"Log an activity")}</h3><p>Starting weights are a guess. Log your first sets and the app adjusts from there.</p></section>
       <div class="orest2">${rest.map((r,i)=>`<div class="${r.a?"a":""}" style="animation-delay:${300+i*120}ms"><b>${esc(r.t)}</b><span>${r.d}</span></div>`).join("")}</div>`; }
     const gName=(ONB_GOALS.find(g=>g[0]===o.goal)||[])[1], nd=o.days.length;
-    const prev=[["Season",o.sport?`${ACT[o.sport].name} · ${o.inS?"in-season":"off-season"}`:"No sport"],...(n>=2?[["Goal",gName]]:[]),...(n>=3?[["Week",`${nd} lift${nd===1?"":"s"}${o.sport&&o.pb?` + ${o.pb}× ${ACT[o.sport].name.toLowerCase()}`:""}${o.pil?` + ${o.pil}× pilates`:""}`]]:[]),...(n>=4?[["Focus",o.focus==="Balanced"?"Balanced":o.focus+" body"]]:[]),...(n>=5?[["Eat about",`${pv.food.toLocaleString()} kcal a day`]]:[])];
+    const prev=[["Season",o.sport?`${ACT[o.sport].name} · ${o.inS?"in-season":"off-season"}`:"No sport"],...(n>=2?[["Goal",gName]]:[]),...(n>=3?[["Week",`${nd} lift${nd===1?"":"s"}${o.sport&&o.pb?` + ${o.pb}× ${ACT[o.sport].name.toLowerCase()}`:""}${Object.entries(o.ac||{}).filter(([a,c])=>c&&a!==o.sport).map(([a,c])=>` + ${c}× ${ACT[a].name.toLowerCase()}`).join("")}`]]:[]),...(n>=4?[["Focus",o.focus==="Balanced"?"Balanced":o.focus+" body"]]:[]),...(n>=5?[["Eat about",`${pv.food.toLocaleString()} kcal a day`]]:[])];
     h=`<div class="onb"><div class="otop"><div class="odots" role="progressbar" aria-label="Setup progress" aria-valuemin="1" aria-valuemax="6" aria-valuenow="${n}">${[1,2,3,4,5,6].map(i=>`<i class="${i===n?"on":i<n?"past":""}"></i>`).join("")}</div>${skip}</div>
       <div class="ostepbody"><h2 class="oh" tabindex="-1">${Q[0]}</h2><p class="olead sm">${Q[1]}</p>${body}</div>
       ${n<6?`<section class="oprev" aria-label="Your plan so far"><span class="weye">Your plan so far</span>${prev.map(([k,v])=>`<div><span>${k}</span><b>${esc(v)}</b></div>`).join("")}</section>`:""}
@@ -1413,7 +1415,8 @@ function renderOnb(focus){
   el.querySelectorAll("[data-od]").forEach(b=>b.onclick=()=>{ const k=+b.dataset.od, on=o.days.includes(k);
     if(!on&&o.inS&&o.days.length>=3){ toast(["In-season","Up to 3 lift days so you stay fresh for games."]); return; }
     set("days",on?o.days.filter(x=>x!==k):o.days.concat([k]).sort()); });
-  el.querySelectorAll("[data-oc]").forEach(b=>b.onclick=()=>{ const k=b.dataset.oc; set(k,Math.max(0,Math.min(7,o[k]+ +b.dataset.d))); });
+  el.querySelectorAll("[data-oc]").forEach(b=>b.onclick=()=>{ const k=b.dataset.oc, d=+b.dataset.d, cl=v=>Math.max(0,Math.min(7,v+d));
+    if(k.startsWith("ac:")){ const a=k.slice(3); o.ac={...o.ac,[a]:cl(o.ac[a]||0)}; renderOnb(); } else set(k,cl(o[k])); });
   el.querySelectorAll("[data-of]").forEach(b=>b.onclick=()=>set("focus",b.dataset.of));
   el.querySelectorAll("[data-ox]").forEach(b=>b.onclick=()=>set("sex",b.dataset.ox));
   el.querySelectorAll("[data-oi]").forEach(x=>x.onchange=()=>{ const k=x.dataset.oi; o[k]=k==="weight"?fromU(x.value):x.value; renderOnb(); });
