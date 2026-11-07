@@ -7,7 +7,10 @@ init(storage);
 setSaveHook(ok=>{ document.getElementById("saved").textContent= ok?"Saved":"Not saved (storage blocked)"; });
 /* nav: the bottom tab. cur: "home", or the lift day / activity opened from Workouts */
 const NAVS=["workouts","plan","history","you"];
-let nav="workouts", cur="home", planView="week", selOff=0, openSess=null;
+let nav="workouts", cur="home", planView="week", selOff=0, openSess=null, logMore=false;
+/* what can be "your sport": the sports plus yoga and Pilates */
+const MAINS=[...SPORTS,"yoga","pilates"];
+const SEASONAL=a=>SPORTS.includes(a);
 try{ const n=localStorage.getItem(KEY+".nav"); if(NAVS.includes(n)) nav=n; const t=localStorage.getItem(KEY+".tab"); if(t) cur=t; if(localStorage.getItem(KEY+".pv")==="season") planView="season"; }catch(e){}
 const actTabs=()=>ACT_IDS.filter(a=>a!=="lift"&&enabled(a));
 const rampOn=()=>hasSport()&&!inSeason()&&wk.ramp==="Yes";
@@ -201,18 +204,24 @@ function weekModel(off){
     const cur0=weekModel0();
     todo=off===0?cur0.todo:rotation(cur0.left[0]||cur0.next0);
     const from=off===0?tIdx:0, liftToday=off===0&&byDay[tIdx].some(s=>s.k==="lift"), slotsI=[];
-    for(let i=from;i<7;i++){ if(i===tIdx&&liftToday) continue; if(L.includes(monIdx(dates[i]))) slotsI.push(i); }
-    todo.forEach((id,j)=>{ if(j<slotsI.length) plan0[slotsI[j]]=id; }); left=todo.slice(slotsI.length);
+    /* "Move to today" pins that lift to today; the rest of the queue keeps its order on the remaining days */
+    const pin=off===0&&!liftToday?pinnedToday(todo):null;
+    if(pin) plan0[tIdx]=pin;
+    for(let i=from;i<7;i++){ if(i===tIdx&&(liftToday||pin)) continue; if(L.includes(monIdx(dates[i]))) slotsI.push(i); }
+    const rest=pin?todo.filter(x=>x!==pin):todo;
+    rest.forEach((id,j)=>{ if(j<slotsI.length) plan0[slotsI[j]]=id; }); left=rest.slice(slotsI.length);
   }
   return {W,dates,tIdx,byDay,plan:plan0,left,todo,off};
 }
+const pinnedToday=todo=>{ const p=wk.pinToday; return p&&p.d===dayKey(Date.now())&&todo.includes(p.id)?p.id:null; };
 /* this week's queue, used to project next week too */
 function weekModel0(){ const done=wk.done||{}, ids=DAYS.map(d=>d.id), first=wk.upNext&&!done[wk.upNext]?wk.upNext:(ids.find(id=>!done[id])||ids[0]);
   const todo=rotation(first).filter(id=>!done[id]);
   const m={todo,next0:ids[0],left:[]};
   const today=DAY0(Date.now()), W=weekStartOf(today), t=Math.round((today-W)/864e5), L=ldays();
   const liftToday=(wk.sessions||[]).some(s=>s.k==="lift"&&DAY0(s.t).getTime()===today.getTime());
-  let n=0; for(let i=t;i<7;i++){ if(i===t&&liftToday) continue; if(L.includes(monIdx(addD(W,i)))) n++; }
+  const pin=!liftToday?pinnedToday(todo):null;
+  let n=pin?1:0; for(let i=t;i<7;i++){ if(i===t&&(liftToday||pin)) continue; if(L.includes(monIdx(addD(W,i)))) n++; }
   m.left=todo.slice(n);
   /* after this week's lifts, next week picks the rotation up where it left off */
   if(!m.left.length){ const last=todo[todo.length-1]||ids[ids.length-1], k=ids.indexOf(last); m.next0=ids[(k+1)%ids.length]||ids[0]; }
@@ -287,7 +296,7 @@ function renderWorkouts(P){
   if(pid&&!liftDone){
     const d=dayById(pid), started=((wk.wt||{})[pid]||{}).start, other=M.todo.find(id=>id!==pid);
     if(isToday) cards.push(liftCard("Today",pid,`<button type="button" class="btn primary wgo" data-open="${pid}">${started?"Continue workout":"Start workout"}</button>${other?`<button type="button" class="wlink" data-open="${other}">Switch to ${esc(dayById(other).title)}</button>`:""}`));
-    else cards.push(liftCard("Planned",pid,`<button type="button" class="btn wgo" data-open="${pid}">Move to today</button>`,"planned"));
+    else cards.push(liftCard("Planned",pid,wOff===0?`<button type="button" class="btn wgo" data-move="${pid}">Move to today</button>`:"","planned"));
   }
   if(!pid&&!liftDone){
     const nk=Object.keys(M.plan).map(Number).find(k=>k>i), nextId=isToday?(M.todo[0]||null):null;
@@ -301,8 +310,9 @@ function renderWorkouts(P){
     else if(past&&!ss.length) cards.push(`<section class="wcard open"><span class="weye">Rest</span><h3>Nothing logged</h3></section>`);
   }
   ss.filter(s=>s.k!=="lift").forEach(s=>cards.push(sessCard(s)));
-  const canLog=wOff===0&&!(sel>today), acts=actList();
-  const logH=canLog&&acts.length?`<div class="wlog"><span class="wlab">Log activity</span><div class="chips">${acts.map(a=>`<button type="button" class="chip act" data-log="${a}"><i aria-hidden="true">+</i>${esc(actName(a))} ${plannedOf(a)>0?`<small>${loggedOf(a)} of ${plannedOf(a)}</small>`:loggedOf(a)?`<small>${loggedOf(a)}</small>`:""}</button>`).join("")}</div></div>`:"";
+  const canLog=wOff===0&&!(sel>today), acts=actList(), others=ACT_IDS.filter(a=>a!=="lift"&&!enabled(a));
+  const logH=canLog&&(acts.length||others.length)?`<div class="wlog"><span class="wlab">Log activity</span><div class="chips">${acts.map(a=>`<button type="button" class="chip act" data-log="${a}"><i aria-hidden="true">+</i>${esc(actName(a))} ${plannedOf(a)>0?`<small>${loggedOf(a)} of ${plannedOf(a)}</small>`:loggedOf(a)?`<small>${loggedOf(a)}</small>`:""}</button>`).join("")}${others.length?`<button type="button" class="chip act ghost2" data-logmore aria-expanded="${logMore}"><i aria-hidden="true">${logMore?"−":"+"}</i>Other</button>`:""}</div>
+    ${logMore&&others.length?`<div class="chips more">${others.map(a=>`<button type="button" class="chip act" data-logx="${a}"><i aria-hidden="true">+</i>${esc(ACT[a].name)}</button>`).join("")}</div>`:""}</div>`:"";
   const Mth=P.math, food=isToday&&wk.setupDone?`<button type="button" class="wfood" data-nav2="plan"><span>Eat today</span><b>${r5(Mth.intake).toLocaleString()} <small>kcal</small></b><small>Your base ${r5(Mth.everyday).toLocaleString()}</small></button>`:"";
   return `<div class="whead"><h1>Lift Board</h1><button type="button" class="todayb" data-sel="0"${isToday?" disabled":""}>Today</button></div>
   <div class="wstrip">${nav0}<div class="wcells">${cells}</div>${nav1}</div>
@@ -369,7 +379,7 @@ function planSeason(P){
   const inS=inSeason(), loss=!!PACES[wk.mode], dl=deloadInfo();
   return `${planHTML(P)}
   <div class="panel">${hdr("Season",["season","ramp","deload"])}
-    ${hasSport()?`${toggle("season","In-season",undefined,"In-season","Off-season")}${inS?"":toggle("ramp","Season starts in ≤6 weeks")}`:`<p class="note">Pick a main sport under You to use seasons.</p>`}
+    ${hasSport()&&SEASONAL(wk.mainSport)?`${toggle("season","In-season",undefined,"In-season","Off-season")}${inS?"":toggle("ramp","Season starts in ≤6 weeks")}`:`<p class="note">${hasSport()?`${esc(ACT[wk.mainSport].name)} doesn't have a season, so lifting stays the same all year.`:"Pick a main sport under You to use seasons."}</p>`}
     ${DAYS.length?`${dl.length&&wk.deload!=="Yes"?`<p class="flag">Deload suggested · ${dl.join(", ")}</p>`:""}${toggle("deload","Deload this week")}`:""}</div>
   <div class="panel">${hdr("Goal",["mode","rate","share"])}
     <div class="seg two" data-key="mode">${GOALS.map(([v,l])=>`<button type="button" data-v="${v}" aria-pressed="${wk.mode===v}">${l}</button>`).join("")}</div>
@@ -420,6 +430,11 @@ function bindShell(v){
   v.querySelectorAll("[data-nav2]").forEach(b=>b.onclick=()=>{ nav=b.dataset.nav2; planView="week"; cur="home"; keepNav(); render(); window.scrollTo(0,0); });
   v.querySelectorAll("[data-back]").forEach(b=>b.onclick=()=>{ cur="home"; keepNav(); render(); window.scrollTo(0,0); });
   v.querySelectorAll("[data-log]").forEach(b=>b.onclick=()=>{ const a=b.dataset.log, sel=addD(DAY0(Date.now()),selOff), t=selOff===0?Date.now():sel.getTime()+12*36e5; logActOn(a,t); });
+  const lm=v.querySelector("[data-logmore]"); if(lm) lm.onclick=()=>{ logMore=!logMore; render(); };
+  /* logging something new turns it on as an activity, so it shows up in Plan and here next time */
+  v.querySelectorAll("[data-logx]").forEach(b=>b.onclick=()=>{ const a=b.dataset.logx, sel=addD(DAY0(Date.now()),selOff), t=selOff===0?Date.now():sel.getTime()+12*36e5;
+    logMore=false; wk.acts={...(wk.acts||{}),[a]:true}; wk[a]=0; logActOn(a,t); toast([`${ACT[a].name} logged`,"Added to your activities."]); });
+  v.querySelectorAll("[data-move]").forEach(b=>b.onclick=()=>{ const id=b.dataset.move; wk.pinToday={d:dayKey(Date.now()),id}; save(); selOff=0; render(); window.scrollTo({top:0,behavior:"smooth"}); toast([`${(dayById(id)||{}).title||"Lift"} moved to today`]); });
   v.querySelectorAll("[data-yday]").forEach(b=>b.onclick=()=>{ const a=b.dataset.yday, y=addD(DAY0(Date.now()),-1); wk.remindSeen=dayKey(y.getTime()); if(a) logActOn(a,y.getTime()+12*36e5); else { save(); render(); } });
   v.querySelectorAll("[data-keep]").forEach(b=>b.onclick=()=>{ wk.swapKeep={...(wk.swapKeep||{}),[b.dataset.keep]:1}; save(); render(); });
   v.querySelectorAll("[data-sess]").forEach(b=>b.onclick=()=>{ const t=+b.dataset.sess; openSess=openSess===t?null:t; render(); if(openSess){ const i=document.getElementById("sm-"+t); if(i) i.focus({preventScroll:true}); } });
@@ -442,7 +457,7 @@ let draft=null;
 function profileHTML(withGoal,src){
   src=src||wk;
   const en=a=>!!(src.acts||{})[a], hs=!!src.mainSport&&en(src.mainSport);
-  const sports=SPORTS.filter(en);
+  const sports=MAINS.filter(en);
   const F=(k,l,m,ph)=>fld(k,l,m,ph,"",src[k]);
   const G=h=>`<div class="pgroup">${h}</div>`;
   return `<div class="pgroups">${G(`${hdr("Activities",["acts","mainSport",...(hs?["season"]:[])])}
@@ -1329,7 +1344,7 @@ function renderTour(focus){
 let onb=null;
 /* weekly activities on the lift-days step: classes always, plus anything else already switched on (not the main sport) */
 const ONB_ACTS=()=>ACT_IDS.filter(a=>a!=="lift"&&(ACT[a].cls||enabled(a))&&a!==(onb?onb.sport:wk.mainSport));
-const ONB_SPORTS=[["pickle","Pickleball"],["tennis","Tennis"],["run","Running"],["soccer","Soccer"],["volleyball","Volleyball"],["climb","Climbing"],["golf","Golf"],["hockey","Hockey"],["","None"]];
+const ONB_SPORTS=[["pickle","Pickleball"],["tennis","Tennis"],["run","Running"],["soccer","Soccer"],["volleyball","Volleyball"],["climb","Climbing"],["golf","Golf"],["hockey","Hockey"],["yoga","Yoga"],["pilates","Pilates"],["","None"]];
 const ONB_GOALS=[["Deficit only","Lose weight fast","Up to 1% of your weight a week. Your lifts may slip."],["Recomp","Lose fat, keep strength","Up to 0.7% of your weight a week while you hold your lifts."],["Maintain","Maintain","Eat what you burn and train as normal."],["Build","Build muscle","Eat a little over. Extra sets go to your focus."]];
 const ONB_Q=[["What do you play?","Your main sport sets the season. In-season, lifting backs off so you’re fresh to play."],
   ["What are you training for?","Your goal sets your food and how hard each lift pushes. You can change it anytime in Plan → Season."],
@@ -1338,7 +1353,7 @@ const ONB_Q=[["What do you play?","Your main sport sets the season. In-season, l
   ["A bit about you","Your size sets your base burn, protein and starting weights."],
   ["You’re set","Your plan builds itself from here and adapts every week."]];
 function openOnb(){
-  closePop(); const sp=SPORTS.includes(wk.mainSport)?wk.mainSport:"";
+  closePop(); const sp=MAINS.includes(wk.mainSport)?wk.mainSport:"";
   onb={s:wk.setupDone?1:0,lvl:1,sport:sp,inS:wk.season==="In-season",goal:wk.mode||"Recomp",days:wk.setupDone?ldays():(LDEF[3]||[]).slice(),
     pb:sp?(cnt(sp)||2):0,ac:Object.fromEntries(ONB_ACTS().map(a=>[a,enabled(a)?cnt(a):0])),focus:wk.focus||"Balanced",sex:wk.sex||"Female",age:wk.age||"",height:wk.height||"",weight:wk.weight||"",bf:wk.bf||""};
   renderOnb(true);
@@ -1348,7 +1363,7 @@ function closeOnb(){ onb=null; const el=document.getElementById("tour"); el.clas
 /* write the answers into the real settings (logs and history are untouched) */
 function applyOnb(o,real){
   wk.acts={...(wk.acts||{}),lift:true}; if(o.sport){ wk.acts[o.sport]=true; wk[o.sport]=o.pb; }
-  wk.mainSport=o.sport; wk.season=o.sport&&o.inS?"In-season":"Off-season";
+  wk.mainSport=o.sport; wk.season=o.sport&&o.inS&&SEASONAL(o.sport)?"In-season":"Off-season";
   Object.entries(o.ac||{}).forEach(([a,c])=>{ if(a===o.sport) return; if(c>0) wk.acts[a]=true; if(enabled(a)) wk[a]=c; });
   wk.mode=o.goal; wk.ldays=o.days.slice().sort(); wk.days=o.days.length; wk.focus=o.focus; wk.sex=o.sex;
   ["age","height","weight","bf"].forEach(k=>{ if(String(o[k]).trim()!=="") wk[k]=String(o[k]); });
@@ -1389,7 +1404,7 @@ function renderOnb(focus){
   else { const n=s-2, Q=ONB_Q[n-1], chip=(on,attr,l)=>`<button type="button" ${attr} aria-pressed="${on}">${l}</button>`;
     let body="";
     if(n===1) body=`<div class="ogrid three">${ONB_SPORTS.map(([a,l])=>chip(o.sport===a,`data-os="${a}"`,l)).join("")}</div>
-      ${o.sport?`<div class="q tgl"><span id="oinS">In-season now</span><div class="seg toggle"><button type="button" role="switch" aria-checked="${o.inS}" aria-labelledby="oinS" data-oin><i aria-hidden="true"></i></button></div></div>`:""}`;
+      ${o.sport&&SEASONAL(o.sport)?`<div class="q tgl"><span id="oinS">In-season now</span><div class="seg toggle"><button type="button" role="switch" aria-checked="${o.inS}" aria-labelledby="oinS" data-oin><i aria-hidden="true"></i></button></div></div>`:""}`;
     if(n===2) body=`<div class="ogoals">${ONB_GOALS.map(([v,l,d])=>`<button type="button" data-og="${v}" aria-pressed="${o.goal===v}"><b>${l}</b><span>${d}</span></button>`).join("")}</div>`;
     if(n===3){ const acts=[...(o.sport?[[o.sport,"pb",ACT[o.sport].name]]:[]),...ONB_ACTS().map(a=>[a,"ac:"+a,ACT[a].name])], val=k=>k.startsWith("ac:")?(o.ac[k.slice(3)]||0):o[k];
       body=`<span class="plab">Usual lift days · ${o.days.length} a week</span><div class="ldgrid">${"MTWTFSS".split("").map((c,k)=>`<button type="button" data-od="${k}" aria-pressed="${o.days.includes(k)}" aria-label="${WD[k]}">${c}</button>`).join("")}</div>
@@ -1404,7 +1419,7 @@ function renderOnb(focus){
       body=`<section class="ofirst"><span class="weye">First workout · ${D.length?(nextD===today?"Today":WD[nextD]):"whenever you like"}</span><h3>${esc(D.length?D[0].title:"Log an activity")}</h3><p>Starting weights are a guess. Log your first sets and the app adjusts from there.</p></section>
       <div class="orest2">${rest.map((r,i)=>`<div class="${r.a?"a":""}" style="animation-delay:${300+i*120}ms"><b>${esc(r.t)}</b><span>${r.d}</span></div>`).join("")}</div>`; }
     const gName=(ONB_GOALS.find(g=>g[0]===o.goal)||[])[1], nd=o.days.length;
-    const prev=[["Season",o.sport?`${ACT[o.sport].name} · ${o.inS?"in-season":"off-season"}`:"No sport"],...(n>=2?[["Goal",gName]]:[]),...(n>=3?[["Week",`${nd} lift${nd===1?"":"s"}${o.sport&&o.pb?` + ${o.pb}× ${ACT[o.sport].name.toLowerCase()}`:""}${Object.entries(o.ac||{}).filter(([a,c])=>c&&a!==o.sport).map(([a,c])=>` + ${c}× ${ACT[a].name.toLowerCase()}`).join("")}`]]:[]),...(n>=4?[["Focus",o.focus==="Balanced"?"Balanced":o.focus+" body"]]:[]),...(n>=5?[["Eat about",`${pv.food.toLocaleString()} kcal a day`]]:[])];
+    const prev=[[o.sport&&!SEASONAL(o.sport)?"Main activity":"Season",o.sport?`${ACT[o.sport].name}${SEASONAL(o.sport)?` · ${o.inS?"in-season":"off-season"}`:""}`:"No sport"],...(n>=2?[["Goal",gName]]:[]),...(n>=3?[["Week",`${nd} lift${nd===1?"":"s"}${o.sport&&o.pb?` + ${o.pb}× ${ACT[o.sport].name.toLowerCase()}`:""}${Object.entries(o.ac||{}).filter(([a,c])=>c&&a!==o.sport).map(([a,c])=>` + ${c}× ${ACT[a].name.toLowerCase()}`).join("")}`]]:[]),...(n>=4?[["Focus",o.focus==="Balanced"?"Balanced":o.focus+" body"]]:[]),...(n>=5?[["Eat about",`${pv.food.toLocaleString()} kcal a day`]]:[])];
     h=`<div class="onb"><div class="otop"><div class="odots" role="progressbar" aria-label="Setup progress" aria-valuemin="1" aria-valuemax="6" aria-valuenow="${n}">${[1,2,3,4,5,6].map(i=>`<i class="${i===n?"on":i<n?"past":""}"></i>`).join("")}</div>${skip}</div>
       <div class="ostepbody"><h2 class="oh" tabindex="-1">${Q[0]}</h2><p class="olead sm">${Q[1]}</p>${body}</div>
       ${n<6?`<section class="oprev" aria-label="Your plan so far"><span class="weye">Your plan so far</span>${prev.map(([k,v])=>`<div><span>${k}</span><b>${esc(v)}</b></div>`).join("")}</section>`:""}

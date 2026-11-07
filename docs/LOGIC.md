@@ -205,3 +205,6 @@ Per lift, from your last logged set:
 ## Onboarding
 - Welcome (new users only) → Plan your week → As much help as you want (level slider, demo only) → six setup steps: sport and season, goal (definitions inside each option), usual lift days + weekly activity counts, extra focus, bio (sex, age, height, weight, optional body fat), You're set (first workout, then the rest of the week faded in at 45%).
 - Shows once: finishing or skipping sets `wk.onbDone`; Replay tour on You opens it again. Answers start from current settings; Skip (shown once set up) leaves everything as is. Finishing writes the answers to settings; logs and history are untouched.
+- **Move to today** pins that lift to today (`wk.pinToday`, today only); the rest of the queue keeps its order on the remaining usual days, so the day it left takes the next lift.
+- **Log activity → Other** lists every activity you haven't turned on; logging one turns it on.
+- Yoga and Pilates can be your main activity. They have no season, so the in-season switch is hidden for them.
