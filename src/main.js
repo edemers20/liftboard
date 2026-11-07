@@ -1427,7 +1427,7 @@ function renderOnb(focus){
   else if(s===2){ const v=o.lvl, nm=["New to lifting","Some experience","Years of lifting"];
     const P=[["Tips on every screen","The reason for each exercise","A fixed plan to follow; swaps come later"],["Tips the first time you see each screen","Rest timer and next-time targets","Swap exercises when you want to"],["No tips; explanations only if you tap (i)","Swap, add and skip exercises freely","Assumes you know form and your numbers"]][v];
     h=`<div class="onb"><div class="otop"><span class="plab">For any level</span>${skip}</div><h2 class="oh big" tabindex="-1">As much help as you want</h2>
-    <p class="olead">Slide to see the same workout for different experience levels.</p>
+    <p class="olead">Same workout for different experience levels.</p>
     <input class="olvl" type="range" min="0" max="2" step="1" value="${v}" aria-label="Experience level" aria-valuetext="${nm[v]}">
     <div class="olvls">${nm.map((n,k)=>`<button type="button" data-lvl="${k}" aria-pressed="${k===v}">${n}</button>`).join("")}</div>
     <section class="odemo" aria-live="polite"><div class="orow"><span class="weye">Day 1 · Lower</span><span class="omode">${["Guided","Standard","Flexible"][v]}</span></div>
