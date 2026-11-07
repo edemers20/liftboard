@@ -702,11 +702,14 @@ function restPlan(s,name,k,d){
     if(pi>=0&&((get(d.id,pi).log||[]).some(x=>x.d))) return {base:20,bump:0,fixed:1}; }
   const iso=ISO_LBL.test(s.label), lo=+((String(s.reps).match(/\d+/)||[8])[0]);
   const base=s.main?(lo<=5?180:150):iso?75:90, uni=/single|bulgarian|split squat|lunge|step-up|single-arm|one-arm|cossack/i.test(name)?15:0;
-  return {base:base+uni,bump:k===0&&!iso?30:0};
+  /* Context levers: heavier recovery demand gets longer rest on compound lifts (never shorter), capped at +30s */
+  const ctx=[]; if(!iso){ if(cutting()) ctx.push("cut"); if(inSeason()) ctx.push("in-season");
+    const feel=d?(wk.today||{})[d.id]:""; if(feel==="Rough"||wk.ready==="Low"||wk.sore==="Everything") ctx.push("recovery"); }
+  return {base:base+uni,bump:(k===0&&!iso?30:0)+Math.min(30,ctx.length*15),why:ctx.length?`+${Math.min(30,ctx.length*15)}s · ${ctx.join(", ")}`:""};
 }
 const restFor=(name,p)=>((wk.restFor||{})[name])||p.base;
 function startRest(name,s,k,d){ const p=restPlan(s,name,k,d), secs=p.fixed?p.base:restFor(name,p)+p.bump;
-  wk.rest={end:Date.now()+secs*1000,name,base:p.fixed?null:p.base,bump:p.bump}; save(); schedChime(secs); tickTimers(); }
+  wk.rest={end:Date.now()+secs*1000,name,base:p.fixed?null:p.base,bump:p.bump,why:p.why||""}; save(); schedChime(secs); tickTimers(); }
 function adjRest(d){ const r=wk.rest; if(!r) return;
   if(r.base==null){ r.end=Math.max(Date.now()+5000,r.end+d*1000); save(); schedChime((r.end-Date.now())/1000); tickTimers(); return; }
   const base=restFor(r.name,{base:r.base}), nb=Math.max(30,Math.min(300,base+d));
@@ -738,7 +741,7 @@ function tickTimers(){
         bar.innerHTML=`<button type="button" class="rb" data-rest="-15" aria-label="15 seconds less">−15</button><span class="rt" aria-live="off"></span><button type="button" class="rb" data-rest="15" aria-label="15 seconds more">+15</button><button type="button" class="rb skip" data-rest="skip">Skip</button>`;
         bar.querySelectorAll("[data-rest]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); const v=b.dataset.rest; if(v==="skip") endRest(); else adjRest(+v); }); }
       bar.hidden=false; bar.classList.toggle("over",over);
-      bar.querySelector(".rt").textContent=over?`Go · ${mmss(-left)} over`:`Rest ${mmss(left)}`; } }
+      bar.querySelector(".rt").textContent=over?`Go · ${mmss(-left)} over`:`Rest ${mmss(left)}${r.why?` · ${r.why}`:""}`; } }
   if(!wk.rest){ bar.hidden=true; bar.innerHTML=""; delete bar.dataset.end; }
   const wt=document.getElementById("wtime"); if(wt){ const T=(wk.wt||{})[wt.dataset.day]; if(T&&T.start) wt.textContent=T.end?`Workout · ${Math.round((T.end-T.start)/60000)} min`:`Workout · ${mmss((now-T.start)/1000)}`; }
 }
