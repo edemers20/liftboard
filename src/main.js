@@ -5,13 +5,17 @@ import { isBW, yogaMet, pilMet, cutting, XCAT, XGROUPS, catOf, addExtra, removeE
 const storage=(()=>{ try{ const k="__t"; localStorage.setItem(k,"1"); localStorage.removeItem(k); return localStorage; }catch(e){ const m=new Map(); return {getItem:k=>m.get(k)??null,setItem:(k,v)=>m.set(k,String(v))}; } })();
 init(storage);
 setSaveHook(ok=>{ document.getElementById("saved").textContent= ok?"Saved":"Not saved (storage blocked)"; });
-let cur="week";
-try{ const t=localStorage.getItem(KEY+".tab"); if(t) cur=t; }catch(e){}
+/* nav: the bottom tab. cur: "home", or the lift day / activity opened from Workouts */
+const NAVS=["workouts","plan","history","you"];
+let nav="workouts", cur="home", planView="week", selOff=0;
+try{ const n=localStorage.getItem(KEY+".nav"); if(NAVS.includes(n)) nav=n; const t=localStorage.getItem(KEY+".tab"); if(t) cur=t; if(localStorage.getItem(KEY+".pv")==="season") planView="season"; }catch(e){}
 const actTabs=()=>ACT_IDS.filter(a=>a!=="lift"&&enabled(a));
 const rampOn=()=>hasSport()&&!inSeason()&&wk.ramp==="Yes";
-const TABS=()=>[...(wk.setupDone?["history"]:[]),"season","week",...DAYS.map(d=>d.id),...(rampOn()?["zone2"]:[]),...actTabs()];
-if(!wk.setupDone) cur="season";
-const hsh=location.hash.slice(1); if(TABS().includes(hsh)) cur=hsh; if(!TABS().includes(cur)) cur="week";
+const SUBS=()=>["home",...DAYS.map(d=>d.id),...(rampOn()?["zone2"]:[]),...actTabs()];
+const TABS=SUBS;
+if(!SUBS().includes(cur)) cur="home"; if(nav!=="workouts") cur="home";
+/* pace moves to % of body weight: convert an old lb/week once */
+if(wk.ratePct==null&&wk.rate!=null){ const pct=num(wk.rate,0.5)/num(wk.weight,150)*100, o=wk.mode==="Recomp"?[0.25,0.5,0.7]:[0.5,0.75,1]; wk.ratePct=String(o.reduce((a,x)=>Math.abs(x-pct)<Math.abs(a-pct)?x:a)); }
 
 /* ---------- Info overlays ---------- */
 const sportInfo=a=>ACT[a].noMin?"Counts toward cardio and cuts pulling volume.":`Counts toward cardio.${ACT[a].leg?" Leg-heavy weeks trim overlapping unilateral and quad sets.":""}${ACT[a].sh?" Long weeks shift a side delt set to rear delts.":""}`;
@@ -22,7 +26,7 @@ const INFO={
  season:"Off-season: full splits, weights go up. In-season: 1–3 full-body days, 2 sets each, no weight increases, support lifts for your sport.",
  ramp:"Adds one 45-min zone 2 session a week to build the aerobic base that prevents in-season fatigue.",
  deload:"One lighter week: about 60% of sets, ~90% weights, easy-pace cardio. Suggested after 6 off-season weeks or when 2+ main lifts stall.",
- mode:"Lose fat fast: fat loss comes first, at the rate you set. Lose fat, keep muscle: capped at 0.7% of your weight a week with no more than 25% from cardio, so muscle is protected. Maintain: eat what you burn and keep lifting as normal. Build muscle: about 200 calories over, plus a set on main lifts. On any fat-loss goal, food never drops so low that there isn't enough energy left for your training.",
+ mode:"Lose weight fast: fastest loss, up to 1% of your weight a week. Lose fat, keep strength: up to 0.7% a week with no more than 25% from cardio, so you hold your lifts. Maintain: eat what you burn. Build muscle: a small surplus with extra sets on your focus.",
  rate:"Target loss per week. Sets the weekly deficit at 3,500 kcal per lb. Up to 0.5% of your weight a week leaves room to keep building muscle; 0.5–0.7% holds muscle; faster than that, strength usually slips, so keep it short.",
  share:"How much of the deficit should come from cardio. The rest comes from food.",
  sex:"Changes resting metabolism and the minimum weight jump. Other uses the midpoint.",
@@ -55,7 +59,7 @@ const INFO={
 };
 SPORTS.forEach(a=>{ INFO[a]=sportInfo(a); INFO[minKey(a)]="Planned length per session."; });
 INFO.climb="Each session counts as about 75 minutes toward cardio. Pulling and arm work on lift days is trimmed so you don't double up.";INFO.yoga="Counts toward cardio."; INFO.pilates="Counts toward cardio at a light, yoga-like burn."; INFO[minKey("pilates")]="Class length."; INFO.spin="Counts toward cardio. Hard weeks cut a quad set.";
-const LBL={muscles:"Muscles",acts:"Activities",mainSport:"Main sport",focus:"Focus",season:"Season",ramp:"Ramp",deload:"Deload",mode:"Goal",rate:"Lose lb/week",share:"From cardio",sex:"Sex",age:"Age",height:"Height",weight:"Weight",bf:"Body fat",steps:"Steps",oura:"Daily burn",days:"Lifting days",time:"Session length",liftK:"Avg lift kcal",ready:"Readiness",sore:"Soreness",cycle:"Cycle",drink:"Drinking",load:"Recovery load",wAvg:"Avg weight",ymin:"Class length",heated:"Heated",yeff:"Effort",peff:"Effort",spint:"Intensity",today:"Today",ss:"Supersets",progress:"Progress",changes:"Changes",watch:"Watch",lifts:"Main lifts",weeks:"Previous weeks",maint:"Maintenance"};
+const LBL={muscles:"Muscles",acts:"Activities",mainSport:"Main sport",focus:"Focus",season:"Season",ramp:"Ramp",deload:"Deload",mode:"Goal",rate:"Pace",share:"From cardio",sex:"Sex",age:"Age",height:"Height",weight:"Weight",bf:"Body fat",steps:"Steps",oura:"Daily burn",days:"Lifting days",time:"Session length",liftK:"Avg lift kcal",ready:"Readiness",sore:"Soreness",cycle:"Cycle",drink:"Drinking",load:"Recovery load",wAvg:"Avg weight",ymin:"Class length",heated:"Heated",yeff:"Effort",peff:"Effort",spint:"Intensity",today:"Today",ss:"Supersets",progress:"Progress",changes:"Changes",watch:"Watch",lifts:"Main lifts",weeks:"Previous weeks",maint:"Maintenance"};
 ACT_IDS.forEach(a=>{ LBL[a]=ACT[a].name; LBL[minKey(a)]="Planned min"; });
 const POP={}; let popN=0;
 function hdr(title,keys,tag){ const id="p"+(++popN), t=tag||"h3";
@@ -89,7 +93,8 @@ new MutationObserver(ms=>{ if(!KG()) return; ms.forEach(m=>{ m.addedNodes.forEac
 function fld(key,label,mode,ph,cls,val){ return `<label class="field${cls?" "+cls:""}" for="${key}"><span>${label}</span><input id="${key}" data-w="${key}" inputmode="${mode||"numeric"}" placeholder="${ph||""}" value="${esc((val!==undefined?val:wk[key])??"")}"></label>`; }
 
 /* Goal values stay as stored; these are the words people see */
-const GOALS=[["Deficit only","Lose fat fast"],["Recomp","Lose fat, keep muscle"],["Maintain","Maintain"],["Build","Build muscle"]];
+const GOALS=[["Deficit only","Lose weight fast"],["Recomp","Lose fat, keep strength"],["Maintain","Maintain"],["Build","Build muscle"]];
+const GOAL_SUB={"Deficit only":"Fastest loss, up to 1% of your weight a week. Your lifts may slip.",Recomp:"Steady loss, up to 0.7% of your weight a week, while you hold your lifts. Cardio covers at most a quarter of the deficit.",Maintain:"Eat what you burn and keep training as normal.",Build:"Eat a little over what you burn. Extra sets go to your focus area."};
 const goalName=v=>(GOALS.find(g=>g[0]===v)||[v,v])[1];
 function draftDirty(){ return !!draft&&Object.keys(draft).some(k=>JSON.stringify(draft[k])!==JSON.stringify(wk[k])); }
 /* ---------- Your plan: live summary built from the engine's output ---------- */
@@ -117,7 +122,7 @@ function planSentence(P){
       S.push(". ");
     }
   }
-  const goal={"Deficit only":"lose fat fast",Recomp:"lose fat and keep muscle",Maintain:"maintain your weight",Build:"build muscle"}[wk.mode]||"lose fat";
+  const goal={"Deficit only":"lose weight fast",Recomp:"lose fat and keep strength",Maintain:"maintain your weight",Build:"build muscle"}[wk.mode]||"lose fat";
   S.push("To ",["goal",goal],", eat about ",["eat",`${r5(M.intake).toLocaleString()} calories`]," and ",["protein",`${M.protein[0]}–${M.protein[1]} g of protein`]," a day");
   if(M.cardioTarget>0) S.push(", and burn ",["cardio",`${r5(M.cardioTarget).toLocaleString()} calories`]," in cardio each week");
   S.push(".");
@@ -161,16 +166,254 @@ function dialCfg(el){
   if(/min$/.test(k)) return {label:"Planned minutes",min:15,max:360,step:5,unit:"min",start:el.placeholder};
   return null;
 }
+/* ---------- Navigation: Workouts · Plan · History · You ----------
+   Workouts is home (a week strip and the selected day). Lift days and activity screens open
+   on top of it with a back link; the bottom nav hides there so the rest timer has the space. */
+const NAV=[["workouts","Workouts",`<path d="M3 9v6M6 7v10M18 7v10M21 9v6M6 12h12"/>`],["plan","Plan",`<rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/>`],["history","History",`<path d="M4 19V11M10 19V5M16 19v-6M22 19H2"/>`],["you","You",`<circle cx="12" cy="8" r="4"/><path d="M4.5 20c1.2-3.6 4-5.5 7.5-5.5s6.3 1.9 7.5 5.5"/>`]];
+function renderNav(){
+  const n=document.getElementById("bnav"), show=wk.setupDone&&!(nav==="workouts"&&cur!=="home");
+  n.hidden=!show; document.body.classList.toggle("hasnav",show);
+  n.innerHTML=NAV.map(([id,l,ic])=>`<button type="button" data-nav="${id}"${nav===id?' aria-current="page"':""}><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ic}</svg>${l}</button>`).join("");
+  n.querySelectorAll("[data-nav]").forEach(b=>b.onclick=()=>{ closeSheet(); closePop(); const id=b.dataset.nav; if(id==="workouts"&&nav==="workouts") selOff=0; nav=id; cur="home"; keepNav(); render(); window.scrollTo(0,0); });
+}
+function keepNav(){ try{ localStorage.setItem(KEY+".nav",nav); localStorage.setItem(KEY+".tab",cur); localStorage.setItem(KEY+".pv",planView); }catch(e){} }
+
+/* ---------- Week model: lifts are a queue on your usual lift days; dates are projected, never stored ---------- */
+const DAY0=t=>{ const d=new Date(t); d.setHours(0,0,0,0); return d; };
+const addD=(d,n)=>{ const x=new Date(d); x.setDate(x.getDate()+n); return x; };
+const monIdx=d=>(d.getDay()+6)%7;
+function weekStartOf(t){ const d=DAY0(t); return addD(d,-(wk.wkStart==="Sun"?d.getDay():monIdx(d))); }
+const LDEF={0:[],1:[0],2:[0,3],3:[0,2,4],4:[0,2,4,6],5:[0,1,3,4,6],6:[0,1,2,3,4,5],7:[0,1,2,3,4,5,6]};
+function ldays(){ const n=DAYS.length, L=Array.isArray(wk.ldays)?wk.ldays:null; return L&&L.length===n?L.slice().sort():(LDEF[n]||[]).slice(); }
+const WD=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+const wdOf=d=>WD[monIdx(d)];
+/* lift order: start with the carried-over lift (upNext), then continue in order */
+function rotation(first){ const ids=DAYS.map(d=>d.id); let s=ids.indexOf(first); if(s<0) s=0; return ids.slice(s).concat(ids.slice(0,s)); }
+function weekModel(off){
+  off=off||0;
+  const today=DAY0(Date.now()), W=addD(weekStartOf(today),7*off), tIdx=off===0?Math.round((today-W)/864e5):off>0?-1:7;
+  const dates=[...Array(7)].map((_,i)=>addD(W,i)), end=addD(W,7).getTime();
+  const sess=(wk.sessions||[]).filter(s=>s.t>=W.getTime()&&s.t<end);
+  const byDay=dates.map(d=>sess.filter(s=>DAY0(s.t).getTime()===d.getTime()));
+  const done=wk.done||{}, L=ldays(), plan0={};
+  let todo=[], left=[];
+  if(off>=0){
+    const cur0=weekModel0();
+    todo=off===0?cur0.todo:rotation(cur0.left[0]||cur0.next0);
+    const from=off===0?tIdx:0, liftToday=off===0&&byDay[tIdx].some(s=>s.k==="lift"), slotsI=[];
+    for(let i=from;i<7;i++){ if(i===tIdx&&liftToday) continue; if(L.includes(monIdx(dates[i]))) slotsI.push(i); }
+    todo.forEach((id,j)=>{ if(j<slotsI.length) plan0[slotsI[j]]=id; }); left=todo.slice(slotsI.length);
+  }
+  return {W,dates,tIdx,byDay,plan:plan0,left,todo,off};
+}
+/* this week's queue, used to project next week too */
+function weekModel0(){ const done=wk.done||{}, ids=DAYS.map(d=>d.id), first=wk.upNext&&!done[wk.upNext]?wk.upNext:(ids.find(id=>!done[id])||ids[0]);
+  const todo=rotation(first).filter(id=>!done[id]);
+  const m={todo,next0:ids[0],left:[]};
+  const today=DAY0(Date.now()), W=weekStartOf(today), t=Math.round((today-W)/864e5), L=ldays();
+  const liftToday=(wk.sessions||[]).some(s=>s.k==="lift"&&DAY0(s.t).getTime()===today.getTime());
+  let n=0; for(let i=t;i<7;i++){ if(i===t&&liftToday) continue; if(L.includes(monIdx(addD(W,i)))) n++; }
+  m.left=todo.slice(n);
+  /* after this week's lifts, next week picks the rotation up where it left off */
+  if(!m.left.length){ const last=todo[todo.length-1]||ids[ids.length-1], k=ids.indexOf(last); m.next0=ids[(k+1)%ids.length]||ids[0]; }
+  return m;
+}
+const dayById=id=>DAYS.find(d=>d.id===id);
+const actName=k=>k==="zone2"?"Zone 2":ACT[k]?ACT[k].name:k;
+const keyOfAct=a=>a==="zone2"?"zAct":actKey(a);
+const plannedOf=a=>a==="zone2"?1:cnt(a);
+const loggedOf=a=>(wk[keyOfAct(a)]||[]).filter(x=>String(x??"").trim()!=="").length;
+const actList=()=>[...actTabs(),...(rampOn()?["zone2"]:[])];
+/* log an activity on a date: fills the next open session; a session beyond the plan raises the count */
+function logActOn(a,t){
+  const key=keyOfAct(a), arr=wk[key]||[], P=plannedOf(a); let n=-1;
+  for(let i=0;i<P;i++) if(String(arr[i]??"").trim()===""){ n=i; break; }
+  change(()=>{ if(n<0){ n=Math.max(P,arr.length); if(a!=="zone2") wk[a]=n+1; }
+    logAct(key,n,String(a==="zone2"?45:plannedMin(a)),t); });
+}
+/* weeks start on their own: the first open after Monday (or Sunday) closes out last week */
+function autoWeek(){
+  if(!wk.setupDone) return null;
+  const W=weekStartOf(Date.now()).getTime();
+  if(!wk.weekStart){ wk.weekStart=W; save(); return null; }
+  if(wk.weekStart>=W) return null;
+  const P=plan(), s={lifts:DAYS.filter(d=>(wk.done||{})[d.id]).length,planned:DAYS.length,cardio:r5(P.math.cardioTotal)};
+  newWeek(W); selOff=0; return s;
+}
+
+/* ---------- Workouts (home) ---------- */
+const fmtDate=d=>d.toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"});
+function liftCard(eyebrow,id,body,kind){ const d=dayById(id); if(!d) return "";
+  return `<section class="wcard lift ${kind||""}"><span class="weye">${eyebrow}</span><h3>${esc(d.title)}<small> · ${esc(d.tab)}</small></h3>${body||""}</section>`; }
+function sessCard(s,today){
+  if(s.k==="lift"){ const ex=(s.ex||[]).slice(0,5), d=dayById(s.id), open=d&&(wk.doneT||{})[s.id]===s.t;
+    return `<section class="wcard lift done"><span class="weye">Completed</span><h3>${esc(s.title||"Lift")}</h3>
+      ${ex.length?`<div class="drows wo">${ex.map(x=>`<div class="prow"><span>${esc(x.n)}</span><b>${x.cardio?`${x.min?x.min+" min":"done"}`:fmtSet(x.n,x.w,x.r)}</b></div>`).join("")}</div>`:""}
+      ${open?`<button type="button" class="wlink" data-open="${s.id}">View workout</button>`:""}</section>`; }
+  const recent=Date.now()-s.t<15*60e3, a=s.k;
+  return `<section class="wcard act"><span class="weye">${recent?"Logged":"Done"}</span><div class="wrow"><h3>${esc(actName(a))}</h3>${(a==="zone2"||(ACT[a]&&!ACT[a].noMin))&&s.min?`<span class="wmeta">${s.min} min</span>`:""}</div>
+    ${a==="zone2"||enabled(a)?`<button type="button" class="wlink" data-open="${a}">Edit minutes</button>`:""}</section>`;
+}
+function renderWorkouts(P){
+  const off=Math.floor(selOff/7+(monIdx(new Date())===0&&wk.wkStart!=="Sun"?0:0)), today=DAY0(Date.now());
+  const sel=addD(today,selOff), W0=weekStartOf(today), wOff=Math.floor((weekStartOf(sel)-W0)/6048e5+0.01);
+  const M=weekModel(wOff), i=Math.round((DAY0(sel)-M.W)/864e5), isToday=selOff===0, past=sel<today;
+  const cells=M.dates.map((d,k)=>{ const ss=M.byDay[k], lift=ss.some(s=>s.k==="lift"), act=ss.some(s=>s.k!=="lift"), pl=M.plan[k]!=null;
+    const o=Math.round((d-today)/864e5);
+    return `<button type="button" class="wcell${k===i?" on":""}${o===0?" now":""}" data-sel="${o}" aria-pressed="${k===i}" aria-label="${fmtDate(d)}${lift?", lift done":pl?", lift planned":""}${act?", activity":""}"><span>${"MTWTFSS"[monIdx(d)]}</span><b>${d.getDate()}</b><i class="dots">${lift?'<i class="dl"></i>':pl?'<i class="dp"></i>':""}${act?'<i class="da"></i>':""}</i></button>`; }).join("");
+  const nav0=`<button type="button" class="wstep" data-wk="-7" aria-label="Previous week"${wOff<=-8?" disabled":""}>‹</button>`, nav1=`<button type="button" class="wstep" data-wk="7" aria-label="Next week"${wOff>=1?" disabled":""}>›</button>`;
+  const ss=M.byDay[i]||[], cards=[], pid=M.plan[i], liftDone=ss.some(s=>s.k==="lift");
+  const banners=[];
+  if(isToday){
+    /* forgot to log yesterday? one tap fixes it */
+    const y=i-1, yk=dayKey(addD(today,-1).getTime()), open=actList().filter(a=>loggedOf(a)<plannedOf(a));
+    if((wk.remind||"On")==="On"&&y>=0&&!M.byDay[y].length&&open.length&&wk.remindSeen!==yk)
+      banners.push(`<div class="wban"><p>Did you play or train yesterday?</p><div class="chips">${open.map(a=>`<button type="button" class="chip" data-yday="${a}">${esc(actName(a))}</button>`).join("")}<button type="button" class="chip ghost" data-yday="">No</button></div></div>`);
+    /* played a leg-heavy sport today with a lower day queued: offer an upper day instead */
+    const tk=dayKey(today.getTime()), pd=dayById(pid), legs=ss.find(s=>ACT[s.k]&&ACT[s.k].leg>=1), up=M.todo.find(id=>/^Upper/.test((dayById(id)||{}).title||""));
+    if(pd&&/^Lower/.test(pd.title)&&legs&&up&&!(wk.swapKeep||{})[tk])
+      banners.push(`<div class="wban"><p>You logged ${esc(actName(legs.k))} today. Swap ${esc(pd.title)} for ${esc(dayById(up).title)} so your legs can recover?</p><div class="chips"><button type="button" class="chip on" data-open="${up}">Swap</button><button type="button" class="chip ghost" data-keep="${tk}">Keep plan</button></div></div>`);
+  }
+  ss.filter(s=>s.k==="lift").forEach(s=>cards.push(sessCard(s)));
+  if(pid&&!liftDone){
+    const d=dayById(pid), started=((wk.wt||{})[pid]||{}).start, other=M.todo.find(id=>id!==pid);
+    if(isToday) cards.push(liftCard("Today",pid,`<button type="button" class="btn primary wgo" data-open="${pid}">${started?"Continue workout":"Start workout"}</button>${other?`<button type="button" class="wlink" data-open="${other}">Switch to ${esc(dayById(other).title)}</button>`:""}`));
+    else cards.push(liftCard("Planned",pid,`<button type="button" class="btn wgo" data-open="${pid}">Move to today</button>`,"planned"));
+  }
+  if(!pid&&!liftDone){
+    const nk=Object.keys(M.plan).map(Number).find(k=>k>i), nextId=isToday?(M.todo[0]||null):null;
+    if(isToday&&nextId){ const when=nk!=null?wdOf(M.dates[nk]):"next week";
+      cards.push(liftCard(`Nothing planned · up next ${when}`,nextId,`<button type="button" class="btn wgo" data-open="${nextId}">Move to today</button>`,"planned")); }
+    else if(!past&&!ss.length) cards.push(`<section class="wcard open"><span class="weye">Open day</span><h3>Nothing planned</h3>${nk!=null?`<button type="button" class="wlink" data-sel="${Math.round((M.dates[nk]-today)/864e5)}">View next lift</button>`:""}</section>`);
+    else if(past&&!ss.length) cards.push(`<section class="wcard open"><span class="weye">Rest</span><h3>Nothing logged</h3></section>`);
+  }
+  ss.filter(s=>s.k!=="lift").forEach(s=>cards.push(sessCard(s)));
+  const canLog=wOff===0&&!(sel>today), acts=actList().filter(a=>plannedOf(a)>0||loggedOf(a)>0);
+  const logH=canLog&&acts.length?`<div class="wlog"><span class="plab">Log activity</span><div class="chips">${acts.map(a=>`<button type="button" class="chip" data-log="${a}">${esc(actName(a))} <small>${loggedOf(a)} of ${plannedOf(a)}</small></button>`).join("")}</div></div>`:"";
+  const Mth=P.math, food=isToday&&wk.setupDone?`<button type="button" class="wfood" data-nav2="plan"><span>Eat today</span><b>${r5(Mth.intake).toLocaleString()} <small>kcal</small></b><small>Your base ${r5(Mth.everyday).toLocaleString()}</small></button>`:"";
+  return `<div class="whead"><h1>Lift Board</h1><button type="button" class="todayb" data-sel="0"${isToday?" disabled":""}>Today</button></div>
+  <div class="wstrip">${nav0}<div class="wcells">${cells}</div>${nav1}</div>
+  <p class="wdate">${isToday?"Today · ":""}${fmtDate(sel)}</p>
+  ${banners.join("")}
+  <div class="wcards">${cards.join("")}</div>
+  ${logH}${food}`;
+}
+
+/* ---------- Plan: this week and the season ---------- */
+function ckSummary(){ const s={None:"no soreness",Legs:"sore legs","Upper body":"sore upper body",Everything:"sore all over"}[wk.sore]||"";
+  return [`${wk.ready==="Low"?"Low":"Normal"} readiness`,s,...(fem()&&wk.cycle&&wk.cycle!=="Not tracking"?[wk.cycle.toLowerCase()]:[]),...(wk.wAvg?[`${toU(wk.wAvg)} ${KG()?"kg":"lb"}`]:[])].filter(Boolean).join(" · "); }
+const ICON={done:`<svg role="img" aria-label="Done" width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" fill="var(--line)"/><path d="M6 10.3l2.6 2.6L14 7.5" stroke="var(--muted)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  next:`<svg role="img" aria-label="Next" width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" fill="var(--accent)"/><path d="M8.3 6.3L12 10l-3.7 3.7" stroke="var(--bg)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  open:`<svg aria-hidden="true" width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8.25" stroke="var(--div)" stroke-width="1.5"/></svg>`};
+function planRows(){
+  const M=weekModel(0), today=DAY0(Date.now()), R=[];
+  const wdShort=d=>{ const o=Math.round((DAY0(d)-today)/864e5); return o===0?"Today":o===1?"Tomorrow":WD[monIdx(d)].slice(0,3); };
+  const sessW=M.byDay.flat();
+  DAYS.forEach(d=>{ if((wk.done||{})[d.id]){ const s=sessW.find(x=>x.k==="lift"&&x.id===d.id); R.push({o:s?s.t:0,k:"lift",id:d.id,title:d.title,sub:s?wdShort(new Date(s.t)):"Done",st:"done"}); } });
+  M.todo.forEach((id,j)=>{ const d=dayById(id), k=Object.keys(M.plan).find(x=>M.plan[x]===id);
+    R.push({o:k!=null?M.dates[k].getTime()+1:9e15+j,k:"lift",id,title:d.title,sub:k!=null?wdShort(M.dates[k]):"Doesn't fit this week",st:j===0?"next":"open"}); });
+  sessW.filter(s=>s.k!=="lift").forEach(s=>R.push({o:s.t,k:"act",id:s.k,title:actName(s.k),sub:wdShort(new Date(s.t)),st:"done"}));
+  actList().forEach(a=>{ for(let i=loggedOf(a);i<plannedOf(a);i++) R.push({o:9.5e15,k:"act",id:a,title:actName(a),sub:"Any day",st:"open"}); });
+  return R.sort((a,b)=>a.o-b.o);
+}
+function renderPlan(P){
+  const tog=`<div class="phead"><span class="pdate">${planView==="week"?(()=>{ const W=weekStartOf(Date.now()), E=addD(W,6), f=d=>d.toLocaleDateString("en-US",{month:"short",day:"numeric"}); return `${f(W)} – ${W.getMonth()===E.getMonth()?E.getDate():f(E)}`; })():"Season"}</span>
+    <div class="pill" role="group" aria-label="Plan view"><button type="button" data-pv="week" aria-pressed="${planView==="week"}">Week</button><button type="button" data-pv="season" aria-pressed="${planView==="season"}">Season</button></div></div>`;
+  return tog+(planView==="season"?planSeason(P):planWeek(P));
+}
+function planWeek(P){
+  const Mt=P.math, build=wk.mode==="Build"||wk.mode==="Maintain", nd=P.days[P.nextId];
+  INFO.maint=Mt.useOura?`Your wearable's daily burn minus 7%, plus this week's cardio.`:`Resting ${r5(Mt.bmr)} + light movement ${r5(Mt.base-Mt.bmr)} + steps ${r5(Mt.stepsK)}${Mt.nLift?` + lifting ${r5(Mt.liftDay)}`:""} + digestion ${r5(Mt.tef)}${wk.calibN?`, ${Mt.calib>=0?"+":""}${r5(Mt.calib)} calibrated from ${wk.calibN} weigh-ins`:""}. Your base is what you'd burn on a day with no training; it only moves when your body data or steps change. Eat today = base + your training this week − your deficit.`;
+  const ck=`<div class="panel ck"><div class="ckh"><h3>Weekly check-in</h3><span class="small">Sets this week's plan</span></div>
+    ${seg("ready","Readiness",["Normal","Low"])}
+    ${seg("sore","Soreness",["None","Legs","Upper body","Everything"])}
+    ${fem()?seg("cycle","Cycle",["Not tracking","Period","Luteal","Other"]):""}
+    ${seg("drink","Drinking nights",["0","1–2","3+"])}
+    <div class="nums">${fld("wAvg","Avg weight","decimal","optional","sm")}</div>
+    <button type="button" class="btn primary" id="ckSave">Save check-in</button></div>`;
+  const rowsH=planRows().map(r=>`<button type="button" class="prow2" data-open="${r.id}"><i class="pdot ${r.k}${r.st==="done"?" d":""}"></i><span><b>${esc(r.title)}</b><small>${esc(r.sub)}</small></span>${ICON[r.st]}</button>`).join("");
+  const L=ldays(), inS=inSeason();
+  const daysH=enabled("lift")?`<div class="ldays"><span class="plab">Usual lift days · ${L.length} a week</span><div class="ldgrid" role="group" aria-label="Usual lift days">${"MTWTFSS".split("").map((c,k)=>`<button type="button" data-ld="${k}" aria-pressed="${L.includes(k)}" aria-label="${WD[k]}">${c}</button>`).join("")}</div>${inS?`<p class="small">In-season: up to 3.</p>`:""}</div>`:"";
+  const acts=actTabs(), cntH=acts.length?`<div class="acnt">${acts.map(a=>`<label for="cnt-${a}"><span>${esc(ACT[a].name)} / wk</span><input id="cnt-${a}" data-cnt="${a}" inputmode="numeric" value="${cnt(a)}"></label>`).join("")}</div>`:"";
+  const vs=Mt.vsLast;
+  const food=`<div class="panel food"><h3>Food</h3>
+    <div class="eat"><span>Eat today</span><b>${r5(Mt.intake).toLocaleString()} <small>kcal</small></b></div>
+    <div class="ftiles"><div><span>Your base</span><b>${r5(Mt.everyday).toLocaleString()}</b></div><div><span>vs last week</span><b class="${vs>0?"up":vs<0?"dn":""}">${vs==null||Math.abs(vs)<5?"same":`${vs>0?"+":"−"}${Math.abs(vs)}/day`}</b></div><div><span>${build?"Goal":"Expected loss"}</span><b>${build?esc(goalName(wk.mode)):`${KG()?Math.round(Mt.rateEff/L2K*100)/100:Mt.rateEff} ${KG()?"kg":"lb"}/wk`}</b></div></div>
+    <details class="fmath"><summary>How this is calculated</summary><p class="small">${INFO.maint}</p>${build?"":`<div class="prow"><span>Weekly deficit</span><b>${r5(Mt.target).toLocaleString()} kcal</b></div>`}${Mt.nLift&&Mt.nFin?`<p class="small">Remaining finishers: ${Mt.m} min × ${Mt.nFin}</p>`:""}</details></div>`;
+  return `${nd&&nd.restSuggest?`<p class="flag">Reps dropped two sessions in a row. Take a rest day before ${esc(dayById(P.nextId).title)}.</p>`:""}
+  ${wk.ckDone?"":ck}
+  <div class="panel plist"><h3>This week's plan</h3><div class="prows">${rowsH||`<p class="small">Nothing planned yet. Pick your usual lift days below.</p>`}</div>${daysH}${cntH}</div>
+  ${food}
+  ${P.rules.length?`<div class="panel">${hdr("This week's changes",["changes"])}<ul>${P.rules.map(n=>`<li>${n}</li>`).join("")}</ul></div>`:""}
+  ${P.notes.length?`<div class="panel">${hdr("Watch",["watch"])}<ul>${P.notes.map(n=>`<li>${n}</li>`).join("")}</ul></div>`:""}
+  ${wk.ckDone?`<div class="ckline"><span><b>Check-in</b> · ${esc(ckSummary())}</span><button type="button" class="wlink" id="ckEdit">Edit</button></div>`:""}`;
+}
+/* pace choices are a share of body weight; the lb figure follows your current weight */
+const PACES={"Deficit only":[0.5,0.75,1],Recomp:[0.25,0.5,0.7]};
+const paceOpts=m=>(PACES[m]||[]).map(p=>{ const lb=Math.round(p/100*num(wk.weight,150)*10)/10; return [String(p),`${p}% · ${KG()?Math.round(lb/L2K*10)/10+" kg":lb+" lb"}`]; });
+function fitPace(){ const o=PACES[wk.mode]; if(!o) return; if(!o.map(String).includes(String(wk.ratePct))) wk.ratePct=String(o[1]); }
+function planSeason(P){
+  const inS=inSeason(), loss=!!PACES[wk.mode], dl=deloadInfo();
+  return `${planHTML(P)}
+  <div class="panel">${hdr("Season",["season","ramp","deload"])}
+    ${hasSport()?`${toggle("season","In-season",undefined,"In-season","Off-season")}${inS?"":toggle("ramp","Season starts in ≤6 weeks")}`:`<p class="note">Pick a main sport under You to use seasons.</p>`}
+    ${DAYS.length?`${dl.length&&wk.deload!=="Yes"?`<p class="flag">Deload suggested · ${dl.join(", ")}</p>`:""}${toggle("deload","Deload this week")}`:""}</div>
+  <div class="panel">${hdr("Goal",["mode","rate","share"])}
+    <div class="seg two" data-key="mode">${GOALS.map(([v,l])=>`<button type="button" data-v="${v}" aria-pressed="${wk.mode===v}">${l}</button>`).join("")}</div>
+    <details class="fmath"><summary>Goal definitions</summary>${GOALS.map(([v,l])=>`<p class="small"><b>${l}.</b> ${GOAL_SUB[v]}</p>`).join("")}</details>
+    ${loss?`<div class="q"><span>Pace<small> · share of your weight a week</small></span>${seg("ratePct","",paceOpts(wk.mode),String(wk.ratePct))}</div>
+    <div class="nums">${fld("share","From cardio %","numeric","","sm")}</div>`:""}
+    ${enabled("lift")?`<div class="q"><span>Lifting focus</span>${seg("focus","",[["Lower","Lower body"],["Balanced","Balanced"],["Upper","Upper body"]])}</div>`:""}</div>`;
+}
+
+/* ---------- You: profile, preferences, app settings, data ---------- */
+const HOW=[["How your plan is built","Your goal, season, focus and the activities you do this week set how many lift days you get, which exercises land on them and how many sets each gets. Change any of them and the week rebuilds."],
+  ["Hold vs. go up on a cut","On a fat-loss pace over 0.5% of your weight a week, a missed rep target holds the weight instead of dropping it. Three misses in a row eases it 5%. Holding strength in a deficit is a win."],
+  ["How food is calculated","Your base is what you'd burn on a day with no training: resting burn, light movement, steps and digestion. Eat today is that plus your training this week, minus your deficit. Workouts you log are counted; they just aren't shown as a separate number."],
+  ["Rest times","Main lifts 2:30 (3:00 at 5 reps or fewer), other compound lifts 1:30, isolation 1:15. One-sided moves get 15 seconds more, the first set gets 30. Cutting, in-season or a rough recovery day each add 15 seconds to compound lifts, up to 30."]];
+function renderYou(P){
+  return `<div class="dayhead"><h2>You</h2></div>
+  <div class="panel" id="profileBox"><h3>Profile</h3>${profileHTML(false,{...wk,...(draft||{})})}<button class="btn primary" id="profSave" type="button"${draftDirty()?"":" disabled"}>Save changes</button></div>
+  ${enabled("lift")?`<div class="panel">${hdr("Training preferences",["ss","liftK"])}
+    ${stepper("time","Session length",[30,45,60,75],"min")}
+    ${toggle("ss","Supersets")}
+    ${toggle("stretch","Stretching after lifts")}
+    ${toggle("sound","Rest timer sound",wk.sound||"Yes")}${(wk.sound||"Yes")==="Yes"?`<button type="button" class="btn mini" data-testsound>Play test sound</button>`:""}
+    <div class="q"><span>Avg lift kcal</span>${fld("liftK","","numeric","","sm")}</div></div>`:""}
+  <div class="panel"><h3>App</h3>
+    <div class="q"><span>Units</span>${seg("units","",[["lb","Pounds"],["kg","Kilograms"]],wk.units||"lb")}</div>
+    <div class="q"><span>Tips</span>${seg("guide","",[["More","More guidance"],["Less","Fewer tips"]],wk.guide||"More")}</div>
+    <div class="q"><span>Week starts on<small> · a new week begins on its own</small></span>${seg("wkStart","",[["Mon","Monday"],["Sun","Sunday"]],wk.wkStart||"Mon")}</div>
+    <div class="q"><span>Next-morning check<small> · "Did you play or train yesterday?"</small></span>${seg("remind","",[["On","Remind me"],["Off","Off"]],wk.remind||"On")}</div></div>
+  <div class="panel"><h3>How it works</h3>${HOW.map(([q,a])=>`<details class="how"><summary>${q}</summary><p class="small">${a}</p></details>`).join("")}</div>
+  <div class="panel"><h3>Your data</h3><p class="small">Everything lives on this phone only. Download a backup now and then; restoring replaces what's here.</p>
+    <div class="foot" style="margin:0"><button class="btn" id="bkDown" type="button">Download backup</button><label class="btn" for="bkFile">Restore backup<input id="bkFile" type="file" accept="application/json,.json" hidden></label></div></div>
+  ${moveHTML()}
+  <p class="small disclaimer">Lift Board gives general training and nutrition estimates, not medical advice. Check with a doctor before big changes, especially if you're pregnant, injured or managing a health condition.</p>
+  <div class="foot season-foot"><button class="btn" id="replayTour" type="button">Replay tour</button><button class="btn" id="resetProfile" type="button">Reset profile</button></div>`;
+}
+/* handlers for the new screens; called from bind() */
+function bindShell(v){
+  v.querySelectorAll("[data-sel]").forEach(b=>b.onclick=()=>{ selOff=+b.dataset.sel; render(); });
+  v.querySelectorAll("[data-wk]").forEach(b=>b.onclick=()=>{ selOff+= +b.dataset.wk; const t=DAY0(Date.now()), s=addD(t,selOff); if(weekStartOf(s).getTime()===weekStartOf(t).getTime()) selOff=0; render(); });
+  v.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>{ const id=b.dataset.open; if(!(dayById(id)||ACT[id]||id==="zone2")) return; nav="workouts"; cur=id; keepNav(); render(); window.scrollTo(0,0); });
+  v.querySelectorAll("[data-nav2]").forEach(b=>b.onclick=()=>{ nav=b.dataset.nav2; planView="week"; cur="home"; keepNav(); render(); window.scrollTo(0,0); });
+  v.querySelectorAll("[data-back]").forEach(b=>b.onclick=()=>{ cur="home"; keepNav(); render(); window.scrollTo(0,0); });
+  v.querySelectorAll("[data-log]").forEach(b=>b.onclick=()=>{ const a=b.dataset.log, sel=addD(DAY0(Date.now()),selOff), t=selOff===0?Date.now():sel.getTime()+12*36e5; logActOn(a,t); });
+  v.querySelectorAll("[data-yday]").forEach(b=>b.onclick=()=>{ const a=b.dataset.yday, y=addD(DAY0(Date.now()),-1); wk.remindSeen=dayKey(y.getTime()); if(a) logActOn(a,y.getTime()+12*36e5); else { save(); render(); } });
+  v.querySelectorAll("[data-keep]").forEach(b=>b.onclick=()=>{ wk.swapKeep={...(wk.swapKeep||{}),[b.dataset.keep]:1}; save(); render(); });
+  v.querySelectorAll("[data-pv]").forEach(b=>b.onclick=()=>{ planView=b.dataset.pv; keepNav(); render(); });
+  v.querySelectorAll("[data-ld]").forEach(b=>b.onclick=()=>{ const k=+b.dataset.ld, L=ldays(), on=L.includes(k), nL=on?L.filter(x=>x!==k):L.concat([k]).sort();
+    if(!on&&inSeason()&&nL.length>3){ toast(["In-season","Up to 3 lift days so you stay fresh for games."]); return; }
+    change(()=>{ wk.ldays=nL; wk.days=nL.length; syncDays(); }); });
+  v.querySelectorAll("input[data-cnt]").forEach(el=>el.onchange=()=>{ const a=el.dataset.cnt, n=Math.max(0,Math.min(7,parseInt(el.value)||0)); change(()=>{ wk[a]=n; }); });
+  const cs=v.querySelector("#ckSave"); if(cs) cs.onclick=()=>{ wk.ckDone=true; save(); render(); toast(["Check-in saved","This week's plan is set."]); };
+  const ce=v.querySelector("#ckEdit"); if(ce) ce.onclick=()=>{ wk.ckDone=false; save(); render(); window.scrollTo({top:0,behavior:"smooth"}); };
+}
+
 /* ---------- Rendering ---------- */
 function tabName(id){ if(id==="week") return "This week"; if(id==="zone2") return "Zone 2"; if(id==="history") return "History"; if(id==="season") return wk.setupDone?"Season":"Setup"; if(ACT[id]) return ACT[id].name; return DAYS.find(d=>d.id===id).tab; }
 const themeOf=id=>DAYS.some(d=>d.id===id)?"th-green":(ACT[id]||id==="zone2")?"th-pink":"th-orange";
-function renderTabs(P){
-  const t=document.getElementById("tabs");
-  t.innerHTML=TABS().map(id=>{
-    const off=false, nx=id===P.nextId;
-    return `<button class="tab ${themeOf(id)}${off?" off":""}${nx?" nx":""}" role="tab" type="button" aria-selected="${id===cur}" data-id="${id}">${(wk.done||{})[id]?"✓ ":""}${tabName(id)}</button>`;}).join("");
-  t.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{closeSheet();closeCoach(true);cur=b.dataset.id;try{localStorage.setItem(KEY+".tab",cur)}catch(e){};closePop();render();resetConfirm(false);window.scrollTo(0,0);});
-}
 let draft=null;
 function profileHTML(withGoal,src){
   src=src||wk;
@@ -534,16 +777,18 @@ function renderAct(a){
    <div class="nums">${fld(minKey(a),"Planned min","numeric","","sm")}</div></div><div class="list" style="margin-top:12px">${rows(actKey(a),n,plannedMin(a),perMin(A.met),"Session",1)}</div>`;
 }
 function render(){
-  if(!TABS().includes(cur)) cur="week";
+  if(!SUBS().includes(cur)) cur="home";
   popN=0; for(const k in POP) delete POP[k];
-  const P=plan(); renderTabs(P);
-  document.body.classList.remove("th-green","th-orange","th-pink"); document.body.classList.add(themeOf(cur)); { const m=document.querySelector('meta[name="theme-color"]'); if(m) m.content={"th-green":"#131615","th-orange":"#181513","th-pink":"#181416"}[themeOf(cur)]; }
+  const P=plan(); renderNav();
+  const sub=nav==="workouts"&&cur!=="home", th=!wk.setupDone?"th-orange":sub?themeOf(cur):nav==="workouts"?"th-green":"th-orange";
+  document.body.classList.remove("th-green","th-orange","th-pink"); document.body.classList.add(th); { const m=document.querySelector('meta[name="theme-color"]'); if(m) m.content={"th-green":"#131615","th-orange":"#181513","th-pink":"#181416"}[th]; }
   const v=document.getElementById("view");
-  document.getElementById("foot").hidden=!DAYS.some(d=>d.id===cur);
-  v.innerHTML=cur==="history"?renderHistory():cur==="week"?renderWeek(P):cur==="season"?renderSeason(P):(ACT[cur]||cur==="zone2")?renderAct(cur):renderDayHTML(DAYS.find(d=>d.id===cur),P);
-  if(cur!==lastCur){ const T=TABS(), dir=lastCur==null?"":T.indexOf(cur)>=T.indexOf(lastCur)?"fwd":"back";
-    v.classList.remove("enter","fwd","back"); void v.offsetWidth; v.classList.add("enter"); if(dir) v.classList.add(dir); lastCur=cur;
-    const tb=document.querySelector('.tab[aria-selected="true"]'); if(tb&&tb.scrollIntoView) tb.scrollIntoView({block:"nearest",inline:"nearest",behavior:"smooth"}); }
+  document.getElementById("foot").hidden=!(sub&&DAYS.some(d=>d.id===cur));
+  const back=`<button type="button" class="back" data-back>‹ Workouts</button>`;
+  v.innerHTML=!wk.setupDone?renderSeason(P):nav==="history"?renderHistory():nav==="plan"?renderPlan(P):nav==="you"?renderYou(P):
+    cur==="home"?renderWorkouts(P):back+((ACT[cur]||cur==="zone2")?renderAct(cur):renderDayHTML(DAYS.find(d=>d.id===cur),P));
+  const key=nav+":"+cur;
+  if(key!==lastCur){ v.classList.remove("enter","fwd","back"); void v.offsetWidth; v.classList.add("enter"); if(lastCur!=null) v.classList.add(sub?"fwd":"back"); lastCur=key; }
   if(fxOnce.seg){ const b=v.querySelector(`.seg[data-key="${fxOnce.seg[0]}"] button[data-v="${CSS.escape(fxOnce.seg[1])}"]`); if(b) b.classList.add("pressed"); }
   fxOnce={};
   bind();
@@ -787,11 +1032,11 @@ function closeDone(viaCta){
 }
 const dRows=R=>`<div class="drows">${R.map(([k,v,a])=>`<div class="prow"><span>${esc(k)}</span><b${a?' class="a"':""}>${esc(v)}</b></div>`).join("")}</div>`;
 const dTiles=T=>`<div class="dtiles">${T.map(([k,v])=>`<div><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join("")}</div>`;
-function goTab(id){ cur=id; try{localStorage.setItem(KEY+".tab",cur)}catch(e){}; render(); window.scrollTo(0,0); }
+function goTab(id){ if(id==="week"||id==="season"){ nav="plan"; planView=id; cur="home"; } else if(NAVS.includes(id)){ nav=id; cur="home"; } else { nav="workouts"; cur=id; } keepNav(); render(); window.scrollTo(0,0); }
 function setupDone(){
   const P=plan();
   showDone({eyebrow:"Setup saved",title:"Your plan is ready",body:`<p class="psent">${sentenceHTML(planSentence(P))}</p>`,
-    cta:"See this week",onCta:()=>goTab("week")});
+    cta:"See this week",onCta:()=>goTab("workouts")});
 }
 /* "145 × 8"; bodyweight shows "BW × 12" or "BW+10 × 8" */
 const fmtSet=(n,w,r)=>`${isBW(n)?(+w>0?`BW+${toU(w)}`:"BW"):toU(w)} × ${r}`;
@@ -808,7 +1053,7 @@ function dayDone(id,sets){
   const S=daySummary(id), mins=T&&T.start&&T.end?Math.max(1,Math.round((T.end-T.start)/60000)):0;
   showDone({eyebrow:`${d.tab} · ${d.title}${mins?` · ${mins} min`:""}`,title:"Day done",
     body:workoutRows(S,rv.items)+(rv.note?`<p class="dnote">${esc(rv.note)}</p>`:""),
-    cta:nxt?`Up next: ${nxt.tab}`:"Done",onCta:nxt?()=>goTab(nxt.id):null});
+    cta:"Back to Workouts",onCta:()=>goTab("workouts")});
 }
 function weekDone(s){
   const ws=wk.weeks||[], a=ws[ws.length-1], b=ws[ws.length-2];
@@ -816,7 +1061,7 @@ function weekDone(s){
   showDone({eyebrow:"Week complete",title:"Week done",
     body:dTiles([["Lifts",`${s.lifts}/${s.planned}`],["Cardio",s.cardio.toLocaleString()],["Weight",dw==null?(a&&a.w?String(a.w):"–"):`${dw>0?"+":dw<0?"−":""}${Math.abs(dw).toFixed(1)}`]])
       +(wk.missedNote?`<p class="dnote">${esc(capF(wk.missedNote.txt)+".")}</p>`:""),
-    cta:"Start next week",onCta:()=>goTab("week")});
+    cta:"See this week",onCta:()=>goTab("week")});
 }
 const setsLogged=id=>{ const d=DAYS.find(x=>x.id===id); return d?d.slots.reduce((n,s,i)=>n+(get(id,i).log||[]).filter(x=>x.d).length,0):0; };
 /* A day is complete when every visible lift has all its planned sets ticked */
@@ -826,6 +1071,7 @@ function dayComplete(id){
 }
 function bind(){
   const v=document.getElementById("view");
+  bindShell(v);
   { const bd=v.querySelector("#bkDown"); if(bd) bd.onclick=()=>{ const data={app:"liftboard",v:1,at:new Date().toISOString(),keys:{}};
       ["liftboard.v1","liftboard.week.v2","liftboard.hist.v1"].forEach(k=>{ try{ data.keys[k]=localStorage.getItem(k); }catch(e){} });
       const url=URL.createObjectURL(new Blob([JSON.stringify(data)],{type:"application/json"})), a=document.createElement("a");
@@ -860,10 +1106,10 @@ function bind(){
     if(!a){ m=""; s2=""; } else if(a===m){ m=s2; s2=""; } else if(a===s2){ s2=m; m=a; } else if(!m) m=a; else s2=a;
     if(inProf(b)){ draft=draft||{}; draft.mainSport=m; draft.sport2=s2; if(!m) draft.season="Off-season"; render(); return; }
     wk.mainSport=m; wk.sport2=s2; fixSports(wk); save(); render(); });
-  const ps=document.getElementById("profSave"); if(ps) ps.onclick=()=>{ const d=draft; draft=null; const a=fx(plan()); Object.assign(wk,d); if(d&&"days" in d) wk.days=+d.days; fixSports(wk); save(); const b=fx(plan()); render(); toast(["Profile saved",...diffFx(a,b)]); };
+  const ps=document.getElementById("profSave"); if(ps) ps.onclick=()=>{ const d=draft; draft=null; const a=fx(plan()); Object.assign(wk,d); if(d&&"days" in d){ wk.days=+d.days; if(ldays().length!==wk.days) wk.ldays=LDEF[wk.days]||[]; } fixSports(wk); save(); const b=fx(plan()); render(); toast(["Profile saved",...diffFx(a,b)]); };
   v.querySelectorAll(".actt").forEach(b=>{ if(inProf(b)) b.onclick=()=>{ const a=b.dataset.actt, cur0={...(wk.acts||{}),...((draft&&draft.acts)||{})}; stage("acts",{...cur0,[a]:!cur0[a]}); }; });
   v.querySelectorAll(".actt").forEach(b=>{ if(!inProf(b)) b.onclick=()=>change(()=>{ const a=b.dataset.actt; wk.acts={...(wk.acts||{}),[a]:!enabled(a)}; fixSports(wk); }); });
-  const ss=document.getElementById("setupSave"); if(ss) ss.onclick=()=>{ wk.setupDone=true; wk.weekStart=wk.weekStart||Date.now(); cur="week"; save(); render(); window.scrollTo(0,0); setupDone(); };
+  const ss=document.getElementById("setupSave"); if(ss) ss.onclick=()=>{ wk.setupDone=true; wk.weekStart=weekStartOf(Date.now()).getTime(); wk.ldays=LDEF[DAYS.length]||[]; fitPace(); nav="workouts"; cur="home"; keepNav(); save(); render(); window.scrollTo(0,0); setupDone(); };
   const rt=document.getElementById("replayTour"); if(rt) rt.onclick=openTour;
   const mc=document.getElementById("moveCopy"); if(mc) mc.onclick=async()=>{ const data=JSON.stringify({v:1,slots:storage.getItem(KEY),wk:storage.getItem(KEY2),hist:storage.getItem(KEY3)}); const t=document.getElementById("moveTxt"); t.value=data; t.select(); try{ await navigator.clipboard.writeText(data); toast(["Copied","Paste it into Lift Board on the other device."]); }catch(e){ toast(["Selected","Copy the text in the box."]); } };
   const ml=document.getElementById("moveLoad"); if(ml) ml.onclick=()=>{ let o; try{ o=JSON.parse(document.getElementById("moveTxt").value); if(!o||o.v!==1||!o.wk) throw 0; }catch(e){ toast(["Couldn't load","Paste the full text from Copy my data."]); return; }
@@ -902,6 +1148,7 @@ function bind(){
     if(k==="ramp"){ change(()=>{ wk.ramp=raw; }); if(raw==="Yes") toast(["Pre-season ramp","One 45-min zone 2 session added. It has its own Zone 2 tab."],6000); return; }
     change(()=>{
       wk[k]=(k==="days"||k==="time")?+raw:raw;
+      if(k==="mode") fitPace();
       if(k==="mainSport"&&!raw) wk.season="Off-season";
       if(k==="season"){ wk.days=raw==="In-season"?2:3; wk.done={}; wk.donePlan={}; wk.upNext=""; wk.missedNote=null; }
     }); }));
@@ -922,7 +1169,7 @@ function closeTour(){
   const el=document.getElementById("tour"); el.classList.add("out");
   setTimeout(()=>{ el.hidden=true; el.innerHTML=""; el.classList.remove("out","step","opening"); if(document.getElementById("done").hidden) document.body.classList.remove("touring"); },200);
   if(t.snap){ const o=JSON.parse(t.snap); Object.keys(wk).forEach(k=>delete wk[k]); Object.assign(wk,o); }
-  else { wk.tourDone=true; cur="season"; }
+  else { wk.tourDone=true; cur="home"; }
   save(); planPrev=null; render(); window.scrollTo(0,0);
   if(t.snap) document.getElementById("replayTour")?.focus();
   setTimeout(showCoach,500);
@@ -1061,5 +1308,6 @@ document.getElementById("toast").onclick=()=>{document.getElementById("toast").c
 document.getElementById("resetDay").onclick=()=>{ const d=DAYS.find(x=>x.id===cur); askSure({title:`Reset ${d?d.tab:"this day"}`,text:"Clears every set you've logged today and reopens the day if it was marked done.",ok:"Reset day",onOk:()=>document.getElementById("confirmReset").click()}); };
 document.getElementById("cancelReset").onclick=()=>resetConfirm(false);
 document.getElementById("confirmReset").onclick=()=>{ if((wk.done||{})[cur]) markDone(cur); delete slots[cur]; if(wk.wt) delete wk.wt[cur]; save(); render(); resetConfirm(false); toast(["Day reset","Logs cleared and the day is open again."]); };
-render();
+{ const s=autoWeek(); render(); if(s) weekDone(s); }
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState!=="visible") return; const s=autoWeek(); if(s){ render(); weekDone(s); } });
 if((!wk.setupDone&&!wk.tourDone)||location.hash==='#tour') openTour();

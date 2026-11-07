@@ -174,6 +174,8 @@ const kg=()=>num(wk.weight,150)/2.2046;
 const perMin=met=>(met-1)*3.5*kg()/200;
 const fem=()=>wk.sex!=="Male";
 const enabled=a=>!!(wk.acts||{})[a];
+/** Pace is stored as % of body weight a week (ratePct); lb/week follows current weight. Old saves keep wk.rate in lb. */
+const rateLb=()=>{ const p=String(wk.ratePct??"").trim(); return p!==""&&!isNaN(+p)?Math.round(+p/100*num(wk.weight,150)*100)/100:num(wk.rate,0.5); };
 const cnt=a=>enabled(a)?(parseInt(wk[a])||0):0;
 const hasSport=()=>!!wk.mainSport&&enabled(wk.mainSport);
 /* up to two sports drive the season: the primary (mainSport) and an optional second */
@@ -468,9 +470,9 @@ function plan(){ buildDefaults(); const cut=cutting();
   });
   balanceWeek(P,MP,inS,deload);
   /* Cardio */
-  /* "Lose fat, keep muscle" allows up to 0.7% of body weight a week, the top of the muscle-friendly range */
+  /* "Lose fat, keep strength" allows up to 0.7% of body weight a week, the top of the muscle-friendly range */
   const wLb=num(wk.weight,150), recompCap=Math.round(wLb*0.007*100)/100;
-  const rateEff=(build||maintain)?0:recomp?Math.min(num(wk.rate,0.5),recompCap):num(wk.rate,0.5), shareEff=recomp?Math.min(num(wk.share,25),25):num(wk.share,25);
+  const rateEff=(build||maintain)?0:recomp?Math.min(rateLb(),recompCap):rateLb(), shareEff=recomp?Math.min(num(wk.share,25),25):num(wk.share,25);
   const target=rateEff*3500, cardioTarget=(build||maintain)?0:target*shareEff/100;
   const sess=(n,act,pl,rate)=>{let k=0;for(let i=0;i<n;i++)k+=num((act||[])[i],pl)*rate;return k;};
   let sportK=0; sportOn.forEach(([a,m])=>{ sportK+=m*perMin(ACT[a].met); });
@@ -534,7 +536,7 @@ function plan(){ buildDefaults(); const cut=cutting();
   P.notes.push(`Protein ${P.math.protein[0]}–${P.math.protein[1]} g daily.`);
   const floor=wk.sex==="Male"?1800:1500;
   if(intake<floor) P.notes.push(`Eating ~${r5(intake)} kcal/day is too low. Slow the rate.`);
-  if(recomp&&num(wk.rate,0.5)>recompCap) P.notes.push(`Lose fat, keep muscle caps loss at ${recompCap.toFixed(1)} lb/week (0.7% of your weight).`);
+  if(recomp&&rateLb()>recompCap) P.notes.push(`Lose fat, keep strength caps loss at ${recompCap.toFixed(1)} lb/week (0.7% of your weight).`);
   if(eaRaise>0) P.notes.push(`Food raised to ~${r5(intake).toLocaleString()} kcal/day so you keep enough energy for your training this week. Expect ~${Math.max(0,(target/7-eaRaise)*7/3500).toFixed(1)} lb/week instead of ${rateEff} lb.`);
   if(fast&&recomp) P.notes.push("At this pace, expect to hold muscle and strength rather than build.");
   if(cut) P.notes.push("On a cut, holding your numbers is the goal. Missed reps keep the weight; accessories lose a set first.");
@@ -543,7 +545,7 @@ function plan(){ buildDefaults(); const cut=cutting();
   const fastRun=(()=>{ let n=0; for(const w of (wk.weeks||[]).slice().reverse()){ if(w.fast) n++; else break; } return n; })();
   if(fast&&fastRun>=8) P.notes.push(`${fastRun} weeks at a faster pace. A few weeks at Maintain lets training and recovery catch up.`);
   if(recomp&&num(wk.share,25)>25) P.notes.push("Recomp caps cardio at 25%.");
-  if(!build&&!recomp&&!maintain&&num(wk.rate,0.5)>=0.75) P.notes.push(`${wk.rate} lb/week is aggressive; strength will stall.`);
+  if(!build&&!recomp&&!maintain&&rateLb()>=0.75) P.notes.push(`${rateLb()} lb/week is aggressive; strength will stall.`);
   if(food>500) P.notes.push(`A ${r5(food)} kcal/day food deficit is steep.`);
   if(!build&&!maintain&&food<0) P.notes.push(`Your activity covers the whole deficit. Eat ${r5(-food)} kcal/day above maintenance so it doesn't cost muscle.`);
   if(fins.length&&m>cap&&cap>0) P.notes.push(`Finishers run ${m} min, past a normal ${cap}-min finisher.`);
@@ -598,9 +600,9 @@ const lastSet=(log,bw)=>{for(let k=(log||[]).length-1;k>=0;k--){const x=log[k];i
 const isDB=n=>/dumbbell/i.test(n);
 const roundW=(n,w)=>isDB(n)?Math.round(w/2.5)*2.5:r5(w);
 function incFor(n,s,w){ if(isDB(n)) return w<=20?2.5:5; const lowerMain=s.main&&!s.upperMain; const pct=lowerMain?0.05:s.main?0.025:0.05; const min=lowerMain&&wk.sex==="Male"?10:5; return Math.max(min,r5(w*pct)); }
-/** On a cut (Lose fat fast, or any fat-loss pace over 0.5% of body weight a week) the aim is to hold strength. */
+/** On a cut (Lose weight fast, or any fat-loss pace over 0.5% of body weight a week) the aim is to hold strength. */
 function cutting(){ const m=wk.mode; if(m==="Build"||m==="Maintain") return false; if(m==="Deficit only") return true;
-  const w=num(wk.weight,150), cap=Math.round(w*0.007*100)/100; return Math.min(num(wk.rate,0.5),cap)/w>0.005; }
+  const w=num(wk.weight,150), cap=Math.round(w*0.007*100)/100; return Math.min(rateLb(),cap)/w>0.005; }
 const missedLast=n=>{ const h=exHist[n]||[], x=h[h.length-1]; return x?x:null; };
 const isIso=s=>!!(s.upperAcc||s.support||s.label==="Glute med");
 function suggest(d,s,i,useLog,P){
@@ -689,11 +691,11 @@ const sideDefault=n=>{ const h=(exHist[n]||[]).slice().reverse().find(x=>x.side)
 /** Log an activity session's actual minutes. Entering minutes is what dates the session for History;
     clearing them takes it back off the calendar. */
 const ACT_OF_KEY=k=>k==="zAct"?"zone2":ACT_IDS.find(a=>actKey(a)===k)||k;
-function logAct(key,n,val){
+function logAct(key,n,val,t){
   wk[key]=(wk[key]||[]).slice(); wk[key][n]=val;
   const src=`${key}:${n}:${wk.weekStart||0}`, has=String(val??"").trim()!=="";
   const L=wk.sessions||[], i=L.findIndex(s=>s.src===src);
-  if(has&&i<0) wk.sessions=L.concat([{t:Date.now(),k:ACT_OF_KEY(key),min:num(val,0),src}]).slice(-500);
+  if(has&&i<0) wk.sessions=L.concat([{t:t||Date.now(),k:ACT_OF_KEY(key),min:num(val,0),src}]).slice(-500);
   else if(has&&i>=0){ wk.sessions=L.slice(); wk.sessions[i]={...L[i],min:num(val,0)}; }
   else if(!has&&i>=0) wk.sessions=L.filter((_,j)=>j!==i);
 }
@@ -751,7 +753,7 @@ function resyncDone(dayId){
   save();
 }
 /** Close the week: snapshot history, plan missed days, calibrate maintenance, reset check-in. Returns toast lines. */
-function newWeek(){
+function newWeek(start){
   const P=plan(), done=wk.done||{};
   const missed=DAYS.filter(d=>!done[d.id]);
   let sm=0; SPORTS.forEach(a=>{ if(ACT[a].noMin) return; for(let i=0;i<cnt(a);i++) sm+=num((wk[actKey(a)]||[])[i],plannedMin(a)); });
@@ -760,15 +762,14 @@ function newWeek(){
     lifts:DAYS.length-missed.length,planned:DAYS.length,fast:!!P.math.fast,sport:sm,cardio:r5(P.math.cardioTotal),w,intake:r5(P.math.intake),raw:r5(P.math.raw)}]).slice(-52);
   if(missed.length&&missed.length<DAYS.length){
     const names=missed.map(d=>d.tab).join(" and ");
-    if(wk.mode==="Deficit only"){ wk.upNext=DAYS[0].id; wk.missedNote={why:`missed ${names} last week`,txt:`reset to ${DAYS[0].tab}; recovery beats catching up in a deficit`}; }
-    else { wk.upNext=missed[0].id; wk.missedNote={why:`missed ${names} last week`,txt:`start with ${missed[0].tab}, then continue in order`}; }
+    wk.upNext=missed[0].id; wk.missedNote={why:`${names} didn't fit last week`,txt:`start with ${missed[0].tab}, then continue in order`};
   } else { wk.upNext=""; wk.missedNote=null; }
   const ws=wk.weeks.filter(x=>x.w&&x.intake&&x.raw).slice(-6);
   if(ws.length>=3){ const xs=ws.map(x=>x.start/6048e5), ys=ws.map(x=>x.w), mx=xs.reduce((a,b)=>a+b)/xs.length, my=ys.reduce((a,b)=>a+b)/ys.length;
     const slope=xs.reduce((a,x,j)=>a+(x-mx)*(ys[j]-my),0)/Math.max(1e-9,xs.reduce((a,x)=>a+(x-mx)**2,0));
     const avgIn=ws.reduce((a,x)=>a+x.intake,0)/ws.length, avgRaw=ws.reduce((a,x)=>a+x.raw,0)/ws.length;
     wk.calib=Math.max(-400,Math.min(400,r5(avgIn-slope*500-avgRaw))); wk.calibN=ws.length; }
-  const reset={weekStart:Date.now(),review:{},done:{},donePlan:{},today:{},wt:{},rest:null,stretchDone:{},zAct:[],ready:"Normal",sore:"None",drink:"0",wAvg:"",deload:"No"};
+  const reset={weekStart:start||Date.now(),ckDone:false,review:{},done:{},donePlan:{},today:{},wt:{},rest:null,stretchDone:{},zAct:[],ready:"Normal",sore:"None",drink:"0",wAvg:"",deload:"No"};
   ACT_IDS.forEach(a=>{ if(a!=="lift") reset[actKey(a)]=[]; });
   Object.assign(wk,reset);
   ALL.forEach(d=>d.slots.forEach((s,i)=>{ const st=slots[d.id]&&slots[d.id][i]; if(!st) return; if(s.cardio) delete st.act; if(done[d.id]){ st.log=[]; delete st.cdone; } }));
@@ -779,4 +780,4 @@ function newWeek(){
   save(); return ["New week started. Check-in reset to normal."];
 }
 
-export { isBW, yogaMet, pilMet, YOGA_EFF, PIL_EFF, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, MUSCLES, slotMuscles, musclePriority, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk };
+export { rateLb, isBW, yogaMet, pilMet, YOGA_EFF, PIL_EFF, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, MUSCLES, slotMuscles, musclePriority, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk };

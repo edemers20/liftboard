@@ -74,11 +74,21 @@ describe("week flow", () => {
     E.markDone("d1");
     expect(E.plan().days.d2.autoRough).toBe(true);
   });
-  it("recomp picks up a missed day; deficit only resets", () => {
+  it("pace stored as % of body weight follows weight", () => {
+    fresh({ mode: "Deficit only", weight: 138, ratePct: 0.5 });
+    expect(E.rateLb()).toBeCloseTo(0.69, 2);
+    E.wk.weight = 200; expect(E.rateLb()).toBe(1);
+  });
+  it("activities can be logged on an earlier date", () => {
+    fresh({ acts: { lift: true, pickle: true }, pickle: 2 });
+    const t = Date.now() - 864e5; E.logAct("pAct", 0, "60", t);
+    expect(E.wk.sessions.find(s => s.k === "pickle").t).toBe(t);
+  });
+  it("leftover lifts carry the rotation forward on every goal", () => {
     fresh({ focus: "Lower", mode: "Recomp" }); E.wk.done = { d1: 1, d2: 1 }; E.newWeek();
     expect(E.wk.upNext).toBe("d3");
     fresh({ focus: "Lower", mode: "Deficit only" }); E.wk.done = { d1: 1, d2: 1 }; E.newWeek();
-    expect(E.wk.upNext).toBe("d1");
+    expect(E.wk.upNext).toBe("d3");
   });
   it("new week resets the check-in", () => { fresh({ ready: "Low", sore: "Legs", drink: "3+" }); E.newWeek(); expect([E.wk.ready, E.wk.sore, E.wk.drink]).toEqual(["Normal", "None", "0"]); });
   it("food flips above baseline when activity covers the whole deficit", () => {

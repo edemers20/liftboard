@@ -190,3 +190,14 @@ Per lift, from your last logged set:
 - **Units (Nov 6):** Season → Units: lb or kg. Everything is still stored and calculated in lb; kg is display and input only (inputs, dial, and a pass that rewrites "150 lb" as "68 kg" anywhere it renders). kg rounds to 0.5.
 - **Food card (Nov 6):** shows "Eat today: X kcal" and "Your base is Y" (rest-day burn: BMR + daily movement + steps + digestion). Workout and activity burn is in the math but not shown as a number; stats are weekly deficit and expected loss.
 - **Rest levers (Nov 6):** compound and main lifts get +15s each for a cut, in-season, or low recovery (rough day, low readiness or full-body soreness), capped at +30s; never shorter. The rest bar names the reason ("Rest 2:45 · +15s · cut").
+
+## Navigation and scheduling (Workouts · Plan · History · You)
+- Bottom nav: **Workouts** (home), **Plan** (Week / Season), **History**, **You**. Lift days and activity screens open on top of Workouts with a back link; the nav hides there so the rest timer has room.
+- **Lifts are an ordered queue** on your usual lift days (`wk.ldays`, Monday = 0). Dates are projected from the queue, never stored. A lift done today removes today's slot; lifts that don't fit show as "Doesn't fit this week". Next week's view continues the rotation.
+- **Activities are weekly counts**, logged on any day from Workouts ("Log activity"). Logging past the planned count raises the count.
+- **Weeks start on their own** on Monday or Sunday (`wk.wkStart`). The first open after the boundary runs `newWeek(start)`; leftover lifts carry the rotation forward on every goal (the old Lose-fat-fast restart is gone).
+- **Next-morning check** (`wk.remind`, default On): if yesterday has nothing logged and activities are still open, Workouts asks "Did you play or train yesterday?" and logs it on yesterday's date.
+- **Swap offer:** a leg-heavy sport logged today with a Lower day queued offers the next Upper day instead.
+- **Check-in** sits at the top of Plan until saved, then becomes one line at the bottom. `newWeek` reopens it.
+- **Pace** is stored as % of body weight a week (`wk.ratePct`); lb/week = % × current weight (`rateLb()`). Options: Lose weight fast 0.5 / 0.75 / 1%; Lose fat, keep strength 0.25 / 0.5 / 0.7%. Old lb paces convert to the nearest option once.
+- Goal names: Lose weight fast · Lose fat, keep strength · Maintain · Build muscle. Definitions live behind "Goal definitions" on Plan → Season.
