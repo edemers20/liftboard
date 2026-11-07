@@ -1364,7 +1364,7 @@ function renderOnb(focus){
       <div class="f3"><svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fea06a" stroke-width="1.8"><path d="M12 3c3 4 5 6.5 5 10a5 5 0 0 1-10 0c0-3.5 2-6 5-10Z"/></svg><div><b>How much to eat</b><span>One number a day for your goal, updated as your training and weight change.</span></div></div></div>
     ${btns(!wk.setupDone,"next","Next")}</div>`;
   else if(s===2){ const v=o.lvl, nm=["New to lifting","Some experience","Years of lifting"];
-    const P=[["Tips on every screen","Form cues and the reason for each exercise","A fixed plan to follow; swaps come later"],["Tips the first time you see each screen","Rest timer and next-time targets","Swap exercises when you want to"],["No tips; explanations only if you tap (i)","Swap, add and skip exercises freely","Assumes you know form and your numbers"]][v];
+    const P=[["Tips on every screen","The reason for each exercise","A fixed plan to follow; swaps come later"],["Tips the first time you see each screen","Rest timer and next-time targets","Swap exercises when you want to"],["No tips; explanations only if you tap (i)","Swap, add and skip exercises freely","Assumes you know form and your numbers"]][v];
     h=`<div class="onb"><div class="otop"><span class="plab">For any level</span>${skip}</div><h2 class="oh big" tabindex="-1">As much help as you want</h2>
     <p class="olead">Slide to see the same workout for different experience levels.</p>
     <input class="olvl" type="range" min="0" max="2" step="1" value="${v}" aria-label="Experience level" aria-valuetext="${nm[v]}">
@@ -1372,9 +1372,8 @@ function renderOnb(focus){
     <section class="odemo" aria-live="polite"><div class="orow"><span class="weye">Day 1 · Lower</span><span class="omode">${["Guided","Standard","Flexible"][v]}</span></div>
       ${v===0?`<p class="otip">Start light. The app finds your working weight over the first two weeks.</p>`:""}
       <div class="orow"><b>Hip Thrust (Barbell)</b><span class="mono">${["3 × 10 · 65 lb","4 × 8 · 135 lb","4 × 6–10 · 155"][v]}</span></div>
-      ${v===0?`<p class="ocue">Form: chin tucked, ribs down, pause one second at the top.</p><p class="ocue">Why: hip thrusts build glutes with less strain on your back than squats.</p>`:""}
+      ${v===0?`<p class="ocue">Why: hip thrusts build glutes with less strain on your back than squats.</p>`:""}
       <div class="orow line"><b>Romanian Deadlift</b><span class="mono">${["3 × 10 · 45 lb","3 × 8 · 95 lb","3 × 8–12 · 105"][v]}</span></div>
-      ${v===0?`<p class="ocue">Form: soft knees, push your hips back, bar close to your legs.</p>`:""}
       ${v===2?`<div class="chips"><span class="chip">B-Stance Thrust</span><span class="chip">Sumo Deadlift</span><span class="chip">+ Add exercise</span></div>`:`<p class="orest">Rest 2:30. The timer starts when you tick a set and chimes when it's time.</p>`}</section>
     <ul class="opts">${P.map(t=>`<li>${t}</li>`).join("")}</ul>
     ${btns(true,"next",["Start guided","Sounds right","Keep it lean"][v])}</div>`; }
