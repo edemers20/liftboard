@@ -778,3 +778,5 @@ body[data-nav="history"] .hseg button[aria-pressed="true"],body[data-nav="histor
 body[data-nav="history"] .stat .v{color:var(--fg)}
 body[data-nav="history"] .cd.today,body[data-nav="history"] .cd[aria-current]{box-shadow:inset 0 0 0 2px #6fd0b4;border-color:transparent}
 .odemo .chip{display:inline-flex;align-items:center;min-height:30px;padding:0 12px;font:400 12px var(--body);background:#2c3431}
+/* You → Profile: Save stays in reach while you edit, until the profile section scrolls away */
+body.hasnav #profileBox #profSave{bottom:calc(82px + env(safe-area-inset-bottom,0px))}

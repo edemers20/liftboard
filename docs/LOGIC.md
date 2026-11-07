@@ -204,4 +204,4 @@ Per lift, from your last logged set:
 
 ## Onboarding
 - Welcome (new users only) → Plan your week → As much help as you want (level slider, demo only) → six setup steps: sport and season, goal (definitions inside each option), usual lift days + weekly activity counts, extra focus, bio (sex, age, height, weight, optional body fat), You're set (first workout, then the rest of the week faded in at 45%).
-- Shows on every load for now. Answers start from current settings; Skip (shown once set up) leaves everything as is. Finishing writes the answers to settings; logs and history are untouched.
+- Shows once: finishing or skipping sets `wk.onbDone`; Replay tour on You opens it again. Answers start from current settings; Skip (shown once set up) leaves everything as is. Finishing writes the answers to settings; logs and history are untouched.

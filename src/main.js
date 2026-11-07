@@ -1318,7 +1318,7 @@ function renderTour(focus){
   if(focus) el.querySelector("#tTitle").focus({preventScroll:true});
 }
 /* ---------- Onboarding: welcome → what it's for → help level demo → six setup steps ----------
-   Shows on every load for now. Answers start from your current settings; Skip leaves them as they are. */
+   Shows once (wk.onbDone); Replay tour on You opens it again. Answers start from your current settings; Skip leaves them as they are. */
 let onb=null;
 /* weekly activities on the lift-days step: classes always, plus anything else already switched on (not the main sport) */
 const ONB_ACTS=()=>ACT_IDS.filter(a=>a!=="lift"&&(ACT[a].cls||enabled(a))&&a!==(onb?onb.sport:wk.mainSport));
@@ -1346,7 +1346,7 @@ function applyOnb(o,real){
   wk.mode=o.goal; wk.ldays=o.days.slice().sort(); wk.days=o.days.length; wk.focus=o.focus; wk.sex=o.sex;
   ["age","height","weight","bf"].forEach(k=>{ if(String(o[k]).trim()!=="") wk[k]=String(o[k]); });
   fixSports(wk); syncDays(); fitPace();
-  if(real){ if(!wk.setupDone){ wk.setupDone=true; wk.weekStart=weekStartOf(Date.now()).getTime(); } wk.tourDone=true; save(); }
+  if(real){ if(!wk.setupDone){ wk.setupDone=true; wk.weekStart=weekStartOf(Date.now()).getTime(); } wk.tourDone=true; wk.onbDone=true; save(); }
 }
 /* preview the plan these answers would make, without keeping them */
 function onbPreview(o){ const snap=JSON.stringify(wk); applyOnb(o,false); const P=plan(), days=DAYS.map(d=>({id:d.id,title:d.title})), food=r5(P.math.intake);
@@ -1405,7 +1405,7 @@ function renderOnb(focus){
   el.innerHTML=`<div class="tscroll">${h}</div>`; el.hidden=false; document.body.classList.add("touring"); el.classList.toggle("step",!!focus);
   const go=d=>{ o.s=Math.max(0,o.s+d); renderOnb(true); el.querySelector(".tscroll").scrollTop=0; };
   el.querySelectorAll("[data-ob]").forEach(b=>b.onclick=()=>{ const a=b.dataset.ob;
-    if(a==="back") go(-1); else if(a==="next") go(1); else if(a==="skip") closeOnb();
+    if(a==="back") go(-1); else if(a==="next") go(1); else if(a==="skip"){ wk.onbDone=true; save(); closeOnb(); }
     else if(a==="done"){ applyOnb(o,true); closeOnb(); nav="workouts"; cur="home"; selOff=0; keepNav(); render(); window.scrollTo(0,0); } });
   const r=el.querySelector(".olvl"); if(r) r.oninput=()=>set("lvl",+r.value);
   el.querySelectorAll("[data-lvl]").forEach(b=>b.onclick=()=>set("lvl",+b.dataset.lvl));
@@ -1433,5 +1433,5 @@ document.getElementById("cancelReset").onclick=()=>resetConfirm(false);
 document.getElementById("confirmReset").onclick=()=>{ if((wk.done||{})[cur]) markDone(cur); delete slots[cur]; if(wk.wt) delete wk.wt[cur]; save(); render(); resetConfirm(false); toast(["Day reset","Logs cleared and the day is open again."]); };
 { const s=autoWeek(); render(); if(s) weekDone(s); }
 document.addEventListener("visibilitychange",()=>{ if(document.visibilityState!=="visible") return; const s=autoWeek(); if(s){ render(); weekDone(s); } });
-/* onboarding shows on every load for now */
-openOnb();
+/* onboarding shows once; finishing or skipping it marks it done */
+if(!wk.onbDone) openOnb();
