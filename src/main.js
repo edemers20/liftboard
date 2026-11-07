@@ -418,6 +418,7 @@ function renderYou(P){
   return `<div class="dayhead"><h2>You</h2></div>
   <div class="panel" id="profileBox"><h3>Profile</h3>${profileHTML(false,{...wk,...(draft||{})})}<button class="btn primary" id="profSave" type="button"${draftDirty()?"":" disabled"}>Save changes</button></div>
   ${enabled("lift")?`<div class="panel">${hdr("Training preferences",["ss","liftK"])}
+    <div class="q"><span>Experience</span>${seg("level","",LEVELS.map(([v,l])=>[v,l]),wk.level||(wk.guide==="Less"?"years":"some"))}</div>
     ${stepper("time","Session length",[30,45,60,75],"min")}
     ${toggle("ss","Supersets")}
     ${toggle("stretch","Stretching after lifts")}
@@ -774,9 +775,10 @@ function renderDayHTML(d,P){
   });
   html+=`</div>`+addExHTML(d);
   if(wk.stretch==="Yes"){ const sd=!!(wk.stretchDone||{})[d.id], list=stretchesFor(d);
-    html+=`<section class="slot stretch${sd?" sdone":""}"><div class="row1"><span class="label hdr">Stretch · optional</span><span class="pill">${sd?"Done":"~8 min"}</span></div>
-      <ul class="slist">${list.map(([n,t])=>`<li><span>${n}</span><small>${t}</small></li>`).join("")}</ul>
-      <button type="button" class="btn ${sd?"":"primary "}wide" id="stretchBtn">${sd?"✓ Stretched":"Done stretching"}</button></section>`; }
+    const so=(wk.stretchOpen||{})[d.id]??false;
+    html+=`<section class="slot stretch${sd?" sdone":""}${so?"":" folded"}"><div class="row1" role="button" tabindex="0" data-stog aria-expanded="${so}" aria-label="${so?"Collapse":"Expand"} stretches"><span class="label hdr">Stretch · optional</span><span class="pill">${sd?"Done":"~8 min"}</span></div>
+      ${so?`<ul class="slist">${list.map(([n,t])=>`<li><span>${n}</span><small>${t}</small></li>`).join("")}</ul>
+      <button type="button" class="btn ${sd?"":"primary "}wide" id="stretchBtn">${sd?"✓ Stretched":"Done stretching"}</button>`:""}</section>`; }
   return html+`<button class="btn primary" id="doneBtn" type="button"${D.done?' disabled aria-disabled="true"':""}>${D.done?"✓ Day done":"Mark day done"}</button>`;
 }
 /* ---------- Add an exercise to the end of a day ---------- */
@@ -1198,6 +1200,7 @@ function bind(){
   v.querySelectorAll("[data-nudge]").forEach(b=>b.onclick=()=>{ const i=+b.dataset.i, st=get(cur,i), log=(st.log||[]).slice(), t=log.filter(x=>x.d).length, w=b.dataset.nudge;
     if(w!==""){ for(let k=0;k<log.length;k++) if(!log[k].d) log[k]={...log[k],w}; const A=plan().days[cur].slots[i]; while(log.length<A.sets) log.push({w}); set(cur,i,"log",log); }
     set(cur,i,"nudged",t); render(); });
+  v.querySelectorAll("[data-stog]").forEach(r=>{ const go=()=>{ wk.stretchOpen={...(wk.stretchOpen||{}),[cur]:!(wk.stretchOpen||{})[cur]}; save(); render(); }; r.onclick=go; r.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } }; });
   const sb=document.getElementById("stretchBtn"); if(sb) sb.onclick=()=>{ wk.stretchDone={...(wk.stretchDone||{}),[cur]:!(wk.stretchDone||{})[cur]}; save(); render(); };
   v.querySelectorAll(".sidebtn").forEach(b=>b.onclick=()=>{ set(cur,+b.dataset.i,"side",b.dataset.side); render(); });
   v.querySelectorAll(".addset").forEach(b=>b.onclick=()=>{ const i=+b.dataset.i, log=(get(cur,i).log||[]).slice(), A=plan().days[cur].slots[i]; while(log.length<A.sets) log.push({}); log.push({}); set(cur,i,"log",log); render(); });
@@ -1213,6 +1216,7 @@ function bind(){
     change(()=>{
       wk[k]=(k==="days"||k==="time")?+raw:raw;
       if(k==="mode") fitPace();
+      if(k==="level") wk.guide=guideFor(raw);
       if(k==="mainSport"&&!raw) wk.season="Off-season";
       if(k==="season"){ wk.days=raw==="In-season"?2:3; wk.done={}; wk.donePlan={}; wk.upNext=""; wk.missedNote=null; }
     }); }));
@@ -1366,21 +1370,24 @@ function renderTour(focus){
 }
 /* ---------- Onboarding: welcome → what it's for → help level demo → six setup steps ----------
    Shows once (wk.onbDone); Replay tour on You opens it again. Answers start from your current settings; Skip leaves them as they are. */
-let onb=null;
+let onb=null, onbDemo=0;
 /* weekly activities on the lift-days step: classes always, plus anything else already switched on (not the main sport) */
 const ONB_ACTS=()=>ACT_IDS.filter(a=>a!=="lift"&&(ACT[a].cls||enabled(a))&&a!==(onb?onb.sport:wk.mainSport));
 const ONB_SPORTS=[["pickle","Pickleball"],["tennis","Tennis"],["run","Running"],["soccer","Soccer"],["volleyball","Volleyball"],["climb","Climbing"],["golf","Golf"],["hockey","Hockey"],["yoga","Yoga"],["pilates","Pilates"],["","None"]];
+const LEVELS=[["new","New to lifting","Tips on every screen, with the reason for each exercise."],["some","Some experience","Tips the first time you see each screen."],["years","Years of lifting","No tips. Explanations only if you tap (i)."]];
+const guideFor=l=>l==="years"?"Less":"More";
 const ONB_GOALS=[["Deficit only","Lose weight fast","Up to 1% of your weight a week. Your lifts may slip."],["Recomp","Lose fat, keep strength","Up to 0.7% of your weight a week while you hold your lifts."],["Maintain","Maintain","Eat what you burn and train as normal."],["Build","Build muscle","Eat a little over. Extra sets go to your focus."]];
 const ONB_Q=[["What do you play?","Your main sport sets the season. In-season, lifting backs off so you’re fresh to play."],
   ["What are you training for?","Your goal sets your food and how hard each lift pushes. You can change it anytime in Plan → Season."],
   ["Which days do you usually lift?","Lifts get queued up according to your plan; you can skip days, move workouts around, and always change preferences later."],
   ["Where do you want extra focus?","Whenever you have the extra energy or time, you’ll see more exercises for your chosen focus."],
+  ["How long have you been lifting?","This sets how much guidance you see. Change it anytime under You → Training preferences."],
   ["A bit about you","Your size sets your base burn, protein and starting weights."],
   ["You’re set","Your plan builds itself from here and adapts every week."]];
 function openOnb(){
   closePop(); const sp=MAINS.includes(wk.mainSport)?wk.mainSport:"";
   onb={s:wk.setupDone?1:0,lvl:1,sport:sp,inS:wk.season==="In-season",goal:wk.mode||"Recomp",days:wk.setupDone?ldays():(LDEF[3]||[]).slice(),
-    pb:sp?(cnt(sp)||2):0,ac:Object.fromEntries(ONB_ACTS().map(a=>[a,enabled(a)?cnt(a):0])),focus:wk.focus||"Balanced",sex:wk.sex||"Female",age:wk.age||"",height:wk.height||"",weight:wk.weight||"",bf:wk.bf||""};
+    pb:sp?(cnt(sp)||2):0,ac:Object.fromEntries(ONB_ACTS().map(a=>[a,enabled(a)?cnt(a):0])),focus:wk.focus||"Balanced",level:wk.level||(wk.guide==="Less"?"years":"some"),sex:wk.sex||"Female",age:wk.age||"",height:wk.height||"",weight:wk.weight||"",bf:wk.bf||""};
   renderOnb(true);
 }
 function closeOnb(){ onb=null; const el=document.getElementById("tour"); el.classList.add("out");
@@ -1390,7 +1397,7 @@ function applyOnb(o,real){
   wk.acts={...(wk.acts||{}),lift:true}; if(o.sport){ wk.acts[o.sport]=true; wk[o.sport]=o.pb; }
   wk.mainSport=o.sport; wk.season=o.sport&&o.inS&&SEASONAL(o.sport)?"In-season":"Off-season";
   Object.entries(o.ac||{}).forEach(([a,c])=>{ if(a===o.sport) return; if(c>0) wk.acts[a]=true; if(enabled(a)) wk[a]=c; });
-  wk.mode=o.goal; wk.ldays=o.days.slice().sort(); wk.days=o.days.length; wk.focus=o.focus; wk.sex=o.sex;
+  wk.level=o.level; wk.guide=guideFor(o.level); wk.mode=o.goal; wk.ldays=o.days.slice().sort(); wk.days=o.days.length; wk.focus=o.focus; wk.sex=o.sex;
   ["age","height","weight","bf"].forEach(k=>{ if(String(o[k]).trim()!=="") wk[k]=String(o[k]); });
   fixSports(wk); syncDays(); fitPace();
   if(real){ if(!wk.setupDone){ wk.setupDone=true; wk.weekStart=weekStartOf(Date.now()).getTime(); } wk.tourDone=true; wk.onbDone=true; save(); }
@@ -1435,27 +1442,30 @@ function renderOnb(focus){
       body=`<span class="plab">Usual lift days · ${o.days.length} a week</span><div class="ldgrid">${"MTWTFSS".split("").map((c,k)=>`<button type="button" data-od="${k}" aria-pressed="${o.days.includes(k)}" aria-label="${WD[k]}">${c}</button>`).join("")}</div>
       <span class="plab">Other activities · per week, any day</span>${acts.map(([a,k,l])=>`<div class="ostep"><span>${l}</span><span><button type="button" data-oc="${k}" data-d="-1" aria-label="Fewer ${l}">−</button><output>${val(k)}</output><button type="button" data-oc="${k}" data-d="1" aria-label="More ${l}">+</button></span></div>`).join("")}`; }
     if(n===4) body=`<div class="ogrid three">${[["Lower","Lower body"],["Balanced","Balanced"],["Upper","Upper body"]].map(([v,l])=>chip(o.focus===v,`data-of="${v}"`,l)).join("")}</div>`;
-    if(n===5) body=`<div class="ogrid three">${["Female","Male","Other"].map(v=>chip(o.sex===v,`data-ox="${v}"`,v)).join("")}</div>
+    if(n===5) body=`<div class="ogoals">${LEVELS.map(([v,l,d])=>`<button type="button" data-olv="${v}" aria-pressed="${o.level===v}"><b>${l}</b><span>${d}</span></button>`).join("")}</div>`;
+    if(n===6) body=`<div class="ogrid three">${["Female","Male","Other"].map(v=>chip(o.sex===v,`data-ox="${v}"`,v)).join("")}</div>
       <div class="nums two">${[["age","Age","numeric"],["height","Height (in)","decimal"],["weight",`Weight (${KG()?"kg":"lb"})`,"decimal"],["bf","Body fat %","decimal"]].map(([k,l,m])=>`<label class="field" for="o-${k}"><span>${l}</span><input id="o-${k}" data-oi="${k}" inputmode="${m}" value="${esc(k==="weight"&&o[k]!==""?toU(o[k]):o[k])}"${k==="bf"?' placeholder="optional"':""}></label>`).join("")}</div>`;
-    const pv=n>=5||n===6?onbPreview(o):null;
-    if(n===6){ const D=pv.days, today=monIdx(new Date()), ds=o.days.slice().sort(), nextD=ds.find(d=>d>=today)??ds[0];
+    const pv=n>=6?onbPreview(o):null;
+    if(n===7){ const D=pv.days, today=monIdx(new Date()), ds=o.days.slice().sort(), nextD=ds.find(d=>d>=today)??ds[0];
       const order=ds.filter(d=>d>=today).concat(ds.filter(d=>d<today));
       const rest=order.slice(1).map((d,i)=>({t:(D[(i+1)%D.length]||{}).title||"Lift",d:WD[d],a:0})).concat([[o.sport,o.pb],...Object.entries(o.ac||{}).filter(([a])=>a!==o.sport)].filter(([a,c])=>a&&c).map(([a,c])=>({t:ACT[a].name+(c>1?` ×${c}`:""),d:"Any day",a:1})));
       body=`<section class="ofirst"><span class="weye">First workout · ${D.length?(nextD===today?"Today":WD[nextD]):"whenever you like"}</span><h3>${esc(D.length?D[0].title:"Log an activity")}</h3><p>Starting weights are a guess. Log your first sets and the app adjusts from there.</p></section>
       <div class="orest2">${rest.map((r,i)=>`<div class="${r.a?"a":""}" style="animation-delay:${300+i*120}ms"><b>${esc(r.t)}</b><span>${r.d}</span></div>`).join("")}</div>`; }
     const gName=(ONB_GOALS.find(g=>g[0]===o.goal)||[])[1], nd=o.days.length;
-    const prev=[[o.sport&&!SEASONAL(o.sport)?"Main activity":"Season",o.sport?`${ACT[o.sport].name}${SEASONAL(o.sport)?` · ${o.inS?"in-season":"off-season"}`:""}`:"No sport"],...(n>=2?[["Goal",gName]]:[]),...(n>=3?[["Week",`${nd} lift${nd===1?"":"s"}${o.sport&&o.pb?` + ${o.pb}× ${ACT[o.sport].name.toLowerCase()}`:""}${Object.entries(o.ac||{}).filter(([a,c])=>c&&a!==o.sport).map(([a,c])=>` + ${c}× ${ACT[a].name.toLowerCase()}`).join("")}`]]:[]),...(n>=4?[["Focus",o.focus==="Balanced"?"Balanced":o.focus+" body"]]:[]),...(n>=5?[["Eat about",`${pv.food.toLocaleString()} kcal a day`]]:[])];
-    h=`<div class="onb"><div class="otop"><div class="odots" role="progressbar" aria-label="Setup progress" aria-valuemin="1" aria-valuemax="6" aria-valuenow="${n}">${[1,2,3,4,5,6].map(i=>`<i class="${i===n?"on":i<n?"past":""}"></i>`).join("")}</div>${skip}</div>
+    const prev=[[o.sport&&!SEASONAL(o.sport)?"Main activity":"Season",o.sport?`${ACT[o.sport].name}${SEASONAL(o.sport)?` · ${o.inS?"in-season":"off-season"}`:""}`:"No sport"],...(n>=2?[["Goal",gName]]:[]),...(n>=3?[["Week",`${nd} lift${nd===1?"":"s"}${o.sport&&o.pb?` + ${o.pb}× ${ACT[o.sport].name.toLowerCase()}`:""}${Object.entries(o.ac||{}).filter(([a,c])=>c&&a!==o.sport).map(([a,c])=>` + ${c}× ${ACT[a].name.toLowerCase()}`).join("")}`]]:[]),...(n>=4?[["Focus",o.focus==="Balanced"?"Balanced":o.focus+" body"]]:[]),...(n>=5?[["Guidance",LEVELS.find(x=>x[0]===o.level)[1]]]:[]),...(n>=6?[["Eat about",`${pv.food.toLocaleString()} kcal a day`]]:[])];
+    h=`<div class="onb"><div class="otop"><div class="odots" role="progressbar" aria-label="Setup progress" aria-valuemin="1" aria-valuemax="7" aria-valuenow="${n}">${[1,2,3,4,5,6,7].map(i=>`<i class="${i===n?"on":i<n?"past":""}"></i>`).join("")}</div>${skip}</div>
       <div class="ostepbody"><h2 class="oh" tabindex="-1">${Q[0]}</h2><p class="olead sm">${Q[1]}</p>${body}</div>
-      ${n<6?`<section class="oprev" aria-label="Your plan so far"><span class="weye">Your plan so far</span>${prev.map(([k,v])=>`<div><span>${k}</span><b>${esc(v)}</b></div>`).join("")}</section>`:""}
-      ${btns(true,n===6?"done":"next",n===6?"Go to Workouts":n===5?"Build my plan":"Next",n===6)}</div>`; }
+      ${n<7?`<section class="oprev" aria-label="Your plan so far"><span class="weye">Your plan so far</span>${prev.map(([k,v])=>`<div><span>${k}</span><b>${esc(v)}</b></div>`).join("")}</section>`:""}
+      ${btns(true,n===7?"done":"next",n===7?"Go to Workouts":n===6?"Build my plan":"Next",n===7)}</div>`; }
   el.innerHTML=`<div class="tscroll">${h}</div>`; el.hidden=false; document.body.classList.add("touring"); el.classList.toggle("step",!!focus);
   const go=d=>{ o.s=Math.max(0,o.s+d); renderOnb(true); el.querySelector(".tscroll").scrollTop=0; };
   el.querySelectorAll("[data-ob]").forEach(b=>b.onclick=()=>{ const a=b.dataset.ob;
     if(a==="back") go(-1); else if(a==="next") go(1); else if(a==="skip"){ wk.onbDone=true; save(); closeOnb(); }
     else if(a==="done"){ applyOnb(o,true); closeOnb(); nav="workouts"; cur="home"; selOff=0; keepNav(); render(); window.scrollTo(0,0); } });
-  const r=el.querySelector(".olvl"); if(r) r.oninput=()=>set("lvl",+r.value);
-  el.querySelectorAll("[data-lvl]").forEach(b=>b.onclick=()=>set("lvl",+b.dataset.lvl));
+  const r=el.querySelector(".olvl"); if(r) r.oninput=()=>{ o.touched=true; set("lvl",+r.value); };
+  el.querySelectorAll("[data-lvl]").forEach(b=>b.onclick=()=>{ o.touched=true; set("lvl",+b.dataset.lvl); });
+  clearTimeout(onbDemo);
+  if(s===2&&!o.touched&&!matchMedia("(prefers-reduced-motion: reduce)").matches) onbDemo=setTimeout(()=>{ if(onb===o&&o.s===2&&!o.touched){ o.lvl=(o.lvl+1)%3; renderOnb(); } },2600);
   el.querySelectorAll("[data-os]").forEach(b=>b.onclick=()=>{ const a=b.dataset.os; o.sport=a; if(!a) o.inS=false; if(a&&!o.pb) o.pb=cnt(a)||2; renderOnb(); });
   el.querySelectorAll("[data-oin]").forEach(b=>b.onclick=()=>{ o.inS=!o.inS; if(o.inS&&o.days.length>3) o.days=o.days.slice(0,3); renderOnb(); });
   el.querySelectorAll("[data-og]").forEach(b=>b.onclick=()=>set("goal",b.dataset.og));
@@ -1464,6 +1474,7 @@ function renderOnb(focus){
     set("days",on?o.days.filter(x=>x!==k):o.days.concat([k]).sort()); });
   el.querySelectorAll("[data-oc]").forEach(b=>b.onclick=()=>{ const k=b.dataset.oc, d=+b.dataset.d, cl=v=>Math.max(0,Math.min(7,v+d));
     if(k.startsWith("ac:")){ const a=k.slice(3); o.ac={...o.ac,[a]:cl(o.ac[a]||0)}; renderOnb(); } else set(k,cl(o[k])); });
+  el.querySelectorAll("[data-olv]").forEach(b=>b.onclick=()=>set("level",b.dataset.olv));
   el.querySelectorAll("[data-of]").forEach(b=>b.onclick=()=>set("focus",b.dataset.of));
   el.querySelectorAll("[data-ox]").forEach(b=>b.onclick=()=>set("sex",b.dataset.ox));
   el.querySelectorAll("[data-oi]").forEach(x=>x.onchange=()=>{ const k=x.dataset.oi; o[k]=k==="weight"?fromU(x.value):x.value; renderOnb(); });

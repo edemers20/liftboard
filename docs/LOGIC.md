@@ -209,3 +209,4 @@ Per lift, from your last logged set:
 - **Log activity → Other** lists every activity you haven't turned on; logging one turns it on.
 - Yoga and Pilates can be your main activity. They have no season, so the in-season switch is hidden for them.
 - **Usual activity days** (`wk.adays`, Monday = 0) replace the per-activity count inputs on Plan. They mark days on the Workouts strip (pink outline) and give planned activities in "This week's plan" a day, in order; without them activities say "Any day". Which activity is up to you.
+- **Experience** (`wk.level`: new / some / years) is a setup step and a Training preferences setting. For now it sets tips: Years of lifting → Fewer tips, otherwise More guidance. The "As much help as you want" slider is a demo only; it plays on its own until touched and saves nothing.
