@@ -836,3 +836,15 @@ body.hasnav #profileBox #profSave{bottom:calc(82px + env(safe-area-inset-bottom,
 .cd[aria-pressed="true"]{box-shadow:inset 0 0 0 2px var(--fg)}
 .cd.lift[aria-pressed="true"]{background:#2f5a4c} .cd.act[aria-pressed="true"]{background:#5a3447}
 body[data-nav="history"] .cd.today[aria-pressed="true"]{box-shadow:inset 0 0 0 2px var(--fg)}
+
+/* Plan your week: each feature shows a lever and what it moves, cycling between two examples */
+.ofeat>div>div{min-width:0}
+.lever{display:flex;align-items:center;gap:6px;margin-top:8px;color:var(--muted);flex-wrap:wrap}
+.lv{display:grid}
+.lv i{grid-area:1/1;font:500 12px var(--mono);font-style:normal;padding:4px 9px;border-radius:999px;background:rgba(255,255,255,.07);color:var(--fg);white-space:nowrap;animation:lvA 7s ease-in-out var(--ld) infinite}
+.lv i+i{animation-name:lvB}
+.lv.out i{background:color-mix(in srgb,var(--lc) 22%,transparent);color:var(--lc)}
+@keyframes lvA{0%,40%{opacity:1}50%,90%{opacity:0}100%{opacity:1}}
+@keyframes lvB{0%,40%{opacity:0}50%,90%{opacity:1}100%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.lv i{animation:none}.lv i+i{opacity:0}}
+.ofeat .lever{flex-direction:row;align-items:center;justify-content:flex-start;gap:6px}
