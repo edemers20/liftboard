@@ -848,3 +848,38 @@ body[data-nav="history"] .cd.today[aria-pressed="true"]{box-shadow:inset 0 0 0 2
 @keyframes lvB{0%,40%{opacity:0}50%,90%{opacity:1}100%{opacity:0}}
 @media (prefers-reduced-motion:reduce){.lv i{animation:none}.lv i+i{opacity:0}}
 .ofeat .lever{flex-direction:row;align-items:center;justify-content:flex-start;gap:6px}
+/* Level demo, matched to the design board */
+.lvlp .plab{color:#e9b69b}
+.lvlp .oh{font-size:34px}
+.lvwrap{display:flex;flex-direction:column;gap:4px;margin-top:4px}
+.lvlp .olvl{-webkit-appearance:none;appearance:none;height:28px;background:transparent;cursor:pointer;accent-color:auto;width:100%}
+.lvlp .olvl::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:linear-gradient(90deg,#6fd0b4,#e9b69b)}
+.lvlp .olvl::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;border-radius:50%;background:#fff;margin-top:-11px;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+.lvlp .olvl::-moz-range-track{height:6px;border-radius:3px;background:linear-gradient(90deg,#6fd0b4,#e9b69b)}
+.lvlp .olvl::-moz-range-thumb{width:28px;height:28px;border:0;border-radius:50%;background:#fff}
+.lvlp .olvl:focus-visible{outline:2px solid #e9b69b;outline-offset:4px;border-radius:8px}
+.lvlp .olvls{margin-top:0}
+.lvlp .olvls button{color:#8f8783;transition:color .3s ease}
+.lvlp[data-v="0"] .olvls button[data-lvl="0"]{color:#6fd0b4}
+.lvlp[data-v="1"] .olvls button[data-lvl="1"]{color:#edeae8}
+.lvlp[data-v="2"] .olvls button[data-lvl="2"]{color:#e9b69b}
+.lvlp .odemo{gap:8px}
+.lvlp .odemo .weye{color:#6fd0b4}
+.lvx{overflow:hidden;max-height:0;opacity:0;transition:opacity .35s ease,max-height .45s cubic-bezier(.2,.8,.2,1),padding .35s ease,margin .35s ease;font-size:13px}
+.lvx.tip{display:flex;gap:8px;align-items:flex-start;background:#24302b;border-radius:10px;padding:0 12px;color:#d4cfcc}
+.lvx.tip svg{flex:none;margin-top:2px}
+.lvx.why{color:#a8a09c}
+.lvx.swap{display:flex;flex-wrap:wrap;gap:6px}
+.lvx.swap .swl{font-size:12px;color:#a8a09c;width:100%}
+.lvx.swap .chip{display:inline-flex;align-items:center;min-height:30px;padding:0 10px;font:400 12px var(--body);background:#2c3431;border-radius:999px}
+.lvx.rest{background:#2a221c;border-radius:10px;padding:0 12px;color:#d4cfcc}
+.lvlp[data-v="0"] .lvx.tip{max-height:80px;opacity:1;padding:10px 12px}
+.lvlp[data-v="0"] .lvx.why{max-height:40px;opacity:1}
+.lvlp[data-v="2"] .lvx.swap{max-height:90px;opacity:1}
+.lvlp[data-v="0"] .lvx.rest,.lvlp[data-v="1"] .lvx.rest{max-height:60px;opacity:1;padding:10px 12px}
+.lvlp .opts{list-style:none;padding:0;gap:6px}
+.lvlp .opts li{display:flex;gap:8px;align-items:flex-start}
+.lvlp .opts li i{width:7px;height:7px;border-radius:50%;margin-top:7px;flex:none;background:#6fd0b4;transition:background .3s ease}
+.lvlp[data-v="1"] .opts li i{background:#9fc7a8} .lvlp[data-v="2"] .opts li i{background:#e9b69b}
+.lvlp .mono{transition:opacity .2s}
+@media (prefers-reduced-motion:reduce){.lvx,.lvlp .olvls button,.lvlp .opts li i{transition:none}}

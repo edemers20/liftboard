@@ -1374,6 +1374,14 @@ function renderTour(focus){
 /* ---------- Onboarding: welcome → what it's for → help level demo → six setup steps ----------
    Shows once (wk.onbDone); Replay tour on You opens it again. Answers start from your current settings; Skip leaves them as they are. */
 let onb=null, onbDemo=0;
+const LV_NAME=["New to lifting","Some experience","Years of lifting"];
+const LV={mode:["Guided","Standard","Flexible"],s1:["3 × 10 · 65 lb","4 × 8 · 135 lb","4 × 6–10 · 155"],s2:["3 × 10 · 45 lb","3 × 8 · 95 lb","3 × 8–12 · 105"],
+  p:[["Tips on every screen","The reason for each exercise","A fixed plan to follow; swaps come later"],["Tips the first time you see each screen","Rest timer and next-time targets","Swap exercises when you want to"],["No tips; explanations only if you tap (i)","Swap, add and skip exercises freely","Assumes you know form and your numbers"]]};
+function paintLvl(el,v){ const r=el.querySelector(".lvlp"); if(!r) return; r.dataset.v=v;
+  const set=(f,t)=>{ const x=r.querySelector(`[data-f="${f}"]`); if(x) x.textContent=t; };
+  set("mode",LV.mode[v]); set("s1",LV.s1[v]); set("s2",LV.s2[v]); LV.p[v].forEach((t,i)=>set("p"+i,t));
+  const rg=r.querySelector(".olvl"); if(rg){ rg.value=v; rg.setAttribute("aria-valuetext",LV_NAME[v]); }
+  r.querySelectorAll("[data-lvl]").forEach(b=>b.setAttribute("aria-pressed",String(+b.dataset.lvl===v))); }
 /* weekly activities on the lift-days step: classes always, plus anything else already switched on (not the main sport) */
 const ONB_ACTS=()=>ACT_IDS.filter(a=>a!=="lift"&&(ACT[a].cls||enabled(a))&&a!==(onb?onb.sport:wk.mainSport));
 const ONB_SPORTS=[["pickle","Pickleball"],["tennis","Tennis"],["run","Running"],["soccer","Soccer"],["volleyball","Volleyball"],["climb","Climbing"],["golf","Golf"],["hockey","Hockey"],["yoga","Yoga"],["pilates","Pilates"],["","None"]];
@@ -1423,19 +1431,22 @@ function renderOnb(focus){
       <div class="lever" style="--lc:#fc96bf;--ld:0.8s" role="img" aria-label="For example: Pickleball ×2 leads to Leg day −1 set; Missed Wed leads to Lift moves to Fri."><span class="lv" aria-hidden="true"><i>Pickleball ×2</i><i>Missed Wed</i></span><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h9M9 4.5 12.5 8 9 11.5"/></svg><span class="lv out" aria-hidden="true"><i>Leg day −1 set</i><i>Lift moves to Fri</i></span></div></div></div><div class="f3"><svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fea06a" stroke-width="1.8"><path d="M12 3c3 4 5 6.5 5 10a5 5 0 0 1-10 0c0-3.5 2-6 5-10Z"/></svg><div><b>Fuel and recover</b><span>A daily calorie target and rest times that adjust to your training and how you feel.</span>
       <div class="lever" style="--lc:#fea06a;--ld:1.6s" role="img" aria-label="For example: + Spin class leads to Eat today +250; Feeling rough leads to Rest +15s."><span class="lv" aria-hidden="true"><i>+ Spin class</i><i>Feeling rough</i></span><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h9M9 4.5 12.5 8 9 11.5"/></svg><span class="lv out" aria-hidden="true"><i>Eat today +250</i><i>Rest +15s</i></span></div></div></div></div>
     ${btns(!wk.setupDone,"next","Next")}</div>`;
-  else if(s===2){ const v=o.lvl, nm=["New to lifting","Some experience","Years of lifting"];
-    const P=[["Tips on every screen","The reason for each exercise","A fixed plan to follow; swaps come later"],["Tips the first time you see each screen","Rest timer and next-time targets","Swap exercises when you want to"],["No tips; explanations only if you tap (i)","Swap, add and skip exercises freely","Assumes you know form and your numbers"]][v];
-    h=`<div class="onb"><div class="otop"><span class="plab">For any level</span>${skip}</div><h2 class="oh big" tabindex="-1">As much help as you want</h2>
+  else if(s===2){ const v=o.lvl;
+    /* the demo card: everything is rendered once; changing level toggles parts in place so they animate */
+    h=`<div class="onb lvlp" data-v="${v}"><div class="otop"><span class="plab">For any level</span>${skip}</div><h2 class="oh big" tabindex="-1">As much help as you want</h2>
     <p class="olead">Same workout for different experience levels.</p>
-    <input class="olvl" type="range" min="0" max="2" step="1" value="${v}" aria-label="Experience level" aria-valuetext="${nm[v]}">
-    <div class="olvls">${nm.map((n,k)=>`<button type="button" data-lvl="${k}" aria-pressed="${k===v}">${n}</button>`).join("")}</div>
-    <section class="odemo" aria-live="polite"><div class="orow"><span class="weye">Day 1 · Lower</span><span class="omode">${["Guided","Standard","Flexible"][v]}</span></div>
-      ${v===0?`<p class="otip">Start light. The app finds your working weight over the first two weeks.</p>`:""}
-      <div class="orow"><b>Hip Thrust (Barbell)</b><span class="mono">${["3 × 10 · 65 lb","4 × 8 · 135 lb","4 × 6–10 · 155"][v]}</span></div>
-      ${v===0?`<p class="ocue">Why: hip thrusts build glutes with less strain on your back than squats.</p>`:""}
-      <div class="orow line"><b>Romanian Deadlift</b><span class="mono">${["3 × 10 · 45 lb","3 × 8 · 95 lb","3 × 8–12 · 105"][v]}</span></div>
-      ${v===2?`<div class="chips"><span class="chip">B-Stance Thrust</span><span class="chip">Sumo Deadlift</span><span class="chip">+ Add exercise</span></div>`:`<p class="orest">Rest 2:30. The timer starts when you tick a set and chimes when it's time.</p>`}</section>
-    <ul class="opts">${P.map(t=>`<li>${t}</li>`).join("")}</ul>
+    <div class="lvwrap"><input class="olvl" type="range" min="0" max="2" step="1" value="${v}" aria-label="Experience level" aria-valuetext="${LV_NAME[v]}">
+    <div class="olvls">${LV_NAME.map((n,k)=>`<button type="button" data-lvl="${k}" aria-pressed="${k===v}">${n}</button>`).join("")}</div></div>
+    <section class="odemo" aria-live="polite">
+      <div class="orow"><span class="weye">Day 1 · Lower</span><span class="omode" data-f="mode"></span></div>
+      <div class="lvx tip"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#6fd0b4" stroke-width="1.6"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.2v4M8 4.8v.2"/></svg><span>Start light. The app finds your working weight over the first two weeks.</span></div>
+      <div class="orow"><b>Hip Thrust (Barbell)</b><span class="mono" data-f="s1"></span></div>
+      <div class="lvx why">Why: hip thrusts build glutes with less strain on your back than squats.</div>
+      <div class="orow line"><b>Romanian Deadlift</b><span class="mono" data-f="s2"></span></div>
+      <div class="lvx swap"><span class="swl">Swap freely</span><span class="chip">B-Stance Thrust</span><span class="chip">Sumo Deadlift</span><span class="chip">+ Add exercise</span></div>
+      <div class="lvx rest">Rest 2:30. The timer starts when you tick a set and chimes when it's time.</div>
+    </section>
+    <ul class="opts"><li><i aria-hidden="true"></i><span data-f="p0"></span></li><li><i aria-hidden="true"></i><span data-f="p1"></span></li><li><i aria-hidden="true"></i><span data-f="p2"></span></li></ul>
     ${btns(true,"next","Get started")}</div>`; }
   else { const n=s-2, Q=ONB_Q[n-1], chip=(on,attr,l)=>`<button type="button" ${attr} aria-pressed="${on}">${l}</button>`;
     let body="";
@@ -1466,11 +1477,12 @@ function renderOnb(focus){
   el.querySelectorAll("[data-ob]").forEach(b=>b.onclick=()=>{ const a=b.dataset.ob;
     if(a==="back") go(-1); else if(a==="next") go(1); else if(a==="skip"){ wk.onbDone=true; save(); closeOnb(); }
     else if(a==="done"){ applyOnb(o,true); closeOnb(); nav="workouts"; cur="home"; selOff=0; keepNav(); render(); window.scrollTo(0,0); } });
-  const r=el.querySelector(".olvl"); if(r) r.oninput=()=>{ o.touched=true; set("lvl",+r.value); };
-  el.querySelectorAll("[data-lvl]").forEach(b=>b.onclick=()=>{ o.touched=true; set("lvl",+b.dataset.lvl); });
+  /* level demo: steps on its own (also with Reduce Motion: no sliding) until touched; never saved */
+  const lv=n=>{ o.lvl=n; paintLvl(el,n); };
+  const r=el.querySelector(".olvl"); if(r) r.oninput=()=>{ o.touched=true; clearTimeout(onbDemo); lv(+r.value); };
+  el.querySelectorAll("[data-lvl]").forEach(b=>b.onclick=()=>{ o.touched=true; clearTimeout(onbDemo); lv(+b.dataset.lvl); });
   clearTimeout(onbDemo);
-  /* steps (no sliding motion), so it also runs with Reduce Motion on; touching the slider stops it */
-  if(s===2&&!o.touched) onbDemo=setTimeout(()=>{ if(onb===o&&o.s===2&&!o.touched){ o.lvl=(o.lvl+1)%3; renderOnb(); } },2600);
+  if(s===2){ paintLvl(el,o.lvl); const tick=()=>{ if(onb===o&&o.s===2&&!o.touched){ lv((o.lvl+1)%3); onbDemo=setTimeout(tick,2600); } }; if(!o.touched) onbDemo=setTimeout(tick,2600); }
   el.querySelectorAll("[data-os]").forEach(b=>b.onclick=()=>{ const a=b.dataset.os; o.sport=a; if(!a) o.inS=false; if(a&&!o.pb) o.pb=cnt(a)||2; renderOnb(); });
   el.querySelectorAll("[data-oin]").forEach(b=>b.onclick=()=>{ o.inS=!o.inS; if(o.inS&&o.days.length>3) o.days=o.days.slice(0,3); renderOnb(); });
   el.querySelectorAll("[data-og]").forEach(b=>b.onclick=()=>set("goal",b.dataset.og));
