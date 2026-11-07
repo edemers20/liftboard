@@ -1470,7 +1470,8 @@ function renderOnb(focus){
   const r=el.querySelector(".olvl"); if(r) r.oninput=()=>{ o.touched=true; set("lvl",+r.value); };
   el.querySelectorAll("[data-lvl]").forEach(b=>b.onclick=()=>{ o.touched=true; set("lvl",+b.dataset.lvl); });
   clearTimeout(onbDemo);
-  if(s===2&&!o.touched&&!matchMedia("(prefers-reduced-motion: reduce)").matches) onbDemo=setTimeout(()=>{ if(onb===o&&o.s===2&&!o.touched){ o.lvl=(o.lvl+1)%3; renderOnb(); } },2600);
+  /* steps (no sliding motion), so it also runs with Reduce Motion on; touching the slider stops it */
+  if(s===2&&!o.touched) onbDemo=setTimeout(()=>{ if(onb===o&&o.s===2&&!o.touched){ o.lvl=(o.lvl+1)%3; renderOnb(); } },2600);
   el.querySelectorAll("[data-os]").forEach(b=>b.onclick=()=>{ const a=b.dataset.os; o.sport=a; if(!a) o.inS=false; if(a&&!o.pb) o.pb=cnt(a)||2; renderOnb(); });
   el.querySelectorAll("[data-oin]").forEach(b=>b.onclick=()=>{ o.inS=!o.inS; if(o.inS&&o.days.length>3) o.days=o.days.slice(0,3); renderOnb(); });
   el.querySelectorAll("[data-og]").forEach(b=>b.onclick=()=>set("goal",b.dataset.og));
