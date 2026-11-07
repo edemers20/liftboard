@@ -248,6 +248,16 @@ function syncDoneFromSessions(){
   const ids=DAYS.map(d=>d.id), from=wk.weekStart||0; let fixed=0;
   (wk.sessions||[]).forEach(s=>{ if(s.k==="lift"&&s.t>=from&&ids.includes(s.id)&&!(wk.done||{})[s.id]){ wk.done={...(wk.done||{}),[s.id]:1}; wk.doneT={...(wk.doneT||{}),[s.id]:s.t}; fixed++; } });
   if(fixed){ if(wk.upNext&&wk.done[wk.upNext]) wk.upNext=null; delete wk.missedNote; save(); }
+  /* a week rollover cleared the set logs of lifts done this week: rebuild them from the saved top sets
+     (the top set repeated for the number of sets logged; exact per-set numbers weren't kept) */
+  let rebuilt=0;
+  (wk.sessions||[]).forEach(x=>{ const d=dayById(x.id); if(x.k!=="lift"||x.t<from||!d||!(wk.done||{})[x.id]) return;
+    const idx=d.slots.map((_,i)=>i); if(idx.some(i=>((get(d.id,i).log)||[]).some(l=>l&&(l.d||l.w||l.r)))) return;
+    const ex=sessEx(x); if(!ex.length) return;
+    idx.forEach(i=>{ const sl=d.slots[i]; if(sl.cardio) return; const e=ex.find(y=>y.n===exName(d,sl,i)); if(!e||!(e.r>0)) return;
+      set(d.id,i,"log",Array.from({length:Math.max(1,e.sets||1)},()=>({w:String(e.w),r:String(e.r),d:true}))); rebuilt++; });
+  });
+  if(rebuilt) save();
 }
 function autoWeek(){
   if(!wk.setupDone) return null;
@@ -548,8 +558,10 @@ function freqHTML(S){
 }
 /* A logged session's exercises; older sessions are rebuilt from lift history (last logged set). */
 /* top sets for a logged lift: saved with the session, else rebuilt from exercise history (same timestamp), else today's logged sets */
-function sessEx(x){ if(x.ex&&x.ex.length) return x.ex;
-  if(x.id&&(wk.doneT||{})[x.id]===x.t){ const L=daySummary(x.id); if(L.length) return L; } return Object.entries(exHist).map(([n,h])=>{ const e=(h||[]).find(y=>y.t===x.t); return e?{n,w:e.w,r:e.r}:null; }).filter(Boolean); }
+function sessEx(x){ const own=(x.ex||[]).slice();
+  if(!own.length&&x.id&&(wk.doneT||{})[x.id]===x.t){ const L=daySummary(x.id); if(L.length) return L; }
+  const fromHist=Object.entries(exHist).map(([n,h])=>{ const e=(h||[]).find(y=>y.t===x.t); return e&&!own.some(o=>o.n===n)?{n,w:e.w,r:e.r}:null; }).filter(Boolean);
+  return own.concat(fromHist); }
 function calHTML(){
   const S=(wk.sessions||[]).slice().sort((a,b)=>a.t-b.t);
   const now=new Date(), m0=new Date(now.getFullYear(),now.getMonth()+calOff,1), y=m0.getFullYear(), mo=m0.getMonth();
