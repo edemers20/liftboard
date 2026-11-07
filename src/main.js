@@ -269,9 +269,9 @@ function exPreview(id){ const d=dayById(id); if(!d) return ""; const P=plan(), D
 function liftCard(eyebrow,id,body,kind){ const d=dayById(id); if(!d) return "";
   return `<section class="wcard lift ${kind||""}"><span class="weye">${eyebrow}</span><h3>${esc(d.title)}</h3>${exPreview(id)}${body||""}</section>`; }
 function sessCard(s,today){
-  if(s.k==="lift"){ const ex=(s.ex||[]).slice(0,5), d=dayById(s.id), open=d&&(wk.doneT||{})[s.id]===s.t;
+  if(s.k==="lift"){ const all=sessEx(s), ex=all.slice(0,6), d=dayById(s.id), open=d&&(wk.doneT||{})[s.id]===s.t;
     return `<section class="wcard lift done"><span class="weye">Completed</span><h3>${esc(s.title||"Lift")}</h3>
-      ${ex.length?`<div class="drows wo">${ex.map(x=>`<div class="prow"><span>${esc(x.n)}</span><b>${x.cardio?`${x.min?x.min+" min":"done"}`:fmtSet(x.n,x.w,x.r)}</b></div>`).join("")}</div>`:""}
+      ${ex.length?`<div class="drows wo">${ex.map(x=>`<div class="prow"><span>${esc(x.n)}</span><b>${x.cardio?`${x.min?x.min+" min":"done"}`:fmtSet(x.n,x.w,x.r)}</b></div>`).join("")}${all.length>6?`<p class="small">+${all.length-6} more</p>`:""}</div>`:`<p class="wsub">No sets were saved for this one.</p>`}
       ${open?`<button type="button" class="wlink" data-open="${s.id}">View workout</button>`:""}</section>`; }
   const recent=Date.now()-s.t<15*60e3, a=s.k, open=openSess===s.t;
   const head=`<span class="weye">${recent?"Logged":"Done"}</span><span class="wcrow"><b class="wt">${esc(actName(a))}</b><span class="wmeta">${s.min?`${s.min} min`:""}</span></span>`;
@@ -547,7 +547,9 @@ function freqHTML(S){
   </div>`;
 }
 /* A logged session's exercises; older sessions are rebuilt from lift history (last logged set). */
-function sessEx(x){ if(x.ex) return x.ex; return Object.entries(exHist).map(([n,h])=>{ const e=(h||[]).find(y=>y.t===x.t); return e?{n,w:e.w,r:e.r}:null; }).filter(Boolean); }
+/* top sets for a logged lift: saved with the session, else rebuilt from exercise history (same timestamp), else today's logged sets */
+function sessEx(x){ if(x.ex&&x.ex.length) return x.ex;
+  if(x.id&&(wk.doneT||{})[x.id]===x.t){ const L=daySummary(x.id); if(L.length) return L; } return Object.entries(exHist).map(([n,h])=>{ const e=(h||[]).find(y=>y.t===x.t); return e?{n,w:e.w,r:e.r}:null; }).filter(Boolean); }
 function calHTML(){
   const S=(wk.sessions||[]).slice().sort((a,b)=>a.t-b.t);
   const now=new Date(), m0=new Date(now.getFullYear(),now.getMonth()+calOff,1), y=m0.getFullYear(), mo=m0.getMonth();
