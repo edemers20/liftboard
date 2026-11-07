@@ -7,7 +7,7 @@ init(storage);
 setSaveHook(ok=>{ document.getElementById("saved").textContent= ok?"Saved":"Not saved (storage blocked)"; });
 /* nav: the bottom tab. cur: "home", or the lift day / activity opened from Workouts */
 const NAVS=["workouts","plan","history","you"];
-let nav="workouts", cur="home", planView="week", selOff=0;
+let nav="workouts", cur="home", planView="week", selOff=0, openSess=null;
 try{ const n=localStorage.getItem(KEY+".nav"); if(NAVS.includes(n)) nav=n; const t=localStorage.getItem(KEY+".tab"); if(t) cur=t; if(localStorage.getItem(KEY+".pv")==="season") planView="season"; }catch(e){}
 const actTabs=()=>ACT_IDS.filter(a=>a!=="lift"&&enabled(a));
 const rampOn=()=>hasSport()&&!inSeason()&&wk.ramp==="Yes";
@@ -256,8 +256,12 @@ function sessCard(s,today){
     return `<section class="wcard lift done"><span class="weye">Completed</span><h3>${esc(s.title||"Lift")}</h3>
       ${ex.length?`<div class="drows wo">${ex.map(x=>`<div class="prow"><span>${esc(x.n)}</span><b>${x.cardio?`${x.min?x.min+" min":"done"}`:fmtSet(x.n,x.w,x.r)}</b></div>`).join("")}</div>`:""}
       ${open?`<button type="button" class="wlink" data-open="${s.id}">View workout</button>`:""}</section>`; }
-  const recent=Date.now()-s.t<15*60e3, a=s.k;
-  return `<button type="button" class="wcard act" data-sess="${s.t}" aria-label="${esc(actName(a))}, edit or delete"><span class="weye">${recent?"Logged":"Done"}</span><span class="wcrow"><b class="wt">${esc(actName(a))}</b><span class="wmeta">${s.min?`${s.min} min`:""}<i aria-hidden="true">›</i></span></span></button>`;
+  const recent=Date.now()-s.t<15*60e3, a=s.k, open=openSess===s.t;
+  const head=`<span class="weye">${recent?"Logged":"Done"}</span><span class="wcrow"><b class="wt">${esc(actName(a))}</b><span class="wmeta">${s.min?`${s.min} min`:""}</span></span>`;
+  if(!open) return `<button type="button" class="wcard act" data-sess="${s.t}" aria-expanded="false" aria-label="${esc(actName(a))}${s.min?`, ${s.min} minutes`:""}. Tap to edit or delete">${head}</button>`;
+  return `<section class="wcard act open"><button type="button" class="wcbtn" data-sess="${s.t}" aria-expanded="true">${head}</button>
+    <div class="wedit"><label for="sm-${s.t}"><span>Minutes</span><input id="sm-${s.t}" data-smin="${s.t}" inputmode="numeric" value="${s.min||""}"></label>
+    <button type="button" class="btn wdel" data-sdel="${s.t}">Delete</button><button type="button" class="btn wsave" data-ssave="${s.t}">Save</button></div></section>`;
 }
 function renderWorkouts(P){
   const off=Math.floor(selOff/7+(monIdx(new Date())===0&&wk.wkStart!=="Sun"?0:0)), today=DAY0(Date.now());
@@ -287,9 +291,13 @@ function renderWorkouts(P){
   }
   if(!pid&&!liftDone){
     const nk=Object.keys(M.plan).map(Number).find(k=>k>i), nextId=isToday?(M.todo[0]||null):null;
-    if(isToday&&nextId){ const when=nk!=null?wdOf(M.dates[nk]):"next week";
-      cards.push(liftCard(`Nothing planned · up next ${when}`,nextId,`<button type="button" class="btn wgo" data-open="${nextId}">Move to today</button>`,"planned")); }
-    else if(!past&&!ss.length) cards.push(`<section class="wcard open"><span class="weye">Open day</span><h3>Nothing planned</h3>${nk!=null?`<button type="button" class="wlink" data-sel="${Math.round((M.dates[nk]-today)/864e5)}">View next lift</button>`:""}</section>`);
+    /* the next planned lift: later this week, else the first one next week */
+    let nOff=null, nWhen="";
+    if(nk!=null){ nOff=Math.round((M.dates[nk]-today)/864e5); nWhen=wdOf(M.dates[nk]); }
+    else if(wOff===0){ const N=weekModel(1), k1=Object.keys(N.plan).map(Number).sort((a,b)=>a-b)[0]; if(k1!=null){ nOff=Math.round((N.dates[k1]-today)/864e5); nWhen=`next ${wdOf(N.dates[k1])}`; } }
+    const link=nOff!=null?`<button type="button" class="wlink" data-sel="${nOff}">View next lift</button>`:"";
+    if(isToday&&nextId&&!ss.length) cards.push(`<section class="wcard open"><span class="weye">Today</span><h3>Nothing planned</h3>${nWhen?`<p class="wsub">Up next ${nWhen}</p>`:""}${link}</section>`);
+    else if(!past&&!ss.length) cards.push(`<section class="wcard open"><span class="weye">Open day</span><h3>Nothing planned</h3>${nWhen?`<p class="wsub">Up next ${nWhen}</p>`:""}${link}</section>`);
     else if(past&&!ss.length) cards.push(`<section class="wcard open"><span class="weye">Rest</span><h3>Nothing logged</h3></section>`);
   }
   ss.filter(s=>s.k!=="lift").forEach(s=>cards.push(sessCard(s)));
@@ -397,16 +405,12 @@ function renderYou(P){
   <p class="small disclaimer">Lift Board gives general training and nutrition estimates, not medical advice. Check with a doctor before big changes, especially if you're pregnant, injured or managing a health condition.</p>
   <div class="foot season-foot"><button class="btn" id="replayTour" type="button">Replay tour</button><button class="btn" id="resetProfile" type="button">Reset profile</button></div>`;
 }
-/* an activity you logged: change its minutes or delete it */
-function sessSheet(t){
+/* an activity you logged: change its minutes, or "" to delete it */
+function sessWrite(t,val){
   const x=(wk.sessions||[]).find(s=>s.t===t); if(!x) return;
   const [key,n,ws]=String(x.src||"").split(":"), live=x.src&&String(wk.weekStart||0)===ws;
-  const write=val=>{ if(live) change(()=>logAct(key,+n,val)); else { change(()=>{ wk.sessions=val===""?(wk.sessions||[]).filter(s=>s.t!==t):(wk.sessions||[]).map(s=>s.t===t?{...s,min:num(val,0)}:s); }); } };
-  showSheet(`<div class="shtop"><span class="plab">${esc(actName(x.k))} · ${new Date(t).toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})}</span>${XBTN}</div>
-    <label class="field" for="sessMin"><span>Minutes</span><input id="sessMin" inputmode="numeric" value="${x.min||""}"></label>
-    <div class="nums two"><button type="button" class="btn danger" id="sessDel">Delete</button><button type="button" class="btn primary" id="sessSave">Save</button></div>`,
-    el=>{ el.querySelector("#sessSave").onclick=()=>{ const v=el.querySelector("#sessMin").value.trim(); closeSheet(); write(v||"0"); };
-      el.querySelector("#sessDel").onclick=()=>{ closeSheet(); write(""); toast([`${actName(x.k)} deleted`]); }; });
+  if(live) change(()=>logAct(key,+n,val));
+  else change(()=>{ wk.sessions=val===""?(wk.sessions||[]).filter(s=>s.t!==t):(wk.sessions||[]).map(s=>s.t===t?{...s,min:num(val,0)}:s); });
 }
 /* handlers for the new screens; called from bind() */
 function bindShell(v){
@@ -418,7 +422,10 @@ function bindShell(v){
   v.querySelectorAll("[data-log]").forEach(b=>b.onclick=()=>{ const a=b.dataset.log, sel=addD(DAY0(Date.now()),selOff), t=selOff===0?Date.now():sel.getTime()+12*36e5; logActOn(a,t); });
   v.querySelectorAll("[data-yday]").forEach(b=>b.onclick=()=>{ const a=b.dataset.yday, y=addD(DAY0(Date.now()),-1); wk.remindSeen=dayKey(y.getTime()); if(a) logActOn(a,y.getTime()+12*36e5); else { save(); render(); } });
   v.querySelectorAll("[data-keep]").forEach(b=>b.onclick=()=>{ wk.swapKeep={...(wk.swapKeep||{}),[b.dataset.keep]:1}; save(); render(); });
-  v.querySelectorAll("[data-sess]").forEach(b=>b.onclick=()=>sessSheet(+b.dataset.sess));
+  v.querySelectorAll("[data-sess]").forEach(b=>b.onclick=()=>{ const t=+b.dataset.sess; openSess=openSess===t?null:t; render(); if(openSess){ const i=document.getElementById("sm-"+t); if(i) i.focus({preventScroll:true}); } });
+  v.querySelectorAll("[data-ssave]").forEach(b=>b.onclick=()=>{ const t=+b.dataset.ssave, i=document.getElementById("sm-"+t); openSess=null; sessWrite(t,(i&&i.value.trim())||"0"); });
+  v.querySelectorAll("[data-sdel]").forEach(b=>b.onclick=()=>{ const t=+b.dataset.sdel, x=(wk.sessions||[]).find(s=>s.t===t); openSess=null; sessWrite(t,""); if(x) toast([`${actName(x.k)} deleted`]); });
+  v.querySelectorAll("[data-smin]").forEach(i=>i.onkeydown=e=>{ if(e.key==="Enter"){ e.preventDefault(); const t=+i.dataset.smin; openSess=null; sessWrite(t,i.value.trim()||"0"); } });
   v.querySelectorAll("[data-pv]").forEach(b=>b.onclick=()=>{ planView=b.dataset.pv; keepNav(); render(); });
   v.querySelectorAll("[data-ld]").forEach(b=>b.onclick=()=>{ const k=+b.dataset.ld, L=ldays(), on=L.includes(k), nL=on?L.filter(x=>x!==k):L.concat([k]).sort();
     if(!on&&inSeason()&&nL.length>3){ toast(["In-season","Up to 3 lift days so you stay fresh for games."]); return; }

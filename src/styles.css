@@ -780,3 +780,16 @@ body[data-nav="history"] .cd.today,body[data-nav="history"] .cd[aria-current]{bo
 .odemo .chip{display:inline-flex;align-items:center;min-height:30px;padding:0 12px;font:400 12px var(--body);background:#2c3431}
 /* You → Profile: Save stays in reach while you edit, until the profile section scrolls away */
 body.hasnav #profileBox #profSave{bottom:calc(82px + env(safe-area-inset-bottom,0px))}
+/* logged activity opens in place, in activity pink */
+.wcard.act{background:#2a1f25}
+.wcard.act .weye{color:#fc96bf}
+.wcard.act.open{gap:12px;box-shadow:inset 0 0 0 1.5px #fc96bf55}
+.wcbtn{display:flex;flex-direction:column;gap:8px;border:0;background:none;padding:0;text-align:left;color:inherit;font:inherit;cursor:pointer;width:100%}
+.wedit{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:end}
+.wedit label{display:flex;flex-direction:column;gap:6px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#d9a3bb}
+.wedit input{width:100%;box-sizing:border-box;font:500 16px var(--mono);padding:10px 12px;border:0;border-radius:10px;background:#1c1519;color:var(--fg)}
+.wedit .btn{min-height:44px;border-radius:10px;padding:0 14px}
+.wedit .wsave{background:#fc96bf;border-color:transparent;color:#2a1520}
+.wedit .wdel{background:transparent;border:1px solid #5a3a48;color:#fc96bf}
+.wsub{margin:0;font-size:14px;color:var(--tx2)}
+.wedit input:focus,.wedit input:focus-visible{outline:2px solid #fc96bf;outline-offset:0;box-shadow:none;border-color:transparent}
