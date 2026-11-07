@@ -576,7 +576,8 @@ function calHTML(){
   let cells=""; for(let i=0;i<lead;i++) cells+=`<span class="cd pad" aria-hidden="true"></span>`;
   for(let d=1;d<=nd;d++){ const k=`${y}-${mo}-${d}`, L=by[k]||[], lab=new Date(y,mo,d).toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"});
     const dots=L.slice(0,3).map(x=>`<i class="${x.k==="lift"?"l":"a"}"></i>`).join("");
-    cells+=`<button type="button" class="cd${k===todayK?" today":""}${L.length?" has":""}" data-cd="${k}" aria-pressed="${calSel===k}" aria-label="${lab}${L.length?": "+L.map(sessName).join(", "):""}"${L.length?"":" disabled"}><span>${d}</span><span class="dots">${dots}</span></button>`; }
+    const kind=L.some(x=>x.k==="lift")?(L.some(x=>x.k!=="lift")?" both":" lift"):L.length?" act":"";
+    cells+=`<button type="button" class="cd${k===todayK?" today":""}${L.length?" has":""}${kind}" data-cd="${k}" aria-pressed="${calSel===k}" aria-label="${lab}${L.length?": "+L.map(sessName).join(", "):""}"${L.length?"":" disabled"}><span>${d}</span></button>`; }
   const sel=calSel&&by[calSel]?by[calSel]:null;
   const selD=sel?new Date(sel[0].t).toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric"}):"";
   const selT=sel?[...new Set(sel.map(x=>x.k==="lift"?(x.title&&x.title!=="Lift"?x.title.split(" · ").pop():"Lift"):sessName(x)))].join(" + "):"";
