@@ -243,16 +243,21 @@ function autoWeek(){
 
 /* ---------- Workouts (home) ---------- */
 const fmtDate=d=>d.toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"});
+/* what the workout will look like: each exercise with its sets, reps and starting weight */
+function exPreview(id){ const d=dayById(id); if(!d) return ""; const P=plan(), D=P.days[id];
+  const rows=slotOrder(d).filter(i=>!D.slots[i].skip&&!d.slots[i].optional).map(i=>{ const sl=d.slots[i], A=D.slots[i], n=exName(d,sl,i);
+    if(sl.cardio) return [n,A.min?`${A.min} min`:""];
+    const t=suggest(d,sl,i,false,P); return [n,`${A.sets} × ${sl.reps}${t&&t.w?` · ${isBW(n)?"BW":toU(t.w)}`:""}`]; });
+  return rows.length?`<div class="wex">${rows.map(([n,v])=>`<div><span>${esc(n)}</span><b>${esc(v)}</b></div>`).join("")}</div>`:""; }
 function liftCard(eyebrow,id,body,kind){ const d=dayById(id); if(!d) return "";
-  return `<section class="wcard lift ${kind||""}"><span class="weye">${eyebrow}</span><h3>${esc(d.title)}<small> · ${esc(d.tab)}</small></h3>${body||""}</section>`; }
+  return `<section class="wcard lift ${kind||""}"><span class="weye">${eyebrow}</span><h3>${esc(d.title)}</h3>${exPreview(id)}${body||""}</section>`; }
 function sessCard(s,today){
   if(s.k==="lift"){ const ex=(s.ex||[]).slice(0,5), d=dayById(s.id), open=d&&(wk.doneT||{})[s.id]===s.t;
     return `<section class="wcard lift done"><span class="weye">Completed</span><h3>${esc(s.title||"Lift")}</h3>
       ${ex.length?`<div class="drows wo">${ex.map(x=>`<div class="prow"><span>${esc(x.n)}</span><b>${x.cardio?`${x.min?x.min+" min":"done"}`:fmtSet(x.n,x.w,x.r)}</b></div>`).join("")}</div>`:""}
       ${open?`<button type="button" class="wlink" data-open="${s.id}">View workout</button>`:""}</section>`; }
   const recent=Date.now()-s.t<15*60e3, a=s.k;
-  return `<section class="wcard act"><span class="weye">${recent?"Logged":"Done"}</span><div class="wrow"><h3>${esc(actName(a))}</h3>${(a==="zone2"||(ACT[a]&&!ACT[a].noMin))&&s.min?`<span class="wmeta">${s.min} min</span>`:""}</div>
-    ${a==="zone2"||enabled(a)?`<button type="button" class="wlink" data-open="${a}">Edit minutes</button>`:""}</section>`;
+  return `<button type="button" class="wcard act" data-sess="${s.t}" aria-label="${esc(actName(a))}, edit or delete"><span class="weye">${recent?"Logged":"Done"}</span><span class="wcrow"><b class="wt">${esc(actName(a))}</b><span class="wmeta">${s.min?`${s.min} min`:""}<i aria-hidden="true">›</i></span></span></button>`;
 }
 function renderWorkouts(P){
   const off=Math.floor(selOff/7+(monIdx(new Date())===0&&wk.wkStart!=="Sun"?0:0)), today=DAY0(Date.now());
@@ -260,7 +265,7 @@ function renderWorkouts(P){
   const M=weekModel(wOff), i=Math.round((DAY0(sel)-M.W)/864e5), isToday=selOff===0, past=sel<today;
   const cells=M.dates.map((d,k)=>{ const ss=M.byDay[k], lift=ss.some(s=>s.k==="lift"), act=ss.some(s=>s.k!=="lift"), pl=M.plan[k]!=null;
     const o=Math.round((d-today)/864e5);
-    return `<button type="button" class="wcell${k===i?" on":""}${o===0?" now":""}" data-sel="${o}" aria-pressed="${k===i}" aria-label="${fmtDate(d)}${lift?", lift done":pl?", lift planned":""}${act?", activity":""}"><span>${"MTWTFSS"[monIdx(d)]}</span><b>${d.getDate()}</b><i class="dots">${lift?'<i class="dl"></i>':pl?'<i class="dp"></i>':""}${act?'<i class="da"></i>':""}</i></button>`; }).join("");
+    return `<button type="button" class="wcell${k===i?" on":""}${o===0?" now":""}${o<0?" past":""}" data-sel="${o}" aria-pressed="${k===i}" aria-label="${fmtDate(d)}${lift?", lift done":pl?", lift planned":""}${act?", activity":""}"><span>${"MTWTFSS"[monIdx(d)]}</span><b>${d.getDate()}</b><i class="dots">${lift?'<i class="dl"></i>':pl?'<i class="dp"></i>':""}${act?'<i class="da"></i>':""}</i></button>`; }).join("");
   const nav0=`<button type="button" class="wstep" data-wk="-7" aria-label="Previous week"${wOff<=-8?" disabled":""}>‹</button>`, nav1=`<button type="button" class="wstep" data-wk="7" aria-label="Next week"${wOff>=1?" disabled":""}>›</button>`;
   const ss=M.byDay[i]||[], cards=[], pid=M.plan[i], liftDone=ss.some(s=>s.k==="lift");
   const banners=[];
@@ -289,11 +294,11 @@ function renderWorkouts(P){
   }
   ss.filter(s=>s.k!=="lift").forEach(s=>cards.push(sessCard(s)));
   const canLog=wOff===0&&!(sel>today), acts=actList().filter(a=>plannedOf(a)>0||loggedOf(a)>0);
-  const logH=canLog&&acts.length?`<div class="wlog"><span class="plab">Log activity</span><div class="chips">${acts.map(a=>`<button type="button" class="chip" data-log="${a}">${esc(actName(a))} <small>${loggedOf(a)} of ${plannedOf(a)}</small></button>`).join("")}</div></div>`:"";
+  const logH=canLog&&acts.length?`<div class="wlog"><span class="wlab">Log activity</span><div class="chips">${acts.map(a=>`<button type="button" class="chip act" data-log="${a}"><i aria-hidden="true">+</i>${esc(actName(a))} <small>${loggedOf(a)} of ${plannedOf(a)}</small></button>`).join("")}</div></div>`:"";
   const Mth=P.math, food=isToday&&wk.setupDone?`<button type="button" class="wfood" data-nav2="plan"><span>Eat today</span><b>${r5(Mth.intake).toLocaleString()} <small>kcal</small></b><small>Your base ${r5(Mth.everyday).toLocaleString()}</small></button>`:"";
   return `<div class="whead"><h1>Lift Board</h1><button type="button" class="todayb" data-sel="0"${isToday?" disabled":""}>Today</button></div>
   <div class="wstrip">${nav0}<div class="wcells">${cells}</div>${nav1}</div>
-  <p class="wdate">${isToday?"Today · ":""}${fmtDate(sel)}</p>
+  <div class="wday"><button type="button" class="wdstep" data-sel="${selOff-1}" aria-label="Previous day"${wOff<=-8&&i===0?" disabled":""}>‹</button><span>${isToday?"Today · ":""}${fmtDate(sel)}</span><button type="button" class="wdstep" data-sel="${selOff+1}" aria-label="Next day"${wOff>=1&&i===6?" disabled":""}>›</button></div>
   ${banners.join("")}
   <div class="wcards">${cards.join("")}</div>
   ${logH}${food}`;
@@ -303,7 +308,7 @@ function renderWorkouts(P){
 function ckSummary(){ const s={None:"no soreness",Legs:"sore legs","Upper body":"sore upper body",Everything:"sore all over"}[wk.sore]||"";
   return [`${wk.ready==="Low"?"Low":"Normal"} readiness`,s,...(fem()&&wk.cycle&&wk.cycle!=="Not tracking"?[wk.cycle.toLowerCase()]:[]),...(wk.wAvg?[`${toU(wk.wAvg)} ${KG()?"kg":"lb"}`]:[])].filter(Boolean).join(" · "); }
 const ICON={done:`<svg role="img" aria-label="Done" width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" fill="var(--line)"/><path d="M6 10.3l2.6 2.6L14 7.5" stroke="var(--muted)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
-  next:`<svg role="img" aria-label="Next" width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" fill="var(--accent)"/><path d="M8.3 6.3L12 10l-3.7 3.7" stroke="var(--bg)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  next:`<svg role="img" aria-label="Next" width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" fill="#6fd0b4"/><path d="M8.3 6.3L12 10l-3.7 3.7" stroke="#181513" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
   open:`<svg aria-hidden="true" width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8.25" stroke="var(--div)" stroke-width="1.5"/></svg>`};
 function planRows(){
   const M=weekModel(0), today=DAY0(Date.now()), R=[];
@@ -318,20 +323,20 @@ function planRows(){
 }
 function renderPlan(P){
   const tog=`<div class="phead"><span class="pdate">${planView==="week"?(()=>{ const W=weekStartOf(Date.now()), E=addD(W,6), f=d=>d.toLocaleDateString("en-US",{month:"short",day:"numeric"}); return `${f(W)} – ${W.getMonth()===E.getMonth()?E.getDate():f(E)}`; })():"Season"}</span>
-    <div class="pill" role="group" aria-label="Plan view"><button type="button" data-pv="week" aria-pressed="${planView==="week"}">Week</button><button type="button" data-pv="season" aria-pressed="${planView==="season"}">Season</button></div></div>`;
+    <div class="pvtog" role="group" aria-label="Plan view"><button type="button" data-pv="week" aria-pressed="${planView==="week"}">Week</button><button type="button" data-pv="season" aria-pressed="${planView==="season"}">Season</button></div></div>`;
   return tog+(planView==="season"?planSeason(P):planWeek(P));
 }
 function planWeek(P){
   const Mt=P.math, build=wk.mode==="Build"||wk.mode==="Maintain", nd=P.days[P.nextId];
   INFO.maint=Mt.useOura?`Your wearable's daily burn minus 7%, plus this week's cardio.`:`Resting ${r5(Mt.bmr)} + light movement ${r5(Mt.base-Mt.bmr)} + steps ${r5(Mt.stepsK)}${Mt.nLift?` + lifting ${r5(Mt.liftDay)}`:""} + digestion ${r5(Mt.tef)}${wk.calibN?`, ${Mt.calib>=0?"+":""}${r5(Mt.calib)} calibrated from ${wk.calibN} weigh-ins`:""}. Your base is what you'd burn on a day with no training; it only moves when your body data or steps change. Eat today = base + your training this week − your deficit.`;
-  const ck=`<div class="panel ck"><div class="ckh"><h3>Weekly check-in</h3><span class="small">Sets this week's plan</span></div>
+  const ck=`<div class="panel ck"><div class="ckh"><h3>Weekly check-in</h3></div>
     ${seg("ready","Readiness",["Normal","Low"])}
     ${seg("sore","Soreness",["None","Legs","Upper body","Everything"])}
     ${fem()?seg("cycle","Cycle",["Not tracking","Period","Luteal","Other"]):""}
     ${seg("drink","Drinking nights",["0","1–2","3+"])}
     <div class="nums">${fld("wAvg","Avg weight","decimal","optional","sm")}</div>
     <button type="button" class="btn primary" id="ckSave">Save check-in</button></div>`;
-  const rowsH=planRows().map(r=>`<button type="button" class="prow2" data-open="${r.id}"><i class="pdot ${r.k}${r.st==="done"?" d":""}"></i><span><b>${esc(r.title)}</b><small>${esc(r.sub)}</small></span>${ICON[r.st]}</button>`).join("");
+  const rowsH=planRows().map(r=>`<button type="button" class="prow2" data-open="${r.id}"><i class="pdot ${r.k}${r.st==="done"?" d":""}"></i><span><b${r.st==="done"?' class="pdone"':""}>${esc(r.title)}</b><small>${esc(r.sub)}</small></span>${ICON[r.st]}</button>`).join("");
   const L=ldays(), inS=inSeason();
   const daysH=enabled("lift")?`<div class="ldays"><span class="plab">Usual lift days · ${L.length} a week</span><div class="ldgrid" role="group" aria-label="Usual lift days">${"MTWTFSS".split("").map((c,k)=>`<button type="button" data-ld="${k}" aria-pressed="${L.includes(k)}" aria-label="${WD[k]}">${c}</button>`).join("")}</div>${inS?`<p class="small">In-season: up to 3.</p>`:""}</div>`:"";
   const acts=actTabs(), cntH=acts.length?`<div class="acnt">${acts.map(a=>`<label for="cnt-${a}"><span>${esc(ACT[a].name)} / wk</span><input id="cnt-${a}" data-cnt="${a}" inputmode="numeric" value="${cnt(a)}"></label>`).join("")}</div>`:"";
@@ -392,6 +397,17 @@ function renderYou(P){
   <p class="small disclaimer">Lift Board gives general training and nutrition estimates, not medical advice. Check with a doctor before big changes, especially if you're pregnant, injured or managing a health condition.</p>
   <div class="foot season-foot"><button class="btn" id="replayTour" type="button">Replay tour</button><button class="btn" id="resetProfile" type="button">Reset profile</button></div>`;
 }
+/* an activity you logged: change its minutes or delete it */
+function sessSheet(t){
+  const x=(wk.sessions||[]).find(s=>s.t===t); if(!x) return;
+  const [key,n,ws]=String(x.src||"").split(":"), live=x.src&&String(wk.weekStart||0)===ws;
+  const write=val=>{ if(live) change(()=>logAct(key,+n,val)); else { change(()=>{ wk.sessions=val===""?(wk.sessions||[]).filter(s=>s.t!==t):(wk.sessions||[]).map(s=>s.t===t?{...s,min:num(val,0)}:s); }); } };
+  showSheet(`<div class="shtop"><span class="plab">${esc(actName(x.k))} · ${new Date(t).toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})}</span>${XBTN}</div>
+    <label class="field" for="sessMin"><span>Minutes</span><input id="sessMin" inputmode="numeric" value="${x.min||""}"></label>
+    <div class="nums two"><button type="button" class="btn danger" id="sessDel">Delete</button><button type="button" class="btn primary" id="sessSave">Save</button></div>`,
+    el=>{ el.querySelector("#sessSave").onclick=()=>{ const v=el.querySelector("#sessMin").value.trim(); closeSheet(); write(v||"0"); };
+      el.querySelector("#sessDel").onclick=()=>{ closeSheet(); write(""); toast([`${actName(x.k)} deleted`]); }; });
+}
 /* handlers for the new screens; called from bind() */
 function bindShell(v){
   v.querySelectorAll("[data-sel]").forEach(b=>b.onclick=()=>{ selOff=+b.dataset.sel; render(); });
@@ -402,6 +418,7 @@ function bindShell(v){
   v.querySelectorAll("[data-log]").forEach(b=>b.onclick=()=>{ const a=b.dataset.log, sel=addD(DAY0(Date.now()),selOff), t=selOff===0?Date.now():sel.getTime()+12*36e5; logActOn(a,t); });
   v.querySelectorAll("[data-yday]").forEach(b=>b.onclick=()=>{ const a=b.dataset.yday, y=addD(DAY0(Date.now()),-1); wk.remindSeen=dayKey(y.getTime()); if(a) logActOn(a,y.getTime()+12*36e5); else { save(); render(); } });
   v.querySelectorAll("[data-keep]").forEach(b=>b.onclick=()=>{ wk.swapKeep={...(wk.swapKeep||{}),[b.dataset.keep]:1}; save(); render(); });
+  v.querySelectorAll("[data-sess]").forEach(b=>b.onclick=()=>sessSheet(+b.dataset.sess));
   v.querySelectorAll("[data-pv]").forEach(b=>b.onclick=()=>{ planView=b.dataset.pv; keepNav(); render(); });
   v.querySelectorAll("[data-ld]").forEach(b=>b.onclick=()=>{ const k=+b.dataset.ld, L=ldays(), on=L.includes(k), nL=on?L.filter(x=>x!==k):L.concat([k]).sort();
     if(!on&&inSeason()&&nL.length>3){ toast(["In-season","Up to 3 lift days so you stay fresh for games."]); return; }
@@ -779,12 +796,12 @@ function renderAct(a){
 function render(){
   if(!SUBS().includes(cur)) cur="home";
   popN=0; for(const k in POP) delete POP[k];
-  const P=plan(); renderNav();
+  const P=plan(); renderNav(); document.body.dataset.nav=wk.setupDone?(nav==="workouts"&&cur!=="home"?"sub":nav):"setup";
   const sub=nav==="workouts"&&cur!=="home", th=!wk.setupDone?"th-orange":sub?themeOf(cur):nav==="workouts"?"th-green":"th-orange";
   document.body.classList.remove("th-green","th-orange","th-pink"); document.body.classList.add(th); { const m=document.querySelector('meta[name="theme-color"]'); if(m) m.content={"th-green":"#131615","th-orange":"#181513","th-pink":"#181416"}[th]; }
   const v=document.getElementById("view");
   document.getElementById("foot").hidden=!(sub&&DAYS.some(d=>d.id===cur));
-  const back=`<button type="button" class="back" data-back>‹ Workouts</button>`;
+  const back=`<button type="button" class="wback" data-back>‹ Workouts</button>`;
   v.innerHTML=!wk.setupDone?renderSeason(P):nav==="history"?renderHistory():nav==="plan"?renderPlan(P):nav==="you"?renderYou(P):
     cur==="home"?renderWorkouts(P):back+((ACT[cur]||cur==="zone2")?renderAct(cur):renderDayHTML(DAYS.find(d=>d.id===cur),P));
   const key=nav+":"+cur;

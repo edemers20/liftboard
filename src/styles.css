@@ -574,7 +574,7 @@ select,input,textarea,.setrow.now input,.nums input,.field input{border-color:tr
 .bnav button[aria-current="page"]{color:var(--accent)}
 body.hasnav .wrap{padding-bottom:100px}
 body.hasnav #toast,body.hasnav #sheet{bottom:calc(78px + env(safe-area-inset-bottom,0px))}
-.back{align-self:flex-start;border:0;background:none;color:var(--accent);font:600 14px var(--body);padding:6px 0;min-height:40px;cursor:pointer}
+.wback{align-self:flex-start;border:0;background:none;color:var(--accent);font:600 14px var(--body);padding:6px 0;min-height:40px;cursor:pointer}
 
 /* ---------- Workouts home ---------- */
 .whead{display:flex;justify-content:space-between;align-items:center;gap:12px}
@@ -602,7 +602,7 @@ body.hasnav #toast,body.hasnav #sheet{bottom:calc(78px + env(safe-area-inset-bot
 .wcard.open{background:#24201d}
 .weye{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
 .wcard.act .weye{color:#fc96bf} .wcard.open .weye{color:#e9b69b} .wcard.done .weye{color:var(--muted)}
-.wrow{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.wcrow{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
 .wmeta{font:500 13px var(--mono);color:var(--muted)}
 .wgo{min-height:48px;border-radius:12px;font-size:15px}
 .wlink{align-self:flex-start;border:0;background:none;color:var(--accent);font:600 13px var(--body);padding:4px 0;min-height:32px;cursor:pointer}
@@ -624,9 +624,9 @@ body.hasnav #toast,body.hasnav #sheet{bottom:calc(78px + env(safe-area-inset-bot
 /* ---------- Plan ---------- */
 .phead{display:flex;justify-content:space-between;align-items:center;gap:12px}
 .pdate{font:600 15px var(--body)}
-.pill{display:flex;background:var(--surface);border-radius:999px;padding:3px}
-.pill button{min-height:32px;border:0;border-radius:999px;padding:0 14px;background:transparent;color:var(--muted);font:600 13px var(--body);cursor:pointer}
-.pill button[aria-pressed="true"]{background:#9d5324;color:#fff}
+.pvtog{display:flex;background:var(--surface);border-radius:999px;padding:3px}
+.pvtog button{min-height:32px;border:0;border-radius:999px;padding:0 14px;background:transparent;color:var(--muted);font:600 13px var(--body);cursor:pointer}
+.pvtog button[aria-pressed="true"]{background:#9d5324;color:#fff}
 .ckh{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
 .ckh h3{margin:0}
 .prows{display:flex;flex-direction:column}
@@ -731,3 +731,49 @@ body.hasnav #toast,body.hasnav #sheet{bottom:calc(78px + env(safe-area-inset-bot
 .orest2 b{font-size:14px;font-weight:600} .orest2 span{font-size:12px;color:var(--muted)}
 @keyframes lbDim{from{opacity:0;transform:translateY(6px)}to{opacity:.45;transform:none}}
 @media (prefers-reduced-motion:reduce){.orest2>div{animation:none;opacity:.45}}
+
+/* ---------- Round 2: width, strip, cards, colour balance ---------- */
+html,body{overflow-x:clip}
+#view{overflow-x:clip}
+@supports not (overflow:clip){html,body{overflow-x:hidden}}
+/* iOS zooms into inputs under 16px and leaves the page zoomed */
+input,select,textarea{font-size:max(16px,1em)}
+.wstrip{grid-template-columns:28px 1fr 28px}
+.wcell{background:#24201d;min-height:60px;color:var(--fg)}
+.wcell.past{background:#211e1c;color:#8f8783}
+.wcell.on{background:#2f3a35;color:var(--fg)}
+.wcell.now{box-shadow:inset 0 0 0 2px #6fd0b4}
+.wcell.now b{color:inherit}
+.wcell span{font-size:10px;letter-spacing:.06em}
+.wcell b{font:500 14px var(--mono)}
+.dots .dl{background:#6fd0b4} .dots .dp{box-shadow:inset 0 0 0 1.5px #6fd0b4}
+.wday{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.wday span{font-size:14px;font-weight:600}
+.wdstep{min-width:44px;min-height:44px;border:0;border-radius:12px;background:#24201d;color:var(--fg);font-size:20px;cursor:pointer}
+.wdstep:disabled{opacity:.35;cursor:default}
+.wex{display:flex;flex-direction:column}
+.wex div{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid #2c3431;font-size:14px}
+.wex div:first-child{border-top:0}
+.wex b{font:500 13px var(--mono);white-space:nowrap;color:var(--tx2)}
+.wcard.planned .wex span,.wcard.planned .wex b{color:var(--muted)}
+button.wcard{border:0;text-align:left;font:inherit;color:var(--fg);cursor:pointer;width:100%}
+.wcard .wt{font-size:18px;font-weight:600}
+.wcard .wmeta i{font-style:normal;margin-left:8px;color:#fc96bf;font-size:18px}
+.wlab{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.chip.act{background:#241f21;min-height:44px;display:inline-flex;align-items:center;gap:8px}
+.chip.act i{font-style:normal;color:#fc96bf;font-size:17px;line-height:1}
+.chip.act small{margin-left:0;font:500 12px var(--mono)}
+.btn.danger{background:#3a2422;border-color:transparent;color:#ff9d8a}
+#sheet .field input{width:100%;box-sizing:border-box}
+
+/* Plan, History, You: small eyebrow headings, colour by meaning (green lifts, pink activities) instead of all orange */
+body[data-nav="plan"] .panel h3,body[data-nav="history"] .panel h3,body[data-nav="you"] .panel h3,body[data-nav="history"] .calhead h3{font:600 11px var(--body);letter-spacing:.08em;text-transform:uppercase;color:#e9b69b}
+body[data-nav="history"] .calhead h3{font-size:13px;color:var(--fg)}
+body[data-nav="plan"] .panel h3 .ib,body[data-nav="history"] .panel h3 .ib,body[data-nav="you"] .panel h3 .ib{transform:scale(.85)}
+body[data-nav="plan"] .panel ul{color:var(--tx2)} body[data-nav="plan"] .panel ul b{color:var(--fg)}
+.pdot{background:#6fd0b4} .pdot.act{background:#fc96bf} .pdot.d{background:#5e5652}
+.prow2 b{color:var(--fg)} .prow2 .pdone{color:var(--muted)}
+.ldgrid button[aria-pressed="true"]{background:#2f3a35;color:#6fd0b4}
+body[data-nav="history"] .hseg button[aria-pressed="true"],body[data-nav="history"] .seg button[aria-pressed="true"]{background:#2f3a35;color:#6fd0b4}
+body[data-nav="history"] .stat .v{color:var(--fg)}
+body[data-nav="history"] .cd.today,body[data-nav="history"] .cd[aria-current]{box-shadow:inset 0 0 0 2px #6fd0b4;border-color:transparent}
