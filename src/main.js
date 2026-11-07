@@ -1110,7 +1110,7 @@ function bind(){
   v.querySelectorAll(".actt").forEach(b=>{ if(inProf(b)) b.onclick=()=>{ const a=b.dataset.actt, cur0={...(wk.acts||{}),...((draft&&draft.acts)||{})}; stage("acts",{...cur0,[a]:!cur0[a]}); }; });
   v.querySelectorAll(".actt").forEach(b=>{ if(!inProf(b)) b.onclick=()=>change(()=>{ const a=b.dataset.actt; wk.acts={...(wk.acts||{}),[a]:!enabled(a)}; fixSports(wk); }); });
   const ss=document.getElementById("setupSave"); if(ss) ss.onclick=()=>{ wk.setupDone=true; wk.weekStart=weekStartOf(Date.now()).getTime(); wk.ldays=LDEF[DAYS.length]||[]; fitPace(); nav="workouts"; cur="home"; keepNav(); save(); render(); window.scrollTo(0,0); setupDone(); };
-  const rt=document.getElementById("replayTour"); if(rt) rt.onclick=openTour;
+  const rt=document.getElementById("replayTour"); if(rt) rt.onclick=openOnb;
   const mc=document.getElementById("moveCopy"); if(mc) mc.onclick=async()=>{ const data=JSON.stringify({v:1,slots:storage.getItem(KEY),wk:storage.getItem(KEY2),hist:storage.getItem(KEY3)}); const t=document.getElementById("moveTxt"); t.value=data; t.select(); try{ await navigator.clipboard.writeText(data); toast(["Copied","Paste it into Lift Board on the other device."]); }catch(e){ toast(["Selected","Copy the text in the box."]); } };
   const ml=document.getElementById("moveLoad"); if(ml) ml.onclick=()=>{ let o; try{ o=JSON.parse(document.getElementById("moveTxt").value); if(!o||o.v!==1||!o.wk) throw 0; }catch(e){ toast(["Couldn't load","Paste the full text from Copy my data."]); return; }
     const go=()=>{ storage.setItem(KEY,o.slots||"{}"); storage.setItem(KEY2,o.wk); storage.setItem(KEY3,o.hist||"{}"); location.reload(); };
@@ -1300,6 +1300,110 @@ function renderTour(focus){
   el.querySelector("#tNext").onclick=()=>go(1);
   if(focus) el.querySelector("#tTitle").focus({preventScroll:true});
 }
+/* ---------- Onboarding: welcome → what it's for → help level demo → six setup steps ----------
+   Shows on every load for now. Answers start from your current settings; Skip leaves them as they are. */
+let onb=null;
+const ONB_SPORTS=[["pickle","Pickleball"],["tennis","Tennis"],["run","Running"],["soccer","Soccer"],["volleyball","Volleyball"],["climb","Climbing"],["golf","Golf"],["hockey","Hockey"],["","None"]];
+const ONB_GOALS=[["Deficit only","Lose weight fast","Up to 1% of your weight a week. Your lifts may slip."],["Recomp","Lose fat, keep strength","Up to 0.7% of your weight a week while you hold your lifts."],["Maintain","Maintain","Eat what you burn and train as normal."],["Build","Build muscle","Eat a little over. Extra sets go to your focus."]];
+const ONB_Q=[["What do you play?","Your main sport sets the season. In-season, lifting backs off so you’re fresh to play."],
+  ["What are you training for?","Your goal sets your food and how hard each lift pushes. You can change it anytime in Plan → Season."],
+  ["Which days do you usually lift?","Lifts get queued up according to your plan; you can skip days, move workouts around, and always change preferences later."],
+  ["Where do you want extra focus?","Whenever you have the extra energy or time, you’ll see more exercises for your chosen focus."],
+  ["A bit about you","Your size sets your base burn, protein and starting weights."],
+  ["You’re set","Your plan builds itself from here and adapts every week."]];
+function openOnb(){
+  closePop(); const sp=SPORTS.includes(wk.mainSport)?wk.mainSport:"";
+  onb={s:wk.setupDone?1:0,lvl:1,sport:sp,inS:wk.season==="In-season",goal:wk.mode||"Recomp",days:wk.setupDone?ldays():(LDEF[3]||[]).slice(),
+    pb:sp?(cnt(sp)||2):0,pil:enabled("pilates")?cnt("pilates"):0,focus:wk.focus||"Balanced",sex:wk.sex||"Female",age:wk.age||"",height:wk.height||"",weight:wk.weight||"",bf:wk.bf||""};
+  renderOnb(true);
+}
+function closeOnb(){ onb=null; const el=document.getElementById("tour"); el.classList.add("out");
+  setTimeout(()=>{ el.hidden=true; el.innerHTML=""; el.classList.remove("out","step"); document.body.classList.remove("touring"); },200); }
+/* write the answers into the real settings (logs and history are untouched) */
+function applyOnb(o,real){
+  wk.acts={...(wk.acts||{}),lift:true}; if(o.sport){ wk.acts[o.sport]=true; wk[o.sport]=o.pb; }
+  wk.mainSport=o.sport; wk.season=o.sport&&o.inS?"In-season":"Off-season";
+  if(o.pil>0){ wk.acts.pilates=true; } if(enabled("pilates")) wk.pilates=o.pil;
+  wk.mode=o.goal; wk.ldays=o.days.slice().sort(); wk.days=o.days.length; wk.focus=o.focus; wk.sex=o.sex;
+  ["age","height","weight","bf"].forEach(k=>{ if(String(o[k]).trim()!=="") wk[k]=String(o[k]); });
+  fixSports(wk); syncDays(); fitPace();
+  if(real){ if(!wk.setupDone){ wk.setupDone=true; wk.weekStart=weekStartOf(Date.now()).getTime(); } wk.tourDone=true; save(); }
+}
+/* preview the plan these answers would make, without keeping them */
+function onbPreview(o){ const snap=JSON.stringify(wk); applyOnb(o,false); const P=plan(), days=DAYS.map(d=>({id:d.id,title:d.title})), food=r5(P.math.intake);
+  const o2=JSON.parse(snap); Object.keys(wk).forEach(k=>delete wk[k]); Object.assign(wk,o2); syncDays(); return {days,food}; }
+function renderOnb(focus){
+  const el=document.getElementById("tour"), o=onb, s=o.s, set=(k,v)=>{ o[k]=v; renderOnb(); };
+  const btns=(back,next,label,go)=>`<div class="tbtns two">${back?`<button type="button" class="tb ghost" data-ob="back">Back</button>`:"<span></span>"}<button type="button" class="tb${go?" go":""}" data-ob="${next}">${label}</button></div>`;
+  const skip=wk.setupDone?`<button type="button" class="tskip" data-ob="skip">Skip</button>`:"";
+  let h="";
+  if(s===0) h=`<div class="onb mid"><span class="plab">Lift Board</span><h2 class="oh" tabindex="-1">Welcome!</h2>
+    <p>Thanks for trying this little program. I've never built anything for anyone else before. I hope you enjoy it.</p><p class="wsig">Emma</p>
+    ${btns(false,"next","Get started")}</div>`;
+  else if(s===1) h=`<div class="onb"><div class="otop"><span class="plab">What it's for</span>${skip}</div><h2 class="oh big" tabindex="-1">Plan your week</h2>
+    <p class="olead">Lifting, sports, workout classes and food saved in one place.</p>
+    <div class="ofeat"><div class="f1"><svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8"><path d="M3 9v6M6 7v10M18 7v10M21 9v6M6 12h12"/></svg><div><b>What to lift today</b><span>Exercises, sets and the weight to use, based on your last session.</span></div></div>
+      <div class="f2"><svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fc96bf" stroke-width="1.8"><circle cx="12" cy="12" r="8.5"/><path d="M8 12.5l2.5 2.5L16 9.5"/></svg><div><b>Fits around everything else</b><span>Played pickleball twice? Leg day gets lighter. Missed a day? The week rebalances.</span></div></div>
+      <div class="f3"><svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fea06a" stroke-width="1.8"><path d="M12 3c3 4 5 6.5 5 10a5 5 0 0 1-10 0c0-3.5 2-6 5-10Z"/></svg><div><b>How much to eat</b><span>One number a day for your goal, updated as your training and weight change.</span></div></div></div>
+    ${btns(!wk.setupDone,"next","Next")}</div>`;
+  else if(s===2){ const v=o.lvl, nm=["New to lifting","Some experience","Years of lifting"];
+    const P=[["Tips on every screen","Form cues and the reason for each exercise","A fixed plan to follow; swaps come later"],["Tips the first time you see each screen","Rest timer and next-time targets","Swap exercises when you want to"],["No tips; explanations only if you tap (i)","Swap, add and skip exercises freely","Assumes you know form and your numbers"]][v];
+    h=`<div class="onb"><div class="otop"><span class="plab">For any level</span>${skip}</div><h2 class="oh big" tabindex="-1">As much help as you want</h2>
+    <p class="olead">Slide to see the same workout for different experience levels.</p>
+    <input class="olvl" type="range" min="0" max="2" step="1" value="${v}" aria-label="Experience level" aria-valuetext="${nm[v]}">
+    <div class="olvls">${nm.map((n,k)=>`<button type="button" data-lvl="${k}" aria-pressed="${k===v}">${n}</button>`).join("")}</div>
+    <section class="odemo" aria-live="polite"><div class="orow"><span class="weye">Day 1 · Lower</span><span class="omode">${["Guided","Standard","Flexible"][v]}</span></div>
+      ${v===0?`<p class="otip">Start light. The app finds your working weight over the first two weeks.</p>`:""}
+      <div class="orow"><b>Hip Thrust (Barbell)</b><span class="mono">${["3 × 10 · 65 lb","4 × 8 · 135 lb","4 × 6–10 · 155"][v]}</span></div>
+      ${v===0?`<p class="ocue">Form: chin tucked, ribs down, pause one second at the top.</p><p class="ocue">Why: hip thrusts build glutes with less strain on your back than squats.</p>`:""}
+      <div class="orow line"><b>Romanian Deadlift</b><span class="mono">${["3 × 10 · 45 lb","3 × 8 · 95 lb","3 × 8–12 · 105"][v]}</span></div>
+      ${v===0?`<p class="ocue">Form: soft knees, push your hips back, bar close to your legs.</p>`:""}
+      ${v===2?`<div class="chips"><span class="chip">B-Stance Thrust</span><span class="chip">Sumo Deadlift</span><span class="chip">+ Add exercise</span></div>`:`<p class="orest">Rest 2:30. The timer starts when you tick a set and chimes when it's time.</p>`}</section>
+    <ul class="opts">${P.map(t=>`<li>${t}</li>`).join("")}</ul>
+    ${btns(true,"next",["Start guided","Sounds right","Keep it lean"][v])}</div>`; }
+  else { const n=s-2, Q=ONB_Q[n-1], chip=(on,attr,l)=>`<button type="button" ${attr} aria-pressed="${on}">${l}</button>`;
+    let body="";
+    if(n===1) body=`<div class="ogrid three">${ONB_SPORTS.map(([a,l])=>chip(o.sport===a,`data-os="${a}"`,l)).join("")}</div>
+      ${o.sport?`<div class="q tgl"><span id="oinS">In-season now</span><div class="seg toggle"><button type="button" role="switch" aria-checked="${o.inS}" aria-labelledby="oinS" data-oin><i aria-hidden="true"></i></button></div></div>`:""}`;
+    if(n===2) body=`<div class="ogoals">${ONB_GOALS.map(([v,l,d])=>`<button type="button" data-og="${v}" aria-pressed="${o.goal===v}"><b>${l}</b><span>${d}</span></button>`).join("")}</div>`;
+    if(n===3){ const acts=[...(o.sport?[[o.sport,"pb",ACT[o.sport].name]]:[]),["pilates","pil","Pilates"]];
+      body=`<span class="plab">Usual lift days · ${o.days.length} a week</span><div class="ldgrid">${"MTWTFSS".split("").map((c,k)=>`<button type="button" data-od="${k}" aria-pressed="${o.days.includes(k)}" aria-label="${WD[k]}">${c}</button>`).join("")}</div>
+      <span class="plab">Other activities · per week, any day</span>${acts.map(([a,k,l])=>`<div class="ostep"><span>${l}</span><span><button type="button" data-oc="${k}" data-d="-1" aria-label="Fewer ${l}">−</button><output>${o[k]}</output><button type="button" data-oc="${k}" data-d="1" aria-label="More ${l}">+</button></span></div>`).join("")}`; }
+    if(n===4) body=`<div class="ogrid three">${[["Lower","Lower body"],["Balanced","Balanced"],["Upper","Upper body"]].map(([v,l])=>chip(o.focus===v,`data-of="${v}"`,l)).join("")}</div>`;
+    if(n===5) body=`<div class="ogrid three">${["Female","Male","Other"].map(v=>chip(o.sex===v,`data-ox="${v}"`,v)).join("")}</div>
+      <div class="nums two">${[["age","Age","numeric"],["height","Height (in)","decimal"],["weight",`Weight (${KG()?"kg":"lb"})`,"decimal"],["bf","Body fat %","decimal"]].map(([k,l,m])=>`<label class="field" for="o-${k}"><span>${l}</span><input id="o-${k}" data-oi="${k}" inputmode="${m}" value="${esc(k==="weight"&&o[k]!==""?toU(o[k]):o[k])}"${k==="bf"?' placeholder="optional"':""}></label>`).join("")}</div>`;
+    const pv=n>=5||n===6?onbPreview(o):null;
+    if(n===6){ const D=pv.days, today=monIdx(new Date()), ds=o.days.slice().sort(), nextD=ds.find(d=>d>=today)??ds[0];
+      const order=ds.filter(d=>d>=today).concat(ds.filter(d=>d<today));
+      const rest=order.slice(1).map((d,i)=>({t:(D[(i+1)%D.length]||{}).title||"Lift",d:WD[d],a:0})).concat([[o.sport,o.pb],["pilates",o.pil]].filter(([a,c])=>a&&c).map(([a,c])=>({t:ACT[a].name+(c>1?` ×${c}`:""),d:"Any day",a:1})));
+      body=`<section class="ofirst"><span class="weye">First workout · ${D.length?(nextD===today?"Today":WD[nextD]):"whenever you like"}</span><h3>${esc(D.length?D[0].title:"Log an activity")}</h3><p>Starting weights are a guess. Log your first sets and the app adjusts from there.</p></section>
+      <div class="orest2">${rest.map((r,i)=>`<div class="${r.a?"a":""}" style="animation-delay:${300+i*120}ms"><b>${esc(r.t)}</b><span>${r.d}</span></div>`).join("")}</div>`; }
+    const gName=(ONB_GOALS.find(g=>g[0]===o.goal)||[])[1], nd=o.days.length;
+    const prev=[["Season",o.sport?`${ACT[o.sport].name} · ${o.inS?"in-season":"off-season"}`:"No sport"],...(n>=2?[["Goal",gName]]:[]),...(n>=3?[["Week",`${nd} lift${nd===1?"":"s"}${o.sport&&o.pb?` + ${o.pb}× ${ACT[o.sport].name.toLowerCase()}`:""}${o.pil?` + ${o.pil}× pilates`:""}`]]:[]),...(n>=4?[["Focus",o.focus==="Balanced"?"Balanced":o.focus+" body"]]:[]),...(n>=5?[["Eat about",`${pv.food.toLocaleString()} kcal a day`]]:[])];
+    h=`<div class="onb"><div class="otop"><div class="odots" role="progressbar" aria-label="Setup progress" aria-valuemin="1" aria-valuemax="6" aria-valuenow="${n}">${[1,2,3,4,5,6].map(i=>`<i class="${i===n?"on":i<n?"past":""}"></i>`).join("")}</div>${skip}</div>
+      <div class="ostepbody"><h2 class="oh" tabindex="-1">${Q[0]}</h2><p class="olead sm">${Q[1]}</p>${body}</div>
+      ${n<6?`<section class="oprev" aria-label="Your plan so far"><span class="weye">Your plan so far</span>${prev.map(([k,v])=>`<div><span>${k}</span><b>${esc(v)}</b></div>`).join("")}</section>`:""}
+      ${btns(true,n===6?"done":"next",n===6?"Go to Workouts":n===5?"Build my plan":"Next",n===6)}</div>`; }
+  el.innerHTML=`<div class="tscroll">${h}</div>`; el.hidden=false; document.body.classList.add("touring"); el.classList.toggle("step",!!focus);
+  const go=d=>{ o.s=Math.max(0,o.s+d); renderOnb(true); el.querySelector(".tscroll").scrollTop=0; };
+  el.querySelectorAll("[data-ob]").forEach(b=>b.onclick=()=>{ const a=b.dataset.ob;
+    if(a==="back") go(-1); else if(a==="next") go(1); else if(a==="skip") closeOnb();
+    else if(a==="done"){ applyOnb(o,true); closeOnb(); nav="workouts"; cur="home"; selOff=0; keepNav(); render(); window.scrollTo(0,0); } });
+  const r=el.querySelector(".olvl"); if(r) r.oninput=()=>set("lvl",+r.value);
+  el.querySelectorAll("[data-lvl]").forEach(b=>b.onclick=()=>set("lvl",+b.dataset.lvl));
+  el.querySelectorAll("[data-os]").forEach(b=>b.onclick=()=>{ const a=b.dataset.os; o.sport=a; if(!a) o.inS=false; if(a&&!o.pb) o.pb=cnt(a)||2; renderOnb(); });
+  el.querySelectorAll("[data-oin]").forEach(b=>b.onclick=()=>{ o.inS=!o.inS; if(o.inS&&o.days.length>3) o.days=o.days.slice(0,3); renderOnb(); });
+  el.querySelectorAll("[data-og]").forEach(b=>b.onclick=()=>set("goal",b.dataset.og));
+  el.querySelectorAll("[data-od]").forEach(b=>b.onclick=()=>{ const k=+b.dataset.od, on=o.days.includes(k);
+    if(!on&&o.inS&&o.days.length>=3){ toast(["In-season","Up to 3 lift days so you stay fresh for games."]); return; }
+    set("days",on?o.days.filter(x=>x!==k):o.days.concat([k]).sort()); });
+  el.querySelectorAll("[data-oc]").forEach(b=>b.onclick=()=>{ const k=b.dataset.oc; set(k,Math.max(0,Math.min(7,o[k]+ +b.dataset.d))); });
+  el.querySelectorAll("[data-of]").forEach(b=>b.onclick=()=>set("focus",b.dataset.of));
+  el.querySelectorAll("[data-ox]").forEach(b=>b.onclick=()=>set("sex",b.dataset.ox));
+  el.querySelectorAll("[data-oi]").forEach(x=>x.onchange=()=>{ const k=x.dataset.oi; o[k]=k==="weight"?fromU(x.value):x.value; renderOnb(); });
+  if(focus){ const t=el.querySelector(".oh"); if(t) t.focus({preventScroll:true}); }
+}
+
 document.addEventListener("keydown",e=>{ if(e.key!=="Escape") return; if(!document.getElementById("done").hidden) closeDone(); else if(tour) closeTour(); });
 window.addEventListener("pagehide",()=>{ if(tour&&tour.snap){ const o=JSON.parse(tour.snap); Object.keys(wk).forEach(k=>delete wk[k]); Object.assign(wk,o); save(); } });
 function resetConfirm(on){ document.getElementById("confirmBox").hidden=!on; document.getElementById("resetDay").hidden=on; }
@@ -1310,4 +1414,5 @@ document.getElementById("cancelReset").onclick=()=>resetConfirm(false);
 document.getElementById("confirmReset").onclick=()=>{ if((wk.done||{})[cur]) markDone(cur); delete slots[cur]; if(wk.wt) delete wk.wt[cur]; save(); render(); resetConfirm(false); toast(["Day reset","Logs cleared and the day is open again."]); };
 { const s=autoWeek(); render(); if(s) weekDone(s); }
 document.addEventListener("visibilitychange",()=>{ if(document.visibilityState!=="visible") return; const s=autoWeek(); if(s){ render(); weekDone(s); } });
-if((!wk.setupDone&&!wk.tourDone)||location.hash==='#tour') openTour();
+/* onboarding shows on every load for now */
+openOnb();

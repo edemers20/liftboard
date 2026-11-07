@@ -201,3 +201,7 @@ Per lift, from your last logged set:
 - **Check-in** sits at the top of Plan until saved, then becomes one line at the bottom. `newWeek` reopens it.
 - **Pace** is stored as % of body weight a week (`wk.ratePct`); lb/week = % × current weight (`rateLb()`). Options: Lose weight fast 0.5 / 0.75 / 1%; Lose fat, keep strength 0.25 / 0.5 / 0.7%. Old lb paces convert to the nearest option once.
 - Goal names: Lose weight fast · Lose fat, keep strength · Maintain · Build muscle. Definitions live behind "Goal definitions" on Plan → Season.
+
+## Onboarding
+- Welcome (new users only) → Plan your week → As much help as you want (level slider, demo only) → six setup steps: sport and season, goal (definitions inside each option), usual lift days + weekly activity counts, extra focus, bio (sex, age, height, weight, optional body fat), You're set (first workout, then the rest of the week faded in at 45%).
+- Shows on every load for now. Answers start from current settings; Skip (shown once set up) leaves everything as is. Finishing writes the answers to settings; logs and history are untouched.
