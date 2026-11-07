@@ -1437,7 +1437,7 @@ function renderOnb(focus){
       <div class="orow line"><b>Romanian Deadlift</b><span class="mono">${["3 × 10 · 45 lb","3 × 8 · 95 lb","3 × 8–12 · 105"][v]}</span></div>
       ${v===2?`<div class="chips"><span class="chip">B-Stance Thrust</span><span class="chip">Sumo Deadlift</span><span class="chip">+ Add exercise</span></div>`:`<p class="orest">Rest 2:30. The timer starts when you tick a set and chimes when it's time.</p>`}</section>
     <ul class="opts">${P.map(t=>`<li>${t}</li>`).join("")}</ul>
-    ${btns(true,"next",["Start guided","Sounds right","Keep it lean"][v])}</div>`; }
+    ${btns(true,"next","Get started")}</div>`; }
   else { const n=s-2, Q=ONB_Q[n-1], chip=(on,attr,l)=>`<button type="button" ${attr} aria-pressed="${on}">${l}</button>`;
     let body="";
     if(n===1) body=`<div class="ogrid three">${ONB_SPORTS.map(([a,l])=>chip(o.sport===a,`data-os="${a}"`,l)).join("")}</div>
