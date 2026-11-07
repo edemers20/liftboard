@@ -188,6 +188,8 @@ const monIdx=d=>(d.getDay()+6)%7;
 function weekStartOf(t){ const d=DAY0(t); return addD(d,-(wk.wkStart==="Sun"?d.getDay():monIdx(d))); }
 const LDEF={0:[],1:[0],2:[0,3],3:[0,2,4],4:[0,2,4,6],5:[0,1,3,4,6],6:[0,1,2,3,4,5],7:[0,1,2,3,4,5,6]};
 function ldays(){ const n=DAYS.length, L=Array.isArray(wk.ldays)?wk.ldays:null; return L&&L.length===n?L.slice().sort():(LDEF[n]||[]).slice(); }
+/* days you usually play or take a class (Monday = 0); which activity is up to you */
+const adays=()=>Array.isArray(wk.adays)?wk.adays.slice().sort():[];
 const WD=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
 const wdOf=d=>WD[monIdx(d)];
 /* lift order: start with the carried-over lift (upNext), then continue in order */
@@ -283,8 +285,8 @@ function renderWorkouts(P){
   const sel=addD(today,selOff), W0=weekStartOf(today), wOff=Math.floor((weekStartOf(sel)-W0)/6048e5+0.01);
   const M=weekModel(wOff), i=Math.round((DAY0(sel)-M.W)/864e5), isToday=selOff===0, past=sel<today;
   const cells=M.dates.map((d,k)=>{ const ss=M.byDay[k], lift=ss.some(s=>s.k==="lift"), act=ss.some(s=>s.k!=="lift"), pl=M.plan[k]!=null;
-    const o=Math.round((d-today)/864e5);
-    return `<button type="button" class="wcell${k===i?" on":""}${o===0?" now":""}${o<0?" past":""}" data-sel="${o}" aria-pressed="${k===i}" aria-label="${fmtDate(d)}${lift?", lift done":pl?", lift planned":""}${act?", activity":""}"><span>${"MTWTFSS"[monIdx(d)]}</span><b>${d.getDate()}</b><i class="dots">${lift?'<i class="dl"></i>':pl?'<i class="dp"></i>':""}${act?'<i class="da"></i>':""}</i></button>`; }).join("");
+    const o=Math.round((d-today)/864e5), ap=!act&&o>=0&&adays().includes(monIdx(d));
+    return `<button type="button" class="wcell${k===i?" on":""}${o===0?" now":""}${o<0?" past":""}" data-sel="${o}" aria-pressed="${k===i}" aria-label="${fmtDate(d)}${lift?", lift done":pl?", lift planned":""}${act?", activity":""}"><span>${"MTWTFSS"[monIdx(d)]}</span><b>${d.getDate()}</b><i class="dots">${lift?'<i class="dl"></i>':pl?'<i class="dp"></i>':""}${act?'<i class="da"></i>':ap?'<i class="dap"></i>':""}</i></button>`; }).join("");
   const nav0=`<button type="button" class="wstep" data-wk="-7" aria-label="Previous week"${wOff<=-8?" disabled":""}>‹</button>`, nav1=`<button type="button" class="wstep" data-wk="7" aria-label="Next week"${wOff>=1?" disabled":""}>›</button>`;
   const ss=M.byDay[i]||[], cards=[], pid=M.plan[i], liftDone=ss.some(s=>s.k==="lift");
   const banners=[];
@@ -316,6 +318,7 @@ function renderWorkouts(P){
     else if(past&&!ss.length) cards.push(`<section class="wcard open"><span class="weye">Rest</span><h3>Nothing logged</h3></section>`);
   }
   ss.filter(s=>s.k!=="lift").forEach(s=>cards.push(sessCard(s)));
+  if(!past&&adays().includes(monIdx(sel))&&!ss.some(s=>s.k!=="lift")) cards.push(`<section class="wcard act plan"><span class="weye">Activity day</span><p class="wsub">${isToday?"Played or took a class? Log it below.":"You usually play or take a class today."}</p></section>`);
   const canLog=wOff===0&&!(sel>today), acts=actList(), others=ACT_IDS.filter(a=>a!=="lift"&&!enabled(a));
   const logH=canLog&&(acts.length||others.length)?`<div class="wlog"><span class="wlab">Log activity</span><div class="chips">${acts.map(a=>`<button type="button" class="chip act" data-log="${a}"><i aria-hidden="true">+</i>${esc(actName(a))} ${plannedOf(a)>0?`<small>${loggedOf(a)} of ${plannedOf(a)}</small>`:loggedOf(a)?`<small>${loggedOf(a)}</small>`:""}</button>`).join("")}${others.length?`<button type="button" class="chip act ghost2" data-logmore aria-expanded="${logMore}"><i aria-hidden="true">${logMore?"−":"+"}</i>Other</button>`:""}</div>
     ${logMore&&others.length?`<div class="chips more">${others.map(a=>`<button type="button" class="chip act" data-logx="${a}"><i aria-hidden="true">+</i>${esc(ACT[a].name)}</button>`).join("")}</div>`:""}</div>`:"";
@@ -342,7 +345,8 @@ function planRows(){
   M.todo.forEach((id,j)=>{ const d=dayById(id), k=Object.keys(M.plan).find(x=>M.plan[x]===id);
     R.push({o:k!=null?M.dates[k].getTime()+1:9e15+j,k:"lift",id,title:d.title,sub:k!=null?wdShort(M.dates[k]):"Doesn't fit this week",st:j===0?"next":"open"}); });
   sessW.filter(s=>s.k!=="lift").forEach(s=>R.push({o:s.t,k:"act",id:s.k,title:actName(s.k),sub:wdShort(new Date(s.t)),st:"done"}));
-  actList().forEach(a=>{ for(let i=loggedOf(a);i<plannedOf(a);i++) R.push({o:9.5e15,k:"act",id:a,title:actName(a),sub:"Any day",st:"open"}); });
+  const AD=adays(), freeAD=M.dates.map((d,i)=>i).filter(i=>i>=M.tIdx&&AD.includes(monIdx(M.dates[i]))&&!M.byDay[i].some(s=>s.k!=="lift"));
+  let q=0; actList().forEach(a=>{ for(let i=loggedOf(a);i<plannedOf(a);i++){ const k=freeAD[q++]; R.push({o:k!=null?M.dates[k].getTime()+2:9.5e15,k:"act",id:a,title:actName(a),sub:k!=null?wdShort(M.dates[k]):"Any day",st:"open"}); } });
   return R.sort((a,b)=>a.o-b.o);
 }
 function renderPlan(P){
@@ -363,7 +367,7 @@ function planWeek(P){
   const rowsH=planRows().map(r=>`<button type="button" class="prow2" data-open="${r.id}"><i class="pdot ${r.k}${r.st==="done"?" d":""}"></i><span><b${r.st==="done"?' class="pdone"':""}>${esc(r.title)}</b><small>${esc(r.sub)}</small></span>${ICON[r.st]}</button>`).join("");
   const L=ldays(), inS=inSeason();
   const daysH=enabled("lift")?`<div class="ldays"><span class="plab">Usual lift days · ${L.length} a week</span><div class="ldgrid" role="group" aria-label="Usual lift days">${"MTWTFSS".split("").map((c,k)=>`<button type="button" data-ld="${k}" aria-pressed="${L.includes(k)}" aria-label="${WD[k]}">${c}</button>`).join("")}</div>${inS?`<p class="small">In-season: up to 3.</p>`:""}</div>`:"";
-  const acts=actTabs(), cntH=acts.length?`<div class="acnt">${acts.map(a=>`<label for="cnt-${a}"><span>${esc(ACT[a].name)} / wk</span><input id="cnt-${a}" data-cnt="${a}" inputmode="numeric" value="${cnt(a)}"></label>`).join("")}</div>`:"";
+  const AD=adays(), adH=`<div class="ldays ad"><span class="plab">Usual activity days · ${AD.length} a week</span><div class="ldgrid" role="group" aria-label="Usual activity days">${"MTWTFSS".split("").map((c,k)=>`<button type="button" data-ad="${k}" aria-pressed="${AD.includes(k)}" aria-label="${WD[k]}">${c}</button>`).join("")}</div></div>`;
   const vs=Mt.vsLast;
   const food=`<div class="panel food"><h3>Food</h3>
     <div class="eat"><span>Eat today</span><b>${r5(Mt.intake).toLocaleString()} <small>kcal</small></b></div>
@@ -371,7 +375,7 @@ function planWeek(P){
     <details class="fmath"><summary>How this is calculated</summary><p class="small">${INFO.maint}</p>${build?"":`<div class="prow"><span>Weekly deficit</span><b>${r5(Mt.target).toLocaleString()} kcal</b></div>`}${Mt.nLift&&Mt.nFin?`<p class="small">Remaining finishers: ${Mt.m} min × ${Mt.nFin}</p>`:""}</details></div>`;
   return `${nd&&nd.restSuggest?`<p class="flag">Reps dropped two sessions in a row. Take a rest day before ${esc(dayById(P.nextId).title)}.</p>`:""}
   ${wk.ckDone?"":ck}
-  <div class="panel plist"><h3>This week's plan</h3><div class="prows">${rowsH||`<p class="small">Nothing planned yet. Pick your usual lift days below.</p>`}</div>${daysH}${cntH}</div>
+  <div class="panel plist"><h3>This week's plan</h3><div class="prows">${rowsH||`<p class="small">Nothing planned yet. Pick your usual lift days below.</p>`}</div>${daysH}${adH}</div>
   ${food}
   ${P.rules.length?`<div class="panel">${hdr("This week's changes",["changes"])}<ul>${P.rules.map(n=>`<li>${n}</li>`).join("")}</ul></div>`:""}
   ${P.notes.length?`<div class="panel">${hdr("Watch",["watch"])}<ul>${P.notes.map(n=>`<li>${n}</li>`).join("")}</ul></div>`:""}
@@ -451,6 +455,7 @@ function bindShell(v){
   v.querySelectorAll("[data-ld]").forEach(b=>b.onclick=()=>{ const k=+b.dataset.ld, L=ldays(), on=L.includes(k), nL=on?L.filter(x=>x!==k):L.concat([k]).sort();
     if(!on&&inSeason()&&nL.length>3){ toast(["In-season","Up to 3 lift days so you stay fresh for games."]); return; }
     change(()=>{ wk.ldays=nL; wk.days=nL.length; syncDays(); }); });
+  v.querySelectorAll("[data-ad]").forEach(b=>b.onclick=()=>{ const k=+b.dataset.ad, A=adays(); wk.adays=A.includes(k)?A.filter(x=>x!==k):A.concat([k]).sort(); save(); render(); });
   v.querySelectorAll("input[data-cnt]").forEach(el=>el.onchange=()=>{ const a=el.dataset.cnt, n=Math.max(0,Math.min(7,parseInt(el.value)||0)); change(()=>{ wk[a]=n; }); });
   const cs=v.querySelector("#ckSave"); if(cs) cs.onclick=()=>{ wk.ckDone=true; save(); render(); toast(["Check-in saved","This week's plan is set."]); };
   const ce=v.querySelector("#ckEdit"); if(ce) ce.onclick=()=>{ wk.ckDone=false; save(); render(); window.scrollTo({top:0,behavior:"smooth"}); };

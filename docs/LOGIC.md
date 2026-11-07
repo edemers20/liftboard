@@ -208,3 +208,4 @@ Per lift, from your last logged set:
 - **Move to today** pins that lift to today (`wk.pinToday`, today only); the rest of the queue keeps its order on the remaining usual days, so the day it left takes the next lift.
 - **Log activity → Other** lists every activity you haven't turned on; logging one turns it on.
 - Yoga and Pilates can be your main activity. They have no season, so the in-season switch is hidden for them.
+- **Usual activity days** (`wk.adays`, Monday = 0) replace the per-activity count inputs on Plan. They mark days on the Workouts strip (pink outline) and give planned activities in "This week's plan" a day, in order; without them activities say "Any day". Which activity is up to you.
