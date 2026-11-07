@@ -375,7 +375,7 @@ function planWeek(P){
   ${food}
   ${P.rules.length?`<div class="panel">${hdr("This week's changes",["changes"])}<ul>${P.rules.map(n=>`<li>${n}</li>`).join("")}</ul></div>`:""}
   ${P.notes.length?`<div class="panel">${hdr("Watch",["watch"])}<ul>${P.notes.map(n=>`<li>${n}</li>`).join("")}</ul></div>`:""}
-  ${wk.ckDone?`<div class="ckline"><span><b>Check-in</b> · ${esc(ckSummary())}</span><button type="button" class="wlink" id="ckEdit">Edit</button></div>`:""}`;
+  ${wk.ckDone?`<div class="ckline"><span><b>Check-in</b> · ${esc(ckSummary())}</span><button type="button" class="wlink ckedit" id="ckEdit" aria-label="Edit check-in"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4Z"/><path d="M13.5 6.5l4 4"/></svg></button></div>`:""}`;
 }
 /* pace choices are a share of body weight; the lb figure follows your current weight */
 const PACES={"Deficit only":[0.5,0.75,1],Recomp:[0.25,0.5,0.7]};
