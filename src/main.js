@@ -241,6 +241,12 @@ function logActOn(a,t){
     logAct(key,n,String(a==="zone2"?45:plannedMin(a)),t); });
 }
 /* weeks start on their own: the first open after Monday (or Sunday) closes out last week */
+/* lifts logged since the week started count as done, even if a week rollover cleared the flags */
+function syncDoneFromSessions(){
+  const ids=DAYS.map(d=>d.id), from=wk.weekStart||0; let fixed=0;
+  (wk.sessions||[]).forEach(s=>{ if(s.k==="lift"&&s.t>=from&&ids.includes(s.id)&&!(wk.done||{})[s.id]){ wk.done={...(wk.done||{}),[s.id]:1}; wk.doneT={...(wk.doneT||{}),[s.id]:s.t}; fixed++; } });
+  if(fixed){ if(wk.upNext&&wk.done[wk.upNext]) wk.upNext=null; delete wk.missedNote; save(); }
+}
 function autoWeek(){
   if(!wk.setupDone) return null;
   const W=weekStartOf(Date.now()).getTime();
@@ -313,7 +319,7 @@ function renderWorkouts(P){
   const canLog=wOff===0&&!(sel>today), acts=actList(), others=ACT_IDS.filter(a=>a!=="lift"&&!enabled(a));
   const logH=canLog&&(acts.length||others.length)?`<div class="wlog"><span class="wlab">Log activity</span><div class="chips">${acts.map(a=>`<button type="button" class="chip act" data-log="${a}"><i aria-hidden="true">+</i>${esc(actName(a))} ${plannedOf(a)>0?`<small>${loggedOf(a)} of ${plannedOf(a)}</small>`:loggedOf(a)?`<small>${loggedOf(a)}</small>`:""}</button>`).join("")}${others.length?`<button type="button" class="chip act ghost2" data-logmore aria-expanded="${logMore}"><i aria-hidden="true">${logMore?"−":"+"}</i>Other</button>`:""}</div>
     ${logMore&&others.length?`<div class="chips more">${others.map(a=>`<button type="button" class="chip act" data-logx="${a}"><i aria-hidden="true">+</i>${esc(ACT[a].name)}</button>`).join("")}</div>`:""}</div>`:"";
-  const Mth=P.math, food=isToday&&wk.setupDone?`<button type="button" class="wfood" data-nav2="plan"><span>Eat today</span><b>${r5(Mth.intake).toLocaleString()} <small>kcal</small></b><small>Your base ${r5(Mth.everyday).toLocaleString()}</small></button>`:"";
+  const Mth=P.math, food=isToday&&wk.setupDone?`<button type="button" class="wfood" data-nav2="plan"><span class="wf1"><span>Eat today</span><small>Your base ${r5(Mth.everyday).toLocaleString()}</small></span><b>${r5(Mth.intake).toLocaleString()} <small>kcal</small></b></button>`:"";
   return `<div class="whead"><h1>Lift Board</h1><button type="button" class="todayb" data-sel="0"${isToday?" disabled":""}>Today</button></div>
   <div class="wstrip">${nav0}<div class="wcells">${cells}</div>${nav1}</div>
   <div class="wday"><button type="button" class="wdstep" data-sel="${selOff-1}" aria-label="Previous day"${wOff<=-8&&i===0?" disabled":""}>‹</button><span>${isToday?"Today · ":""}${fmtDate(sel)}</span><button type="button" class="wdstep" data-sel="${selOff+1}" aria-label="Next day"${wOff>=1&&i===6?" disabled":""}>›</button></div>
@@ -1453,7 +1459,7 @@ document.getElementById("toast").onclick=()=>{document.getElementById("toast").c
 document.getElementById("resetDay").onclick=()=>{ const d=DAYS.find(x=>x.id===cur); askSure({title:`Reset ${d?d.tab:"this day"}`,text:"Clears every set you've logged today and reopens the day if it was marked done.",ok:"Reset day",onOk:()=>document.getElementById("confirmReset").click()}); };
 document.getElementById("cancelReset").onclick=()=>resetConfirm(false);
 document.getElementById("confirmReset").onclick=()=>{ if((wk.done||{})[cur]) markDone(cur); delete slots[cur]; if(wk.wt) delete wk.wt[cur]; save(); render(); resetConfirm(false); toast(["Day reset","Logs cleared and the day is open again."]); };
-{ const s=autoWeek(); render(); if(s) weekDone(s); }
+{ const s=autoWeek(); syncDoneFromSessions(); render(); if(s) weekDone(s); }
 document.addEventListener("visibilitychange",()=>{ if(document.visibilityState!=="visible") return; const s=autoWeek(); if(s){ render(); weekDone(s); } });
 /* onboarding shows once; finishing or skipping it marks it done */
 if(!wk.onbDone) openOnb();
