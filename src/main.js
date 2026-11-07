@@ -57,7 +57,7 @@ const INFO={
  muscles:"Sets done this week against a target set by your focus and sports. Direct work counts 1 set; helper work counts ½ (a row also trains biceps and rear delts). The faint bar is what's still planned. Skip something and a later day brings back a trimmed exercise or adds a set; when a smaller muscle is already covered, its repeat on a later day becomes optional.",
  watch:"Targets and warnings to keep an eye on this week.",
  lifts:"Your top working set each session. The number is the latest weight; the change is since your first logged session.",
- freq:"How many weeks each weekday had a session, out of the last 8 (or since you started). Green is a lift day; pink is a day with only an activity. Activities count once you enter their minutes.",
+ freq:"Time spent each week on lifting, sports, classes and cardio, for the last 8 weeks (or since you started). Lifts use how long the workout took, rounded to 15 minutes; older lifts count as your session length. Activities use the minutes you logged.",
  weeks:"Saved each time you tap Start new week. Weigh-ins logged here calibrate maintenance after 3+ weeks.", spint:"Really hard burns more and adds 1 to recovery load.", ymin:"Class length."
 };
 SPORTS.forEach(a=>{ INFO[a]=sportInfo(a); INFO[minKey(a)]="Planned length per session."; });
@@ -542,19 +542,23 @@ let histView="cal", calOff=0, calSel=null;
 try{ const h=localStorage.getItem(KEY+".hv"); if(h) histView=h; }catch(e){}
 const dowOf=t=>(new Date(t).getDay()+6)%7, dayKey=t=>{ const d=new Date(t); return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`; };
 const sessName=x=>x.k==="lift"?(x.title||"Lift"):x.k==="zone2"?"Zone 2":(ACT[x.k]?ACT[x.k].name:x.k);
+/* Week mix: time in each kind of training, one stacked bar per week (last 8 weeks).
+   Lifts without a saved duration count as your session length; activities use the minutes you logged. */
+const MIX=[["lift","Lifting","var(--lift)"],["sport","Sport","var(--act)"],["cls","Classes","#b9a3f0"],["cardio","Cardio","#fea06a"]];
+function mixKind(x){ if(x.k==="lift") return "lift"; if(x.k==="zone2") return "cardio"; const A=ACT[x.k]; return A&&A.sport?"sport":A&&A.cls?"cls":"cardio"; }
+function mixMin(x){ if(x.k==="lift") return num(x.min,0)||num(wk.time,60); return num(x.min,0)||(ACT[x.k]?plannedMin(x.k):45); }
 function freqHTML(S){
-  const now=Date.now(), first=S.length?S[0].t:now, N=Math.max(1,Math.min(8,Math.ceil((now-first+1)/6048e5)));
-  const win=S.filter(x=>x.t>now-N*6048e5);
-  const days={}; win.forEach(x=>{ const k=dayKey(x.t); days[k]=days[k]||{dow:dowOf(x.t),lift:0,act:0}; days[k][x.k==="lift"?"lift":"act"]++; });
-  const col=[0,1,2,3,4,5,6].map(()=>({lift:0,act:0}));
-  Object.values(days).forEach(d=>{ col[d.dow][d.lift?"lift":"act"]++; });
-  const nl=win.filter(x=>x.k==="lift").length, na=win.length-nl, f=n=>(n/N).toFixed(1).replace(/\.0$/,"");
-  const DL=["M","T","W","T","F","S","S"], DN=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
-  return `<div class="panel">${hdr("How often",["freq"])}
-    <p class="note">Average a week · last ${N} week${N>1?"s":""}</p>
-    <div class="stats${na?" three":""}"><div class="stat"><div class="k">Sessions</div><div class="v">${f(win.length)}</div></div><div class="stat"><div class="k">Lifts</div><div class="v">${f(nl)}</div></div>${na?`<div class="stat"><div class="k">Activities</div><div class="v">${f(na)}</div></div>`:""}</div>
-    <div class="dow">${col.map((c,i)=>{ const t=c.lift+c.act; return `<div class="dowc" role="img" aria-label="${DN[i]}: trained ${t} of ${N} weeks${c.lift?`, ${c.lift} with a lift`:""}"><span class="down">${t||""}</span><div class="dowb"><i class="a" style="height:${c.act/N*100}%"></i><i class="l" style="height:${c.lift/N*100}%"></i></div><span class="dowl">${DL[i]}</span></div>`; }).join("")}</div>
-    <div class="legend"><span style="--c:var(--lift)">Lift day</span><span style="--c:var(--act)">Activity only</span></div>
+  const W0=weekStartOf(Date.now()), first=S.length?weekStartOf(S[0].t):W0, N=Math.max(1,Math.min(8,Math.round((W0-first)/6048e5)+1));
+  const weeks=[...Array(N)].map((_,i)=>{ const W=addD(W0,-7*(N-1-i)), E=addD(W,7), m={lift:0,sport:0,cls:0,cardio:0};
+    S.filter(x=>x.t>=W.getTime()&&x.t<E.getTime()).forEach(x=>{ m[mixKind(x)]+=mixMin(x); }); return {W,m,tot:Object.values(m).reduce((a,b)=>a+b,0)}; });
+  const max=Math.max(60,...weeks.map(w=>w.tot)), hrs=n=>{ const h=n/60; return h>=10?Math.round(h)+"h":(Math.round(h*2)/2).toString().replace(/\.5$/,"½").replace(/^0½$/,"½")+"h"; };
+  const done=weeks.slice(0,-1).filter(w=>w.tot), avg=done.length?done.reduce((a,w)=>a+w.tot,0)/done.length:0;
+  const used=MIX.filter(([k])=>weeks.some(w=>w.m[k]));
+  return `<div class="panel">${hdr("Week mix",["freq"])}
+    <p class="note">Hours a week by kind of training${avg?` · about ${hrs(avg)} a week`:""}</p>
+    <div class="mix" role="img" aria-label="${weeks.map(w=>`Week of ${w.W.toLocaleDateString("en-US",{month:"short",day:"numeric"})}: ${MIX.filter(([k])=>w.m[k]).map(([k,l])=>`${l} ${Math.round(w.m[k])} min`).join(", ")||"nothing logged"}`).join(". ")}">
+    ${weeks.map((w,i)=>`<div class="mixc${i===N-1?" now":""}"><span class="mixt">${w.tot?hrs(w.tot):""}</span><div class="mixb" style="height:${w.tot/max*112}px">${MIX.map(([k,,c])=>w.m[k]?`<i style="flex:${w.m[k]} 1 0;background:${c}"></i>`:"").join("")}</div><span class="mixl">${i===N-1?"Now":w.W.toLocaleDateString("en-US",{month:"numeric",day:"numeric"})}</span></div>`).join("")}</div>
+    ${used.length?`<div class="legend">${used.map(([,l,c])=>`<span style="--c:${c}">${l}</span>`).join("")}</div>`:""}
   </div>`;
 }
 /* A logged session's exercises; older sessions are rebuilt from lift history (last logged set). */

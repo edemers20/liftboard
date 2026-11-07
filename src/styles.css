@@ -816,3 +816,15 @@ body.hasnav #profileBox #profSave{bottom:calc(82px + env(safe-area-inset-bottom,
 #doneBtn:disabled,#doneBtn[aria-disabled="true"]{border:0!important;box-shadow:none!important;outline:none}
 .slot.stretch .row1[data-stog]{cursor:pointer}
 .slot.stretch.folded{padding-bottom:14px}
+/* History: week mix */
+.mix{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:8px;align-items:end;height:150px;margin-top:6px}
+.mixc{display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;min-width:0}
+.mixb{flex:1;width:100%;max-width:30px;display:flex;flex-direction:column-reverse;gap:2px;border-radius:6px;overflow:hidden}
+.mixb i{display:block;width:100%;min-height:2px}
+.mixt{font:500 11px var(--mono);color:var(--tx2);height:14px}
+.mixl{font:500 10px var(--mono);color:var(--muted)}
+.mixc.now .mixl{color:var(--fg)}
+.mixc.now .mixb{opacity:.85}
+.mixc{justify-content:flex-end}
+.mixb{flex:none}
+.mix{height:auto;min-height:150px}

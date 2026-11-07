@@ -724,7 +724,9 @@ function markDone(dayId){
     const sd=get(dayId,i).side||sideDefault(n); h.push({w:L.w,r:L.r,t:stamp,season:inSeason()?"In-season":"Off-season",...(UNI_RE.test(n)?{side:sd}:{})}); exHist[n]=h.slice(-24); });
   /* the day's set logs stay on screen until a new week starts */
   wk.doneT={...(wk.doneT||{}),[dayId]:stamp};
-  wk.sessions=(wk.sessions||[]).concat([{t:stamp,k:"lift",id:dayId,title:d.title,ex:daySummary(dayId)}]).slice(-500);
+  /* how long it took, rounded to 15 min (timer start to Day done), else the session length setting */
+  const T=(wk.wt||{})[dayId]||{}, raw=T.start?(stamp-T.start)/6e4:0, liftMin=raw>=10&&raw<=240?Math.max(30,Math.round(raw/15)*15):num(wk.time,60);
+  wk.sessions=(wk.sessions||[]).concat([{t:stamp,k:"lift",id:dayId,title:d.title,ex:daySummary(dayId),min:liftMin}]).slice(-500);
   stampNotes(items,stamp);
   if(wk.wt&&wk.wt[dayId]&&wk.wt[dayId].start&&!wk.wt[dayId].end) wk.wt[dayId].end=stamp;
   wk.fatigue=(wk.fatigue||[]).concat([{t:Date.now(),day:dayId,drops}]).slice(-10);
