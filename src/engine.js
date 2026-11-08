@@ -549,7 +549,7 @@ function plan(){ buildDefaults(); const cut=cutting();
   if(recomp&&rateLb()>recompCap) P.notes.push(`Lose fat, keep strength caps loss at ${recompCap.toFixed(1)} lb/week (0.7% of your weight).`);
   if(eaRaise>0) P.notes.push(`Food raised to ~${r5(intake).toLocaleString()} kcal/day so you keep enough energy for your training this week. Expect ~${Math.max(0,(target/7-eaRaise)*7/3500).toFixed(1)} lb/week instead of ${rateEff} lb.`);
   if(fast&&recomp) P.notes.push("At this pace, expect to hold muscle and strength rather than build.");
-  if(cut) P.notes.push("On a cut, holding your numbers is the goal. Missed reps keep the weight; accessories lose a set first.");
+  if(cut) P.notes.push("On a cut, preserving strength is the goal.");
   if(fast&&fem()) P.notes.push("On a faster cut, a late, missed or changed period is a sign to slow down.");
   if(fast&&lastHard) P.notes.push("Reps are dropping on a faster cut. Easing the rate usually brings them back.");
   const fastRun=(()=>{ let n=0; for(const w of (wk.weeks||[]).slice().reverse()){ if(w.fast) n++; else break; } return n; })();

@@ -331,7 +331,7 @@ describe("cut-aware overload", () => {
     hist(n, [{ w: 30, r: 4 }]);
     const P = E.plan();
     expect(P.days[d.id].slots[i].sets).toBe(before - 1);
-    expect(P.notes.some(x => x.startsWith("On a cut, holding"))).toBe(true);
+    expect(P.notes.some(x => x.startsWith("On a cut, preserving strength"))).toBe(true);
   });
 });
 
