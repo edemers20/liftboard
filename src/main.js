@@ -7,7 +7,7 @@ init(storage);
 setSaveHook(ok=>{ document.getElementById("saved").textContent= ok?"Saved":"Not saved (storage blocked)"; });
 /* nav: the bottom tab. cur: "home", or the lift day / activity opened from Workouts */
 const NAVS=["workouts","plan","history","you"];
-let vtOpen=false;
+let vtOpen=false, profOpen=false;
 let nav="workouts", cur="home", planView="week", selOff=0, openSess=null, logMore=false;
 /* what can be "your sport": the sports plus yoga and Pilates */
 const MAINS=[...SPORTS,"yoga","pilates"];
@@ -413,9 +413,24 @@ function planSeason(P){
 /* ---------- You: profile, preferences, app settings, data ---------- */
 /* FAQ (mirrors the launch plan doc) */
 const HOW=[["How is my plan built?", "You pick a goal, a focus, your usual lift days and the activities you do. Lift Board picks a split (which days train what), then adjusts sets each week for your sports and classes, your check-in and what you already trained that week."], ["How does my week get scheduled?", "Lifts line up in order on your usual lift days. Miss one and the rest slide forward. Anything that doesn't fit carries into next week, which starts where you left off. Move to today pulls a planned lift onto today. Activities aren't tied to a day: log them from Workouts whenever you do them. Usual activity days only mark when you tend to play."], ["When does a new week start?", "On its own, on Monday or Sunday (You → App → Week starts on). Your weekly check-in reopens at the top of Plan."], ["Forgot to log something?", "Tap that day on Workouts and log it there. If the next-morning check is on, Workouts also asks \"Did you play or train yesterday?\" when the day before is empty. Tap a logged activity to change its minutes or delete it."], ["Which goal should I pick?", "Lose weight fast: up to 1% of your weight a week, and your lifts may slip. Lose fat, keep strength: up to 0.7% a week while you hold your lifts, with no more than a quarter of the deficit from cardio. Maintain: eat what you burn. Build muscle: eat a little more, with extra sets on your focus. Pace is a share of your body weight, so the pounds follow your weight."], ["Why did my weights change?", "Hit the top of your rep range and the weight goes up next time. Land inside the range and you aim for one more rep. Miss the range and you hold the weight. Miss twice when you're not on a cut and it drops about 10% so you can build back up. A new exercise starts from a guess based on a similar one you've done."], ["What does \"hold\" mean on a cut?", "When you're losing more than about 0.5% of your body weight a week, keeping your numbers is the win. A missed rep keeps the weight. It only eases 5% after three misses in a row, and accessories lose a set before any weight comes off."], ["How is food calculated?", "Your base is what you'd burn on a day with no training: resting burn, light movement, steps and digestion. Eat today is your base plus this week's training, minus the gap your goal sets. After three weigh-ins the app checks its estimate against how your weight is actually moving. Food never drops so low that there isn't energy left for training."], ["How long should I rest?", "Main lifts 2:30 (3:00 at 5 reps or fewer), other compound lifts 1:30, isolation 1:15. One side at a time adds 15 seconds and the first set adds 30. A cut, in-season or a rough day each add 15 seconds to compound lifts, up to 30. Tap ±15s and it remembers for that exercise. The chime may not play with the phone locked."], ["What does experience change?", "How many tips you see. New to lifting and Some experience show tips; Years of lifting hides them, and (i) explanations stay either way. Change it in You → Training preferences."], ["Bodyweight exercises?", "Leave the weight blank. Add a number only if you hold extra weight. Progress comes from reps, slower lowering or added weight."], ["How is Week mix counted?", "Lifts use how long the workout took, rounded to 15 minutes. Lifts logged before that was saved count as your session length. Activities use the minutes you logged."], ["Moving to a new phone?", "You → Your data → Download backup, then Restore backup on the new phone. With accounts, signing in will do this for you."], ["Is this medical advice?", "No. These are general estimates. Check with a doctor before big changes, especially if you're pregnant, injured or managing a health condition."]];
+/* the top of You reads like a profile: who you are, since when, what you've done */
+function profileHero(){
+  const S=wk.sessions||[], lifts=S.filter(x=>x.k==="lift").length, acts=S.length-lifts;
+  const first=Math.min(...[wk.createdAt,...S.map(x=>x.t),wk.weekStart].filter(Boolean)), since=isFinite(first)?new Date(first).toLocaleDateString("en-US",{month:"short",year:"numeric"}):"This week";
+  const weeks=new Set(S.map(x=>weekStartOf(x.t).getTime())).size;
+  const name=String(wk.name||"").trim(), initial=(name||"You").slice(0,1).toUpperCase();
+  const sport=wk.mainSport&&ACT[wk.mainSport]?ACT[wk.mainSport].name:"", goal=(GOALS.find(g=>g[0]===wk.mode)||[])[1]||"", lvl=(LEVELS.find(l=>l[0]===wk.level)||[])[1]||"";
+  const tag=(t,c)=>t?`<span class="ptag ${c}">${esc(t)}</span>`:"";
+  return `<section class="phero" aria-label="Your profile">
+    <div class="pav" aria-hidden="true">${esc(initial)}</div>
+    <div class="pwho"><h2>${esc(name||"You")}</h2><p>Member since ${since}</p></div>
+    <div class="ptags">${tag(sport?`${sport}${inSeason()?" · in-season":""}`:"","sp")}${tag(goal,"gl")}${tag(lvl,"lv")}</div>
+    <div class="pstats"><div><b>${lifts}</b><span>Lifts</span></div><div><b>${acts}</b><span>Activities</span></div><div><b>${weeks}</b><span>Weeks active</span></div></div>
+  </section>`;
+}
 function renderYou(P){
-  return `<div class="dayhead"><h2>You</h2></div>
-  <div class="panel" id="profileBox"><h3>Profile</h3>${profileHTML(false,{...wk,...(draft||{})})}<button class="btn primary" id="profSave" type="button"${draftDirty()?"":" disabled"}>Save changes</button></div>
+  return `${profileHero()}
+  <details class="panel" id="profileBox"${profOpen||draftDirty()?" open":""}><summary class="psum"><h3>Edit profile</h3><span class="small">Activities, sports, focus and body data</span></summary>${profileHTML(false,{...wk,...(draft||{})})}<button class="btn primary" id="profSave" type="button"${draftDirty()?"":" disabled"}>Save changes</button></details>
   ${enabled("lift")?`<div class="panel">${hdr("Training preferences",["ss","liftK"])}
     <div class="q"><span>Experience</span>${seg("level","",LEVELS.map(([v,l])=>[v,l]),wk.level||(wk.guide==="Less"?"years":"some"))}</div>
     ${stepper("time","Session length",[30,45,60,75],"min")}
@@ -496,7 +511,7 @@ function profileHTML(withGoal,src){
   ${withGoal?G(`${hdr("Goal",["mode"])}${seg("mode","Goal",GOALS)}`):""}
   ${G(`${hdr("Bio Data",["sex","age","height","weight","bf","steps","oura"])}
   ${seg("sex","Sex",["Female","Male","Other"],src.sex)}
-  <div class="nums">${F("age","Age")}${F("height","Height (in)","decimal")}${F("weight","Weight (lb)","decimal")}${F("bf","Body fat %","decimal","optional")}${F("steps","Steps / day")}${F("oura","Daily burn","numeric","optional")}</div>`)}</div>`;
+  <div class="nums">${withGoal?"":F("name","Name","text","optional")}${F("age","Age")}${F("height","Height (in)","decimal")}${F("weight","Weight (lb)","decimal")}${F("bf","Body fat %","decimal","optional")}${F("steps","Steps / day")}${F("oura","Daily burn","numeric","optional")}</div>`)}</div>`;
 }
 const spark=h=>{ const ws=h.slice(-8).map(x=>x.w), n=ws.length, lo=Math.min(...ws), hi=Math.max(...ws);
   const pts=ws.map((w,j)=>[n>1?4+j*104/(n-1):56, hi===lo?16:28-(w-lo)/(hi-lo)*24].map(v=>+v.toFixed(1)));
@@ -1149,6 +1164,7 @@ function dayComplete(id){
 function bind(){
   const v=document.getElementById("view");
   bindShell(v);
+  const pb=v.querySelector("details#profileBox"); if(pb) pb.ontoggle=()=>{ profOpen=pb.open; };
   { const bd=v.querySelector("#bkDown"); if(bd) bd.onclick=()=>{ const data={app:"liftboard",v:1,at:new Date().toISOString(),keys:{}};
       ["liftboard.v1","liftboard.week.v2","liftboard.hist.v1"].forEach(k=>{ try{ data.keys[k]=localStorage.getItem(k); }catch(e){} });
       const url=URL.createObjectURL(new Blob([JSON.stringify(data)],{type:"application/json"})), a=document.createElement("a");
@@ -1186,7 +1202,7 @@ function bind(){
   const ps=document.getElementById("profSave"); if(ps) ps.onclick=()=>{ const d=draft; draft=null; const a=fx(plan()); Object.assign(wk,d); if(d&&"days" in d){ wk.days=+d.days; if(ldays().length!==wk.days) wk.ldays=LDEF[wk.days]||[]; } fixSports(wk); save(); const b=fx(plan()); render(); toast(["Profile saved",...diffFx(a,b)]); };
   v.querySelectorAll(".actt").forEach(b=>{ if(inProf(b)) b.onclick=()=>{ const a=b.dataset.actt, cur0={...(wk.acts||{}),...((draft&&draft.acts)||{})}; stage("acts",{...cur0,[a]:!cur0[a]}); }; });
   v.querySelectorAll(".actt").forEach(b=>{ if(!inProf(b)) b.onclick=()=>change(()=>{ const a=b.dataset.actt; wk.acts={...(wk.acts||{}),[a]:!enabled(a)}; fixSports(wk); }); });
-  const ss=document.getElementById("setupSave"); if(ss) ss.onclick=()=>{ wk.setupDone=true; wk.weekStart=weekStartOf(Date.now()).getTime(); wk.ldays=LDEF[DAYS.length]||[]; fitPace(); nav="workouts"; cur="home"; keepNav(); save(); render(); window.scrollTo(0,0); setupDone(); };
+  const ss=document.getElementById("setupSave"); if(ss) ss.onclick=()=>{ wk.createdAt=wk.createdAt||Date.now(); wk.setupDone=true; wk.weekStart=weekStartOf(Date.now()).getTime(); wk.ldays=LDEF[DAYS.length]||[]; fitPace(); nav="workouts"; cur="home"; keepNav(); save(); render(); window.scrollTo(0,0); setupDone(); };
   const rt=document.getElementById("replayTour"); if(rt) rt.onclick=openOnb;
   const mc=document.getElementById("moveCopy"); if(mc) mc.onclick=async()=>{ const data=JSON.stringify({v:1,slots:storage.getItem(KEY),wk:storage.getItem(KEY2),hist:storage.getItem(KEY3)}); const t=document.getElementById("moveTxt"); t.value=data; t.select(); try{ await navigator.clipboard.writeText(data); toast(["Copied","Paste it into Lift Board on the other device."]); }catch(e){ toast(["Selected","Copy the text in the box."]); } };
   const ml=document.getElementById("moveLoad"); if(ml) ml.onclick=()=>{ let o; try{ o=JSON.parse(document.getElementById("moveTxt").value); if(!o||o.v!==1||!o.wk) throw 0; }catch(e){ toast(["Couldn't load","Paste the full text from Copy my data."]); return; }
@@ -1419,7 +1435,7 @@ function applyOnb(o,real){
   wk.level=o.level; wk.guide=guideFor(o.level); wk.mode=o.goal; wk.ldays=o.days.slice().sort(); wk.days=o.days.length; wk.focus=o.focus; wk.sex=o.sex;
   ["age","height","weight","bf","steps"].forEach(k=>{ if(String(o[k]).trim()!=="") wk[k]=String(o[k]); });
   fixSports(wk); syncDays(); fitPace();
-  if(real){ if(!wk.setupDone){ wk.setupDone=true; wk.weekStart=weekStartOf(Date.now()).getTime(); } wk.tourDone=true; wk.onbDone=true; save(); }
+  if(real){ wk.createdAt=wk.createdAt||Date.now(); if(!wk.setupDone){ wk.setupDone=true; wk.weekStart=weekStartOf(Date.now()).getTime(); } wk.tourDone=true; wk.onbDone=true; save(); }
 }
 /* preview the plan these answers would make, without keeping them */
 function onbPreview(o){ const snap=JSON.stringify(wk); applyOnb(o,false); const P=plan(), days=DAYS.map(d=>({id:d.id,title:d.title})), food=r5(P.math.intake);
