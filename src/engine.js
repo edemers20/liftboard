@@ -42,6 +42,7 @@ const ACT={
  lift:{name:"Lifting"},
  pickle:{name:"Pickleball",sport:1,met:4.5,leg:1,sh:1,min:75},
  run:{name:"Running",sport:1,met:8.3,leg:2,min:40},
+ bike:{name:"Biking",sport:1,met:7.5,leg:2,min:60},
  soccer:{name:"Soccer",sport:1,met:7,leg:2,min:90},
  volleyball:{name:"Volleyball",sport:1,met:4.5,leg:1,sh:1,min:90},
  climb:{name:"Climbing",sport:1,met:5,leg:0,pull:1,min:75,noMin:1},
