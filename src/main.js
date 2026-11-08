@@ -374,12 +374,12 @@ function recov(){
   const f=ms=>{ const h=Math.ceil((ms-now)/H); return h<=0?null:h; };
   return {lower:f(until.lower),upper:f(until.upper)};
 }
-function recovHTML(){ const R=recov(), c=(l,h)=>`<div class="rc${h?"":" ok"}"><span class="frl">${l}</span><b>${h?`${h}<small>h</small>`:"Ready"}</b></div>`;
+function recovHTML(){ const R=recov(), c=(l,h)=>`<div class="rc${h?"":" ok"}"><span class="frl">${l}</span><b>${h?`${h}<small>h rest</small>`:"Ready"}</b></div>`;
   return c("Lower body",R.lower)+c("Upper body",R.upper); }
 function renderPlan(P){
   const tog=`<div class="phead"><h1 class="pdate">${planView==="week"?(()=>{ const W=weekStartOf(Date.now()), E=addD(W,6), f=d=>d.toLocaleDateString("en-US",{month:"short",day:"numeric"}); return `${f(W)} – ${W.getMonth()===E.getMonth()?E.getDate():f(E)}`; })():"Season"}</h1>
     <div class="pvtog" role="group" aria-label="Plan view"><button type="button" data-pv="week" aria-pressed="${planView==="week"}">Week</button><button type="button" data-pv="season" aria-pressed="${planView==="season"}">Season</button></div></div>`;
-  return tog+(planView==="season"?planSeason(P):planWeek(P));
+  return tog+`<div class="vsub">${planView==="season"?planSeason(P):planWeek(P)}</div>`;
 }
 function planWeek(P){
   const Mt=P.math, build=wk.mode==="Build"||wk.mode==="Maintain", nd=P.days[P.nextId];
@@ -521,7 +521,7 @@ function bindShell(v){
   v.querySelectorAll("[data-ssave]").forEach(b=>b.onclick=()=>{ const t=+b.dataset.ssave, i=document.getElementById("sm-"+t); openSess=null; sessWrite(t,(i&&i.value.trim())||"0"); });
   v.querySelectorAll("[data-sdel]").forEach(b=>b.onclick=()=>{ const t=+b.dataset.sdel, x=(wk.sessions||[]).find(s=>s.t===t); openSess=null; sessWrite(t,""); if(x) toast([`${actName(x.k)} deleted`]); });
   v.querySelectorAll("[data-smin]").forEach(i=>i.onkeydown=e=>{ if(e.key==="Enter"){ e.preventDefault(); const t=+i.dataset.smin; openSess=null; sessWrite(t,i.value.trim()||"0"); } });
-  v.querySelectorAll("[data-pv]").forEach(b=>b.onclick=()=>{ planView=b.dataset.pv; keepNav(); render(); });
+  v.querySelectorAll("[data-pv]").forEach(b=>b.onclick=()=>{ const to=b.dataset.pv; if(to===planView) return; swapView(to==="season"?"subfwd":"subback",()=>{ planView=to; keepNav(); render(); }); });
   v.querySelectorAll("[data-ld]").forEach(b=>b.onclick=()=>{ const k=+b.dataset.ld, L=ldays(), on=L.includes(k), nL=on?L.filter(x=>x!==k):L.concat([k]).sort();
     if(!on&&inSeason()&&nL.length>3){ toast(["In-season","Up to 3 lift days so you stay fresh for games."]); return; }
     change(()=>{ wk.ldays=nL; wk.days=nL.length; syncDays(); }); });
@@ -668,7 +668,7 @@ function renderHistory(){
   const body=histView==="weeks"?weeksHTML():histView==="lifts"?liftsHTML():calHTML();
   return `<div class="dayhead"><h2>History</h2></div>
   <div class="seg hseg" role="group" aria-label="History view">${V.map(([v,l])=>`<button type="button" data-hv="${v}" aria-pressed="${histView===v}">${l}</button>`).join("")}</div>
-  ${body}`;
+  <div class="vsub">${body}</div>`;
 }
 /* The weekly muscle ledger runs in the engine either way; this only controls whether This week shows it */
 const SHOW_MUSCLES=false;
@@ -1239,7 +1239,8 @@ function bind(){
     const ac=v.querySelector("#addCustom"); if(ac) ac.oninput=()=>{ addCustom=ac.value; }; if(ac) ac.onchange=()=>render();
     const at=v.querySelector("#addCat"); if(at) at.onchange=()=>{ addCat=at.value; render(); }; }
   v.querySelectorAll("[data-xrm]").forEach(b=>b.onclick=()=>{ removeExtra(cur,+b.dataset.xrm); render(); });
-  v.querySelectorAll("[data-hv]").forEach(b=>b.onclick=()=>{ histView=b.dataset.hv; try{localStorage.setItem(KEY+".hv",histView)}catch(e){}; render(); });
+  v.querySelectorAll("[data-hv]").forEach(b=>b.onclick=()=>{ const to=b.dataset.hv, O=["cal","weeks","lifts"]; if(to===histView) return;
+    swapView(O.indexOf(to)>O.indexOf(histView)?"subfwd":"subback",()=>{ histView=to; try{localStorage.setItem(KEY+".hv",histView)}catch(e){}; render(); }); });
   v.querySelectorAll("[data-cal]").forEach(b=>b.onclick=()=>{ calOff=Math.min(0,calOff+ +b.dataset.cal); calSel=null; render(); });
   v.querySelectorAll("[data-cd]").forEach(b=>b.onclick=()=>{ calSel=calSel===b.dataset.cd?null:b.dataset.cd; render();
     const el=document.getElementById("calsel"); if(el) el.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"start"}); });

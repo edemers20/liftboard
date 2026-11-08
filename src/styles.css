@@ -987,14 +987,16 @@ h1.pdate{font:700 34px/1 var(--display);text-transform:uppercase;letter-spacing:
 .frrow{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:8px;align-items:stretch}
 /* tab and day transitions */
 #view{view-transition-name:lbview}
-html[data-vt^="day"] #view{view-transition-name:none}
+html[data-vt^="day"] #view,html[data-vt^="sub"] #view{view-transition-name:none}
+html[data-vt^="sub"] .vsub{view-transition-name:lbsub}
+.vsub{display:flex;flex-direction:column;gap:10px}
 html[data-vt^="day"] .wcards{view-transition-name:lbcards}
 ::view-transition-old(root),::view-transition-new(root){animation:none}
-html[data-vt="fwd"]::view-transition-old(lbview),html[data-vt="dayfwd"]::view-transition-old(lbcards){animation:lbOutL .3s cubic-bezier(.2,.8,.2,1) both}
-html[data-vt="fwd"]::view-transition-new(lbview),html[data-vt="dayfwd"]::view-transition-new(lbcards){animation:lbInR .34s cubic-bezier(.2,.8,.2,1) both}
-html[data-vt="back"]::view-transition-old(lbview),html[data-vt="dayback"]::view-transition-old(lbcards){animation:lbOutR .3s cubic-bezier(.2,.8,.2,1) both}
-html[data-vt="back"]::view-transition-new(lbview),html[data-vt="dayback"]::view-transition-new(lbcards){animation:lbInL .34s cubic-bezier(.2,.8,.2,1) both}
-::view-transition-group(lbview),::view-transition-group(lbcards){animation-duration:.34s}
+html[data-vt="fwd"]::view-transition-old(lbview),html[data-vt="dayfwd"]::view-transition-old(lbcards),html[data-vt="subfwd"]::view-transition-old(lbsub){animation:lbOutL .3s cubic-bezier(.2,.8,.2,1) both}
+html[data-vt="fwd"]::view-transition-new(lbview),html[data-vt="dayfwd"]::view-transition-new(lbcards),html[data-vt="subfwd"]::view-transition-new(lbsub){animation:lbInR .34s cubic-bezier(.2,.8,.2,1) both}
+html[data-vt="back"]::view-transition-old(lbview),html[data-vt="dayback"]::view-transition-old(lbcards),html[data-vt="subback"]::view-transition-old(lbsub){animation:lbOutR .3s cubic-bezier(.2,.8,.2,1) both}
+html[data-vt="back"]::view-transition-new(lbview),html[data-vt="dayback"]::view-transition-new(lbcards),html[data-vt="subback"]::view-transition-new(lbsub){animation:lbInL .34s cubic-bezier(.2,.8,.2,1) both}
+::view-transition-group(lbview),::view-transition-group(lbcards),::view-transition-group(lbsub){animation-duration:.34s}
 @keyframes lbOutL{to{opacity:0;transform:translateX(-56px)}}
 @keyframes lbOutR{to{opacity:0;transform:translateX(56px)}}
 @keyframes lbInR{from{opacity:0;transform:translateX(56px)}}
