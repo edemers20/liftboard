@@ -1459,7 +1459,7 @@ function paintLvl(el,v){ const r=el.querySelector(".lvlp"); if(!r) return; r.dat
   r.querySelectorAll("[data-lvl]").forEach(b=>b.setAttribute("aria-pressed",String(+b.dataset.lvl===v))); }
 /* weekly activities on the lift-days step: classes always, plus anything else already switched on (not the main sport) */
 const ONB_ACTS=()=>ACT_IDS.filter(a=>a!=="lift"&&(ACT[a].cls||enabled(a))&&a!==(onb?onb.sport:wk.mainSport));
-const ONB_SPORTS=[["pickle","Pickleball"],["tennis","Tennis"],["run","Running"],["bike","Biking"],["soccer","Soccer"],["volleyball","Volleyball"],["climb","Climbing"],["golf","Golf"],["hockey","Hockey"],["yoga","Yoga"],["pilates","Pilates"],["","None"]];
+const ONB_SPORTS=[["pickle","Pickleball"],["tennis","Tennis"],["run","Running"],["bike","Biking"],["soccer","Soccer"],["volleyball","Volleyball"],["climb","Climbing"],["golf","Golf"],["hockey","Hockey"],["rugby","Rugby"],["yoga","Yoga"],["pilates","Pilates"],["","None"]];
 const LEVELS=[["new","New to lifting","Tips on every screen, with the reason for each exercise."],["some","Some experience","Tips the first time you see each screen."],["years","Years of lifting","No tips. Explanations only if you tap (i)."]];
 const guideFor=l=>l==="years"?"Less":"More";
 const ONB_GOALS=[["Deficit only","Lose weight fast","Up to 1% of your weight a week. Your lifts may slip."],["Recomp","Lose fat, keep strength","Up to 0.7% of your weight a week while you hold your lifts."],["Maintain","Maintain","Eat what you burn and train as normal."],["Build","Build muscle","Eat a little over. Extra sets go to your focus."]];
