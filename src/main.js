@@ -7,6 +7,7 @@ init(storage);
 setSaveHook(ok=>{ document.getElementById("saved").textContent= ok?"Saved":"Not saved (storage blocked)"; });
 /* nav: the bottom tab. cur: "home", or the lift day / activity opened from Workouts */
 const NAVS=["workouts","plan","history","you"];
+let vtOpen=false;
 let nav="workouts", cur="home", planView="week", selOff=0, openSess=null, logMore=false;
 /* what can be "your sport": the sports plus yoga and Pilates */
 const MAINS=[...SPORTS,"yoga","pilates"];
@@ -280,9 +281,9 @@ function liftCard(eyebrow,id,body,kind){ const d=dayById(id); if(!d) return "";
   return `<section class="wcard lift ${kind||""}"><span class="weye">${eyebrow}</span><h3>${esc(d.title)}</h3>${exPreview(id)}${body||""}</section>`; }
 function sessCard(s,today){
   if(s.k==="lift"){ const all=sessEx(s), ex=all.slice(0,6), d=dayById(s.id), open=d&&(wk.doneT||{})[s.id]===s.t;
-    return `<section class="wcard lift done"><span class="weye">Completed</span><h3>${esc(s.title||"Lift")}</h3>
+    return `<section class="wcard lift done${open?" tap":""}"${open?` data-open="${s.id}" role="button" tabindex="0" aria-label="${esc(s.title||"Lift")}, open workout"`:""}><span class="weye">Completed</span><h3>${esc(s.title||"Lift")}</h3>
       ${ex.length?`<div class="drows wo">${ex.map(x=>`<div class="prow"><span>${esc(x.n)}</span><b>${x.cardio?`${x.min?x.min+" min":"done"}`:fmtSet(x.n,x.w,x.r)}</b></div>`).join("")}${all.length>6?`<p class="small">+${all.length-6} more</p>`:""}</div>`:`<p class="wsub">No sets were saved for this one.</p>`}
-      ${open?`<button type="button" class="wlink" data-open="${s.id}">View workout</button>`:""}</section>`; }
+</section>`; }
   const recent=Date.now()-s.t<15*60e3, a=s.k, open=openSess===s.t;
   const head=`<span class="weye">${recent?"Logged":"Done"}</span><span class="wcrow"><b class="wt">${esc(actName(a))}</b><span class="wmeta">${s.min?`${s.min} min`:""}</span></span>`;
   if(!open) return `<button type="button" class="wcard act" data-sess="${s.t}" aria-expanded="false" aria-label="${esc(actName(a))}${s.min?`, ${s.min} minutes`:""}. Tap to edit or delete">${head}</button>`;
@@ -320,8 +321,8 @@ function renderWorkouts(P){
     const nk=Object.keys(M.plan).map(Number).find(k=>k>i), nextId=isToday?(M.todo[0]||null):null;
     /* the next planned lift: later this week, else the first one next week */
     let nOff=null, nWhen="";
-    if(nk!=null){ nOff=Math.round((M.dates[nk]-today)/864e5); nWhen=wdOf(M.dates[nk]); }
-    else if(wOff===0){ const N=weekModel(1), k1=Object.keys(N.plan).map(Number).sort((a,b)=>a-b)[0]; if(k1!=null){ nOff=Math.round((N.dates[k1]-today)/864e5); nWhen=`next ${wdOf(N.dates[k1])}`; } }
+    if(nk!=null){ nOff=Math.round((M.dates[nk]-today)/864e5); nWhen=nOff===1?"tomorrow":wdOf(M.dates[nk]); }
+    else if(wOff===0){ const N=weekModel(1), k1=Object.keys(N.plan).map(Number).sort((a,b)=>a-b)[0]; if(k1!=null){ nOff=Math.round((N.dates[k1]-today)/864e5); nWhen=nOff===1?"tomorrow":nOff<7?wdOf(N.dates[k1]):N.dates[k1].toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"}); } }
     const link=nOff!=null?`<button type="button" class="wlink" data-sel="${nOff}">View next lift</button>`:"";
     if(isToday&&nextId&&!ss.length) cards.push(`<section class="wcard open"><span class="weye">Today</span><h3>Nothing planned</h3>${nWhen?`<p class="wsub">Up next ${nWhen}</p>`:""}${link}</section>`);
     else if(!past&&!ss.length) cards.push(`<section class="wcard open"><span class="weye">Open day</span><h3>Nothing planned</h3>${nWhen?`<p class="wsub">Up next ${nWhen}</p>`:""}${link}</section>`);
@@ -445,7 +446,13 @@ function sessWrite(t,val){
 function bindShell(v){
   v.querySelectorAll("[data-sel]").forEach(b=>b.onclick=()=>{ selOff=+b.dataset.sel; render(); });
   v.querySelectorAll("[data-wk]").forEach(b=>b.onclick=()=>{ selOff+= +b.dataset.wk; const t=DAY0(Date.now()), s=addD(t,selOff); if(weekStartOf(s).getTime()===weekStartOf(t).getTime()) selOff=0; render(); });
-  v.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>{ const id=b.dataset.open; if(!(dayById(id)||ACT[id]||id==="zone2")) return; nav="workouts"; cur=id; keepNav(); render(); window.scrollTo(0,0); });
+  v.querySelectorAll("[data-open]").forEach(b=>{ const go=e=>{ if(e) e.stopPropagation(); const id=b.dataset.open; if(!(dayById(id)||ACT[id]||id==="zone2")) return;
+      const card=b.closest(".wcard"), run=()=>{ nav="workouts"; cur=id; keepNav(); render(); window.scrollTo(0,0); };
+      /* the card morphs into the workout's header where the browser supports view transitions */
+      if(card&&document.startViewTransition&&!matchMedia("(prefers-reduced-motion: reduce)").matches){ card.style.viewTransitionName="lbopen"; vtOpen=true;
+        const t=document.startViewTransition(run); t.finished.finally(()=>{ vtOpen=false; const h=document.querySelector(".dayhead"); if(h) h.style.viewTransitionName=""; }); }
+      else run(); };
+    b.onclick=go; if(b.getAttribute("role")==="button") b.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); go(e); } }; });
   v.querySelectorAll("[data-nav2]").forEach(b=>b.onclick=()=>{ nav=b.dataset.nav2; planView="week"; cur="home"; keepNav(); render(); window.scrollTo(0,0); });
   v.querySelectorAll("[data-back]").forEach(b=>b.onclick=()=>{ cur="home"; keepNav(); render(); window.scrollTo(0,0); });
   v.querySelectorAll("[data-log]").forEach(b=>b.onclick=()=>{ const a=b.dataset.log, sel=addD(DAY0(Date.now()),selOff), t=selOff===0?Date.now():sel.getTime()+12*36e5; logActOn(a,t); });
@@ -857,6 +864,7 @@ function render(){
   v.innerHTML=!wk.setupDone?renderSeason(P):nav==="history"?renderHistory():nav==="plan"?renderPlan(P):nav==="you"?renderYou(P):
     cur==="home"?renderWorkouts(P):back+((ACT[cur]||cur==="zone2")?renderAct(cur):renderDayHTML(DAYS.find(d=>d.id===cur),P));
   const key=nav+":"+cur;
+  if(vtOpen){ const h=v.querySelector(".dayhead")||v.firstElementChild; if(h) h.style.viewTransitionName="lbopen"; lastCur=key; }
   if(key!==lastCur){ v.classList.remove("enter","fwd","back"); void v.offsetWidth; v.classList.add("enter"); if(lastCur!=null) v.classList.add(sub?"fwd":"back"); lastCur=key; }
   if(fxOnce.seg){ const b=v.querySelector(`.seg[data-key="${fxOnce.seg[0]}"] button[data-v="${CSS.escape(fxOnce.seg[1])}"]`); if(b) b.classList.add("pressed"); }
   fxOnce={};
@@ -1027,7 +1035,7 @@ function startRest(name,s,k,d){ const p=restPlan(s,name,k,d), secs=p.fixed?p.bas
 function adjRest(d){ const r=wk.rest; if(!r) return;
   if(r.base==null){ r.end=Math.max(Date.now()+5000,r.end+d*1000); save(); schedChime((r.end-Date.now())/1000); tickTimers(); return; }
   const base=restFor(r.name,{base:r.base}), nb=Math.max(30,Math.min(300,base+d));
-  wk.restFor={...(wk.restFor||{}),[r.name]:nb}; r.end=Math.max(Date.now()+5000,r.end+(nb-base)*1000); save(); schedChime((r.end-Date.now())/1000); tickTimers(); }
+  wk.restFor={...(wk.restFor||{}),[r.name]:nb}; r.end=Math.max(Date.now()+5000,r.end+d*1000); save(); schedChime((r.end-Date.now())/1000); tickTimers(); }
 function endRest(){ wk.rest=null; stopChime(); save(); tickTimers(); }
 /* Chime: scheduled on the audio clock when rest starts (a tap unlocks sound), so it still plays if the
    screen dims. A locked phone or the silent switch can still mute it; the vibration stays as a backup. */
@@ -1052,12 +1060,12 @@ function tickTimers(){
     else { const over=left<=0;
       if(over&&buzzed!==r.end){ buzzed=r.end; try{ navigator.vibrate&&navigator.vibrate([200,100,200]); }catch(e){} if(chimeAt!==r.end&&left>-3&&wk.sound!=="No") chimeIn(0); }
       if(bar.hidden||bar.dataset.end!==String(r.end)){ bar.dataset.end=r.end;
-        bar.innerHTML=`<button type="button" class="rb" data-rest="-15" aria-label="15 seconds less">−15</button><span class="rt" aria-live="off"></span><button type="button" class="rb" data-rest="15" aria-label="15 seconds more">+15</button><button type="button" class="rb skip" data-rest="skip">Skip</button>`;
+        bar.innerHTML=`<button type="button" class="rz l" data-rest="-15" aria-label="15 seconds less"><span aria-hidden="true">−15s</span></button><span class="rt" aria-live="off"></span><button type="button" class="rz r" data-rest="15" aria-label="15 seconds more"><span aria-hidden="true">+15s</span></button><button type="button" class="rb skip" data-rest="skip">Skip</button>`;
         bar.querySelectorAll("[data-rest]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); const v=b.dataset.rest; if(v==="skip") endRest(); else adjRest(+v); }); }
       bar.hidden=false; bar.classList.toggle("over",over);
       bar.querySelector(".rt").textContent=over?`Go · ${mmss(-left)} over`:`Rest ${mmss(left)}${r.why?` · ${r.why}`:""}`; } }
   if(!wk.rest){ bar.hidden=true; bar.innerHTML=""; delete bar.dataset.end; }
-  const wt=document.getElementById("wtime"); if(wt){ const T=(wk.wt||{})[wt.dataset.day]; if(T&&T.start) wt.textContent=T.end?`Workout · ${Math.round((T.end-T.start)/60000)} min`:`Workout · ${mmss((now-T.start)/1000)}`; }
+  const wt=document.getElementById("wtime"); if(wt){ const T=(wk.wt||{})[wt.dataset.day]; if(T&&T.start) wt.textContent=T.end?`${Math.round((T.end-T.start)/60000)} min`:mmss((now-T.start)/1000); }
 }
 setInterval(tickTimers,1000);
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden) tickTimers(); });
@@ -1398,7 +1406,7 @@ const ONB_Q=[["What do you play?","Your main sport sets the season. In-season, l
 function openOnb(){
   closePop(); const sp=MAINS.includes(wk.mainSport)?wk.mainSport:"";
   onb={s:wk.setupDone?1:0,lvl:1,sport:sp,inS:wk.season==="In-season",goal:wk.mode||"Recomp",days:wk.setupDone?ldays():(LDEF[3]||[]).slice(),
-    pb:sp?(cnt(sp)||2):0,ac:Object.fromEntries(ONB_ACTS().map(a=>[a,enabled(a)?cnt(a):0])),focus:wk.focus||"Balanced",level:wk.level||(wk.guide==="Less"?"years":"some"),sex:wk.sex||"Female",age:wk.age||"",height:wk.height||"",weight:wk.weight||"",bf:wk.bf||""};
+    pb:sp?(cnt(sp)||2):0,ac:Object.fromEntries(ONB_ACTS().map(a=>[a,enabled(a)?cnt(a):0])),focus:wk.focus||"Balanced",level:wk.level||(wk.guide==="Less"?"years":"some"),sex:wk.sex||"Female",age:wk.age||"",steps:wk.steps||"",height:wk.height||"",weight:wk.weight||"",bf:wk.bf||""};
   renderOnb(true);
 }
 function closeOnb(){ onb=null; const el=document.getElementById("tour"); el.classList.add("out");
@@ -1409,7 +1417,7 @@ function applyOnb(o,real){
   wk.mainSport=o.sport; wk.season=o.sport&&o.inS&&SEASONAL(o.sport)?"In-season":"Off-season";
   Object.entries(o.ac||{}).forEach(([a,c])=>{ if(a===o.sport) return; if(c>0) wk.acts[a]=true; if(enabled(a)) wk[a]=c; });
   wk.level=o.level; wk.guide=guideFor(o.level); wk.mode=o.goal; wk.ldays=o.days.slice().sort(); wk.days=o.days.length; wk.focus=o.focus; wk.sex=o.sex;
-  ["age","height","weight","bf"].forEach(k=>{ if(String(o[k]).trim()!=="") wk[k]=String(o[k]); });
+  ["age","height","weight","bf","steps"].forEach(k=>{ if(String(o[k]).trim()!=="") wk[k]=String(o[k]); });
   fixSports(wk); syncDays(); fitPace();
   if(real){ if(!wk.setupDone){ wk.setupDone=true; wk.weekStart=weekStartOf(Date.now()).getTime(); } wk.tourDone=true; wk.onbDone=true; save(); }
 }
@@ -1459,7 +1467,7 @@ function renderOnb(focus){
     if(n===4) body=`<div class="ogrid three">${[["Lower","Lower body"],["Balanced","Balanced"],["Upper","Upper body"]].map(([v,l])=>chip(o.focus===v,`data-of="${v}"`,l)).join("")}</div>`;
     if(n===5) body=`<div class="ogoals">${LEVELS.map(([v,l,d])=>`<button type="button" data-olv="${v}" aria-pressed="${o.level===v}"><b>${l}</b><span>${d}</span></button>`).join("")}</div>`;
     if(n===6) body=`<div class="ogrid three">${["Female","Male","Other"].map(v=>chip(o.sex===v,`data-ox="${v}"`,v)).join("")}</div>
-      <div class="nums two">${[["age","Age","numeric"],["height","Height (in)","decimal"],["weight",`Weight (${KG()?"kg":"lb"})`,"decimal"],["bf","Body fat %","decimal"]].map(([k,l,m])=>`<label class="field" for="o-${k}"><span>${l}</span><input id="o-${k}" data-oi="${k}" inputmode="${m}" value="${esc(k==="weight"&&o[k]!==""?toU(o[k]):o[k])}"${k==="bf"?' placeholder="optional"':""}></label>`).join("")}</div>`;
+      <div class="nums two">${[["age","Age","numeric"],["height","Height (in)","decimal"],["weight",`Weight (${KG()?"kg":"lb"})`,"decimal"],["bf","Body fat %","decimal"],["steps","Daily steps","numeric"]].map(([k,l,m])=>`<label class="field" for="o-${k}"><span>${l}</span><input id="o-${k}" data-oi="${k}" inputmode="${m}" value="${esc(k==="weight"&&o[k]!==""?toU(o[k]):o[k])}"${k==="bf"?' placeholder="optional"':k==="steps"?' placeholder="e.g. 8000"':""}></label>`).join("")}</div>`;
     const pv=n>=6?onbPreview(o):null;
     if(n===7){ const D=pv.days, today=monIdx(new Date()), ds=o.days.slice().sort(), nextD=ds.find(d=>d>=today)??ds[0];
       const order=ds.filter(d=>d>=today).concat(ds.filter(d=>d<today));
@@ -1505,7 +1513,7 @@ function resetConfirm(on){ document.getElementById("confirmBox").hidden=!on; doc
 document.getElementById("toast").onclick=()=>{document.getElementById("toast").classList.remove("show");};
 document.getElementById("resetDay").onclick=()=>{ const d=DAYS.find(x=>x.id===cur); askSure({title:`Reset ${d?d.tab:"this day"}`,text:"Clears every set you've logged today and reopens the day if it was marked done.",ok:"Reset day",onOk:()=>document.getElementById("confirmReset").click()}); };
 document.getElementById("cancelReset").onclick=()=>resetConfirm(false);
-document.getElementById("confirmReset").onclick=()=>{ if((wk.done||{})[cur]) markDone(cur); delete slots[cur]; if(wk.wt) delete wk.wt[cur]; save(); render(); resetConfirm(false); toast(["Day reset","Logs cleared and the day is open again."]); };
+document.getElementById("confirmReset").onclick=()=>{ if((wk.done||{})[cur]) markDone(cur); delete slots[cur]; if(wk.wt) delete wk.wt[cur]; if(wk.lockSets) delete wk.lockSets[cur]; save(); render(); resetConfirm(false); toast(["Day reset","Logs cleared and the day is open again."]); };
 { const s=autoWeek(); syncDoneFromSessions(); render(); if(s) weekDone(s); }
 document.addEventListener("visibilitychange",()=>{ if(document.visibilityState!=="visible") return; const s=autoWeek(); if(s){ render(); weekDone(s); } });
 /* onboarding shows once; finishing or skipping it marks it done */

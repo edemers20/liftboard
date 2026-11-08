@@ -470,6 +470,14 @@ function plan(){ buildDefaults(); const cut=cutting();
     P.days[d.id]=D;
   });
   balanceWeek(P,MP,inS,deload);
+  let lockNew=false;
+  /* A workout in progress keeps the set counts it started with. Logging sets mid-session updates the weekly
+     ledger, which used to add or drop a catch-up set (5 sets became 4 after the 4th, and the exercise ended early). */
+  DAYS.forEach(d=>{ const D=P.days[d.id]; if(!D||done[d.id]||!((wk.wt||{})[d.id]||{}).start) return;
+    const L=(wk.lockSets||{})[d.id];
+    if(!L){ wk.lockSets={...(wk.lockSets||{}),[d.id]:D.slots.map(A=>A&&A.sets!=null?A.sets:null)}; lockNew=true; return; }
+    D.slots.forEach((A,i)=>{ if(A&&L[i]!=null&&A.sets!=null&&!d.slots[i].cardio) A.sets=L[i]; }); });
+  if(lockNew) save();
   /* Cardio */
   /* "Lose fat, keep strength" allows up to 0.7% of body weight a week, the top of the muscle-friendly range */
   const wLb=num(wk.weight,150), recompCap=Math.round(wLb*0.007*100)/100;
@@ -626,7 +634,7 @@ function suggest(d,s,i,useLog,P){
     const seq=h.slice(); if(now) seq.push(now); let miss=0;
     for(let k=seq.length-1;k>=0&&seq[k].w===last.w&&seq[k].r<lo;k--) miss++;
     if(miss>=3) return {w:roundW(n,last.w*0.95),r:lo,why:"3 misses · ease 5%"};
-    return {w:last.w,r:lo,why:"hold · fine on a cut"};
+    return {w:last.w,r:lo,why:"hold"};
   }
   if(prev&&prev.w===last.w&&prev.r<lo) return {w:roundW(n,last.w*0.9),r:lo,why:"rebuild"};
   return {w:last.w,r:lo,why:"hold"};
@@ -643,7 +651,7 @@ function review(d,s,i,P){
   const canUp=!inSeason()&&wk.deload!=="Yes"&&!D.cutD;
   if(canUp&&last.r>=top+3){ w=last.w+2*incFor(n,s,last.w); why="too light, bigger jump"; }
   else if(log.length>=2&&first.w===last.w&&first.r-last.r>=4){ w=last.w; why="reps fell off across sets; rest longer, same weight"; tag="collapse"; }
-  else if(last.r<lo&&base.why.startsWith("hold")){ why=cutting()?"hold · fine on a cut":"hold"; }
+  else if(last.r<lo&&base.why.startsWith("hold")){ why="hold"; }
   if(log.length<(A.sets||0)) why+=` · ${log.length}/${A.sets} sets`;
   tag=tag||(w>last.w?"up":w<last.w?"down":"hold");
   return {n,w,why,tag};
@@ -772,7 +780,7 @@ function newWeek(start){
     const slope=xs.reduce((a,x,j)=>a+(x-mx)*(ys[j]-my),0)/Math.max(1e-9,xs.reduce((a,x)=>a+(x-mx)**2,0));
     const avgIn=ws.reduce((a,x)=>a+x.intake,0)/ws.length, avgRaw=ws.reduce((a,x)=>a+x.raw,0)/ws.length;
     wk.calib=Math.max(-400,Math.min(400,r5(avgIn-slope*500-avgRaw))); wk.calibN=ws.length; }
-  const reset={weekStart:start||Date.now(),ckDone:false,review:{},done:{},donePlan:{},today:{},wt:{},rest:null,stretchDone:{},zAct:[],ready:"Normal",sore:"None",drink:"0",wAvg:"",deload:"No"};
+  const reset={weekStart:start||Date.now(),ckDone:false,lockSets:{},review:{},done:{},donePlan:{},today:{},wt:{},rest:null,stretchDone:{},zAct:[],ready:"Normal",sore:"None",drink:"0",wAvg:"",deload:"No"};
   ACT_IDS.forEach(a=>{ if(a!=="lift") reset[actKey(a)]=[]; });
   Object.assign(wk,reset);
   ALL.forEach(d=>d.slots.forEach((s,i)=>{ const st=slots[d.id]&&slots[d.id][i]; if(!st) return; if(s.cardio) delete st.act; if(done[d.id]){ st.log=[]; delete st.cdone; } }));
