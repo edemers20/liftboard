@@ -1,0 +1,33 @@
+---
+description: What Lift Board is and the product decisions already made. Read before any feature work.
+alwaysApply: true
+---
+
+# Lift Board: product context
+
+Lift Board plans a person's training week from three inputs: their goal, the activities and sports they do, and how they feel. It writes the lifting workouts, fits them around everything else and sets a daily fuel (calorie) target. The person shouldn't have to think about programming.
+
+## Who it's for
+- People who want their whole week of training planned, at any experience level (Beginner, Some Experience, Advanced).
+- Many play a sport or take classes (pickleball, tennis, running, biking, soccer, volleyball, climbing, golf, hockey, rugby, yoga, pilates, spin).
+- The first users are the founder (Emma) and 3 to 5 friends in a TestFlight beta.
+
+## Decisions already made (do not change without being asked)
+- Free forever. No payments, plans, paywalls, ads or data sales.
+- The plan is computed **on the phone** by `packages/engine`. The server only stores inputs and logs. The app must work fully offline.
+- Sign-in is email + a 6-digit one-time code (Supabase Auth). No passwords, no social sign-in.
+- Backend is Supabase (Postgres + row-level security + Edge Functions). See `docs/BACKEND-SUPABASE.md`.
+- React Native with Expo, Expo Router and TypeScript. iOS first.
+- Bottom navigation has four tabs: Workouts (home), Plan, History, You.
+- Lifts are an ordered queue placed on the person's usual lift days; future dates are projected, never stored. Activities are logged whenever they happen and are not tied to a day.
+- New weeks start on their own (Monday or Sunday, a setting).
+- Not building yet: blank/empty workouts, "injured" and "feeling sick" check-ins, HealthKit, Android.
+
+## Where the truth lives
+- How every rule works: `docs/LOGIC.md`
+- Every screen, its states and navigation: `docs/SCREENS.md` and the pictures in `docs/screens/`
+- All user-facing words: `docs/COPY.md` (source for `copy.ts`)
+- The web app in `src/` is the working reference. When a behaviour is unclear, match what `src/main.js` does.
+
+## Health and privacy
+Weight, body fat, cycle notes and workouts are health data. Never log them to the console, analytics or error reports. The "not medical advice" line stays visible on You.

@@ -1,0 +1,20 @@
+---
+description: Voice and wording rules for every word a person sees.
+alwaysApply: true
+---
+
+# Copy
+
+- All user-facing strings live in `apps/mobile/src/copy.ts`, built from `docs/COPY.md`. Don't hard-code new strings in components; add them to `copy.ts`.
+- Don't invent or reword copy. If a screen needs words that aren't in `docs/COPY.md`, write a placeholder marked `TODO copy` and list it in your reply.
+
+## Voice
+- Short, plain and direct. Second person ("your plan").
+- No em dashes; use semicolons or separate sentences.
+- No Oxford comma ("goal, activities and how you feel").
+- Never use the word "genuinely".
+- Avoid "[clause]: [clause]" constructions in sentences.
+- Sentence case for buttons and labels ("Save changes", "Fuel today").
+- Food is called **fuel** ("Fuel today", "Fuel & recovery"), never "eat" or "diet".
+- Numbers in DM Mono with units: "1,825 kcal", "18h rest", "140 lb".
+- Health wording stays general guidance, never diagnosis.

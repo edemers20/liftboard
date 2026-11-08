@@ -1,0 +1,43 @@
+---
+description: Visual design system for every screen and component.
+globs: apps/mobile/**
+alwaysApply: false
+---
+
+# Design system
+
+Match the pictures in `docs/screens/`. Dark UI only.
+
+## Type
+- **Ranchers** (400): page titles and day/workout titles, uppercase. Examples: LIFT BOARD, NOV 2 – 8, LOWER · QUAD.
+- **DM Sans** (400, 500, 600, 700): all other text.
+- **DM Mono** (400, 500 only; it has no semibold): every number a person reads or types: weights, reps, kcal, timers, counts.
+- Small section labels: DM Sans 11px, weight 600, uppercase, letter-spacing 0.08em.
+
+## Colour
+Three themes by context; each sets the background, surface and accent.
+- Green (Workouts home and lift days): background #131615, surface #1d2220, accent #6fd0b4, accent fill #237a64.
+- Orange (Plan, History, You, onboarding): background #181513, surface #24201d, accent #e9b69b, selected fill #9d5324.
+- Pink (activities): background #181416, accent #fc96bf.
+- Text #edeae8, muted text #a8a09c. Fuel/up numbers #fea06a. Recovery "Ready" uses the green accent.
+
+## Components
+- Corners: 8 (small), 12 (tiles, inputs), 16 (cards), 999 (pills and switches).
+- **Pill selects** (activities, sports, sex, focus, goal, pace): fully rounded, same height as other buttons (at least 40). Picked state is a tint, not a fill: activities/sports pink (#fc96bf on 18% pink), goal/pace peach (#e9b69b on 18%), sex/focus green (#6fd0b4 on 16%).
+- **Two-option settings** (units, tips, week start, next-morning check): label on the left, a rounded two-segment switch on the right.
+- **Experience**: a three-stop slider (Beginner, Some Experience, Advanced).
+- **Primary button**: filled with the theme accent. **Secondary buttons**: no outline, a darker fill (black at 30% over the surface).
+- **Inputs**: dark fill, no outline, DM Mono for numbers. In onboarding they need a visible 1px border so they read as tappable.
+- **Stat tiles**: small uppercase label on top, big value below.
+- Rest bar: the left and right halves are full-height tap zones for −15s and +15s, edge to edge.
+
+## Motion
+- Switching tabs slides left or right in tab order. Plan Week/Season and History Calendar/Weeks/Lifts slide the same way.
+- Changing day (tap, arrows, swipe on the cards) slides the cards in that direction.
+- A completed workout card expands into the workout page.
+- Respect Reduce Motion: fall back to a quick fade.
+
+## Accessibility
+- Tap targets at least 44 × 44.
+- Every icon-only button has an accessibility label.
+- Sliders, switches and pills announce their current value.

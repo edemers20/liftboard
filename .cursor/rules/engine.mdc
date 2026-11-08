@@ -1,0 +1,19 @@
+---
+description: Rules for the training engine package. Applies to any change near planning, progression, fuel or recovery.
+globs: packages/engine/**, src/engine.js, tests/**
+alwaysApply: false
+---
+
+# The engine
+
+`packages/engine/engine.js` (copied from `src/engine.js`) holds every training and nutrition rule: splits, sets per week, progression, rest times, fuel math, recovery. It has no UI code and must stay that way.
+
+## Rules
+- Never change engine behaviour without first adding or updating a test in `packages/engine/tests` that fails before the change and passes after.
+- Run the tests after every engine edit: `npm test` in `packages/engine`. All 67 existing tests must keep passing.
+- Never copy rules into React components or hooks. Screens call engine functions and display the result.
+- The engine reads and writes storage synchronously through `init(storage)` with `{getItem, setItem}`. In the app, pass a react-native-mmkv instance wrapped to that shape. Do not switch to AsyncStorage.
+- Keep the storage keys and data shape (`liftboard.week.v2` and the others) so a web backup imports unchanged.
+- The engine keeps state in module variables. Wrap it in one Zustand store that calls engine functions, then increments a `version` number so screens re-render. Do not mirror engine state into React state.
+- TypeScript conversion comes later, one function at a time, with tests passing after each step.
+- When you are unsure what a rule should do, read `docs/LOGIC.md` and ask; don't guess.
