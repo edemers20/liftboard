@@ -1001,3 +1001,7 @@ html[data-vt="back"]::view-transition-new(lbview),html[data-vt="dayback"]::view-
 @keyframes lbOutR{to{opacity:0;transform:translateX(56px)}}
 @keyframes lbInR{from{opacity:0;transform:translateX(56px)}}
 @keyframes lbInL{from{opacity:0;transform:translateX(-56px)}}
+/* recovery tiles: same line box for "18h rest" and "Ready" so both columns line up */
+.wfood .rc b,.frrow .rc b{height:26px;line-height:26px !important}
+.rc.ok b{font:600 16px/26px var(--body) !important}
+.wfood .rc,.frrow .rc{justify-content:flex-start}
