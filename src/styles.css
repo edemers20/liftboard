@@ -1005,3 +1005,8 @@ html[data-vt="back"]::view-transition-new(lbview),html[data-vt="dayback"]::view-
 .wfood .rc b,.frrow .rc b{height:26px;line-height:26px !important}
 .rc.ok b{font:600 16px/26px var(--body) !important}
 .wfood .rc,.frrow .rc{justify-content:flex-start}
+/* week finished early */
+.wkfin{display:flex;align-items:center;gap:12px;border:1px solid rgba(233,182,155,.35)}
+.wkfin p{margin:0;flex:1;font-size:14px}
+.wkfin .btn{flex:none;min-height:40px;padding:0 16px}
+#finishWeek{width:100%}

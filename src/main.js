@@ -190,6 +190,9 @@ const addD=(d,n)=>{ const x=new Date(d); x.setDate(x.getDate()+n); return x; };
 const monIdx=d=>(d.getDay()+6)%7;
 function weekStartOf(t){ const d=DAY0(t); return addD(d,-(wk.wkStart==="Sun"?d.getDay():monIdx(d))); }
 const LDEF={0:[],1:[0],2:[0,3],3:[0,2,4],4:[0,2,4,6],5:[0,1,3,4,6],6:[0,1,2,3,4,5],7:[0,1,2,3,4,5,6]};
+/* "Mark week as finished": the plan's week (wk.weekStart) moves to next week while the calendar week is still running */
+const earlyDone=()=>!!wk.weekStart&&wk.weekStart>weekStartOf(Date.now()).getTime();
+const planOff=()=>earlyDone()?1:0;
 function ldays(){ const n=DAYS.length, L=Array.isArray(wk.ldays)?wk.ldays:null; return L&&L.length===n?L.slice().sort():(LDEF[n]||[]).slice(); }
 /* days you usually play or take a class (Monday = 0); which activity is up to you */
 const adays=()=>Array.isArray(wk.adays)?wk.adays.slice().sort():[];
@@ -205,9 +208,10 @@ function weekModel(off){
   const byDay=dates.map(d=>sess.filter(s=>DAY0(s.t).getTime()===d.getTime()));
   const done=wk.done||{}, L=ldays(), plan0={};
   let todo=[], left=[];
-  if(off>=0){
+  const E=earlyDone();
+  if(off>=0&&!(E&&off===0)){
     const cur0=weekModel0();
-    todo=off===0?cur0.todo:rotation(cur0.left[0]||cur0.next0);
+    todo=off===(E?1:0)?cur0.todo:rotation(cur0.left[0]||cur0.next0);
     const from=off===0?tIdx:0, liftToday=off===0&&byDay[tIdx].some(s=>s.k==="lift"), slotsI=[];
     /* "Move to today" pins that lift to today; the rest of the queue keeps its order on the remaining days */
     const pin=off===0&&!liftToday?pinnedToday(todo):null;
@@ -223,9 +227,9 @@ const pinnedToday=todo=>{ const p=wk.pinToday; return p&&p.d===dayKey(Date.now()
 function weekModel0(){ const done=wk.done||{}, ids=DAYS.map(d=>d.id), first=wk.upNext&&!done[wk.upNext]?wk.upNext:(ids.find(id=>!done[id])||ids[0]);
   const todo=rotation(first).filter(id=>!done[id]);
   const m={todo,next0:ids[0],left:[]};
-  const today=DAY0(Date.now()), W=weekStartOf(today), t=Math.round((today-W)/864e5), L=ldays();
-  const liftToday=(wk.sessions||[]).some(s=>s.k==="lift"&&DAY0(s.t).getTime()===today.getTime());
-  const pin=!liftToday?pinnedToday(todo):null;
+  const E=earlyDone(), today=DAY0(Date.now()), W=addD(weekStartOf(today),E?7:0), t=E?0:Math.round((today-W)/864e5), L=ldays();
+  const liftToday=!E&&(wk.sessions||[]).some(s=>s.k==="lift"&&DAY0(s.t).getTime()===today.getTime());
+  const pin=!E&&!liftToday?pinnedToday(todo):null;
   let n=pin?1:0; for(let i=t;i<7;i++){ if(i===t&&(liftToday||pin)) continue; if(L.includes(monIdx(addD(W,i)))) n++; }
   m.left=todo.slice(n);
   /* after this week's lifts, next week picks the rotation up where it left off */
@@ -261,6 +265,23 @@ function syncDoneFromSessions(){
       set(d.id,i,"log",Array.from({length:Math.max(1,e.sets||1)},()=>({w:String(e.w),r:String(e.r),d:true}))); rebuilt++; });
   });
   if(rebuilt) save();
+}
+const FIN_KEY=KEY2+".preFinish";
+function hasFinishSnap(){ try{ const x=JSON.parse(localStorage.getItem(FIN_KEY)||"null"); return !!x&&x.to===wk.weekStart; }catch(e){ return false; } }
+function finishWeek(){
+  const next=addD(weekStartOf(Date.now()),7).getTime();
+  try{ localStorage.setItem(FIN_KEY,JSON.stringify({to:next,wk,slots})); }catch(e){}
+  const P=plan(), s={lifts:DAYS.filter(d=>(wk.done||{})[d.id]).length,planned:DAYS.length,cardio:r5(P.math.cardioTotal)};
+  newWeek(next); selOff=0; render(); weekDone(s);
+}
+function undoFinish(){
+  let x=null; try{ x=JSON.parse(localStorage.getItem(FIN_KEY)||"null"); }catch(e){}
+  if(!x||x.to!==wk.weekStart) return;
+  const keep=wk.sessions||[]; /* anything logged since finishing stays */
+  Object.keys(wk).forEach(k=>delete wk[k]); Object.assign(wk,x.wk,{sessions:keep});
+  Object.keys(slots).forEach(k=>delete slots[k]); Object.assign(slots,x.slots);
+  try{ localStorage.removeItem(FIN_KEY); }catch(e){}
+  syncDays(); save(); syncDoneFromSessions(); render(); toast(["Week reopened"]);
 }
 function autoWeek(){
   if(!wk.setupDone) return null;
@@ -351,7 +372,7 @@ const ICON={done:`<svg role="img" aria-label="Done" width="20" height="20" viewB
   next:`<svg role="img" aria-label="Next" width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" fill="#6fd0b4"/><path d="M8.3 6.3L12 10l-3.7 3.7" stroke="#181513" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
   open:`<svg aria-hidden="true" width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8.25" stroke="var(--div)" stroke-width="1.5"/></svg>`};
 function planRows(){
-  const M=weekModel(0), today=DAY0(Date.now()), R=[];
+  const M=weekModel(planOff()), today=DAY0(Date.now()), R=[];
   const wdShort=d=>{ const o=Math.round((DAY0(d)-today)/864e5); return o===0?"Today":o===1?"Tomorrow":WD[monIdx(d)].slice(0,3); };
   const sessW=M.byDay.flat();
   DAYS.forEach(d=>{ if((wk.done||{})[d.id]){ const s=sessW.find(x=>x.k==="lift"&&x.id===d.id); R.push({o:s?s.t:0,k:"lift",id:d.id,title:d.title,sub:s?wdShort(new Date(s.t)):"Done",st:"done"}); } });
@@ -377,7 +398,7 @@ function recov(){
 function recovHTML(){ const R=recov(), c=(l,h)=>`<div class="rc${h?"":" ok"}"><span class="frl">${l}</span><b>${h?`${h}<small>h rest</small>`:"Ready"}</b></div>`;
   return c("Lower body",R.lower)+c("Upper body",R.upper); }
 function renderPlan(P){
-  const tog=`<div class="phead"><h1 class="pdate">${planView==="week"?(()=>{ const W=weekStartOf(Date.now()), E=addD(W,6), f=d=>d.toLocaleDateString("en-US",{month:"short",day:"numeric"}); return `${f(W)} – ${W.getMonth()===E.getMonth()?E.getDate():f(E)}`; })():"Season"}</h1>
+  const tog=`<div class="phead"><h1 class="pdate">${planView==="week"?(()=>{ const W=addD(weekStartOf(Date.now()),7*planOff()), E=addD(W,6), f=d=>d.toLocaleDateString("en-US",{month:"short",day:"numeric"}); return `${f(W)} – ${W.getMonth()===E.getMonth()?E.getDate():f(E)}`; })():"Season"}</h1>
     <div class="pvtog" role="group" aria-label="Plan view"><button type="button" data-pv="week" aria-pressed="${planView==="week"}">Week</button><button type="button" data-pv="season" aria-pressed="${planView==="season"}">Season</button></div></div>`;
   return tog+`<div class="vsub">${planView==="season"?planSeason(P):planWeek(P)}</div>`;
 }
@@ -400,13 +421,16 @@ function planWeek(P){
     <div class="frrow"><div class="eat"><span>Fuel today</span><b>${r5(Mt.intake).toLocaleString()} <small>kcal</small></b></div>${recovHTML()}</div>
     <div class="ftiles"><div><span>Your base</span><b>${r5(Mt.everyday).toLocaleString()}</b></div><div><span>vs last week</span><b class="${vs>0?"up":vs<0?"dn":""}">${vs==null||Math.abs(vs)<5?"same":`${vs>0?"+":"−"}${Math.abs(vs)}/day`}</b></div><div><span>${build?"Goal":"Expected loss"}</span><b>${build?esc(goalName(wk.mode)):`${KG()?Math.round(Mt.rateEff/L2K*100)/100:Mt.rateEff} ${KG()?"kg":"lb"}/wk`}</b></div></div>
     <details class="fmath"><summary>How this is calculated</summary><p class="small">${INFO.maint}</p>${build?"":`<div class="prow"><span>Weekly deficit</span><b>${r5(Mt.target).toLocaleString()} kcal</b></div>`}${Mt.nLift&&Mt.nFin?`<p class="small">Remaining finishers: ${Mt.m} min × ${Mt.nFin}</p>`:""}</details></div>`;
-  return `${nd&&nd.restSuggest?`<p class="flag">Reps dropped two sessions in a row. Take a rest day before ${esc(dayById(P.nextId).title)}.</p>`:""}
+  const E=earlyDone(), nW=new Date(wk.weekStart||0).toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});
+  const early=E?`<div class="panel wkfin"><p><b>Week finished.</b> This is next week's plan; it starts ${nW}. Anything you log before then counts toward it.</p>${hasFinishSnap()?`<button type="button" class="btn" id="undoFinish">Undo</button>`:""}</div>`:"";
+  return `${early}${nd&&nd.restSuggest?`<p class="flag">Reps dropped two sessions in a row. Take a rest day before ${esc(dayById(P.nextId).title)}.</p>`:""}
   ${wk.ckDone?"":ck}
-  <div class="panel plist"><h3>This week's plan</h3><div class="prows">${rowsH||`<p class="small">Nothing planned yet. Pick your usual lift days below.</p>`}</div>${daysH}${adH}</div>
+  <div class="panel plist"><h3>${E?"Next week's plan":"This week's plan"}</h3><div class="prows">${rowsH||`<p class="small">Nothing planned yet. Pick your usual lift days below.</p>`}</div>${daysH}${adH}</div>
   ${food}
   ${P.rules.length?`<div class="panel">${hdr("This week's changes",["changes"])}<ul>${P.rules.map(n=>`<li>${n}</li>`).join("")}</ul></div>`:""}
   ${P.notes.length?`<div class="panel">${hdr("Watch",["watch"])}<ul>${P.notes.map(n=>`<li>${n}</li>`).join("")}</ul></div>`:""}
-  ${wk.ckDone?`<div class="ckline"><span><b>Check-in</b> · ${esc(ckSummary())}</span><button type="button" class="wlink ckedit" id="ckEdit" aria-label="Edit check-in"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4Z"/><path d="M13.5 6.5l4 4"/></svg></button></div>`:""}`;
+  ${wk.ckDone?`<div class="ckline"><span><b>Check-in</b> · ${esc(ckSummary())}</span><button type="button" class="wlink ckedit" id="ckEdit" aria-label="Edit check-in"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4Z"/><path d="M13.5 6.5l4 4"/></svg></button></div>`:""}
+  ${E?"":`<button type="button" class="btn" id="finishWeek">Mark week as finished</button>`}`;
 }
 /* pace choices are a share of body weight; the lb figure follows your current weight */
 const PACES={"Deficit only":[0.5,0.75,1],Recomp:[0.25,0.5,0.7]};
@@ -1284,6 +1308,8 @@ function bind(){
   v.querySelectorAll(".sidebtn").forEach(b=>b.onclick=()=>{ set(cur,+b.dataset.i,"side",b.dataset.side); render(); });
   v.querySelectorAll(".addset").forEach(b=>b.onclick=()=>{ const i=+b.dataset.i, log=(get(cur,i).log||[]).slice(), A=plan().days[cur].slots[i]; while(log.length<A.sets) log.push({}); log.push({}); set(cur,i,"log",log); render(); });
   const db=document.getElementById("doneBtn"); if(db) db.onclick=()=>{ const id=cur; if((wk.done||{})[id]) return; const n=setsLogged(id); markDone(id); render(); dayDone(id,n); };
+  const fw=document.getElementById("finishWeek"); if(fw) fw.onclick=()=>askSure({title:"Finish this week?",text:"This week's numbers are saved to history and next week's plan starts now. Lifts you didn't get to come first next week. You can undo until next week begins.",ok:"Finish week",onOk:finishWeek});
+  const uf=document.getElementById("undoFinish"); if(uf) uf.onclick=undoFinish;
   const nw=document.getElementById("newWeek"); if(nw) nw.onclick=()=>askSure({title:"Start a new week",text:"This closes out the week: it saves this week's numbers to history and resets the check-in and day logs.",ok:"Start new week",onOk:()=>{ const P=plan(), s={lifts:DAYS.filter(d=>(wk.done||{})[d.id]).length,planned:DAYS.length,cardio:r5(P.math.cardioTotal)}; newWeek(); render(); weekDone(s); }});
   v.querySelectorAll(".seg[data-key]").forEach(g=>g.querySelectorAll("button").forEach(b=>b.onclick=()=>{
     const k=g.dataset.key, raw=b.dataset.v; fxOnce.seg=[k,raw];
