@@ -60,11 +60,39 @@ Open the Agent chat (the AI panel), paste one prompt below, and let it work. The
 
 Run the commands it gives you in Cursor's terminal (Terminal → New Terminal). The Simulator opens with your four empty tabs.
 
-### Prompt 2 onward: one screen at a time
+### Prompts 2 to 8: one screen per chat
 
-Use this shape and change the screen name and pictures each time. Order: Workouts → Workout (lift day + rest timer) → Plan → You → History → Onboarding.
+Run them in this order, each in a new chat. After each one, compare the Simulator with the pictures it names and tell Cursor what's off before moving on.
 
-> Build the **Workouts** tab as described in `docs/SCREENS.md` section 2, matching `docs/screens/20-workouts-today.png` and `21-workouts-past-day.png`. Use only engine functions for the data; take every word from `docs/COPY.md` through `copy.ts`. Include the swipe and slide between days. When done, list anything you couldn't match and any words marked TODO copy.
+**Prompt 2: Workouts tab**
+
+> Build the **Workouts** tab as described in `docs/SCREENS.md` section 2, matching `docs/screens/20-workouts-today.png` and `21-workouts-past-day.png`. Include the week strip, the day cards in all their states (today, completed, planned, open day, past rest day, logged activity), the activity chips with "Other", and the Fuel & recovery card. Swiping the cards or tapping the arrows changes day, and the cards slide in that direction. Use only engine functions for the data; take every word from `docs/COPY.md` through `copy.ts`. When done, list anything you couldn't match and any words marked TODO copy.
+
+**Prompt 3: the workout (lift day) and rest timer**
+
+> Build the **workout screen** from `docs/SCREENS.md` section 3, matching `docs/screens/23-workout-lift-day.png`, `24-workout-rest-timer.png` and `22-workout-completed.png`. It opens from a Workouts day card; a completed card expands into it. Include the "How do you feel today?" slider (labels Thriving / Normal / Rough, stored as Good / Normal / Rough), the exercise cards with set rows and ticks, "+ Set", the exercise picker, the cardio finisher and the "Day done" summary. Ticking a set starts the rest bar: the left and right halves are full-height tap zones for −15s and +15s, plus Skip; schedule a local notification with expo-notifications so it chimes with the phone locked, and cancel it on Skip. Every rule (sets, weights, rest times, progression) comes from the engine; don't recalculate anything in the screen. Same copy rules and report as before.
+
+**Prompt 4: activities**
+
+> Build **activity logging** from `docs/SCREENS.md` sections 2 and 4: tapping an activity chip logs it for the selected day; tapping a logged activity card opens it to edit minutes or delete; "Other" lists every activity not already on. Use the engine's activity functions. Pink theme as in `design.mdc`. Same copy rules and report as before.
+
+**Prompt 5: Plan tab**
+
+> Build the **Plan** tab from `docs/SCREENS.md` section 5, matching `docs/screens/30-plan-week.png`, `31-plan-week-checkin.png` and `32-plan-season.png`. The header title is the week's date range in Ranchers (or "SEASON") with a Week / Season switch; switching slides. Week view: the weekly check-in until it's saved, then the one-line summary with a pencil at the bottom; this week's plan rows with their status icons (tapping opens the workout); usual lift days and usual activity days toggles; Fuel & recovery with "How this is calculated"; This week's changes and Watch with (i) popovers. Season view: the "Your plan" sentence, the season switches, Goal / Pace / Lifting focus as pill selects with "Goal definitions". Same copy rules and report as before.
+
+**Prompt 6: You tab**
+
+> Build the **You** tab from `docs/SCREENS.md` section 7, matching `docs/screens/50-you.png` and `51-you-edit-profile.png`. Profile header with initial, name, "Member since", a pill per sport and activity, and Lifts / Activities / Weeks active tiles. Profile grid with labels on top and big values below, and an Edit profile button that opens the full form; Save changes stays disabled until something changes and sits above the tab bar. Training preferences with the Experience slider (Beginner, Some Experience, Advanced), Session length stepper and switches. App settings as two-way switches. The FAQ as expandable rows. Leave Your data / account as a placeholder section for now. Same copy rules and report as before.
+
+**Prompt 7: History tab**
+
+> Build the **History** tab from `docs/SCREENS.md` section 6, matching `docs/screens/40-history-calendar.png`, `41-history-weeks.png` and `42-history-lifts.png`. A Calendar / Weeks / Lifts switch that slides between views. Calendar: month grid with days filled green (lift), pink (activity) or split, tap a day for its details, and the Week mix chart. Weeks: past week cards and the empty state. Lifts: main lifts with their top-set trend lines. Same copy rules and report as before.
+
+**Prompt 8: Onboarding**
+
+> Build **onboarding** from `docs/SCREENS.md` section 1, matching every picture from `docs/screens/01-onboarding-welcome.png` to `10-onboarding-7-first-workout.png`. It shows once on first launch, before the tabs, and "Replay tour" on You opens it again. Include the Plan your week cards sliding in from the right one after another, the level demo slider that steps on its own, the seven setup steps with the live "Your plan so far" card, and visible borders on the number inputs. Finishing writes every answer into settings and replaces the activity list with exactly what was picked (don't merge with old activities). Same copy rules and report as before.
+
+**After all eight:** ask Cursor to "compare every screen against its picture in `docs/screens/` and list differences," then fix them one chat at a time.
 
 ### Later: import, then backend
 
