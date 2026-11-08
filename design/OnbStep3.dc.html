@@ -8,7 +8,7 @@
 <body>
 <x-dc>
 <helmet>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Ranchers&amp;family=Noto+Sans:wght@400;500;600&amp;family=Noto+Sans+Mono:wght@400;500;600&amp;display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Ranchers&amp;family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&amp;family=DM+Mono:wght@400;500&amp;display=swap">
 <style>
 body{margin:0;font-synthesis-weight:none}
 @keyframes lbIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
@@ -18,7 +18,7 @@ button:disabled{opacity:.35;cursor:default}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 </style>
 </helmet>
-<div style="position: relative; width: 390px; height: 844px; overflow: hidden; box-sizing: border-box; background: #181513; color: #edeae8; font-family: 'Noto Sans', system-ui, sans-serif; font-size: 15px; line-height: 1.45; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+<div style="position: relative; width: 390px; height: 844px; overflow: hidden; box-sizing: border-box; background: #181513; color: #edeae8; font-family: 'DM Sans', system-ui, sans-serif; font-size: 15px; line-height: 1.45; padding: 16px; display: flex; flex-direction: column; gap: 12px">
   <nav aria-hidden="true" style="display: flex; gap: 6px; overflow: hidden">
     <span style="flex: 0 0 auto; font-family: 'Ranchers', sans-serif; font-size: 17px; letter-spacing: .04em; text-transform: uppercase; background: #24201d; padding: 7px 13px; border-radius: 999px">Season</span>
     <span style="flex: 0 0 auto; font-family: 'Ranchers', sans-serif; font-size: 17px; letter-spacing: .04em; text-transform: uppercase; background: #9d5324; color: #fff; padding: 7px 13px; border-radius: 999px">This week</span>
@@ -34,7 +34,7 @@ button:disabled{opacity:.35;cursor:default}
         <span style="font-weight: 600; font-size: 14px">{{ s.label }}</span>
         <div style="display: inline-flex; align-items: center; align-self: flex-start; background: #181513; border-radius: 12px">
           <button type="button" aria-label="Decrease {{ s.label }}" onClick="{{ s.dec }}" disabled="{{ s.atMin }}" style="width: 48px; height: 48px; border: 0; background: transparent; color: #edeae8; font-size: 22px; cursor: pointer">−</button>
-          <output style="min-width: 60px; text-align: center; font: 600 18px 'Noto Sans Mono', monospace">{{ s.v }}<small style="font-size: 12px; color: #a8a09c">{{ s.unit }}</small></output>
+          <output style="min-width: 60px; text-align: center; font: 600 18px 'DM Mono', monospace">{{ s.v }}<small style="font-size: 12px; color: #a8a09c">{{ s.unit }}</small></output>
           <button type="button" aria-label="Increase {{ s.label }}" onClick="{{ s.inc }}" disabled="{{ s.atMax }}" style="width: 48px; height: 48px; border: 0; background: transparent; color: #edeae8; font-size: 22px; cursor: pointer">+</button>
         </div>
       </div>
@@ -46,7 +46,7 @@ button:disabled{opacity:.35;cursor:default}
   </section>
   <section style="background: #24201d; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px">
     <h3 style="margin: 0; font-family: 'Ranchers', sans-serif; font-weight: 400; font-size: 20px; text-transform: uppercase; letter-spacing: .03em">How you're doing</h3>
-    <div style="display: flex; justify-content: space-between; gap: 12px; font-size: 14px"><span style="color: #a8a09c">Readiness, soreness, drinks</span><span style="font-family: 'Noto Sans Mono', monospace; font-weight: 500">Asked each week</span></div>
+    <div style="display: flex; justify-content: space-between; gap: 12px; font-size: 14px"><span style="color: #a8a09c">Readiness, soreness, drinks</span><span style="font-family: 'DM Mono', monospace; font-weight: 500">Asked each week</span></div>
   </section>
 
   <div aria-hidden="true" style="position: absolute; inset: 0; z-index: 10; background: rgba(0, 0, 0, 0.6); pointer-events: none"></div>

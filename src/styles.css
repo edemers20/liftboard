@@ -6,8 +6,8 @@
   --card:#232e2a; --tx2:#c9d3cf; --tx3:#d9e0dd; --div:#34423d; --knob:#3a4743; --mint:#9fcfc1; --mint-rgb:159,207,193; --accent-rgb:111,208,180; --accent-mid:#3fa88c; --on-mint:#17201d; --shadow:0 10px 30px rgba(0,0,0,.5);
   --ease:cubic-bezier(.2,.8,.2,1);
   --display:"Ranchers","Arial Narrow",sans-serif;
-  --body:"Noto Sans",system-ui,sans-serif;
-  --mono:"Noto Sans Mono",ui-monospace,monospace;
+  --body:"DM Sans",system-ui,sans-serif;
+  --mono:"DM Mono",ui-monospace,monospace;
   color-scheme:dark;
 }
 
@@ -504,7 +504,7 @@ select,input,textarea,.setrow.now input,.nums input,.field input{border-color:tr
 .dowb i{display:block;width:100%}
 .dowb i.l{background:var(--lift)}
 .dowb i.a{background:var(--act)}
-.down{font:500 12px 'Noto Sans Mono',monospace;color:var(--tx2);min-height:16px}
+.down{font:500 12px 'DM Mono',monospace;color:var(--tx2);min-height:16px}
 .dowl{font-size:12px;font-weight:600;color:var(--muted)}
 .calhead{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .calhead h3{margin:0}
@@ -532,10 +532,10 @@ select,input,textarea,.setrow.now input,.nums input,.field input{border-color:tr
 .wrow:first-child{border-top:0;padding-top:2px}
 .wtop{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
 .wtop b{font-weight:600}
-.wwt{font:500 15px 'Noto Sans Mono',monospace}
+.wwt{font:500 15px 'DM Mono',monospace}
 .wwt small{color:var(--muted)}
 .wnums{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:14px;color:var(--tx2)}
-.wnums b{font:500 14px 'Noto Sans Mono',monospace;color:var(--fg)}
+.wnums b{font:500 14px 'DM Mono',monospace;color:var(--fg)}
 .wnums .miss b{color:var(--accent)}
 .wrow .small{margin:0;color:var(--muted);font-size:13px}
 /* added exercises, carry-over notes, workout summary */
