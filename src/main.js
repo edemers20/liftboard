@@ -70,8 +70,8 @@ function hdr(title,keys,tag){ const id="p"+(++popN), t=tag||"h3";
   POP[id]=keys.filter(k=>INFO[k]).map(k=>`<p><b>${LBL[k]||k}:</b> ${INFO[k]}</p>`).join("");
   return `<${t} class="hdr">${title}<button type="button" class="ib" data-pop="${id}" aria-label="What these do" aria-expanded="false">i</button></${t}>`; }
 function ib(k){ const id="p"+(++popN); POP[id]=`<p>${INFO[k]}</p>`; return `<button type="button" class="ib" data-pop="${id}" aria-label="What this does" aria-expanded="false">i</button>`; }
-function seg(key,label,opts,val,solo){ const v=val!==undefined?val:wk[key];
-  return `<div class="q"><span>${label}${solo?ib(key):""}</span><div class="seg" data-key="${key}">${opts.map(o=>{const [ov,ol]=Array.isArray(o)?o:[o,o];return `<button type="button" aria-pressed="${String(v)===String(ov)}" data-v="${ov}">${key==="time"?ol+" min":ol}</button>`;}).join("")}</div></div>`; }
+function seg(key,label,opts,val,solo,cls){ const v=val!==undefined?val:wk[key];
+  return `<div class="q${cls?" q-"+cls:""}"><span>${label}${solo?ib(key):""}</span><div class="seg${cls?" "+cls:""}" data-key="${key}">${opts.map(o=>{const [ov,ol]=Array.isArray(o)?o:[o,o];return `<button type="button" aria-pressed="${String(v)===String(ov)}" data-v="${ov}">${key==="time"?ol+" min":ol}</button>`;}).join("")}</div></div>`; }
 function stepper(key,label,vals,unit,val){ const v=String(val!==undefined?val:wk[key]), arr=vals.map(String); let i=arr.indexOf(v); if(i<0) i=0;
   const b=(d,lab,sym)=>{ const j=i+d; return j<0||j>=arr.length?`<button type="button" disabled aria-label="${lab}">${sym}</button>`:`<button type="button" data-v="${arr[j]}" aria-label="${lab} to ${arr[j]}${unit?" "+unit:""}">${sym}</button>`; };
   return `<div class="q"><span>${label}</span><div class="seg stepper" data-key="${key}">${b(-1,"Decrease","−")}<output aria-live="polite">${arr[i]}${unit?`<small> ${unit}</small>`:""}</output>${b(1,"Increase","+")}</div></div>`; }
@@ -127,7 +127,7 @@ function planSentence(P){
     }
   }
   const goal={"Deficit only":"lose weight fast",Recomp:"lose fat and keep strength",Maintain:"maintain your weight",Build:"build muscle"}[wk.mode]||"lose fat";
-  S.push("To ",["goal",goal],", eat about ",["eat",`${r5(M.intake).toLocaleString()} calories`]," and ",["protein",`${M.protein[0]}–${M.protein[1]} g of protein`]," a day");
+  S.push("To ",["goal",goal],", fuel with about ",["eat",`${r5(M.intake).toLocaleString()} calories`]," and ",["protein",`${M.protein[0]}–${M.protein[1]} g of protein`]," a day");
   if(M.cardioTarget>0) S.push(", and burn ",["cardio",`${r5(M.cardioTarget).toLocaleString()} calories`]," in cardio each week");
   S.push(".");
   return S;
@@ -178,7 +178,9 @@ function renderNav(){
   const n=document.getElementById("bnav"), show=wk.setupDone&&!(nav==="workouts"&&cur!=="home");
   n.hidden=!show; document.body.classList.toggle("hasnav",show);
   n.innerHTML=NAV.map(([id,l,ic])=>`<button type="button" data-nav="${id}"${nav===id?' aria-current="page"':""}><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ic}</svg>${l}</button>`).join("");
-  n.querySelectorAll("[data-nav]").forEach(b=>b.onclick=()=>{ closeSheet(); closePop(); const id=b.dataset.nav; if(id==="workouts"&&nav==="workouts") selOff=0; nav=id; cur="home"; keepNav(); render(); window.scrollTo(0,0); });
+  n.querySelectorAll("[data-nav]").forEach(b=>b.onclick=()=>{ closeSheet(); closePop(); const id=b.dataset.nav;
+    const same=id===nav&&cur==="home", dir=NAV_IDS.indexOf(id)>NAV_IDS.indexOf(nav)?"fwd":"back";
+    swapView(same?null:dir,()=>{ if(id==="workouts"&&nav==="workouts") selOff=0; nav=id; cur="home"; keepNav(); render(); window.scrollTo(0,0); }); });
 }
 function keepNav(){ try{ localStorage.setItem(KEY+".nav",nav); localStorage.setItem(KEY+".tab",cur); localStorage.setItem(KEY+".pv",planView); }catch(e){} }
 
@@ -324,8 +326,8 @@ function renderWorkouts(P){
     if(nk!=null){ nOff=Math.round((M.dates[nk]-today)/864e5); nWhen=nOff===1?"tomorrow":wdOf(M.dates[nk]); }
     else if(wOff===0){ const N=weekModel(1), k1=Object.keys(N.plan).map(Number).sort((a,b)=>a-b)[0]; if(k1!=null){ nOff=Math.round((N.dates[k1]-today)/864e5); nWhen=nOff===1?"tomorrow":nOff<7?wdOf(N.dates[k1]):N.dates[k1].toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"}); } }
     const link=nOff!=null?`<button type="button" class="wlink" data-sel="${nOff}">View next lift</button>`:"";
-    if(isToday&&nextId&&!ss.length) cards.push(`<section class="wcard open"><span class="weye">Today</span><h3>Nothing planned</h3>${nWhen?`<p class="wsub">Up next ${nWhen}</p>`:""}${link}</section>`);
-    else if(!past&&!ss.length) cards.push(`<section class="wcard open"><span class="weye">Open day</span><h3>Nothing planned</h3>${nWhen?`<p class="wsub">Up next ${nWhen}</p>`:""}${link}</section>`);
+    if(isToday&&nextId&&!ss.length) cards.push(`<section class="wcard open"><span class="weye">Today</span><h3>Nothing planned</h3>${link}</section>`);
+    else if(!past&&!ss.length) cards.push(`<section class="wcard open"><span class="weye">Open day</span><h3>Nothing planned</h3>${link}</section>`);
     else if(past&&!ss.length) cards.push(`<section class="wcard open"><span class="weye">Rest</span><h3>Nothing logged</h3></section>`);
   }
   ss.filter(s=>s.k!=="lift").forEach(s=>cards.push(sessCard(s)));
@@ -333,7 +335,7 @@ function renderWorkouts(P){
   const canLog=wOff===0&&!(sel>today), acts=actList(), others=ACT_IDS.filter(a=>a!=="lift"&&!enabled(a));
   const logH=canLog&&(acts.length||others.length)?`<div class="wlog"><span class="wlab">Log activity</span><div class="chips">${acts.map(a=>`<button type="button" class="chip act" data-log="${a}"><i aria-hidden="true">+</i>${esc(actName(a))} ${plannedOf(a)>0?`<small>${loggedOf(a)} of ${plannedOf(a)}</small>`:loggedOf(a)?`<small>${loggedOf(a)}</small>`:""}</button>`).join("")}${others.length?`<button type="button" class="chip act ghost2" data-logmore aria-expanded="${logMore}"><i aria-hidden="true">${logMore?"−":"+"}</i>Other</button>`:""}</div>
     ${logMore&&others.length?`<div class="chips more">${others.map(a=>`<button type="button" class="chip act" data-logx="${a}"><i aria-hidden="true">+</i>${esc(ACT[a].name)}</button>`).join("")}</div>`:""}</div>`:"";
-  const Mth=P.math, food=isToday&&wk.setupDone?`<button type="button" class="wfood" data-nav2="plan"><span class="wf1"><span>Eat today</span><small>Your base ${r5(Mth.everyday).toLocaleString()}</small></span><b>${r5(Mth.intake).toLocaleString()} <small>kcal</small></b></button>`:"";
+  const Mth=P.math, food=isToday&&wk.setupDone?`<button type="button" class="wfood" data-nav2="plan" aria-label="Fuel and recovery: open Plan"><div class="fr"><span class="frl">Fuel today</span><b>${r5(Mth.intake).toLocaleString()}<small>kcal</small></b></div>${recovHTML()}</button>`:"";
   return `<div class="whead"><h1>Lift Board</h1><button type="button" class="todayb" data-sel="0"${isToday?" disabled":""}>Today</button></div>
   <div class="wstrip">${nav0}<div class="wcells">${cells}</div>${nav1}</div>
   <div class="wday"><button type="button" class="wdstep" data-sel="${selOff-1}" aria-label="Previous day"${wOff<=-8&&i===0?" disabled":""}>‹</button><span>${isToday?"Today · ":""}${fmtDate(sel)}</span><button type="button" class="wdstep" data-sel="${selOff+1}" aria-label="Next day"${wOff>=1&&i===6?" disabled":""}>›</button></div>
@@ -360,14 +362,28 @@ function planRows(){
   let q=0; actList().forEach(a=>{ for(let i=loggedOf(a);i<plannedOf(a);i++){ const k=freeAD[q++]; R.push({o:k!=null?M.dates[k].getTime()+2:9.5e15,k:"act",id:a,title:actName(a),sub:k!=null?wdShort(M.dates[k]):"Any day",st:"open"}); } });
   return R.sort((a,b)=>a.o-b.o);
 }
+/* Recovery: hours until each half of the body has had its usual break.
+   A lift needs 48h for what it trained (full body 36h each), sports load legs 24h per level of leg work,
+   and a Low readiness check-in adds 12h. Nothing here changes the plan; it's a read-out. */
+function recov(){
+  const now=Date.now(), H=36e5, extra=wk.ready==="Low"?12:0, until={lower:0,upper:0};
+  const hit=(part,t,h)=>{ if(h>0) until[part]=Math.max(until[part],t+(h+extra)*H); };
+  (wk.sessions||[]).filter(x=>now-x.t<4*864e5).forEach(x=>{
+    if(x.k==="lift"){ const ti=String(x.title||""); if(/^Lower/.test(ti)) hit("lower",x.t,48); else if(/^Upper/.test(ti)) hit("upper",x.t,48); else { hit("lower",x.t,36); hit("upper",x.t,36); } }
+    else { const A=ACT[x.k]||{}; hit("lower",x.t,24*(A.leg||0)); if(A.sh||A.pull) hit("upper",x.t,24); } });
+  const f=ms=>{ const h=Math.ceil((ms-now)/H); return h<=0?null:h; };
+  return {lower:f(until.lower),upper:f(until.upper)};
+}
+function recovHTML(){ const R=recov(), c=(l,h)=>`<div class="rc${h?"":" ok"}"><span class="frl">${l}</span><b>${h?`${h}<small>h</small>`:"Ready"}</b></div>`;
+  return c("Lower body",R.lower)+c("Upper body",R.upper); }
 function renderPlan(P){
-  const tog=`<div class="phead"><span class="pdate">${planView==="week"?(()=>{ const W=weekStartOf(Date.now()), E=addD(W,6), f=d=>d.toLocaleDateString("en-US",{month:"short",day:"numeric"}); return `${f(W)} – ${W.getMonth()===E.getMonth()?E.getDate():f(E)}`; })():"Season"}</span>
+  const tog=`<div class="phead"><h1 class="pdate">${planView==="week"?(()=>{ const W=weekStartOf(Date.now()), E=addD(W,6), f=d=>d.toLocaleDateString("en-US",{month:"short",day:"numeric"}); return `${f(W)} – ${W.getMonth()===E.getMonth()?E.getDate():f(E)}`; })():"Season"}</h1>
     <div class="pvtog" role="group" aria-label="Plan view"><button type="button" data-pv="week" aria-pressed="${planView==="week"}">Week</button><button type="button" data-pv="season" aria-pressed="${planView==="season"}">Season</button></div></div>`;
   return tog+(planView==="season"?planSeason(P):planWeek(P));
 }
 function planWeek(P){
   const Mt=P.math, build=wk.mode==="Build"||wk.mode==="Maintain", nd=P.days[P.nextId];
-  INFO.maint=Mt.useOura?`Your wearable's daily burn minus 7%, plus this week's cardio.`:`Resting ${r5(Mt.bmr)} + light movement ${r5(Mt.base-Mt.bmr)} + steps ${r5(Mt.stepsK)}${Mt.nLift?` + lifting ${r5(Mt.liftDay)}`:""} + digestion ${r5(Mt.tef)}${wk.calibN?`, ${Mt.calib>=0?"+":""}${r5(Mt.calib)} calibrated from ${wk.calibN} weigh-ins`:""}. Your base is what you'd burn on a day with no training; it only moves when your body data or steps change. Eat today = base + your training this week − your deficit.`;
+  INFO.maint=Mt.useOura?`Your wearable's daily burn minus 7%, plus this week's cardio.`:`Resting ${r5(Mt.bmr)} + light movement ${r5(Mt.base-Mt.bmr)} + steps ${r5(Mt.stepsK)}${Mt.nLift?` + lifting ${r5(Mt.liftDay)}`:""} + digestion ${r5(Mt.tef)}${wk.calibN?`, ${Mt.calib>=0?"+":""}${r5(Mt.calib)} calibrated from ${wk.calibN} weigh-ins`:""}. Your base is what you'd burn on a day with no training; it only moves when your body data or steps change. Fuel today = base + your training this week − your deficit.`;
   const ck=`<div class="panel ck"><div class="ckh"><h3>Weekly check-in</h3></div>
     ${seg("ready","Readiness",["Normal","Low"])}
     ${seg("sore","Soreness",["None","Legs","Upper body","Everything"])}
@@ -380,8 +396,8 @@ function planWeek(P){
   const daysH=enabled("lift")?`<div class="ldays"><span class="plab">Usual lift days · ${L.length} a week</span><div class="ldgrid" role="group" aria-label="Usual lift days">${"MTWTFSS".split("").map((c,k)=>`<button type="button" data-ld="${k}" aria-pressed="${L.includes(k)}" aria-label="${WD[k]}">${c}</button>`).join("")}</div>${inS?`<p class="small">In-season: up to 3.</p>`:""}</div>`:"";
   const AD=adays(), adH=`<div class="ldays ad"><span class="plab">Usual activity days · ${AD.length} a week</span><div class="ldgrid" role="group" aria-label="Usual activity days">${"MTWTFSS".split("").map((c,k)=>`<button type="button" data-ad="${k}" aria-pressed="${AD.includes(k)}" aria-label="${WD[k]}">${c}</button>`).join("")}</div></div>`;
   const vs=Mt.vsLast;
-  const food=`<div class="panel food"><h3>Food</h3>
-    <div class="eat"><span>Eat today</span><b>${r5(Mt.intake).toLocaleString()} <small>kcal</small></b></div>
+  const food=`<div class="panel food"><h3>Fuel &amp; recovery</h3>
+    <div class="frrow"><div class="eat"><span>Fuel today</span><b>${r5(Mt.intake).toLocaleString()} <small>kcal</small></b></div>${recovHTML()}</div>
     <div class="ftiles"><div><span>Your base</span><b>${r5(Mt.everyday).toLocaleString()}</b></div><div><span>vs last week</span><b class="${vs>0?"up":vs<0?"dn":""}">${vs==null||Math.abs(vs)<5?"same":`${vs>0?"+":"−"}${Math.abs(vs)}/day`}</b></div><div><span>${build?"Goal":"Expected loss"}</span><b>${build?esc(goalName(wk.mode)):`${KG()?Math.round(Mt.rateEff/L2K*100)/100:Mt.rateEff} ${KG()?"kg":"lb"}/wk`}</b></div></div>
     <details class="fmath"><summary>How this is calculated</summary><p class="small">${INFO.maint}</p>${build?"":`<div class="prow"><span>Weekly deficit</span><b>${r5(Mt.target).toLocaleString()} kcal</b></div>`}${Mt.nLift&&Mt.nFin?`<p class="small">Remaining finishers: ${Mt.m} min × ${Mt.nFin}</p>`:""}</details></div>`;
   return `${nd&&nd.restSuggest?`<p class="flag">Reps dropped two sessions in a row. Take a rest day before ${esc(dayById(P.nextId).title)}.</p>`:""}
@@ -412,37 +428,53 @@ function planSeason(P){
 
 /* ---------- You: profile, preferences, app settings, data ---------- */
 /* FAQ (mirrors the launch plan doc) */
-const HOW=[["How is my plan built?", "You pick a goal, a focus, your usual lift days and the activities you do. Lift Board picks a split (which days train what), then adjusts sets each week for your sports and classes, your check-in and what you already trained that week."], ["How does my week get scheduled?", "Lifts line up in order on your usual lift days. Miss one and the rest slide forward. Anything that doesn't fit carries into next week, which starts where you left off. Move to today pulls a planned lift onto today. Activities aren't tied to a day: log them from Workouts whenever you do them. Usual activity days only mark when you tend to play."], ["When does a new week start?", "On its own, on Monday or Sunday (You → App → Week starts on). Your weekly check-in reopens at the top of Plan."], ["Forgot to log something?", "Tap that day on Workouts and log it there. If the next-morning check is on, Workouts also asks \"Did you play or train yesterday?\" when the day before is empty. Tap a logged activity to change its minutes or delete it."], ["Which goal should I pick?", "Lose weight fast: up to 1% of your weight a week, and your lifts may slip. Lose fat, keep strength: up to 0.7% a week while you hold your lifts, with no more than a quarter of the deficit from cardio. Maintain: eat what you burn. Build muscle: eat a little more, with extra sets on your focus. Pace is a share of your body weight, so the pounds follow your weight."], ["Why did my weights change?", "Hit the top of your rep range and the weight goes up next time. Land inside the range and you aim for one more rep. Miss the range and you hold the weight. Miss twice when you're not on a cut and it drops about 10% so you can build back up. A new exercise starts from a guess based on a similar one you've done."], ["What does \"hold\" mean on a cut?", "When you're losing more than about 0.5% of your body weight a week, keeping your numbers is the win. A missed rep keeps the weight. It only eases 5% after three misses in a row, and accessories lose a set before any weight comes off."], ["How is food calculated?", "Your base is what you'd burn on a day with no training: resting burn, light movement, steps and digestion. Eat today is your base plus this week's training, minus the gap your goal sets. After three weigh-ins the app checks its estimate against how your weight is actually moving. Food never drops so low that there isn't energy left for training."], ["How long should I rest?", "Main lifts 2:30 (3:00 at 5 reps or fewer), other compound lifts 1:30, isolation 1:15. One side at a time adds 15 seconds and the first set adds 30. A cut, in-season or a rough day each add 15 seconds to compound lifts, up to 30. Tap the left or right side of the rest bar to take off or add 15 seconds; it remembers for that exercise. The chime may not play with the phone locked."], ["What does experience change?", "How many tips you see. New to lifting and Some experience show tips; Years of lifting hides them, and (i) explanations stay either way. Change it in You → Training preferences."], ["Bodyweight exercises?", "Leave the weight blank. Add a number only if you hold extra weight. Progress comes from reps, slower lowering or added weight."], ["How is Week mix counted?", "Lifts use how long the workout took, rounded to 15 minutes. Lifts logged before that was saved count as your session length. Activities use the minutes you logged."], ["Moving to a new phone?", "You → Your data → Download backup, then Restore backup on the new phone. With accounts, signing in will do this for you."], ["Is this medical advice?", "No. These are general estimates. Check with a doctor before big changes, especially if you're pregnant, injured or managing a health condition."]];
+const HOW=[["How is my plan built?", "You pick a goal, a focus, your usual lift days and the activities you do. Lift Board picks a split (which days train what), then adjusts sets each week for your sports and classes, your check-in and what you already trained that week."], ["How does my week get scheduled?", "Lifts line up in order on your usual lift days. Miss one and the rest slide forward. Anything that doesn't fit carries into next week, which starts where you left off. Move to today pulls a planned lift onto today. Activities aren't tied to a day: log them from Workouts whenever you do them. Usual activity days only mark when you tend to play."], ["When does a new week start?", "On its own, on Monday or Sunday (You → App → Week starts on). Your weekly check-in reopens at the top of Plan."], ["Forgot to log something?", "Tap that day on Workouts and log it there. If the next-morning check is on, Workouts also asks \"Did you play or train yesterday?\" when the day before is empty. Tap a logged activity to change its minutes or delete it."], ["Which goal should I pick?", "Lose weight fast: up to 1% of your weight a week, and your lifts may slip. Lose fat, keep strength: up to 0.7% a week while you hold your lifts, with no more than a quarter of the deficit from cardio. Maintain: eat what you burn. Build muscle: eat a little more, with extra sets on your focus. Pace is a share of your body weight, so the pounds follow your weight."], ["Why did my weights change?", "Hit the top of your rep range and the weight goes up next time. Land inside the range and you aim for one more rep. Miss the range and you hold the weight. Miss twice when you're not on a cut and it drops about 10% so you can build back up. A new exercise starts from a guess based on a similar one you've done."], ["What does \"hold\" mean on a cut?", "When you're losing more than about 0.5% of your body weight a week, keeping your numbers is the win. A missed rep keeps the weight. It only eases 5% after three misses in a row, and accessories lose a set before any weight comes off."], ["How is fuel calculated?", "Your base is what you'd burn on a day with no training: resting burn, light movement, steps and digestion. Fuel today is your base plus this week's training, minus the gap your goal sets. After three weigh-ins the app checks its estimate against how your weight is actually moving. Food never drops so low that there isn't energy left for training."], ["How is recovery counted?", "Each half of your body gets a countdown. A Lower or Upper lift needs 48 hours for what it trained, and full-body days need 36 for both. Sports count against your legs (up to 48 hours for running or soccer); racquet sports and climbing also tire your upper body for a day. A Low readiness check-in adds 12 hours. It's a guide; it doesn't move your plan."], ["How long should I rest?", "Main lifts 2:30 (3:00 at 5 reps or fewer), other compound lifts 1:30, isolation 1:15. One side at a time adds 15 seconds and the first set adds 30. A cut, in-season or a rough day each add 15 seconds to compound lifts, up to 30. Tap the left or right side of the rest bar to take off or add 15 seconds; it remembers for that exercise. The chime may not play with the phone locked."], ["What does experience change?", "How many tips you see. New to lifting and Some experience show tips; Years of lifting hides them, and (i) explanations stay either way. Change it in You → Training preferences."], ["Bodyweight exercises?", "Leave the weight blank. Add a number only if you hold extra weight. Progress comes from reps, slower lowering or added weight."], ["How is Week mix counted?", "Lifts use how long the workout took, rounded to 15 minutes. Lifts logged before that was saved count as your session length. Activities use the minutes you logged."], ["Moving to a new phone?", "You → Your data → Download backup, then Restore backup on the new phone. With accounts, signing in will do this for you."], ["Is this medical advice?", "No. These are general estimates. Check with a doctor before big changes, especially if you're pregnant, injured or managing a health condition."]];
 /* the top of You reads like a profile: who you are, since when, what you've done */
 function profileHero(){
   const S=wk.sessions||[], lifts=S.filter(x=>x.k==="lift").length, acts=S.length-lifts;
   const first=Math.min(...[wk.createdAt,...S.map(x=>x.t),wk.weekStart].filter(Boolean)), since=isFinite(first)?new Date(first).toLocaleDateString("en-US",{month:"short",year:"numeric"}):"This week";
   const weeks=new Set(S.map(x=>weekStartOf(x.t).getTime())).size;
   const name=String(wk.name||"").trim(), initial=(name||"You").slice(0,1).toUpperCase();
-  const sport=wk.mainSport&&ACT[wk.mainSport]?ACT[wk.mainSport].name:"", goal=(GOALS.find(g=>g[0]===wk.mode)||[])[1]||"", lvl=(LEVELS.find(l=>l[0]===wk.level)||[])[1]||"";
+  /* every sport and activity you do; your main sport first */
+  const mine=ACT_IDS.filter(a=>a!=="lift"&&enabled(a)).sort((a,b)=>(b===wk.mainSport)-(a===wk.mainSport));
   const tag=(t,c)=>t?`<span class="ptag ${c}">${esc(t)}</span>`:"";
   return `<section class="phero" aria-label="Your profile">
     <div class="pav" aria-hidden="true">${esc(initial)}</div>
     <div class="pwho"><h2>${esc(name||"You")}</h2><p>Member since ${since}</p></div>
-    <div class="ptags">${tag(sport?`${sport}${inSeason()?" · in-season":""}`:"","sp")}${tag(goal,"gl")}${tag(lvl,"lv")}</div>
+    ${mine.length?`<div class="ptags" aria-label="Your sports and activities">${mine.map(a=>tag(`${ACT[a].name}${a===wk.mainSport&&inSeason()?" · in-season":""}`,"sp")).join("")}</div>`:""}
     <div class="pstats"><div><b>${lifts}</b><span>Lifts</span></div><div><b>${acts}</b><span>Activities</span></div><div><b>${weeks}</b><span>Weeks active</span></div></div>
   </section>`;
 }
+/* profile at a glance: big values, small labels */
+function profileGrid(){
+  const h=num(wk.height,0), w=num(wk.weight,0), st=num(wk.steps,0);
+  const T=(v,l,cls)=>v?`<div class="pt${cls?" "+cls:""}"><b>${v}</b><span>${l}</span></div>`:"";
+  const goal=(GOALS.find(g=>g[0]===wk.mode)||[])[1]||"", lvl=(LEVELS.find(l=>l[0]===wk.level)||[])[1]||"";
+  const focus=({Lower:"Lower body",Upper:"Upper body",Balanced:"Balanced"})[wk.focus]||"";
+  const ht=h?(KG()?`${Math.round(h*2.54)}<small>cm</small>`:`${Math.floor(h/12)}′${Math.round(h%12)}″`):"";
+  return `<div class="pgrid">${T(esc(goal),"Goal","w txt")}${T(esc(lvl),"Experience","w txt")}${enabled("lift")&&focus?T(esc(focus),"Lifting focus","w txt"):""}${T(ldays().length&&enabled("lift")?`${ldays().length}<small>/wk</small>`:"","Lift days","w")}
+    ${T(ht,"Height")}${T(w?`${KG()?Math.round(w/L2K*10)/10:w}<small>${KG()?"kg":"lb"}</small>`:"","Weight")}${T(wk.bf?`${esc(wk.bf)}<small>%</small>`:"","Body fat")}
+    ${T(st?`${(st/1000).toFixed(st%1000?1:0)}<small>k</small>`:"","Steps / day")}${T(wk.age?esc(wk.age):"","Age")}${T(wk.sex?esc(wk.sex):"","Sex","txt")}</div>`;
+}
+function xpSlider(v){
+  return `<div class="q"><span id="xpLbl">Experience</span><div class="seg slider xp" data-key="level" role="radiogroup" aria-labelledby="xpLbl">${LEVELS.map(([k,l])=>`<button type="button" role="radio" data-v="${k}" aria-checked="${v===k}" aria-pressed="${v===k}"><i aria-hidden="true"></i><span>${l}</span></button>`).join("")}</div></div>`;
+}
 function renderYou(P){
   return `${profileHero()}
-  <details class="panel" id="profileBox"${profOpen||draftDirty()?" open":""}><summary class="psum"><h3>Edit profile</h3><span class="small">Activities, sports, focus and body data</span></summary>${profileHTML(false,{...wk,...(draft||{})})}<button class="btn primary" id="profSave" type="button"${draftDirty()?"":" disabled"}>Save changes</button></details>
+  <section class="panel pcard">${profileGrid()}
+  <details id="profileBox"${profOpen||draftDirty()?" open":""}><summary class="psum">Edit profile</summary>${profileHTML(false,{...wk,...(draft||{})})}<button class="btn primary" id="profSave" type="button"${draftDirty()?"":" disabled"}>Save changes</button></details></section>
   ${enabled("lift")?`<div class="panel">${hdr("Training preferences",["ss","liftK"])}
-    <div class="q"><span>Experience</span>${seg("level","",LEVELS.map(([v,l])=>[v,l]),wk.level||(wk.guide==="Less"?"years":"some"))}</div>
+    ${xpSlider(wk.level||(wk.guide==="Less"?"years":"some"))}
     ${stepper("time","Session length",[30,45,60,75],"min")}
     ${toggle("ss","Supersets")}
     ${toggle("stretch","Stretching after lifts")}
     ${toggle("sound","Rest timer sound",wk.sound||"Yes")}${(wk.sound||"Yes")==="Yes"?`<button type="button" class="btn mini" data-testsound>Play test sound</button>`:""}
     <div class="q"><span>Avg lift kcal</span>${fld("liftK","","numeric","","sm")}</div></div>`:""}
   <div class="panel"><h3>App</h3>
-    <div class="q"><span>Units</span>${seg("units","",[["lb","Pounds"],["kg","Kilograms"]],wk.units||"lb")}</div>
-    <div class="q"><span>Tips</span>${seg("guide","",[["More","More guidance"],["Less","Fewer tips"]],wk.guide||"More")}</div>
-    <div class="q"><span>Week starts on<small> · a new week begins on its own</small></span>${seg("wkStart","",[["Mon","Monday"],["Sun","Sunday"]],wk.wkStart||"Mon")}</div>
-    <div class="q"><span>Next-morning check<small> · "Did you play or train yesterday?"</small></span>${seg("remind","",[["On","Remind me"],["Off","Off"]],wk.remind||"On")}</div></div>
+    ${seg("units","Units",[["lb","lb"],["kg","kg"]],wk.units||"lb",0,"sw2")}
+    ${seg("guide","Tips",[["More","More"],["Less","Fewer"]],wk.guide||"More",0,"sw2")}
+    ${seg("wkStart","Week starts on<small>A new week begins on its own</small>",[["Mon","Mon"],["Sun","Sun"]],wk.wkStart||"Mon",0,"sw2")}
+    ${seg("remind","Next-morning check<small>\"Did you play or train yesterday?\"</small>",[["On","On"],["Off","Off"]],wk.remind||"On",0,"sw2")}</div>
   <div class="panel"><h3>FAQ</h3>${HOW.map(([q,a])=>`<details class="how"><summary>${esc(q)}</summary><p class="small">${esc(a)}</p></details>`).join("")}</div>
   <div class="panel"><h3>Your data</h3><p class="small">Everything lives on this phone only. Download a backup now and then; restoring replaces what's here.</p>
     <div class="foot" style="margin:0"><button class="btn" id="bkDown" type="button">Download backup</button><label class="btn" for="bkFile">Restore backup<input id="bkFile" type="file" accept="application/json,.json" hidden></label></div></div>
@@ -459,8 +491,15 @@ function sessWrite(t,val){
 }
 /* handlers for the new screens; called from bind() */
 function bindShell(v){
-  v.querySelectorAll("[data-sel]").forEach(b=>b.onclick=()=>{ selOff=+b.dataset.sel; render(); });
-  v.querySelectorAll("[data-wk]").forEach(b=>b.onclick=()=>{ selOff+= +b.dataset.wk; const t=DAY0(Date.now()), s=addD(t,selOff); if(weekStartOf(s).getTime()===weekStartOf(t).getTime()) selOff=0; render(); });
+  v.querySelectorAll("[data-sel]").forEach(b=>b.onclick=()=>goDay(+b.dataset.sel));
+  v.querySelectorAll("[data-wk]").forEach(b=>b.onclick=()=>{ let o=selOff+ +b.dataset.wk; const t=DAY0(Date.now()), s=addD(t,o); if(weekStartOf(s).getTime()===weekStartOf(t).getTime()) o=0; goDay(o); });
+  /* swipe the day's cards: left for the next day, right for the one before */
+  const wc=v.querySelector(".wcards");
+  if(wc&&nav==="workouts"&&cur==="home"){ let x0=null,y0=0;
+    v.ontouchstart=e=>{ const T=e.touches[0]; x0=T.clientX; y0=T.clientY; if(e.target.closest(".wstrip,input,textarea")) x0=null; };
+    v.ontouchend=e=>{ if(x0==null) return; const T=e.changedTouches[0], dx=T.clientX-x0, dy=T.clientY-y0; x0=null;
+      if(Math.abs(dx)<56||Math.abs(dx)<Math.abs(dy)*1.5) return; const st=v.querySelectorAll(".wday .wdstep")[dx<0?1:0]; if(st&&!st.disabled) st.click(); }; }
+  else { v.ontouchstart=null; v.ontouchend=null; }
   v.querySelectorAll("[data-open]").forEach(b=>{ const go=e=>{ if(e) e.stopPropagation(); const id=b.dataset.open; if(!(dayById(id)||ACT[id]||id==="zone2")) return;
       const card=b.closest(".wcard"), run=()=>{ nav="workouts"; cur=id; keepNav(); render(); window.scrollTo(0,0); };
       /* the card morphs into the workout's header where the browser supports view transitions */
@@ -639,7 +678,7 @@ function renderWeek(P){
   const nd=P.days[P.nextId];
   const others=ACT_IDS.filter(a=>a!=="lift"&&enabled(a));
   const acts=others.map(a=>stepper(a,ACT[a].name+" sessions",[0,1,2,3,4,5,6,7])).join("");
-  INFO.maint=M.useOura?`Your wearable's daily burn minus 7%, plus this week's cardio.`:`Resting ${r5(M.bmr)} + light movement ${r5(M.base-M.bmr)} + steps ${r5(M.stepsK)}${M.nLift?` + lifting ${r5(M.liftDay)}`:""} + digestion ${r5(M.tef)}${wk.calibN?`, ${M.calib>=0?"+":""}${r5(M.calib)} calibrated from ${wk.calibN} weigh-ins`:""}. Your base is what you'd burn on a day with no training; it only moves when your body data or steps change. Eat today = base + your training this week − your deficit.`;
+  INFO.maint=M.useOura?`Your wearable's daily burn minus 7%, plus this week's cardio.`:`Resting ${r5(M.bmr)} + light movement ${r5(M.base-M.bmr)} + steps ${r5(M.stepsK)}${M.nLift?` + lifting ${r5(M.liftDay)}`:""} + digestion ${r5(M.tef)}${wk.calibN?`, ${M.calib>=0?"+":""}${r5(M.calib)} calibrated from ${wk.calibN} weigh-ins`:""}. Your base is what you'd burn on a day with no training; it only moves when your body data or steps change. Fuel today = base + your training this week − your deficit.`;
   return `<div class="dayhead"><h2>Weekly check-in</h2></div>
   ${nd&&nd.restSuggest?`<p class="flag">Reps dropped two sessions in a row. Take a rest day before ${DAYS.find(d=>d.id===P.nextId).tab}.</p>`:""}
   ${enabled("lift")?`<div class="panel">${hdr("Schedule",["days","time"])}
@@ -654,7 +693,7 @@ function renderWeek(P){
   ${acts?`<div class="panel">${hdr("Other activity",others)}${acts}</div>`:""}
   <div class="panel">${hdr(esc(goalName(wk.mode)),["mode","maint"])}
     <div class="inset">
-      <div class="k label">Eat today</div>
+      <div class="k label">Fuel today</div>
       <p class="burn"><strong>${r5(M.intake).toLocaleString()}</strong> kcal</p>
       <p class="burn" style="font-size:14px">Your base is <strong style="font-size:inherit">${r5(M.everyday).toLocaleString()}</strong> kcal${M.useOura?" · wearable":wk.calibN?" · calibrated":" · estimated"}</p>
       ${M.vsLast!=null&&Math.abs(M.vsLast)>=20?`<p class="burn" style="font-size:13px"><strong style="font-size:inherit">${M.vsLast>0?"+":"−"}${Math.abs(M.vsLast)} a day vs last week</strong> (${M.vsLast>0?"+":"−"}${Math.abs(M.vsLast)*7} this week)</p>`:""}
@@ -867,6 +906,17 @@ function renderAct(a){
   return `<div class="dayhead"><h2>${A.name}</h2></div><div class="panel" style="margin-top:12px">${hdr("This week",[a,minKey(a)])}${stepper(a,"Sessions",[0,1,2,3,4,5,6,7])}
    <div class="nums">${fld(minKey(a),"Planned min","numeric","","sm")}</div></div><div class="list" style="margin-top:12px">${rows(actKey(a),n,plannedMin(a),perMin(A.met),"Session",1)}</div>`;
 }
+/* Slide between tabs (and between days on Workouts) with a view transition where the browser has one.
+   dir: "fwd" | "back" for tabs, "dayfwd" | "dayback" for days; null just runs fn. */
+const NAV_IDS=["workouts","plan","history","you"];
+let vtSwap=false;
+function swapView(dir,fn){
+  if(!dir||!document.startViewTransition||matchMedia("(prefers-reduced-motion: reduce)").matches){ fn(); return; }
+  const H=document.documentElement; H.dataset.vt=dir; vtSwap=true;
+  const t=document.startViewTransition(()=>{ fn(); });
+  t.finished.finally(()=>{ vtSwap=false; delete H.dataset.vt; });
+}
+function goDay(off){ if(off===selOff) return; const dir=off>selOff?"dayfwd":"dayback"; swapView(dir,()=>{ selOff=off; render(); }); }
 function render(){
   if(!SUBS().includes(cur)) cur="home";
   popN=0; for(const k in POP) delete POP[k];
@@ -880,6 +930,7 @@ function render(){
     cur==="home"?renderWorkouts(P):back+((ACT[cur]||cur==="zone2")?renderAct(cur):renderDayHTML(DAYS.find(d=>d.id===cur),P));
   const key=nav+":"+cur;
   if(vtOpen){ const h=v.querySelector(".dayhead")||v.firstElementChild; if(h) h.style.viewTransitionName="lbopen"; lastCur=key; }
+  if(vtSwap) lastCur=key;
   if(key!==lastCur){ v.classList.remove("enter","fwd","back"); void v.offsetWidth; v.classList.add("enter"); if(lastCur!=null) v.classList.add(sub?"fwd":"back"); lastCur=key; }
   if(fxOnce.seg){ const b=v.querySelector(`.seg[data-key="${fxOnce.seg[0]}"] button[data-v="${CSS.escape(fxOnce.seg[1])}"]`); if(b) b.classList.add("pressed"); }
   fxOnce={};
@@ -1429,9 +1480,11 @@ function closeOnb(){ onb=null; const el=document.getElementById("tour"); el.clas
   setTimeout(()=>{ el.hidden=true; el.innerHTML=""; el.classList.remove("out","step"); document.body.classList.remove("touring"); },200); }
 /* write the answers into the real settings (logs and history are untouched) */
 function applyOnb(o,real){
-  wk.acts={...(wk.acts||{}),lift:true}; if(o.sport){ wk.acts[o.sport]=true; wk[o.sport]=o.pb; }
+  /* rebuild from the answers: anything not picked here is turned off, so old activities don't linger */
+  wk.acts={lift:true}; if(o.sport){ wk.acts[o.sport]=true; wk[o.sport]=o.pb; }
   wk.mainSport=o.sport; wk.season=o.sport&&o.inS&&SEASONAL(o.sport)?"In-season":"Off-season";
-  Object.entries(o.ac||{}).forEach(([a,c])=>{ if(a===o.sport) return; if(c>0) wk.acts[a]=true; if(enabled(a)) wk[a]=c; });
+  Object.entries(o.ac||{}).forEach(([a,c])=>{ if(a===o.sport) return; if(c>0){ wk.acts[a]=true; wk[a]=c; } });
+  if(wk.sport2&&!wk.acts[wk.sport2]) wk.sport2="";
   wk.level=o.level; wk.guide=guideFor(o.level); wk.mode=o.goal; wk.ldays=o.days.slice().sort(); wk.days=o.days.length; wk.focus=o.focus; wk.sex=o.sex;
   ["age","height","weight","bf","steps"].forEach(k=>{ if(String(o[k]).trim()!=="") wk[k]=String(o[k]); });
   fixSports(wk); syncDays(); fitPace();
@@ -1453,7 +1506,7 @@ function renderOnb(focus){
     <div class="ofeat"><div class="f1"><svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#6fd0b4" stroke-width="1.8"><path d="M3 9v6M6 7v10M18 7v10M21 9v6M6 12h12"/></svg><div><b>What to lift today</b><span>Exercises, sets and weights, based on last time.</span>
       <div class="lever" style="--lc:#6fd0b4;--ld:0.0s" role="img" aria-label="For example: Last: 135 × 8 ✓ leads to Today: 140 lb; Last: 140 × 5 leads to Today: hold 140."><span class="lv" aria-hidden="true"><i>Last: 135 × 8 ✓</i><i>Last: 140 × 5</i></span><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h9M9 4.5 12.5 8 9 11.5"/></svg><span class="lv out" aria-hidden="true"><i>Today: 140 lb</i><i>Today: hold 140</i></span></div></div></div><div class="f2"><svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fc96bf" stroke-width="1.8"><circle cx="12" cy="12" r="8.5"/><path d="M8 12.5l2.5 2.5L16 9.5"/></svg><div><b>Fits around everything else</b><span>Your lift schedule adapts to sports, classes and missed days.</span>
       <div class="lever" style="--lc:#fc96bf;--ld:0.8s" role="img" aria-label="For example: Pickleball ×2 leads to Leg day −1 set; Missed Wed leads to Lift moves to Fri."><span class="lv" aria-hidden="true"><i>Pickleball ×2</i><i>Missed Wed</i></span><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h9M9 4.5 12.5 8 9 11.5"/></svg><span class="lv out" aria-hidden="true"><i>Leg day −1 set</i><i>Lift moves to Fri</i></span></div></div></div><div class="f3"><svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fea06a" stroke-width="1.8"><path d="M12 3c3 4 5 6.5 5 10a5 5 0 0 1-10 0c0-3.5 2-6 5-10Z"/></svg><div><b>Fuel and recover</b><span>A daily calorie target and rest times that adjust to your training and how you feel.</span>
-      <div class="lever" style="--lc:#fea06a;--ld:1.6s" role="img" aria-label="For example: + Spin class leads to Eat today +250; Feeling rough leads to Rest +15s."><span class="lv" aria-hidden="true"><i>+ Spin class</i><i>Feeling rough</i></span><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h9M9 4.5 12.5 8 9 11.5"/></svg><span class="lv out" aria-hidden="true"><i>Eat today +250</i><i>Rest +15s</i></span></div></div></div></div>
+      <div class="lever" style="--lc:#fea06a;--ld:1.6s" role="img" aria-label="For example: + Spin class leads to Fuel today +250; Feeling rough leads to Rest +15s."><span class="lv" aria-hidden="true"><i>+ Spin class</i><i>Feeling rough</i></span><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h9M9 4.5 12.5 8 9 11.5"/></svg><span class="lv out" aria-hidden="true"><i>Fuel today +250</i><i>Rest +15s</i></span></div></div></div></div>
     ${btns(!wk.setupDone,"next","Next")}</div>`;
   else if(s===2){ const v=o.lvl;
     /* the demo card: everything is rendered once; changing level toggles parts in place so they animate */
@@ -1491,7 +1544,7 @@ function renderOnb(focus){
       body=`<section class="ofirst"><span class="weye">First workout · ${D.length?(nextD===today?"Today":WD[nextD]):"whenever you like"}</span><h3>${esc(D.length?D[0].title:"Log an activity")}</h3><p>Starting weights are a guess. Log your first sets and the app adjusts from there.</p></section>
       <div class="orest2">${rest.map((r,i)=>`<div class="${r.a?"a":""}" style="animation-delay:${300+i*120}ms"><b>${esc(r.t)}</b><span>${r.d}</span></div>`).join("")}</div>`; }
     const gName=(ONB_GOALS.find(g=>g[0]===o.goal)||[])[1], nd=o.days.length;
-    const prev=[[o.sport&&!SEASONAL(o.sport)?"Main activity":"Season",o.sport?`${ACT[o.sport].name}${SEASONAL(o.sport)?` · ${o.inS?"in-season":"off-season"}`:""}`:"No sport"],...(n>=2?[["Goal",gName]]:[]),...(n>=3?[["Week",`${nd} lift${nd===1?"":"s"}${o.sport&&o.pb?` + ${o.pb}× ${ACT[o.sport].name.toLowerCase()}`:""}${Object.entries(o.ac||{}).filter(([a,c])=>c&&a!==o.sport).map(([a,c])=>` + ${c}× ${ACT[a].name.toLowerCase()}`).join("")}`]]:[]),...(n>=4?[["Focus",o.focus==="Balanced"?"Balanced":o.focus+" body"]]:[]),...(n>=5?[["Guidance",LEVELS.find(x=>x[0]===o.level)[1]]]:[]),...(n>=6?[["Eat about",`${pv.food.toLocaleString()} kcal a day`]]:[])];
+    const prev=[[o.sport&&!SEASONAL(o.sport)?"Main activity":"Season",o.sport?`${ACT[o.sport].name}${SEASONAL(o.sport)?` · ${o.inS?"in-season":"off-season"}`:""}`:"No sport"],...(n>=2?[["Goal",gName]]:[]),...(n>=3?[["Week",`${nd} lift${nd===1?"":"s"}${o.sport&&o.pb?` + ${o.pb}× ${ACT[o.sport].name.toLowerCase()}`:""}${Object.entries(o.ac||{}).filter(([a,c])=>c&&a!==o.sport).map(([a,c])=>` + ${c}× ${ACT[a].name.toLowerCase()}`).join("")}`]]:[]),...(n>=4?[["Focus",o.focus==="Balanced"?"Balanced":o.focus+" body"]]:[]),...(n>=5?[["Guidance",LEVELS.find(x=>x[0]===o.level)[1]]]:[]),...(n>=6?[["Fuel",`${pv.food.toLocaleString()} kcal a day`]]:[])];
     h=`<div class="onb"><div class="otop"><div class="odots" role="progressbar" aria-label="Setup progress" aria-valuemin="1" aria-valuemax="7" aria-valuenow="${n}">${[1,2,3,4,5,6,7].map(i=>`<i class="${i===n?"on":i<n?"past":""}"></i>`).join("")}</div>${skip}</div>
       <div class="ostepbody"><h2 class="oh" tabindex="-1">${Q[0]}</h2><p class="olead sm">${Q[1]}</p>${body}</div>
       ${n<7?`<section class="oprev" aria-label="Your plan so far"><span class="weye">Your plan so far</span>${prev.map(([k,v])=>`<div><span>${k}</span><b>${esc(v)}</b></div>`).join("")}</section>`:""}
