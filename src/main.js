@@ -301,7 +301,7 @@ function exPreview(id){ const d=dayById(id); if(!d) return ""; const P=plan(), D
     const t=suggest(d,sl,i,false,P); return [n,`${A.sets} × ${sl.reps}${t&&t.w?` · ${isBW(n)?"BW":toU(t.w)}`:""}`]; });
   return rows.length?`<div class="wex">${rows.map(([n,v])=>`<div><span>${esc(n)}</span><b>${esc(v)}</b></div>`).join("")}</div>`:""; }
 function liftCard(eyebrow,id,body,kind){ const d=dayById(id); if(!d) return "";
-  const canSwap=!(wk.done||{})[id]&&!((wk.wt||{})[id]||{}).start&&swapOptions(id).length>1;
+  const canSwap=canSwapDay(id);
   return `<section class="wcard lift ${kind||""}"><div class="wtop"><span class="weye">${eyebrow}</span>${canSwap?`<button type="button" class="swapbtn sm" data-swap="${id}" aria-label="Swap ${esc(d.title)} for another workout"><svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13l-3-3M20 16H7l3 3"/></svg>Swap</button>`:""}</div><h3>${esc(d.title)}</h3>${exPreview(id)}${body||""}</section>`; }
 function sessCard(s,today){
   if(s.k==="lift"){ const all=sessEx(s), ex=all.slice(0,6), d=dayById(s.id), open=d&&(wk.doneT||{})[s.id]===s.t;
@@ -338,7 +338,7 @@ function renderWorkouts(P){
   ss.filter(s=>s.k==="lift").forEach(s=>cards.push(sessCard(s)));
   if(pid&&!liftDone){
     const d=dayById(pid), started=((wk.wt||{})[pid]||{}).start, other=M.todo.find(id=>id!==pid);
-    if(isToday) cards.push(liftCard("Today",pid,`<button type="button" class="btn primary wgo" data-open="${pid}">${started?"Continue workout":"Start workout"}</button>${other?`<button type="button" class="wlink" data-open="${other}">Switch to ${esc(dayById(other).title)}</button>`:""}`));
+    if(isToday) cards.push(liftCard("Today",pid,`<button type="button" class="btn primary wgo" data-open="${pid}">${started?"Continue workout":"Start workout"}</button>`));
     else cards.push(liftCard("Planned",pid,wOff===0?`<button type="button" class="btn wgo" data-move="${pid}">Move to today</button>`:"","planned"));
   }
   if(!pid&&!liftDone){
@@ -802,7 +802,7 @@ const stretchesFor=d=>STRETCH[/^Lower/.test(d.title)?"lower":/^Upper/.test(d.tit
 function renderDayHTML(d,P){
   const D=P.days[d.id], act=activeIdx(d,D);
   const WT=(wk.wt||{})[d.id];
-  const canSwap=!(wk.done||{})[d.id]&&!(WT&&WT.start)&&swapOptions(d.id).length>1;
+  const canSwap=canSwapDay(d.id);
   let html=`<div class="dayhead"><h2>${d.title}</h2>${WT&&WT.start?`<p class="wtime" id="wtime" data-day="${d.id}"></p>`:""}${canSwap?`<button type="button" class="swapbtn" data-swap="${d.id}"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13l-3-3M20 16H7l3 3"/></svg>Swap workout</button>`:""}</div>`;
   html+=`<div class="panel today"><div class="q"><span id="todayLbl">How do you feel today?${ib("today")}</span>
     <div class="seg slider" data-key="today" role="radiogroup" aria-labelledby="todayLbl">${["Good","Normal","Rough"].map(o=>`<button type="button" role="radio" data-v="${o}" aria-checked="${D.today===o}" aria-pressed="${D.today===o}"><i aria-hidden="true"></i><span>${o==="Good"?"Thriving":o}</span></button>`).join("")}</div></div>
@@ -893,13 +893,22 @@ function showSheet(html,bindFn){
   el.querySelectorAll("[data-x]").forEach(b=>b.onclick=closeSheet); if(bindFn) bindFn(el);
 }
 /* pick another workout from the same family (lower, upper, full body) */
+/* today's planned lift, and the other lifts still to do this week */
+function todayLift(){ if(earlyDone()) return null; const M=weekModel(0); return M.plan[M.tIdx]||null; }
+function plannedOthers(id){ if(earlyDone()||id!==todayLift()) return []; return weekModel(0).todo.filter(x=>x!==id); }
+const canSwapDay=id=>!(wk.done||{})[id]&&!((wk.wt||{})[id]||{}).start&&(swapOptions(id).length>1||plannedOthers(id).length>0);
+/* Swap: another workout from the same family (sticks in that spot), or, for today's lift, one of this week's other planned lifts */
 function swapSheet(id){
-  const opts=swapOptions(id); if(opts.length<2) return;
+  const fam=swapOptions(id).filter(t=>t.id!==id), others=plannedOthers(id).map(dayById).filter(Boolean);
+  if(!fam.length&&!others.length) return;
   const ex=t=>t.slots.map((sl,i)=>[sl,i]).filter(([sl])=>!sl.cardio).slice(0,3).map(([sl,i])=>exName(t,sl,i)).join(" · ");
-  showSheet(`<div class="shtop"><span class="plab">Swap workout</span>${XBTN}</div>
-    <p class="small">Pick the workout to do in this spot. Your choice sticks until you change it.</p>
-    <div class="swaplist">${opts.map(t=>`<button type="button" class="swapopt" data-to="${t.id}" aria-pressed="${t.id===id}"><b>${esc(t.title)}</b><small>${esc(ex(t))}</small></button>`).join("")}</div>`,
-    el=>el.querySelectorAll("[data-to]").forEach(b=>b.onclick=()=>{ const to=b.dataset.to; closeSheet(); if(to===id) return; if(swapDay(id,to)){ if(cur===id) cur=to; keepNav(); render(); } }));
+  const opt=(t,attr)=>`<button type="button" class="swapopt" ${attr}="${t.id}"><b>${esc(t.title)}</b><small>${esc(ex(t))}</small></button>`;
+  showSheet(`<div class="shtop"><span class="plab">Swap Workout</span>${XBTN}</div>
+    <p class="small">Swap this workout with another workout from the same muscle group or one of your planned workouts. The week will adjust to your choice.</p>
+    ${fam.length?`<span class="plab swaph">Same muscle group</span><div class="swaplist">${fam.map(t=>opt(t,"data-to")).join("")}</div>`:""}
+    ${others.length?`<span class="plab swaph">Your planned workouts</span><div class="swaplist">${others.map(t=>opt(t,"data-pick")).join("")}</div>`:""}`,
+    el=>{ el.querySelectorAll("[data-to]").forEach(b=>b.onclick=()=>{ const to=b.dataset.to; closeSheet(); if(swapDay(id,to)){ if(cur===id) cur=to; keepNav(); render(); } });
+      el.querySelectorAll("[data-pick]").forEach(b=>b.onclick=()=>{ const to=b.dataset.pick; closeSheet(); wk.pinToday={d:dayKey(Date.now()),id:to}; save(); if(cur===id) cur=to; keepNav(); render(); toast([`${(dayById(to)||{}).title||"Lift"} moved to today`]); }); });
 }
 function closeSheet(){ const el=document.getElementById("sheet"); if(!el||el.hidden||el.classList.contains("out")) return; el.classList.add("out"); sheetT=setTimeout(()=>{ el.hidden=true; el.innerHTML=""; el.classList.remove("out"); },200); }
 const XBTN=`<button type="button" class="dx" data-x aria-label="Close"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M2 2l10 10M12 2L2 12"/></svg></button>`;
