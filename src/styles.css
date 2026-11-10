@@ -1012,7 +1012,7 @@ html[data-vt="back"]::view-transition-new(lbview),html[data-vt="dayback"]::view-
 #finishWeek{width:100%}
 /* swap workout within its family */
 .swapbtn{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;min-height:36px;margin-top:4px;padding:0 14px;border:0;border-radius:999px;background:rgba(0,0,0,.3);color:var(--fg);font:600 13px var(--body);cursor:pointer}
-.swaplist{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.swaplist{display:flex;flex-direction:column;gap:6px}
 .swapopt{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:12px 14px;border:0;border-radius:12px;background:rgba(0,0,0,.3);color:var(--fg);font:inherit;cursor:pointer}
 .swapopt b{font-weight:600}
 .swapopt small{color:var(--muted);font-size:12.5px}
@@ -1020,4 +1020,7 @@ html[data-vt="back"]::view-transition-new(lbview),html[data-vt="dayback"]::view-
 .swapopt[aria-pressed="true"] small{color:var(--fg)}
 .wcard .wtop{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:32px}
 .swapbtn.sm{margin:0;min-height:32px;padding:0 12px;font-size:12.5px}
-.swaph{display:block;margin-top:14px}
+.swapsheet{display:flex;flex-direction:column;gap:6px}
+.swapsheet .shtop{margin:-6px -4px -6px 0}
+.swapsheet>p{margin:0}
+.swaph{display:block;margin-top:8px}
