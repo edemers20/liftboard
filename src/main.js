@@ -887,8 +887,11 @@ function addExHTML(d){
 }
 /* ---------- Small sheets: today's plan for an exercise, and next time after it ---------- */
 let sheetT=null;
-function showSheet(html,bindFn){
-  const el=document.getElementById("sheet"); clearTimeout(sheetT);
+function sheetDim(on){ let d=document.getElementById("sheetDim");
+  if(on&&!d){ d=document.createElement("div"); d.id="sheetDim"; d.setAttribute("aria-hidden","true"); d.onclick=()=>closeSheet(); document.body.appendChild(d); }
+  if(d){ d.classList.toggle("on",!!on); } }
+function showSheet(html,bindFn,dim){
+  const el=document.getElementById("sheet"); clearTimeout(sheetT); sheetDim(!!dim);
   el.innerHTML=html; el.classList.remove("out"); el.hidden=false;
   el.querySelectorAll("[data-x]").forEach(b=>b.onclick=closeSheet); if(bindFn) bindFn(el);
 }
@@ -908,9 +911,9 @@ function swapSheet(id){
     ${fam.length?`<span class="plab swaph">Same muscle group</span><div class="swaplist">${fam.map(t=>opt(t,"data-to")).join("")}</div>`:""}
     ${others.length?`<span class="plab swaph">Your planned workouts</span><div class="swaplist">${others.map(t=>opt(t,"data-pick")).join("")}</div>`:""}</div>`,
     el=>{ el.querySelectorAll("[data-to]").forEach(b=>b.onclick=()=>{ const to=b.dataset.to; closeSheet(); if(swapDay(id,to)){ if(cur===id) cur=to; keepNav(); render(); } });
-      el.querySelectorAll("[data-pick]").forEach(b=>b.onclick=()=>{ const to=b.dataset.pick; closeSheet(); wk.pinToday={d:dayKey(Date.now()),id:to}; save(); if(cur===id) cur=to; keepNav(); render(); toast([`${(dayById(to)||{}).title||"Lift"} moved to today`]); }); });
+      el.querySelectorAll("[data-pick]").forEach(b=>b.onclick=()=>{ const to=b.dataset.pick; closeSheet(); wk.pinToday={d:dayKey(Date.now()),id:to}; save(); if(cur===id) cur=to; keepNav(); render(); toast([`${(dayById(to)||{}).title||"Lift"} moved to today`]); }); },true);
 }
-function closeSheet(){ const el=document.getElementById("sheet"); if(!el||el.hidden||el.classList.contains("out")) return; el.classList.add("out"); sheetT=setTimeout(()=>{ el.hidden=true; el.innerHTML=""; el.classList.remove("out"); },200); }
+function closeSheet(){ sheetDim(false); const el=document.getElementById("sheet"); if(!el||el.hidden||el.classList.contains("out")) return; el.classList.add("out"); sheetT=setTimeout(()=>{ el.hidden=true; el.innerHTML=""; el.classList.remove("out"); },200); }
 const XBTN=`<button type="button" class="dx" data-x aria-label="Close"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M2 2l10 10M12 2L2 12"/></svg></button>`;
 function planSheet(id,i){
   const d=DAYS.find(x=>x.id===id); if(!d) return;
