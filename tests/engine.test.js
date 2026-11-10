@@ -409,3 +409,26 @@ describe("yoga and pilates effort", () => {
     expect(P.priority.P.core).toBeGreaterThan(Q.priority.P.core);
   });
 });
+
+describe("swapping a workout within its family", () => {
+  it("offers same-family workouts not already in the week, and the swap sticks", () => {
+    fresh({ focus: "Lower", days: 4 });
+    expect(E.DAYS.map(d => d.id)).toEqual(["d1", "d2", "d3", "x"]);
+    expect(E.swapOptions("d3").map(t => t.id)).toEqual(["d3", "g2", "lf"]);
+    expect(E.swapOptions("d2").map(t => t.id)).toEqual(["d2", "u3"]);
+    E.wk.upNext = "d3";
+    expect(E.swapDay("d3", "g2")).toBe(true);
+    expect(E.DAYS.map(d => d.id)).toEqual(["d1", "d2", "g2", "x"]);
+    expect(E.wk.upNext).toBe("g2");
+    E.syncDays();
+    expect(E.DAYS.map(d => d.id)).toEqual(["d1", "d2", "g2", "x"]);
+    expect(E.swapOptions("g2").map(t => t.id)).toEqual(["d3", "g2", "lf"]);
+    E.swapDay("g2", "d3");
+    expect(E.DAYS.map(d => d.id)).toEqual(["d1", "d2", "d3", "x"]);
+    expect(E.wk.alt).toEqual({});
+  });
+  it("never doubles a workout already in the week", () => {
+    fresh({ focus: "Lower", days: 5, alt: { d3: "g2" } });
+    expect(E.DAYS.map(d => d.id)).toEqual(["d1", "d2", "d3", "x", "g2"]);
+  });
+});

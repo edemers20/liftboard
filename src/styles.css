@@ -1010,3 +1010,11 @@ html[data-vt="back"]::view-transition-new(lbview),html[data-vt="dayback"]::view-
 .wkfin p{margin:0;flex:1;font-size:14px}
 .wkfin .btn{flex:none;min-height:40px;padding:0 16px}
 #finishWeek{width:100%}
+/* swap workout within its family */
+.swapbtn{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;min-height:36px;margin-top:4px;padding:0 14px;border:0;border-radius:999px;background:rgba(0,0,0,.3);color:var(--fg);font:600 13px var(--body);cursor:pointer}
+.swaplist{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.swapopt{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:12px 14px;border:0;border-radius:12px;background:rgba(0,0,0,.3);color:var(--fg);font:inherit;cursor:pointer}
+.swapopt b{font-weight:600}
+.swapopt small{color:var(--muted);font-size:12.5px}
+.swapopt[aria-pressed="true"]{background:var(--accent-soft,rgba(111,208,180,.16));color:var(--accent)}
+.swapopt[aria-pressed="true"] small{color:var(--fg)}

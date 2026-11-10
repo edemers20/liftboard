@@ -287,7 +287,20 @@ function removeExtra(dayId,k){ const L0=(wk.extra||{})[dayId]||[]; if(!L0[k]) re
   for(let i=base+k;i<base+L0.length;i++){ if(st[i+1]) st[i]=st[i+1]; else delete st[i]; }
   if(wk.active&&wk.active[dayId]>=base) delete wk.active[dayId];
   wk.extra={...wk.extra,[dayId]:L0.filter((_,j)=>j!==k)}; syncDays(); save(); }
-function syncDays(){ DAYS=split().map((id,i)=>{ const t=ALL.find(x=>x.id===id); return {...t,slots:[...t.slots,...(((wk.extra||{})[id])||[]).map(extraSlot)],tab:`Day ${i+1}`}; }); buildDefaults(); }
+/* Workout families: a planned day can be swapped for another workout of the same kind.
+   wk.alt maps the planned id to the chosen one and sticks until changed. */
+const FAMILY={lower:["d1","d3","g2","lf"],upper:["d2","x","u3"],full:["fa","fb","fc"]};
+const famOf=id=>Object.values(FAMILY).find(f=>f.includes(id))||null;
+function withAlt(ids){ const alt=wk.alt||{}, used=new Set(ids);
+  return ids.map(id=>{ const a=alt[id]; if(a&&a!==id&&famOf(id)&&famOf(id).includes(a)&&!used.has(a)){ used.add(a); return a; } return id; }); }
+function swapOptions(curId){ const ids=withAlt(split()), base=split()[ids.indexOf(curId)], fam=famOf(base||curId); if(!fam) return [];
+  return fam.filter(x=>x===curId||!ids.includes(x)).map(x=>ALL.find(t=>t.id===x)); }
+function swapDay(curId,newId){ const sp=split(), ids=withAlt(sp), k=ids.indexOf(curId); if(k<0||curId===newId) return false;
+  const base=sp[k], alt={...(wk.alt||{})}; if(newId===base) delete alt[base]; else alt[base]=newId; wk.alt=alt;
+  if(wk.upNext===curId) wk.upNext=newId;
+  if(wk.pinToday&&wk.pinToday.id===curId) wk.pinToday={...wk.pinToday,id:newId};
+  syncDays(); save(); return true; }
+function syncDays(){ DAYS=withAlt(split()).map((id,i)=>{ const t=ALL.find(x=>x.id===id); return {...t,slots:[...t.slots,...(((wk.extra||{})[id])||[]).map(extraSlot)],tab:`Day ${i+1}`}; }); buildDefaults(); }
 /* ---------- Muscles: what each slot trains, and how much each muscle matters to this person ----------
    Direct work counts 1 set, helper work ½ (a row is back work that also trains biceps and rear delts). */
 const MUSCLES={glutes:"Glutes",quads:"Quads",hams:"Hamstrings",adductors:"Adductors",calves:"Calves",chest:"Chest",back:"Back",sdelts:"Side delts",rdelts:"Rear delts",biceps:"Biceps",triceps:"Triceps",core:"Core",cuff:"Rotator cuff"};
@@ -792,4 +805,4 @@ function newWeek(start){
   save(); return ["New week started. Check-in reset to normal."];
 }
 
-export { rateLb, isBW, yogaMet, pilMet, YOGA_EFF, PIL_EFF, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, MUSCLES, slotMuscles, musclePriority, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk };
+export { swapOptions, swapDay, rateLb, isBW, yogaMet, pilMet, YOGA_EFF, PIL_EFF, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, MUSCLES, slotMuscles, musclePriority, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk };

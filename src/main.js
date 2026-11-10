@@ -1,6 +1,6 @@
 import "./styles.css";
 import { attachDials } from "./dial.js";
-import { isBW, yogaMet, pilMet, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk } from "./engine.js";
+import { swapOptions, swapDay, isBW, yogaMet, pilMet, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk } from "./engine.js";
 
 const storage=(()=>{ try{ const k="__t"; localStorage.setItem(k,"1"); localStorage.removeItem(k); return localStorage; }catch(e){ const m=new Map(); return {getItem:k=>m.get(k)??null,setItem:(k,v)=>m.set(k,String(v))}; } })();
 init(storage);
@@ -801,7 +801,8 @@ const stretchesFor=d=>STRETCH[/^Lower/.test(d.title)?"lower":/^Upper/.test(d.tit
 function renderDayHTML(d,P){
   const D=P.days[d.id], act=activeIdx(d,D);
   const WT=(wk.wt||{})[d.id];
-  let html=`<div class="dayhead"><h2>${d.title}</h2>${WT&&WT.start?`<p class="wtime" id="wtime" data-day="${d.id}"></p>`:""}</div>`;
+  const canSwap=!(wk.done||{})[d.id]&&!(WT&&WT.start)&&swapOptions(d.id).length>1;
+  let html=`<div class="dayhead"><h2>${d.title}</h2>${WT&&WT.start?`<p class="wtime" id="wtime" data-day="${d.id}"></p>`:""}${canSwap?`<button type="button" class="swapbtn" data-swap="${d.id}"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13l-3-3M20 16H7l3 3"/></svg>Swap workout</button>`:""}</div>`;
   html+=`<div class="panel today"><div class="q"><span id="todayLbl">How do you feel today?${ib("today")}</span>
     <div class="seg slider" data-key="today" role="radiogroup" aria-labelledby="todayLbl">${["Good","Normal","Rough"].map(o=>`<button type="button" role="radio" data-v="${o}" aria-checked="${D.today===o}" aria-pressed="${D.today===o}"><i aria-hidden="true"></i><span>${o==="Good"?"Thriving":o}</span></button>`).join("")}</div></div>
     ${D.restSuggest?`<p class="flag">Reps dropped two sessions in a row. Rest a day first if you can.</p>`:D.autoRough?`<p class="adj"><b>Shortened</b> · reps dropped last session</p>`:""}
@@ -889,6 +890,15 @@ function showSheet(html,bindFn){
   const el=document.getElementById("sheet"); clearTimeout(sheetT);
   el.innerHTML=html; el.classList.remove("out"); el.hidden=false;
   el.querySelectorAll("[data-x]").forEach(b=>b.onclick=closeSheet); if(bindFn) bindFn(el);
+}
+/* pick another workout from the same family (lower, upper, full body) */
+function swapSheet(id){
+  const opts=swapOptions(id); if(opts.length<2) return;
+  const ex=t=>t.slots.map((sl,i)=>[sl,i]).filter(([sl])=>!sl.cardio).slice(0,3).map(([sl,i])=>exName(t,sl,i)).join(" · ");
+  showSheet(`<div class="shtop"><span class="plab">Swap workout</span>${XBTN}</div>
+    <p class="small">Pick the workout to do in this spot. Your choice sticks until you change it.</p>
+    <div class="swaplist">${opts.map(t=>`<button type="button" class="swapopt" data-to="${t.id}" aria-pressed="${t.id===id}"><b>${esc(t.title)}</b><small>${esc(ex(t))}</small></button>`).join("")}</div>`,
+    el=>el.querySelectorAll("[data-to]").forEach(b=>b.onclick=()=>{ const to=b.dataset.to; closeSheet(); if(to===id) return; if(swapDay(id,to)){ if(cur===id) cur=to; keepNav(); render(); } }));
 }
 function closeSheet(){ const el=document.getElementById("sheet"); if(!el||el.hidden||el.classList.contains("out")) return; el.classList.add("out"); sheetT=setTimeout(()=>{ el.hidden=true; el.innerHTML=""; el.classList.remove("out"); },200); }
 const XBTN=`<button type="button" class="dx" data-x aria-label="Close"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M2 2l10 10M12 2L2 12"/></svg></button>`;
@@ -1308,6 +1318,7 @@ function bind(){
   v.querySelectorAll(".sidebtn").forEach(b=>b.onclick=()=>{ set(cur,+b.dataset.i,"side",b.dataset.side); render(); });
   v.querySelectorAll(".addset").forEach(b=>b.onclick=()=>{ const i=+b.dataset.i, log=(get(cur,i).log||[]).slice(), A=plan().days[cur].slots[i]; while(log.length<A.sets) log.push({}); log.push({}); set(cur,i,"log",log); render(); });
   const db=document.getElementById("doneBtn"); if(db) db.onclick=()=>{ const id=cur; if((wk.done||{})[id]) return; const n=setsLogged(id); markDone(id); render(); dayDone(id,n); };
+  v.querySelectorAll("[data-swap]").forEach(b=>b.onclick=()=>swapSheet(b.dataset.swap));
   const fw=document.getElementById("finishWeek"); if(fw) fw.onclick=()=>askSure({title:"Finish this week?",text:"This week's numbers are saved to history and next week's plan starts now. Lifts you didn't get to come first next week. You can undo until next week begins.",ok:"Finish week",onOk:finishWeek});
   const uf=document.getElementById("undoFinish"); if(uf) uf.onclick=undoFinish;
   const nw=document.getElementById("newWeek"); if(nw) nw.onclick=()=>askSure({title:"Start a new week",text:"This closes out the week: it saves this week's numbers to history and resets the check-in and day logs.",ok:"Start new week",onOk:()=>{ const P=plan(), s={lifts:DAYS.filter(d=>(wk.done||{})[d.id]).length,planned:DAYS.length,cardio:r5(P.math.cardioTotal)}; newWeek(); render(); weekDone(s); }});
