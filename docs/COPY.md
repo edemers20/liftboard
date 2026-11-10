@@ -718,7 +718,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 | Slot label | Rear delts | engine.js:78 |
 | Slot label | Arms | engine.js:79 |
 | Slot label | Rotator cuff | engine.js:80 |
-| Title | Lower · Quad | engine.js:82 |
+| Title | Lower · Quad & Glute | engine.js:82 |
 | Slot label | Main quad | engine.js:83 |
 | Slot label | Glute (light) | engine.js:84 |
 | Slot label | Hamstrings | engine.js:85 |

@@ -9,7 +9,7 @@ alwaysApply: false
 Match the pictures in `docs/screens/`. Dark UI only.
 
 ## Type
-- **Ranchers** (400): page titles and day/workout titles, uppercase. Examples: LIFT BOARD, NOV 2 – 8, LOWER · QUAD.
+- **Ranchers** (400): page titles and day/workout titles, uppercase. Examples: LIFT BOARD, NOV 2 – 8, LOWER · QUAD & GLUTE.
 - **DM Sans** (400, 500, 600, 700): all other text.
 - **DM Mono** (400, 500 only; it has no semibold): every number a person reads or types: weights, reps, kcal, timers, counts.
 - Small section labels: DM Sans 11px, weight 600, uppercase, letter-spacing 0.08em.

@@ -69,7 +69,7 @@ const ALL=[
   {label:"Glute med",trim:1,lower:1,opts:L.gluteMed,sets:3,reps:"15–20"},
   {label:"Calves",support:1,sp:SUP.calves,opts:L.calves,sets:2,reps:"12–15"},
   {label:"Cardio finisher",cardio:1,opts:STEADY}]},
- {id:"d2",title:"Upper",slots:[
+ {id:"d2",title:"Upper · Press",slots:[
   {label:"Main press",main:1,upperMain:1,opts:L.press,sets:3,reps:"5–8"},
   {label:"Vertical pull",ss:"A1",vpull:1,opts:L.vpull,sets:3,reps:"8–12"},
   {label:"Chest",ss:"A2",opts:L.chest,sets:3,reps:"8–12"},
@@ -79,7 +79,7 @@ const ALL=[
   {label:"Arms",ss:"C2",trim:1,arms:1,upperAcc:1,opts:L.arms,sets:2,reps:"12–15"},
   {label:"Rotator cuff",support:1,sp:SUP.cuff,opts:L.cuff,sets:2,reps:"15"},
   {label:"Cardio finisher",cardio:1,opts:[...INTERVAL,...STEADY]}]},
- {id:"d3",title:"Lower · Quad",slots:[
+ {id:"d3",title:"Lower · Quad & Glute",slots:[
   {label:"Main quad",main:1,quad:1,opts:L.quad,sets:4,reps:"6–10"},
   {label:"Glute (light)",lower:1,opts:L.lightGlute,sets:3,reps:"10–12"},
   {label:"Hamstrings",lower:1,opts:L.ham,sets:3,reps:"10–12"},
