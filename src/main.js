@@ -301,7 +301,8 @@ function exPreview(id){ const d=dayById(id); if(!d) return ""; const P=plan(), D
     const t=suggest(d,sl,i,false,P); return [n,`${A.sets} × ${sl.reps}${t&&t.w?` · ${isBW(n)?"BW":toU(t.w)}`:""}`]; });
   return rows.length?`<div class="wex">${rows.map(([n,v])=>`<div><span>${esc(n)}</span><b>${esc(v)}</b></div>`).join("")}</div>`:""; }
 function liftCard(eyebrow,id,body,kind){ const d=dayById(id); if(!d) return "";
-  return `<section class="wcard lift ${kind||""}"><span class="weye">${eyebrow}</span><h3>${esc(d.title)}</h3>${exPreview(id)}${body||""}</section>`; }
+  const canSwap=!(wk.done||{})[id]&&!((wk.wt||{})[id]||{}).start&&swapOptions(id).length>1;
+  return `<section class="wcard lift ${kind||""}"><div class="wtop"><span class="weye">${eyebrow}</span>${canSwap?`<button type="button" class="swapbtn sm" data-swap="${id}" aria-label="Swap ${esc(d.title)} for another workout"><svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13l-3-3M20 16H7l3 3"/></svg>Swap</button>`:""}</div><h3>${esc(d.title)}</h3>${exPreview(id)}${body||""}</section>`; }
 function sessCard(s,today){
   if(s.k==="lift"){ const all=sessEx(s), ex=all.slice(0,6), d=dayById(s.id), open=d&&(wk.doneT||{})[s.id]===s.t;
     return `<section class="wcard lift done${open?" tap":""}"${open?` data-open="${s.id}" role="button" tabindex="0" aria-label="${esc(s.title||"Lift")}, open workout"`:""}><span class="weye">Completed</span><h3>${esc(s.title||"Lift")}</h3>
