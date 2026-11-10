@@ -908,7 +908,7 @@ function swapSheet(id){
   const opt=(t,attr)=>`<button type="button" class="swapopt" ${attr}="${t.id}"><b>${esc(t.title)}</b><small>${esc(ex(t))}</small></button>`;
   showSheet(`<div class="swapsheet"><div class="shtop"><h3 class="swapt">Swap workout</h3>${XBTN}</div>
     <p class="small">The week will adjust to any swaps.</p>
-    ${fam.length?`<span class="plab swaph">Same group</span><div class="swaplist">${fam.map(t=>opt(t,"data-to")).join("")}</div>`:""}
+    ${fam.length?`<span class="plab swaph">Same muscle group</span><div class="swaplist">${fam.map(t=>opt(t,"data-to")).join("")}</div>`:""}
     ${others.length?`<span class="plab swaph">Planned</span><div class="swaplist">${others.map(t=>opt(t,"data-pick")).join("")}</div>`:""}</div>`,
     el=>{ el.querySelectorAll("[data-to]").forEach(b=>b.onclick=()=>{ const to=b.dataset.to; closeSheet(); if(swapDay(id,to)){ if(cur===id) cur=to; keepNav(); render(); } });
       el.querySelectorAll("[data-pick]").forEach(b=>b.onclick=()=>{ const to=b.dataset.pick; closeSheet(); wk.pinToday={d:dayKey(Date.now()),id:to}; save(); if(cur===id) cur=to; keepNav(); render(); toast([`${(dayById(to)||{}).title||"Lift"} moved to today`]); }); },true);
