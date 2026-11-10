@@ -907,7 +907,7 @@ function swapSheet(id){
   const ex=t=>t.slots.map((sl,i)=>[sl,i]).filter(([sl])=>!sl.cardio).slice(0,3).map(([sl,i])=>exName(t,sl,i)).join(" · ");
   const opt=(t,attr)=>`<button type="button" class="swapopt" ${attr}="${t.id}"><b>${esc(t.title)}</b><small>${esc(ex(t))}</small></button>`;
   showSheet(`<div class="swapsheet"><div class="shtop"><h3 class="swapt">Swap workout</h3>${XBTN}</div>
-    <p class="small">${others.length?"Swap workout for another in the same muscle group or one of your planned workouts. The week will adjust to your choice.":"Swap workout for another in the same muscle group."}</p>
+    <p class="small">The week will adjust to any swaps.</p>
     ${fam.length?`<span class="plab swaph">Same group</span><div class="swaplist">${fam.map(t=>opt(t,"data-to")).join("")}</div>`:""}
     ${others.length?`<span class="plab swaph">Planned</span><div class="swaplist">${others.map(t=>opt(t,"data-pick")).join("")}</div>`:""}</div>`,
     el=>{ el.querySelectorAll("[data-to]").forEach(b=>b.onclick=()=>{ const to=b.dataset.to; closeSheet(); if(swapDay(id,to)){ if(cur===id) cur=to; keepNav(); render(); } });
