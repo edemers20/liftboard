@@ -1025,5 +1025,7 @@ html[data-vt="back"]::view-transition-new(lbview),html[data-vt="dayback"]::view-
 .swapsheet>p{margin:0}
 .swaph{display:block;margin-top:8px}
 /* dim behind the swap sheet; tap it to close */
-#sheetDim{position:fixed;inset:0;z-index:25;background:rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:opacity .2s ease}
+#sheetDim{position:fixed;inset:0;z-index:25;background:rgba(0,0,0,.75);opacity:0;pointer-events:none;transition:opacity .2s ease}
 #sheetDim.on{opacity:1;pointer-events:auto}
+.swapt{margin:0;font:400 24px/1 var(--display);text-transform:uppercase;letter-spacing:.02em;color:var(--fg)}
+.swapsheet .shtop{margin:-4px -4px 0 0}
