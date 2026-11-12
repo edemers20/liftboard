@@ -723,6 +723,21 @@ function logAct(key,n,val,t){
   else if(!has&&i>=0) wk.sessions=L.filter((_,j)=>j!==i);
 }
 /** What you did: each exercise with its top set (heaviest, then most reps) and sets done. */
+/* What a logged session actually burned above resting (net kcal), from its minutes:
+   activities by their MET, lifts by the cardio finisher minutes saved with the session. */
+function sessionKcal(x){
+  if(x.k==="lift") return (x.ex||[]).filter(e=>e.cardio&&e.min>0).reduce((a,e)=>a+e.min*perMin((CARDIO[e.n]||CARDIO["Incline Walk"]).met),0);
+  const A=ACT[x.k]; if(!A||!(x.min>0)) return 0;
+  const met=x.k==="yoga"?yogaMet():x.k==="pilates"?pilMet():x.k==="spin"?(SPIN_MET[wk.spint]||8.5):A.met;
+  return met?x.min*perMin(met):0;
+}
+/* A calendar week's actuals from the log, so edits made after the week closed still count */
+function weekActuals(start){
+  const end=start+7*864e5, S=(wk.sessions||[]).filter(x=>x.t>=start&&x.t<end);
+  return {n:S.length, lifts:S.filter(x=>x.k==="lift").length,
+    sport:S.filter(x=>ACT[x.k]&&ACT[x.k].sport).reduce((a,x)=>a+(x.min||0),0),
+    burn:Math.round(S.reduce((a,x)=>a+sessionKcal(x),0)/5)*5};
+}
 function daySummary(dayId){ const d=DAYS.find(x=>x.id===dayId); if(!d) return [];
   return slotOrder(d).map(i=>{ const s=d.slots[i]; if(s.cardio){ const st=get(dayId,i); return st.cdone||num(st.act,0)>0?{n:exName(d,s,i),cardio:1,min:num(st.act,0)}:null; }
     const log=(get(dayId,i).log||[]).map(x=>({w:num(x.w,0),r:num(x.r,0),d:x.d})).filter(x=>x.d&&x.r>0); if(!log.length) return null;
@@ -805,4 +820,4 @@ function newWeek(start){
   save(); return ["New week started. Check-in reset to normal."];
 }
 
-export { swapOptions, swapDay, rateLb, isBW, yogaMet, pilMet, YOGA_EFF, PIL_EFF, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, MUSCLES, slotMuscles, musclePriority, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk };
+export { sessionKcal, weekActuals, swapOptions, swapDay, rateLb, isBW, yogaMet, pilMet, YOGA_EFF, PIL_EFF, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, MUSCLES, slotMuscles, musclePriority, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk };

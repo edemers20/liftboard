@@ -1,6 +1,6 @@
 import "./styles.css";
 import { attachDials } from "./dial.js";
-import { swapOptions, swapDay, isBW, yogaMet, pilMet, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk } from "./engine.js";
+import { weekActuals, swapOptions, swapDay, isBW, yogaMet, pilMet, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk } from "./engine.js";
 
 const storage=(()=>{ try{ const k="__t"; localStorage.setItem(k,"1"); localStorage.removeItem(k); return localStorage; }catch(e){ const m=new Map(); return {getItem:k=>m.get(k)??null,setItem:(k,v)=>m.set(k,String(v))}; } })();
 init(storage);
@@ -271,7 +271,7 @@ function hasFinishSnap(){ try{ const x=JSON.parse(localStorage.getItem(FIN_KEY)|
 function finishWeek(){
   const next=addD(weekStartOf(Date.now()),7).getTime();
   try{ localStorage.setItem(FIN_KEY,JSON.stringify({to:next,wk,slots})); }catch(e){}
-  const P=plan(), s={lifts:DAYS.filter(d=>(wk.done||{})[d.id]).length,planned:DAYS.length,cardio:r5(P.math.cardioTotal)};
+  const s={lifts:DAYS.filter(d=>(wk.done||{})[d.id]).length,planned:DAYS.length,cardio:weekActuals(weekStartOf(Date.now()).getTime()).burn};
   newWeek(next); selOff=0; render(); weekDone(s);
 }
 function undoFinish(){
@@ -288,7 +288,7 @@ function autoWeek(){
   const W=weekStartOf(Date.now()).getTime();
   if(!wk.weekStart){ wk.weekStart=W; save(); return null; }
   if(wk.weekStart>=W) return null;
-  const P=plan(), s={lifts:DAYS.filter(d=>(wk.done||{})[d.id]).length,planned:DAYS.length,cardio:r5(P.math.cardioTotal)};
+  const s={lifts:DAYS.filter(d=>(wk.done||{})[d.id]).length,planned:DAYS.length,cardio:weekActuals(weekStartOf(wk.weekStart).getTime()).burn};
   newWeek(W); selOff=0; return s;
 }
 
@@ -683,8 +683,10 @@ function weeksHTML(){
   const fmt=t=>new Date(t).toLocaleDateString(undefined,{month:"short",day:"numeric"});
   const H=(wk.weeks||[]).slice().reverse();
   return `<div class="panel">${hdr("Previous weeks",["weeks"])}
+   ${H.length?`<p class="small wnote">Extra burn is what your sports, classes and cardio burned on top of your resting burn, from the minutes you logged. Watches count the resting part too, so theirs reads higher.</p>`:""}
    ${H.length?`<div class="wlist">${H.map(w=>`<div class="wrow"><div class="wtop"><b>Week of ${fmt(w.start)}</b>${w.w?`<span class="wwt">${w.w}<small> lb</small></span>`:""}</div>
-     <div class="wnums"><span class="${w.lifts<w.planned?"miss":""}"><b>${w.lifts}/${w.planned}</b> lifts</span>${(w.sport??w.pickle)?`<span><b>${w.sport??w.pickle}</b> min sport</span>`:""}${w.cardio?`<span><b>${Number(w.cardio).toLocaleString()}</b> kcal cardio</span>`:""}</div>
+     ${(()=>{ const A=weekActuals(w.start), act=A.n>0, sp=act?A.sport:(w.sport??w.pickle), bn=act?A.burn:w.cardio;
+       return `<div class="wnums"><span class="${w.lifts<w.planned?"miss":""}"><b>${w.lifts}/${w.planned}</b> lifts</span>${sp?`<span><b>${sp}</b> min sport</span>`:""}${bn?`<span><b>${Number(bn).toLocaleString()}</b> kcal extra burn</span>`:""}</div>`; })()}
      <p class="small">${w.season==="In-season"?"In-season":"Off-season"}${w.ramp?" · ramp":""}${w.deload?" · deload":""} · ${esc(goalName(w.mode))}${w.focus?` · ${esc(w.focus)} focus`:""}</p></div>`).join("")}</div>`:`<p class="note">Saves when you tap Start new week.</p>`}
   </div>`;
 }
@@ -1306,7 +1308,7 @@ function weekDone(s){
   const ws=wk.weeks||[], a=ws[ws.length-1], b=ws[ws.length-2];
   const dw=a&&a.w&&b&&b.w?(a.w-b.w):null;
   showDone({eyebrow:"Week complete",title:"Week done",
-    body:dTiles([["Lifts",`${s.lifts}/${s.planned}`],["Cardio",s.cardio.toLocaleString()],["Weight",dw==null?(a&&a.w?String(a.w):"–"):`${dw>0?"+":dw<0?"−":""}${Math.abs(dw).toFixed(1)}`]])
+    body:dTiles([["Lifts",`${s.lifts}/${s.planned}`],["Extra burn",s.cardio.toLocaleString()],["Weight",dw==null?(a&&a.w?String(a.w):"–"):`${dw>0?"+":dw<0?"−":""}${Math.abs(dw).toFixed(1)}`]])
       +(wk.missedNote?`<p class="dnote">${esc(capF(wk.missedNote.txt)+".")}</p>`:""),
     cta:"See this week",onCta:()=>goTab("week")});
 }
@@ -1392,7 +1394,7 @@ function bind(){
   v.querySelectorAll("[data-share]").forEach(bindShare);
   const fw=document.getElementById("finishWeek"); if(fw) fw.onclick=()=>askSure({title:"Finish this week?",text:"This week's numbers are saved to history and next week's plan starts now. Lifts you didn't get to come first next week. You can undo until next week begins.",ok:"Finish week",onOk:finishWeek});
   const uf=document.getElementById("undoFinish"); if(uf) uf.onclick=undoFinish;
-  const nw=document.getElementById("newWeek"); if(nw) nw.onclick=()=>askSure({title:"Start a new week",text:"This closes out the week: it saves this week's numbers to history and resets the check-in and day logs.",ok:"Start new week",onOk:()=>{ const P=plan(), s={lifts:DAYS.filter(d=>(wk.done||{})[d.id]).length,planned:DAYS.length,cardio:r5(P.math.cardioTotal)}; newWeek(); render(); weekDone(s); }});
+  const nw=document.getElementById("newWeek"); if(nw) nw.onclick=()=>askSure({title:"Start a new week",text:"This closes out the week: it saves this week's numbers to history and resets the check-in and day logs.",ok:"Start new week",onOk:()=>{ const s={lifts:DAYS.filter(d=>(wk.done||{})[d.id]).length,planned:DAYS.length,cardio:weekActuals(weekStartOf(Date.now()).getTime()).burn}; newWeek(); render(); weekDone(s); }});
   v.querySelectorAll(".seg[data-key]").forEach(g=>g.querySelectorAll("button").forEach(b=>b.onclick=()=>{
     const k=g.dataset.key, raw=b.dataset.v; fxOnce.seg=[k,raw];
     if(inProf(g)){ stage(k,raw); return; }

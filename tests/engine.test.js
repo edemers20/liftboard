@@ -432,3 +432,21 @@ describe("swapping a workout within its family", () => {
     expect(E.DAYS.map(d => d.id)).toEqual(["d1", "d2", "d3", "x", "g2"]);
   });
 });
+
+describe("week actuals from the log", () => {
+  it("counts logged minutes, not the plan, and nets out resting burn", () => {
+    fresh({ weight: "138", pickle: 2 });
+    const start = Date.UTC(2026, 10, 2, 5), D = 864e5;
+    E.wk.sessions = [
+      { t: start + 1 * D, k: "pickle", min: 90 },
+      { t: start + 3 * D, k: "lift", id: "d1", ex: [{ n: "Hip Thrust (Barbell)", w: 185, r: 8 }, { n: "Incline Walk", cardio: 1, min: 80 }] },
+      { t: start + 9 * D, k: "pickle", min: 60 }
+    ];
+    const A = E.weekActuals(start);
+    expect(A.sport).toBe(90);
+    expect(A.lifts).toBe(1);
+    // 138 lb = 62.6 kg; pickleball (4.5-1)*3.5*62.6/200*90 = 345, incline walk (6.5-1)*3.5*62.6/200*80 = 482
+    expect(A.burn).toBeGreaterThan(810);
+    expect(A.burn).toBeLessThan(840);
+  });
+});
