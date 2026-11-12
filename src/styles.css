@@ -1029,3 +1029,8 @@ html[data-vt="back"]::view-transition-new(lbview),html[data-vt="dayback"]::view-
 #sheetDim.on{opacity:1;pointer-events:auto}
 .swapt{margin:0;font:600 20px/1.2 var(--body);color:var(--fg)}
 .swapsheet .shtop{margin:4px -4px 0 0}
+/* rest bar: −15s | time with Skip under it | +15s, nothing else, so +15s always fits */
+#rest .rz{flex:1 1 0;min-width:72px}
+#rest .rmid{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:0;padding:6px 0}
+#rest .rmid .rt{line-height:1.2}
+#rest .rmid .rb.skip{margin:0;min-height:32px;min-width:64px;padding:0 10px;font:600 13px var(--body);border:0;background:transparent;text-decoration:underline;text-underline-offset:3px}

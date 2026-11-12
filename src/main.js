@@ -1154,8 +1154,9 @@ function endRest(){ wk.rest=null; stopChime(); save(); tickTimers(); }
    screen dims. A locked phone or the silent switch can still mute it; the vibration stays as a backup. */
 let AC=null, chimeNodes=[], chimeAt=0;
 function audio(){ try{
-    /* iPhone: the ring/silent switch mutes web audio unless the page is in "playback" mode */
-    if(navigator.audioSession&&navigator.audioSession.type!=="playback") navigator.audioSession.type="playback";
+    /* "ambient" mixes the chime over music instead of pausing it ("playback" paused Spotify for the whole rest).
+       Trade-off: with the ring/silent switch on silent, iPhone mutes ambient sounds. */
+    if(navigator.audioSession&&navigator.audioSession.type!=="ambient") navigator.audioSession.type="ambient";
     AC=AC||new (window.AudioContext||window.webkitAudioContext)(); if(AC.state!=="running") AC.resume();
     if(!audio.unlocked){ audio.unlocked=1; const b=AC.createBuffer(1,1,22050), src=AC.createBufferSource(); src.buffer=b; src.connect(AC.destination); src.start(0); }
   }catch(e){ AC=null; } return AC; }
@@ -1173,10 +1174,10 @@ function tickTimers(){
     else { const over=left<=0;
       if(over&&buzzed!==r.end){ buzzed=r.end; try{ navigator.vibrate&&navigator.vibrate([200,100,200]); }catch(e){} if(chimeAt!==r.end&&left>-3&&wk.sound!=="No") chimeIn(0); }
       if(bar.hidden||bar.dataset.end!==String(r.end)){ bar.dataset.end=r.end;
-        bar.innerHTML=`<button type="button" class="rz l" data-rest="-15" aria-label="15 seconds less"><span aria-hidden="true">−15s</span></button><span class="rt" aria-live="off"></span><button type="button" class="rz r" data-rest="15" aria-label="15 seconds more"><span aria-hidden="true">+15s</span></button><button type="button" class="rb skip" data-rest="skip">Skip</button>`;
+        bar.innerHTML=`<button type="button" class="rz l" data-rest="-15" aria-label="15 seconds less"><span aria-hidden="true">−15s</span></button><span class="rmid"><span class="rt" aria-live="off"></span><button type="button" class="rb skip" data-rest="skip">Skip</button></span><button type="button" class="rz r" data-rest="15" aria-label="15 seconds more"><span aria-hidden="true">+15s</span></button>`;
         bar.querySelectorAll("[data-rest]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); const v=b.dataset.rest; if(v==="skip") endRest(); else adjRest(+v); }); }
       bar.hidden=false; bar.classList.toggle("over",over);
-      bar.querySelector(".rt").textContent=over?`Go · ${mmss(-left)} over`:`Rest ${mmss(left)}${r.why?` · ${r.why}`:""}`; } }
+      bar.querySelector(".rt").textContent=over?`Go · ${mmss(-left)} over`:`Rest ${mmss(left)}`; } }
   if(!wk.rest){ bar.hidden=true; bar.innerHTML=""; delete bar.dataset.end; }
   const wt=document.getElementById("wtime"); if(wt){ const T=(wk.wt||{})[wt.dataset.day]; if(T&&T.start) wt.textContent=T.end?`${Math.round((T.end-T.start)/60000)} min`:mmss((now-T.start)/1000); }
 }
