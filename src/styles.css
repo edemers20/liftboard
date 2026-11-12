@@ -1034,3 +1034,9 @@ html[data-vt="back"]::view-transition-new(lbview),html[data-vt="dayback"]::view-
 #rest .rmid{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:0;padding:6px 0}
 #rest .rmid .rt{line-height:1.2}
 #rest .rmid .rb.skip{margin:0;min-height:32px;min-width:64px;padding:0 10px;font:600 13px var(--body);border:0;background:transparent;text-decoration:underline;text-underline-offset:3px}
+/* share a finished workout */
+.dbtns{display:grid;grid-template-columns:auto 1fr;gap:10px}
+.dbtns .dcta:only-child{grid-column:1/-1}
+.dshare{display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.dshare[disabled]{opacity:.5}
+.btn.dshare{margin-top:8px}

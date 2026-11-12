@@ -869,7 +869,7 @@ function renderDayHTML(d,P){
     html+=`<section class="slot stretch${sd?" sdone":""}${so?"":" folded"}"><div class="row1" role="button" tabindex="0" data-stog aria-expanded="${so}" aria-label="${so?"Collapse":"Expand"} stretches"><span class="label hdr">Stretch · optional</span><span class="pill">${sd?"Done":"~8 min"}</span></div>
       ${so?`<ul class="slist">${list.map(([n,t])=>`<li><span>${n}</span><small>${t}</small></li>`).join("")}</ul>
       <button type="button" class="btn ${sd?"":"primary "}wide" id="stretchBtn">${sd?"✓ Stretched":"Done stretching"}</button>`:""}</section>`; }
-  return html+`<button class="btn primary" id="doneBtn" type="button"${D.done?' disabled aria-disabled="true"':""}>${D.done?"✓ Day done":"Mark day done"}</button>`;
+  return html+`<button class="btn primary" id="doneBtn" type="button"${D.done?' disabled aria-disabled="true"':""}>${D.done?"✓ Day done":"Mark day done"}</button>`+(D.done?`<button type="button" class="btn dshare wide" data-share="${d.id}">${SHARE_ICON}Share workout</button>`:"");
 }
 /* ---------- Add an exercise to the end of a day ---------- */
 let addOpen=null, addPick="", addCustom="", addCat="";
@@ -1203,17 +1203,73 @@ function askSure({title,text,ok,onOk}){
 /* ---------- Completion screens: short, closable sheets ---------- */
 let doneCta=null;
 const CHECK=`<span class="dcheck" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 28 28"><path d="M7 14.5l4.5 4.5L21 9.5"/></svg></span>`;
-function showDone({eyebrow,title,body,cta,onCta}){
+/* ---------- Share a finished workout as an image (Strava-style) ----------
+   The PNG is drawn on a canvas as soon as the button appears, so the tap can hand it straight to the share
+   sheet (iPhone only allows sharing right after a tap). Share sheet → Save Image / Copy / Messages / Instagram;
+   no share sheet → copy to clipboard; no clipboard → download. */
+const SHARE_ICON=`<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>`;
+function shareData(id){
+  const d=DAYS.find(x=>x.id===id); if(!d) return null;
+  const from=wk.weekStart||0, sess=(wk.sessions||[]).filter(x=>x.k==="lift"&&x.id===id&&x.t>=from).pop();
+  const T=(wk.wt||{})[id], mins=T&&T.start&&T.end?Math.max(1,Math.round((T.end-T.start)/60000)):(sess&&sess.min)||0;
+  const S=(sess&&sess.ex&&sess.ex.length?sess.ex:daySummary(id)), rv=(wk.review||{})[id]||{items:[]};
+  return {title:d.title, when:new Date(sess?sess.t:Date.now()), mins, sets:setsLogged(id)||S.filter(x=>!x.cardio).length, S, items:rv.items, ups:rv.items.filter(x=>x.tag==="up").length};
+}
+async function shareCardBlob(id){
+  const D=shareData(id); if(!D) return null;
+  try{ await Promise.all(["400 80px Ranchers","600 40px 'DM Sans'","500 40px 'DM Sans'","400 32px 'DM Sans'","500 40px 'DM Mono'"].map(f=>document.fonts.load(f))); }catch(e){}
+  const W=1080, rows=D.S.slice(0,9), H=Math.max(1350,1080+rows.length*96+(D.S.length>rows.length?70:0)), c=document.createElement("canvas"); c.width=W; c.height=H;
+  const g=c.getContext("2d"), P=72, ink="#edeae8", mute="#a8a09c", acc="#6fd0b4", up="#fea06a";
+  const bg=g.createLinearGradient(0,0,0,H); bg.addColorStop(0,"#1e3a32"); bg.addColorStop(.45,"#131615"); bg.addColorStop(1,"#131615"); g.fillStyle=bg; g.fillRect(0,0,W,H);
+  g.textBaseline="alphabetic";
+  g.fillStyle=acc; g.font="400 44px Ranchers, sans-serif"; g.fillText("LIFT BOARD",P,P+40);
+  g.fillStyle=mute; g.font="500 30px 'DM Sans', sans-serif"; g.textAlign="right";
+  g.fillText(D.when.toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"}),W-P,P+38); g.textAlign="left";
+  /* title, wrapped to two lines */
+  g.fillStyle=ink; g.font="400 104px Ranchers, sans-serif"; const words=D.title.toUpperCase().split(" "), lines=[""];
+  words.forEach(w=>{ const t=(lines[lines.length-1]+" "+w).trim(); if(g.measureText(t).width>W-2*P&&lines[lines.length-1]) lines.push(w); else lines[lines.length-1]=t; });
+  let y=P+200; lines.slice(0,2).forEach(l=>{ g.fillText(l,P,y); y+=108; });
+  /* stat tiles */
+  y+=20; const stats=[[D.mins?`${D.mins}`:"–","min"],[String(D.sets),"sets"],[String(D.ups),"going up"]], tw=(W-2*P-2*24)/3;
+  stats.forEach(([v,l],i)=>{ const x=P+i*(tw+24); g.fillStyle="rgba(255,255,255,.06)"; rr(g,x,y,tw,170,28); g.fill();
+    g.fillStyle=mute; g.font="600 26px 'DM Sans', sans-serif"; g.fillText(l.toUpperCase(),x+32,y+56);
+    g.fillStyle=i===2&&D.ups?up:ink; g.font="500 72px 'DM Mono', monospace"; g.fillText(v,x+32,y+138); });
+  y+=230;
+  /* exercises with top set */
+  g.fillStyle=mute; g.font="600 26px 'DM Sans', sans-serif"; g.fillText("TOP SETS",P,y); y+=30;
+  rows.forEach(x=>{ y+=96; const r=(D.items||[]).find(q=>q.n===x.n), v=x.cardio?(x.min?`${x.min} min`:"done"):fmtSet(x.n,x.w,x.r);
+    g.strokeStyle="rgba(255,255,255,.08)"; g.lineWidth=2; g.beginPath(); g.moveTo(P,y-66); g.lineTo(W-P,y-66); g.stroke();
+    g.fillStyle=r&&r.tag==="up"?up:ink; g.font="500 40px 'DM Mono', monospace"; g.textAlign="right"; g.fillText(v+(r&&r.tag==="up"?" ↑":""),W-P,y-12);
+    const vw=g.measureText(v+" ↑").width; g.textAlign="left"; g.fillStyle=ink; g.font="500 36px 'DM Sans', sans-serif";
+    let n=x.n; while(g.measureText(n).width>W-2*P-vw-32&&n.length>4) n=n.slice(0,-2); if(n!==x.n) n=n.trim()+"…"; g.fillText(n,P,y-12); });
+  if(D.S.length>rows.length){ y+=70; g.fillStyle=mute; g.font="400 30px 'DM Sans', sans-serif"; g.fillText(`+ ${D.S.length-rows.length} more`,P,y); }
+  /* trim the spare canvas below the last row (never shorter than 4:5) */
+  const H2=Math.min(H,Math.max(1350,Math.round(y+P+20))), out=document.createElement("canvas"); out.width=W; out.height=H2; out.getContext("2d").drawImage(c,0,0);
+  return await new Promise(res=>out.toBlob(res,"image/png"));
+}
+function rr(g,x,y,w,h,r){ g.beginPath(); g.moveTo(x+r,y); g.arcTo(x+w,y,x+w,y+h,r); g.arcTo(x+w,y+h,x,y+h,r); g.arcTo(x,y+h,x,y,r); g.arcTo(x,y,x+w,y,r); g.closePath(); }
+function bindShare(btn){
+  const id=btn.dataset.share; let file=null; btn.disabled=true;
+  shareCardBlob(id).then(b=>{ if(b){ file=new File([b],`lift-board-${dayKey(Date.now())}.png`,{type:"image/png"}); btn.disabled=false; } }).catch(()=>{});
+  btn.onclick=async()=>{ if(!file) return;
+    try{
+      if(navigator.canShare&&navigator.canShare({files:[file]})){ await navigator.share({files:[file]}); return; }
+      if(navigator.clipboard&&window.ClipboardItem){ await navigator.clipboard.write([new ClipboardItem({"image/png":file})]); toast(["Image copied"]); return; }
+    }catch(e){ if(e&&e.name==="AbortError") return; }
+    const a=document.createElement("a"); a.href=URL.createObjectURL(file); a.download=file.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),4000); };
+}
+function showDone({eyebrow,title,body,cta,onCta,shareId}){
   const el=document.getElementById("done"); doneCta=onCta||null; closePop();
   el.innerHTML=`<div class="ddim" data-close></div><section class="dsheet" role="dialog" aria-modal="true" aria-labelledby="dTitle">
     <div class="dtop"><span class="plab">${esc(eyebrow)}</span><button type="button" class="dx" data-close aria-label="Close"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M2 2l10 10M12 2L2 12"/></svg></button></div>
     <div class="dhead">${CHECK}<h2 id="dTitle" tabindex="-1">${esc(title)}</h2></div>
     ${body}
-    <button type="button" class="tb dcta" id="dCta">${esc(cta)}</button></section>`;
+    <div class="dbtns">${shareId?`<button type="button" class="tb ghost dshare" data-share="${shareId}">${SHARE_ICON}Share</button>`:""}<button type="button" class="tb dcta" id="dCta">${esc(cta)}</button></div></section>`;
   el.querySelectorAll(".dsheet > *").forEach((c,i)=>c.style.setProperty("--d",(i*60)+"ms"));
   el.hidden=false; el.classList.remove("out"); document.body.classList.add("touring");
   el.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>closeDone());
   el.querySelector("#dCta").onclick=()=>closeDone(true);
+  el.querySelectorAll("[data-share]").forEach(bindShare);
   el.querySelector("#dTitle").focus({preventScroll:true});
 }
 function closeDone(viaCta){
@@ -1244,7 +1300,7 @@ function dayDone(id,sets){
   const S=daySummary(id), mins=T&&T.start&&T.end?Math.max(1,Math.round((T.end-T.start)/60000)):0;
   showDone({eyebrow:`${d.tab} · ${d.title}${mins?` · ${mins} min`:""}`,title:"Day done",
     body:workoutRows(S,rv.items)+(rv.note?`<p class="dnote">${esc(rv.note)}</p>`:""),
-    cta:"Back to Workouts",onCta:()=>goTab("workouts")});
+    cta:"Back to Workouts",onCta:()=>goTab("workouts"),shareId:id});
 }
 function weekDone(s){
   const ws=wk.weeks||[], a=ws[ws.length-1], b=ws[ws.length-2];
@@ -1333,6 +1389,7 @@ function bind(){
   v.querySelectorAll(".addset").forEach(b=>b.onclick=()=>{ const i=+b.dataset.i, log=(get(cur,i).log||[]).slice(), A=plan().days[cur].slots[i]; while(log.length<A.sets) log.push({}); log.push({}); set(cur,i,"log",log); render(); });
   const db=document.getElementById("doneBtn"); if(db) db.onclick=()=>{ const id=cur; if((wk.done||{})[id]) return; const n=setsLogged(id); markDone(id); render(); dayDone(id,n); };
   v.querySelectorAll("[data-swap]").forEach(b=>b.onclick=()=>swapSheet(b.dataset.swap));
+  v.querySelectorAll("[data-share]").forEach(bindShare);
   const fw=document.getElementById("finishWeek"); if(fw) fw.onclick=()=>askSure({title:"Finish this week?",text:"This week's numbers are saved to history and next week's plan starts now. Lifts you didn't get to come first next week. You can undo until next week begins.",ok:"Finish week",onOk:finishWeek});
   const uf=document.getElementById("undoFinish"); if(uf) uf.onclick=undoFinish;
   const nw=document.getElementById("newWeek"); if(nw) nw.onclick=()=>askSure({title:"Start a new week",text:"This closes out the week: it saves this week's numbers to history and resets the check-in and day logs.",ok:"Start new week",onOk:()=>{ const P=plan(), s={lifts:DAYS.filter(d=>(wk.done||{})[d.id]).length,planned:DAYS.length,cardio:r5(P.math.cardioTotal)}; newWeek(); render(); weekDone(s); }});
