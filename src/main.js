@@ -683,7 +683,6 @@ function weeksHTML(){
   const fmt=t=>new Date(t).toLocaleDateString(undefined,{month:"short",day:"numeric"});
   const H=(wk.weeks||[]).slice().reverse();
   return `<div class="panel">${hdr("Previous weeks",["weeks"])}
-   ${H.length?`<p class="small wnote">Extra burn is what your sports, classes and cardio burned on top of your resting burn, from the minutes you logged. Watches count the resting part too, so theirs reads higher.</p>`:""}
    ${H.length?`<div class="wlist">${H.map(w=>`<div class="wrow"><div class="wtop"><b>Week of ${fmt(w.start)}</b>${w.w?`<span class="wwt">${w.w}<small> lb</small></span>`:""}</div>
      ${(()=>{ const A=weekActuals(w.start), act=A.n>0, sp=act?A.sport:(w.sport??w.pickle), bn=act?A.burn:w.cardio;
        return `<div class="wnums"><span class="${w.lifts<w.planned?"miss":""}"><b>${w.lifts}/${w.planned}</b> lifts</span>${sp?`<span><b>${sp}</b> min sport</span>`:""}${bn?`<span><b>${Number(bn).toLocaleString()}</b> kcal extra burn</span>`:""}</div>`; })()}
