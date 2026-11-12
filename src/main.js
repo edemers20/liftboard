@@ -1300,7 +1300,7 @@ function dayDone(id,sets){
   const S=daySummary(id), mins=T&&T.start&&T.end?Math.max(1,Math.round((T.end-T.start)/60000)):0;
   showDone({eyebrow:`${d.tab} · ${d.title}${mins?` · ${mins} min`:""}`,title:"Day done",
     body:workoutRows(S,rv.items)+(rv.note?`<p class="dnote">${esc(rv.note)}</p>`:""),
-    cta:"Back to Workouts",onCta:()=>goTab("workouts"),shareId:id});
+    cta:"Finish & close",onCta:()=>goTab("workouts"),shareId:id});
 }
 function weekDone(s){
   const ws=wk.weeks||[], a=ws[ws.length-1], b=ws[ws.length-2];
