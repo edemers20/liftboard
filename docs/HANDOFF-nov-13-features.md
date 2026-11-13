@@ -88,3 +88,24 @@ A second way to run the workout screen: one exercise and one set at a time. Buil
 - **Exercise calories include lifting.** `sessionKcal` for a lift session now counts the lifting minutes at MET 5 plus the cardio finisher, so `weekActuals().burn` covers everything you did.
 - **Rename "Extra burn".** Week done / weekly report tile: **Exercise calories**. History week cards: **exercise kcal**. Update `copy.ts` and `docs/COPY.md`.
 - **Swiping on Workouts.** Anywhere below the week strip, swipe left/right to change day (already built; make sure it works over the whole area, not just the cards). On the M–Sun strip itself, swipe left/right to change week, with the strip sliding in that direction. Ignore vertical drags and swipes that start in a text field.
+
+---
+
+## 6. Workouts: scroll through days like pages
+
+Swiping today only jumps to the next day once you let go. Instead, the day should follow your finger, so you can drag partway and see the next or previous day before deciding, like flipping pages in Photos.
+
+**Days**
+- Everything below the week strip (the day line, the day's cards, the activity chips, Fuel & recovery) is one page per day, in a horizontal pager. Use a horizontal `FlatList` with `pagingEnabled` (or `react-native-pager-view`), with `getItemLayout`, the selected day as `initialScrollIndex`, and a small render window (the current page and one either side).
+- Range: the same days you can reach now (8 weeks back to the end of next week).
+- While dragging, the neighbouring day slides in alongside. On release it snaps to the nearest page; a quick flick moves one page. At either end of the range it rubber-bands.
+- Each page scrolls vertically on its own. A drag only becomes horizontal when it's clearly sideways, so vertical scrolling never turns into a page change.
+- When a page settles: the selected day updates, the week strip highlight moves to it (and the strip moves to that week if you crossed into another one), and a selection haptic fires.
+- Tapping a day in the strip, the ‹ › arrows, "Today" and "View next lift" move the pager there: animated for nearby days, instant when it's more than 3 days away.
+
+**Week strip**
+- The M–Sun strip is also a horizontal pager, one week per page, that follows your finger the same way. Settling on a week keeps the same weekday selected (or today, when it's this week) and moves the day pager to match.
+
+**Reduce Motion:** dragging still works (you're moving it directly), but taps jump without animation.
+
+**Done when:** I can put my thumb on today's card, drag slowly left, see tomorrow sliding in, let go halfway and have it settle on tomorrow, and the strip shows tomorrow selected.
