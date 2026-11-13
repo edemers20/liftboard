@@ -528,7 +528,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Now | main.js:619 |
 |  | Week of {…} | main.js:661 |
 |  | min sport | main.js:662 |
-|  | kcal extra burn | main.js:662 |
+|  | exercise kcal | main.js:662 |
 |  | · ramp | main.js:663 |
 |  | · deload | main.js:663 |
 |  | · {…} focus | main.js:663 |
@@ -655,7 +655,6 @@ To change wording: edit it here first, then update `copy.ts` to match.
 | ⓘ Daily burn | Replaces the maintenance estimate, minus 7% because wearables read high. | main.js:41 |
 | ⓘ Lifting days | Sets your split. 0 turns lift days off for now; focus decides where extra days go. | main.js:42 |
 | ⓘ Session length | Shorter cuts accessories first; 75 adds a main-lift set. | main.js:43 |
-| ⓘ Avg lift kcal | Average burn per lifting session, added to maintenance. | main.js:44 |
 | ⓘ Readiness | Low adds 2 to recovery load. | main.js:45 |
 | ⓘ Soreness | Adds 1 (2 if everywhere). Where you're sore decides which main lifts get cut. | main.js:46 |
 | ⓘ Cycle | Period or luteal adds 1. | main.js:47 |
@@ -714,7 +713,6 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Daily burn | main.js:66 |
 |  | Lifting days | main.js:66 |
 |  | Session length | main.js:66 |
-|  | Avg lift kcal | main.js:66 |
 |  | Readiness | main.js:66 |
 |  | Soreness | main.js:66 |
 |  | Cycle | main.js:66 |
@@ -924,7 +922,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 | Button | Undo | Plan, Week. |
 |  | Week reopened | Plan, Week. |
 |  | Next week's plan | Plan, Week. |
-|  | Extra burn | Week done. |
+|  | Exercise calories | Week done. |
 | Small label | Week complete | main.js:1204 |
 | Title | Week done | main.js:1204 |
 

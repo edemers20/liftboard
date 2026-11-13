@@ -439,14 +439,39 @@ describe("week actuals from the log", () => {
     const start = Date.UTC(2026, 10, 2, 5), D = 864e5;
     E.wk.sessions = [
       { t: start + 1 * D, k: "pickle", min: 90 },
-      { t: start + 3 * D, k: "lift", id: "d1", ex: [{ n: "Hip Thrust (Barbell)", w: 185, r: 8 }, { n: "Incline Walk", cardio: 1, min: 80 }] },
+      { t: start + 3 * D, k: "lift", id: "d1", min: 125, ex: [{ n: "Hip Thrust (Barbell)", w: 185, r: 8 }, { n: "Incline Walk", cardio: 1, min: 80 }] },
       { t: start + 9 * D, k: "pickle", min: 60 }
     ];
     const A = E.weekActuals(start);
     expect(A.sport).toBe(90);
     expect(A.lifts).toBe(1);
-    // 138 lb = 62.6 kg; pickleball (4.5-1)*3.5*62.6/200*90 = 345, incline walk (6.5-1)*3.5*62.6/200*80 = 482
-    expect(A.burn).toBeGreaterThan(810);
-    expect(A.burn).toBeLessThan(840);
+    // 138 lb = 62.6 kg; pickleball (4.5-1)*3.5*62.6/200*90 = 345, incline walk (6.5-1)*3.5*62.6/200*80 = 482,
+    // lifting 125 - 80 finisher = 45 min at (5-1)*3.5*62.6/200 = 197
+    expect(A.burn).toBeGreaterThan(1005);
+    expect(A.burn).toBeLessThan(1040);
+  });
+});
+
+describe("lift calories", () => {
+  const D = 864e5;
+  it("uses session length until there are 3 timed lifts", () => {
+    fresh({ weight: "138", time: 60 });
+    // 60 min at (5-1)*3.5*62.6/200 = 4.38 kcal/min = 263 → 265
+    expect(E.liftKcal()).toBe(265);
+  });
+  it("averages the lifting minutes of recent timed lifts, finishers excluded", () => {
+    fresh({ weight: "138", time: 60 });
+    E.wk.sessions = [45, 45, 75].map((m, i) => ({ t: i * D, k: "lift", id: "d1", min: m, ex: i === 2 ? [{ n: "Incline Walk", cardio: 1, min: 30 }] : [] }));
+    // 45, 45, 45 lifting minutes → 197 → 195
+    expect(E.liftKcal()).toBe(195);
+  });
+  it("is worked out weekly, not on every change", () => {
+    fresh({ weight: "138", time: 60 });
+    E.plan();
+    const before = E.wk.liftKAuto;
+    E.wk.time = 30; E.plan();
+    expect(E.wk.liftKAuto).toBe(before);
+    E.newWeek(Date.now());
+    expect(E.wk.liftKAuto).toBeLessThan(before);
   });
 });

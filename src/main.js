@@ -405,7 +405,7 @@ function renderPlan(P){
 }
 function planWeek(P){
   const Mt=P.math, build=wk.mode==="Build"||wk.mode==="Maintain", nd=P.days[P.nextId];
-  INFO.maint=Mt.useOura?`Your wearable's daily burn minus 7%, plus this week's cardio.`:`Resting ${r5(Mt.bmr)} + light movement ${r5(Mt.base-Mt.bmr)} + steps ${r5(Mt.stepsK)}${Mt.nLift?` + lifting ${r5(Mt.liftDay)}`:""} + digestion ${r5(Mt.tef)}${wk.calibN?`, ${Mt.calib>=0?"+":""}${r5(Mt.calib)} calibrated from ${wk.calibN} weigh-ins`:""}. Your base is what you'd burn on a day with no training; it only moves when your body data or steps change. Fuel today = base + your training this week − your deficit.`;
+  INFO.maint=Mt.useOura?`Your wearable's daily burn minus 7%, plus this week's cardio.`:`Resting ${r5(Mt.bmr)} + light movement ${r5(Mt.base-Mt.bmr)} + steps ${r5(Mt.stepsK)}${Mt.nLift?` + lifting ${r5(Mt.liftDay)} (${r5(wk.liftKAuto)} kcal a session, worked out weekly from how long your lifts take)`:""} + digestion ${r5(Mt.tef)}${wk.calibN?`, ${Mt.calib>=0?"+":""}${r5(Mt.calib)} calibrated from ${wk.calibN} weigh-ins`:""}. Your base is what you'd burn on a day with no training; it only moves when your body data or steps change. Fuel today = base + your training this week − your deficit.`;
   const ck=`<div class="panel ck"><div class="ckh"><h3>Weekly check-in</h3></div>
     ${seg("ready","Readiness",["Normal","Low"])}
     ${seg("sore","Soreness",["None","Legs","Upper body","Everything"])}
@@ -507,13 +507,12 @@ function renderYou(P){
   return `${profileHero()}
   <section class="panel pcard">${profileGrid()}
   <details id="profileBox"${profOpen||draftDirty()?" open":""}><summary class="psum">Edit profile</summary>${profileHTML(false,{...wk,...(draft||{})})}<button class="btn primary" id="profSave" type="button"${draftDirty()?"":" disabled"}>Save changes</button></details></section>
-  ${enabled("lift")?`<div class="panel">${hdr("Training preferences",["ss","liftK"])}
+  ${enabled("lift")?`<div class="panel">${hdr("Training preferences",["ss"])}
     ${xpSlider(wk.level||(wk.guide==="Less"?"years":"some"))}
     ${stepper("time","Session length",[30,45,60,75],"min")}
     ${toggle("ss","Supersets")}
     ${toggle("stretch","Stretching after lifts")}
-    ${toggle("sound","Rest timer sound",wk.sound||"Yes")}${(wk.sound||"Yes")==="Yes"?`<button type="button" class="btn mini" data-testsound>Play test sound</button>`:""}
-    <div class="q"><span>Avg lift kcal</span>${fld("liftK","","numeric","","sm")}</div></div>`:""}
+    ${toggle("sound","Rest timer sound",wk.sound||"Yes")}${(wk.sound||"Yes")==="Yes"?`<button type="button" class="btn mini" data-testsound>Play test sound</button>`:""}</div>`:""}
   <div class="panel"><h3>App</h3>
     ${seg("units","Units",[["lb","lb"],["kg","kg"]],wk.units||"lb",0,"sw2")}
     ${seg("guide","Tips",[["More","More"],["Less","Fewer"]],wk.guide||"More",0,"sw2")}
@@ -540,9 +539,12 @@ function bindShell(v){
   /* swipe the day's cards: left for the next day, right for the one before */
   const wc=v.querySelector(".wcards");
   if(wc&&nav==="workouts"&&cur==="home"){ let x0=null,y0=0;
-    v.ontouchstart=e=>{ const T=e.touches[0]; x0=T.clientX; y0=T.clientY; if(e.target.closest(".wstrip,input,textarea")) x0=null; };
+    let onStrip=false;
+    v.ontouchstart=e=>{ const T=e.touches[0]; x0=T.clientX; y0=T.clientY; onStrip=!!e.target.closest(".wstrip"); if(e.target.closest("input,textarea")) x0=null; };
     v.ontouchend=e=>{ if(x0==null) return; const T=e.changedTouches[0], dx=T.clientX-x0, dy=T.clientY-y0; x0=null;
-      if(Math.abs(dx)<56||Math.abs(dx)<Math.abs(dy)*1.5) return; const st=v.querySelectorAll(".wday .wdstep")[dx<0?1:0]; if(st&&!st.disabled) st.click(); }; }
+      if(Math.abs(dx)<(onStrip?40:56)||Math.abs(dx)<Math.abs(dy)*1.5) return;
+      /* on the M–Sun strip a swipe changes week; anywhere else below it, it changes day */
+      const st=onStrip?v.querySelectorAll(".wstrip .wstep")[dx<0?1:0]:v.querySelectorAll(".wday .wdstep")[dx<0?1:0]; if(st&&!st.disabled) st.click(); }; }
   else { v.ontouchstart=null; v.ontouchend=null; }
   v.querySelectorAll("[data-open]").forEach(b=>{ const go=e=>{ if(e) e.stopPropagation(); const id=b.dataset.open; if(!(dayById(id)||ACT[id]||id==="zone2")) return;
       const card=b.closest(".wcard"), run=()=>{ nav="workouts"; cur=id; keepNav(); render(); window.scrollTo(0,0); };
@@ -626,11 +628,10 @@ function renderSeason(P){
     ${seg("mode","Goal",GOALS)}
     ${build?"":`<div class="nums two">${fld("rate","Lose lb / week","decimal")}${fld("share","From cardio %")}</div>`}
   </div>
-  ${enabled("lift")?`<div class="panel">${hdr("Training preferences",["ss","liftK"])}
+  ${enabled("lift")?`<div class="panel">${hdr("Training preferences",["ss"])}
     ${toggle("ss","Supersets")}
     ${toggle("stretch","Stretching after lifts")}
-    ${toggle("sound","Rest timer sound",wk.sound||"Yes")}${(wk.sound||"Yes")==="Yes"?`<button type="button" class="btn mini" data-testsound>Play test sound</button>`:""}
-    <div class="q"><span>Avg lift kcal</span>${fld("liftK","","numeric","","sm")}</div></div>`:""}
+    ${toggle("sound","Rest timer sound",wk.sound||"Yes")}${(wk.sound||"Yes")==="Yes"?`<button type="button" class="btn mini" data-testsound>Play test sound</button>`:""}</div>`:""}
   <div class="panel" id="profileBox"><h3>Profile</h3>${profileHTML(false,{...wk,...(draft||{})})}<button class="btn primary" id="profSave" type="button"${draftDirty()?"":" disabled"}>Save changes</button></div>
   ${moveHTML()}
   <div class="panel"><h3>Units</h3>${seg("units","",[["lb","Pounds (lb)"],["kg","Kilograms (kg)"]],wk.units||"lb")}</div>
@@ -704,7 +705,7 @@ function weeksHTML(){
   return `<div class="panel">${hdr("Previous weeks",["weeks"])}
    ${H.length?`<div class="wlist">${H.map(w=>`<div class="wrow"><div class="wtop"><b>Week of ${fmt(w.start)}</b>${w.w?`<span class="wwt">${w.w}<small> lb</small></span>`:""}</div>
      ${(()=>{ const A=weekActuals(w.start), act=A.n>0, sp=act?A.sport:(w.sport??w.pickle), bn=act?A.burn:w.cardio;
-       return `<div class="wnums"><span class="${w.lifts<w.planned?"miss":""}"><b>${w.lifts}/${w.planned}</b> lifts</span>${sp?`<span><b>${sp}</b> min sport</span>`:""}${bn?`<span><b>${Number(bn).toLocaleString()}</b> kcal extra burn</span>`:""}</div>`; })()}
+       return `<div class="wnums"><span class="${w.lifts<w.planned?"miss":""}"><b>${w.lifts}/${w.planned}</b> lifts</span>${sp?`<span><b>${sp}</b> min sport</span>`:""}${bn?`<span><b>${Number(bn).toLocaleString()}</b> exercise kcal</span>`:""}</div>`; })()}
      <p class="small">${w.season==="In-season"?"In-season":"Off-season"}${w.ramp?" · ramp":""}${w.deload?" · deload":""} · ${esc(goalName(w.mode))}${w.focus?` · ${esc(w.focus)} focus`:""}</p></div>`).join("")}</div>`:`<p class="note">A new week begins on its own.</p>`}
   </div>`;
 }
@@ -723,7 +724,7 @@ function renderWeek(P){
   const nd=P.days[P.nextId];
   const others=ACT_IDS.filter(a=>a!=="lift"&&enabled(a));
   const acts=others.map(a=>stepper(a,ACT[a].name+" sessions",[0,1,2,3,4,5,6,7])).join("");
-  INFO.maint=M.useOura?`Your wearable's daily burn minus 7%, plus this week's cardio.`:`Resting ${r5(M.bmr)} + light movement ${r5(M.base-M.bmr)} + steps ${r5(M.stepsK)}${M.nLift?` + lifting ${r5(M.liftDay)}`:""} + digestion ${r5(M.tef)}${wk.calibN?`, ${M.calib>=0?"+":""}${r5(M.calib)} calibrated from ${wk.calibN} weigh-ins`:""}. Your base is what you'd burn on a day with no training; it only moves when your body data or steps change. Fuel today = base + your training this week − your deficit.`;
+  INFO.maint=M.useOura?`Your wearable's daily burn minus 7%, plus this week's cardio.`:`Resting ${r5(M.bmr)} + light movement ${r5(M.base-M.bmr)} + steps ${r5(M.stepsK)}${M.nLift?` + lifting ${r5(M.liftDay)} (${r5(wk.liftKAuto)} kcal a session, worked out weekly from how long your lifts take)`:""} + digestion ${r5(M.tef)}${wk.calibN?`, ${M.calib>=0?"+":""}${r5(M.calib)} calibrated from ${wk.calibN} weigh-ins`:""}. Your base is what you'd burn on a day with no training; it only moves when your body data or steps change. Fuel today = base + your training this week − your deficit.`;
   return `<div class="dayhead"><h2>Weekly check-in</h2></div>
   ${nd&&nd.restSuggest?`<p class="flag">Reps dropped two sessions in a row. Take a rest day before ${DAYS.find(d=>d.id===P.nextId).tab}.</p>`:""}
   ${enabled("lift")?`<div class="panel">${hdr("Schedule",["days","time"])}
@@ -1326,7 +1327,7 @@ function weekDone(s){
   const ws=wk.weeks||[], a=ws[ws.length-1], b=ws[ws.length-2];
   const dw=a&&a.w&&b&&b.w?(a.w-b.w):null;
   showDone({eyebrow:"Week complete",title:"Week done",
-    body:dTiles([["Lifts",`${s.lifts}/${s.planned}`],["Extra burn",s.cardio.toLocaleString()],["Weight",dw==null?(a&&a.w?String(a.w):"–"):`${dw>0?"+":dw<0?"−":""}${Math.abs(dw).toFixed(1)}`]])
+    body:dTiles([["Lifts",`${s.lifts}/${s.planned}`],["Exercise calories",s.cardio.toLocaleString()],["Weight",dw==null?(a&&a.w?String(a.w):"–"):`${dw>0?"+":dw<0?"−":""}${Math.abs(dw).toFixed(1)}`]])
       +(wk.missedNote?`<p class="dnote">${esc(capF(wk.missedNote.txt)+".")}</p>`:""),
     cta:"See this week",onCta:()=>goTab("week")});
 }

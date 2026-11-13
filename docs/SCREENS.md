@@ -34,7 +34,8 @@ From step 1 on, a "Plan so far" card at the bottom updates live. Finishing write
 - Header: LIFT BOARD title; a Today button (disabled when today is selected).
 - Week strip: seven day cells with a dot per item (green lift, pink activity); arrows to the previous/next week; today ringed; selected day filled.
 - Day line: ‹ "Today · Saturday, Nov 7" ›.
-- Day cards (swipe left/right on them to change day; cards slide):
+- Swiping: anywhere below the week strip, swipe left/right to change day (the cards slide). On the M–Sun strip itself, swipe left/right to change week.
+- Day cards:
   - **Today, lift planned**: workout title, exercise list with targets, Start workout; "Switch to …" link when relevant.
   - **Completed lift**: whole card is tappable and opens the workout with a card-to-page transition.
   - **Planned (future) lift**: Move to today.
@@ -94,7 +95,7 @@ Calendar · Weeks · Lifts switch (slides between them).
 
 [`50-you`, `51-you-edit-profile`]
 - Profile header: initial in a gradient circle, name, "Member since Aug 2026", a pill for each sport and activity (main sport first), stat tiles Lifts / Activities / Weeks active.
-- Profile grid in view mode shows only Goal, Experience, Lifting focus and Lift days. "View preferences" opens the rest, already editable: activities, sports in season, focus, bio data (including height, weight, body fat, steps, age and sex) and training preferences (experience slider, session length, supersets, stretching, rest timer sound with Play test sound, avg lift kcal). "Save & close" sticks above the tab bar when something changed; otherwise the button says "Close".
+- Profile grid in view mode shows only Goal, Experience, Lifting focus and Lift days. "View preferences" opens the rest, already editable: activities, sports in season, focus, bio data (including height, weight, body fat, steps, age and sex) and training preferences (experience slider, session length, supersets, stretching, rest timer sound with Play test sound; no lift kcal field, it is worked out weekly). "Save & close" sticks above the tab bar when something changed; otherwise the button says "Close".
 - App: Units (lb / kg), Tips (More / Fewer), Week starts on (Mon / Sun), Next-morning check (On / Off) as two-way switches. Stays under preferences.
 - FAQ: 15 expandable questions, no disclosure mark. Stays under App.
 - Your data: in the native app this becomes Export my data and Delete account (replacing Download / Restore backup).

@@ -77,3 +77,14 @@ A second way to run the workout screen: one exercise and one set at a time. Buil
 - The next set is prefilled with what was just logged.
 - After the last set, the usual Day done summary.
 - Count how often each view is used (an `events` row when a workout starts with its view), so you can decide later whether to keep it.
+
+---
+
+## 5. Small changes from the web app (Nov 13 evening)
+
+**Engine first:** these live in `src/engine.js`; port them into `packages/engine` (which has moved on from the web copy, so add them rather than copying the file) with the three new tests from `tests/engine.test.js` ("lift calories") and the updated "week actuals" test.
+
+- **Lift calories are worked out, not entered.** Remove "Avg lift kcal" from You → Training preferences. The engine's `liftKcal()` is weight training at MET 5, net of resting burn, for the average lifting minutes of your last 12 timed lifts (finisher minutes excluded), or your session length until there are 3. `refreshLiftK()` stores it in `wk.liftKAuto`; it runs once at the weekly rollover (`newWeek`), and the first time the plan is built if it's missing. The fuel math uses `wk.liftKAuto` instead of `wk.liftK`. The Fuel "How this is calculated" line for lifting adds "({n} kcal a session, worked out weekly from how long your lifts take)".
+- **Exercise calories include lifting.** `sessionKcal` for a lift session now counts the lifting minutes at MET 5 plus the cardio finisher, so `weekActuals().burn` covers everything you did.
+- **Rename "Extra burn".** Week done / weekly report tile: **Exercise calories**. History week cards: **exercise kcal**. Update `copy.ts` and `docs/COPY.md`.
+- **Swiping on Workouts.** Anywhere below the week strip, swipe left/right to change day (already built; make sure it works over the whole area, not just the cards). On the M–Sun strip itself, swipe left/right to change week, with the strip sliding in that direction. Ignore vertical drags and swipes that start in a text field.

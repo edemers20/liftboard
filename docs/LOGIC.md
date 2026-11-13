@@ -84,7 +84,7 @@ Score = sum of:
 ## 5. Food and cardio
 
 - **Maintenance:**
-  - Without a wearable: resting (Mifflin-St Jeor, or Katch-McArdle with body fat) × 1.1, plus steps, plus lifting days × avg lift kcal / 7, plus cardio, plus digestion (1/9).
+  - Without a wearable: resting (Mifflin-St Jeor, or Katch-McArdle with body fat) × 1.1, plus steps, plus lifting days × lift kcal per session / 7 (weight training at MET 5, net of resting burn, for the average lifting minutes of your last 12 timed lifts, finisher minutes excluded; your session length until there are 3; worked out once a week at the rollover), plus cardio, plus digestion (1/9).
   - With a wearable: the wearable's daily burn × 0.93.
   - Calibration (below) is added on top.
 - **Weekly deficit:** target rate × 3,500. Lose fat, keep muscle caps the rate at 0.7% of body weight a week (≈1.0 lb at 138 lb) and the cardio share at 25%. Default stays 0.5 lb/week. Build has no deficit, eats +200, and adds a set to main lifts.
@@ -162,7 +162,7 @@ Per lift, from your last logged set:
 ## Fat-loss pace guardrails (added)
 
 - **Pace bands** (shown under the rate on Season): ≤0.5% BW/week = room to keep building; 0.5–0.7% = hold muscle; >0.7% = strength likely slips, keep it short. Only Lose fat fast can go past 0.7%.
-- **Energy floor (all fat-loss goals):** intake never drops below 30 kcal per kg of lean mass plus the day's exercise (lifting days × lift kcal / 7 + all cardio / 7). Lean mass uses body fat if entered, otherwise 28% (female), 18% (male), 23% (other). If the plan would go under it, food comes up for the week and a note gives the slower expected loss.
+- **Energy floor (all fat-loss goals):** intake never drops below 30 kcal per kg of lean mass plus the day's exercise (lifting days × lift kcal per session / 7 + all cardio / 7). Lean mass uses body fat if entered, otherwise 28% (female), 18% (male), 23% (other). If the plan would go under it, food comes up for the week and a note gives the slower expected loss.
 - **Watch notes when pace > 0.5% BW:** expect to hold rather than build (Lose fat, keep muscle); a late, missed or changed period is a sign to slow down (female/other); reps dropping in the last session suggests easing the rate.
 - **Time limit:** each finished week records whether it ran fast. After 8 fast weeks in a row, a note suggests a few weeks at Maintain.
 
