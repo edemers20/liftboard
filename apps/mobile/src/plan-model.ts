@@ -557,7 +557,9 @@ function explain(math: {
   calib: number;
 }) {
   if (math.useOura) return copy.plan.wearable;
-  const lifting = math.nLift ? ` ${fill(copy.plan.plusLifting, [engine.r5(math.liftDay)])}` : "";
+  const lifting = math.nLift
+    ? ` ${fill(copy.plan.plusLifting, [engine.r5(math.liftDay), engine.r5(engine.wk.liftKAuto)])}`
+    : "";
   const calibrated = engine.wk.calibN
     ? fill(copy.plan.calibrated, [math.calib >= 0 ? "+" : "", engine.r5(math.calib), engine.wk.calibN])
     : "";

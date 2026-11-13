@@ -1,6 +1,6 @@
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
-import { Animated, PanResponder, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Animated, PanResponder, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import {
@@ -39,6 +39,20 @@ import { canSwapDay, SwapSheet, type SwapAnchor } from "@/components/swap-sheet"
 import { Swap } from "@/icons";
 import { ShareBox } from "@/workout/share-box";
 
+function startedInField(event: { nativeEvent: { target?: unknown } }) {
+  const target = event.nativeEvent.target as { closest?: (selector: string) => unknown; tagName?: string } | null;
+  if (target && typeof target === "object") {
+    if (typeof target.closest === "function" && target.closest("input, textarea")) return true;
+    if (typeof target.tagName === "string" && /^(input|textarea)$/i.test(target.tagName)) return true;
+  }
+  const state = TextInput.State as {
+    currentlyFocusedInput?: () => unknown;
+    currentlyFocusedField?: () => unknown;
+  };
+  const focused = state.currentlyFocusedInput?.() ?? state.currentlyFocusedField?.();
+  return focused != null && target != null && focused === target;
+}
+
 export default function WorkoutsScreen() {
   useEngineStore((state) => state.version);
   const reduce = useReduceMotion();
@@ -48,6 +62,7 @@ export default function WorkoutsScreen() {
   const reduceRef = useRef(reduce);
   const moving = useRef(false);
   const slide = useRef(new Animated.Value(0)).current;
+  const stripSlide = useRef(new Animated.Value(0)).current;
   const fade = useRef(new Animated.Value(1)).current;
   offsetRef.current = offset;
   reduceRef.current = reduce;
@@ -58,11 +73,13 @@ export default function WorkoutsScreen() {
     const destination = stripFor(next);
     if (destination.weekOffset < -8 || destination.weekOffset > 1) return;
     const direction = next > current ? 1 : -1;
+    const weekMove = stripFor(current).weekOffset !== destination.weekOffset;
     moving.current = true;
     offsetRef.current = next;
     setOffset(next);
     if (reduceRef.current) {
       slide.setValue(0);
+      stripSlide.setValue(0);
       fade.setValue(0.35);
       Animated.timing(fade, { toValue: 1, duration: 120, useNativeDriver: nativeDriver }).start(() => {
         moving.current = false;
@@ -73,6 +90,10 @@ export default function WorkoutsScreen() {
     Animated.timing(slide, { toValue: 0, duration: 200, useNativeDriver: nativeDriver }).start(() => {
       moving.current = false;
     });
+    if (weekMove) {
+      stripSlide.setValue(direction * 48);
+      Animated.timing(stripSlide, { toValue: 0, duration: 220, useNativeDriver: nativeDriver }).start();
+    }
   }
 
   const goRef = useRef(go);
@@ -86,14 +107,32 @@ export default function WorkoutsScreen() {
 
   const pan = useRef(
     PanResponder.create({
-      onMoveShouldSetPanResponderCapture: (_, gesture) =>
-        Math.abs(gesture.dx) > 24 && Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.5,
+      onMoveShouldSetPanResponderCapture: (event, gesture) => {
+        if (startedInField(event)) return false;
+        return Math.abs(gesture.dx) > 24 && Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.5;
+      },
       onPanResponderRelease: (_, gesture) => {
         if (Math.abs(gesture.dx) < 56) return;
         const current = offsetRef.current;
         const info = stripFor(current);
         if (gesture.dx < 0 && info.canNextDay) goRef.current(current + 1);
         if (gesture.dx > 0 && info.canPrevDay) goRef.current(current - 1);
+      },
+    }),
+  ).current;
+
+  const stripPan = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponderCapture: (event, gesture) => {
+        if (startedInField(event)) return false;
+        return Math.abs(gesture.dx) > 24 && Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.5;
+      },
+      onPanResponderRelease: (_, gesture) => {
+        if (Math.abs(gesture.dx) < 40) return;
+        const current = offsetRef.current;
+        const info = stripFor(current);
+        if (gesture.dx < 0 && info.canNextWeek) goRef.current(shiftWeek(current, 1));
+        if (gesture.dx > 0 && info.canPrevWeek) goRef.current(shiftWeek(current, -1));
       },
     }),
   ).current;
@@ -134,7 +173,7 @@ export default function WorkoutsScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.strip}>
+        <View style={styles.strip} {...stripPan.panHandlers}>
           <Pressable
             style={styles.weekArrow}
             disabled={!strip.canPrevWeek}
@@ -145,7 +184,7 @@ export default function WorkoutsScreen() {
           >
             <Text style={[styles.weekArrowText, !strip.canPrevWeek && styles.dimmed]}>‹</Text>
           </Pressable>
-          <View style={styles.cells}>
+          <Animated.View style={[styles.cells, { transform: [{ translateX: reduce ? 0 : stripSlide }] }]}>
             {strip.days.map((day) => (
               <Pressable
                 key={day.offset}
@@ -172,7 +211,9 @@ export default function WorkoutsScreen() {
                 >
                   {day.letter}
                 </Text>
-                <Text style={[styles.cellDate, day.past && !day.selected && styles.cellPastText]}>{day.date.getDate()}</Text>
+                <Text style={[styles.cellDate, day.today && styles.cellLetterToday, day.past && !day.selected && styles.cellPastText]}>
+                  {day.date.getDate()}
+                </Text>
                 <View style={styles.dots}>
                   {day.lift ? <View style={styles.dotLift} /> : null}
                   {day.activity ? <View style={styles.dotActivity} /> : null}
@@ -180,7 +221,7 @@ export default function WorkoutsScreen() {
                 </View>
               </Pressable>
             ))}
-          </View>
+          </Animated.View>
           <Pressable
             style={styles.weekArrow}
             disabled={!strip.canNextWeek}
@@ -193,6 +234,7 @@ export default function WorkoutsScreen() {
           </Pressable>
         </View>
 
+        <View style={styles.below} {...pan.panHandlers}>
         <View style={styles.dayLine}>
           <Pressable
             style={styles.dayArrow}
@@ -220,10 +262,7 @@ export default function WorkoutsScreen() {
         {offset === 0 ? <YesterdayBanner /> : null}
         {offset === 0 ? <SwapBanner onOpen={(id) => router.push({ pathname: "/workout/[id]", params: { id } })} /> : null}
 
-        <Animated.View
-          style={[styles.dayBody, { transform: [{ translateX: reduce ? 0 : slide }], opacity: fade }]}
-          {...pan.panHandlers}
-        >
+        <Animated.View style={[styles.dayBody, { transform: [{ translateX: reduce ? 0 : slide }], opacity: fade }]}>
           <View style={styles.cards}>
             <LiftCards
               offset={offset}
@@ -257,6 +296,7 @@ export default function WorkoutsScreen() {
             onLog={logOnDay}
           />
         </Animated.View>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -610,7 +650,7 @@ function PlannedLift({
             haptic.medium();
             engine.moveLiftToToday(id);
             onMoved();
-            useNotice.getState().show([fill(copy.workouts.moved, title)]);
+            useNotice.getState().show([fill(copy.workouts.moved, title)], { pulse: false });
           }}
           style={styles.liftMove}
         >
@@ -811,17 +851,17 @@ const styles = StyleSheet.create({
     borderRadius: theme.radii.tile,
     borderWidth: 2,
     borderColor: "transparent",
-    backgroundColor: "#24201d",
+    backgroundColor: theme.green.surface,
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 6,
     gap: 1,
   },
   cellPast: {
-    backgroundColor: "#211e1c",
+    backgroundColor: theme.green.background,
   },
   cellToday: {
-    backgroundColor: "#2f3a35",
+    backgroundColor: theme.green.accentFill,
   },
   cellSelected: {
     borderColor: theme.green.accent,
@@ -833,7 +873,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
   },
   cellLetterToday: {
-    color: theme.green.accent,
+    color: theme.green.onAccent,
   },
   cellDate: {
     color: theme.text,
@@ -946,6 +986,9 @@ const styles = StyleSheet.create({
   },
   openDay: {
     backgroundColor: "#24201d",
+  },
+  below: {
+    gap: 14,
   },
   dayBody: {
     gap: 14,

@@ -524,7 +524,7 @@ export const copy = {
     /** TODO copy: not in docs/COPY.md. Lock screen title when rest ends. */
     restUp: "Rest's up",
     /** TODO copy: not in docs/COPY.md. Lock screen body when rest ends. */
-    restUpBody: "Set {…} of {…} · {…}",
+    restUpBody: "Set {…} of {…} ({…})",
     /** Not its own row in docs/COPY.md. Shown on the rest bar. */
     minus15: "−15s",
     /** Not its own row in docs/COPY.md. Shown on the rest bar. */
@@ -663,7 +663,7 @@ export const copy = {
     weekReopened: "Week reopened",
     weekComplete: "Week complete",
     weekDone: "Week done",
-    extraBurn: "Extra burn",
+    extraBurn: "Exercise calories",
     seeThisWeek: "See this week",
     nothingPlanned: "Nothing planned yet. Pick your usual lift days below.",
     usualLiftDays: "Usual lift days · {…} a week",
@@ -687,7 +687,7 @@ export const copy = {
     kcal: "{…} kcal",
     finishers: "Remaining finishers: {…} min \u00d7 {…}",
     wearable: "Your wearable's daily burn minus 7%, plus this week's cardio.",
-    plusLifting: "+ lifting {…}",
+    plusLifting: "+ lifting {…} ({…} kcal a session, worked out weekly from how long your lifts take)",
     calibrated: ", {…}{…} calibrated from {…} weigh-ins",
     baseExplainer:
       "Resting {…} + light movement {…} + steps {…}{…} + digestion {…}{…}. Your base is what you'd burn on a day with no training; it only moves when your body data or steps change. Fuel today = base + your training this week \u2212 your deficit.",
@@ -861,7 +861,8 @@ export const copy = {
     counted: "✓ Counted",
     liftsOf: (done: number, planned: number) => `${done} of ${planned} lifts`,
     sets: "Sets",
-    extraBurn: "Extra burn",
+    extraBurn: "exercise kcal",
+    exerciseKcal: "Exercise kcal",
     setsByMuscle: "Sets by muscle",
     donePlanned: "done / planned",
     countCompleted: "Count as completed",
@@ -870,15 +871,18 @@ export const copy = {
     recentPrs: "Recent PRs",
     prTop: "Top set",
     prReps: "Reps",
-    estWindow: "est. 1RM · last 8 weeks",
-    estUnit: (unit: string) => `${unit} est. 1RM`,
+    about1Rm: "About 1RM and top sets",
+    oneRm: (unit: string) => `${unit} 1RM`,
+    oneRmLead: "1RM",
+    oneRmBody:
+      " is an estimate of the most you could lift once, worked out from your top set (weight × (1 + reps ÷ 30)). It's for tracking trends; you never need to test it.",
+    topSetMeans: "Your top set: the heaviest set you did that week.",
+    last8: "Shown for the last 8 weeks.",
     in8wk: "in 8 wk",
     weekColumn: "Week of",
     topSetColumn: "Top set",
-    estColumn: "est. 1RM",
+    oneRmColumn: "1RM",
     prMark: "PR",
-    estNote:
-      "Est. 1RM is worked out from your top set (weight × (1 + reps ÷ 30)). It's for tracking trends; you never need to test it.",
     appearsAfter: "Appears after you finish a lift day.",
     sessionsShow: "Sessions show up here when you finish a lift day or enter minutes for an activity.",
     lifting: "Lifting",
@@ -930,6 +934,10 @@ export const copy = {
       return `All ${lifts} ${liftWord} done. ${streak} ${weekWord} completed in a row.`;
     },
     goingUp: "Going up next week",
+    records: "Personal Records",
+    activityTile: "Activity",
+    exerciseCalories: "Exercise calories",
+    moreReps: "More reps",
     prs: (n: number) => (n === 1 ? "1 PR this week" : `${n} PRs this week`),
     heaviest: "Heaviest top set",
     was: "was {…}",

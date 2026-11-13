@@ -20,7 +20,7 @@ import Svg, { Circle, Polyline } from "react-native-svg";
 
 import { copy } from "@/copy";
 import type { HistoryDay, HistoryLift, HistoryPr, HistorySession, HistorySnapshot, HistoryWeek, MuscleBar, SessionExercise } from "@/history-data";
-import { Info } from "@/icons";
+import { Info, TabWorkouts } from "@/icons";
 import {
   displayWeight,
   formatHours,
@@ -69,7 +69,6 @@ const SPLIT_FILL = {
 const UNDER = "#e7b94a";
 const DONE_PILL = "#1f3029";
 const TRACK = "#34302c";
-const NOTE = "#8f8783";
 const PR_CARD = "#2a211c";
 const HAIRLINE = "#2f2a27";
 
@@ -544,15 +543,18 @@ function WeekMix({
   const mix = data.mix;
   if (!mix) return null;
   const used = MIX_ORDER.filter((kind) => mix.weeks.some((week) => week.minutes[kind] > 0));
-  const average = mix.averageMinutes ? copy.history.aboutAWeek(formatHours(mix.averageMinutes)) : "";
+  const averageHours = mix.averageMinutes / 60;
+  const trend = mix.averageMinutes > 0 ? averageHours.toFixed(1) : "";
   return (
     <View style={styles.panel}>
       <SectionHeading title={copy.history.weekMix} open={open} onInfo={onInfo} />
-      <Text style={styles.note}>
-        {copy.history.hoursByKind}
-        {average}
-      </Text>
-      <View accessibilityRole="image" accessibilityLabel={mixSummary(mix.weeks)} style={styles.mix}>
+      <View
+        accessibilityRole="image"
+        accessibilityLabel={[mixSummary(mix.weeks), trend ? copy.history.aboutAWeek(trend).replace(/^ · /, "") : ""]
+          .filter(Boolean)
+          .join(". ")}
+        style={styles.mix}
+      >
         {mix.weeks.map((week) => (
           <View key={week.start} style={styles.mixCol}>
             <Text style={styles.mixHours}>{week.total ? formatHours(week.total) : ""}</Text>
@@ -568,6 +570,15 @@ function WeekMix({
             </Text>
           </View>
         ))}
+        {trend ? (
+          <View
+            pointerEvents="none"
+            style={[styles.trend, { bottom: 18 + (mix.averageMinutes / mix.max) * BAR_MAX - 7 }]}
+          >
+            <View style={styles.trendLine} />
+            <Text style={styles.trendValue}>{trend}</Text>
+          </View>
+        ) : null}
       </View>
       {used.length ? (
         <View style={styles.legend}>
@@ -592,7 +603,7 @@ function WeeksPage({ data }: { data: HistorySnapshot }) {
           <View style={styles.streakRow}>
             <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.streakDots}>
               {data.dots.map((done, index) => (
-                <View key={index} style={[styles.streakDot, { backgroundColor: done ? theme.green.accent : TRACK }]} />
+                <View key={index} style={[styles.streakDot, { backgroundColor: done ? theme.fuel : TRACK }]} />
               ))}
             </View>
             <Text style={styles.streakText}>{copy.history.streakWeeks(data.streak)}</Text>
@@ -629,7 +640,7 @@ function WeekCard({ week, open, onToggle }: { week: HistoryWeek; open: boolean; 
       <View style={styles.weekStats}>
         <Stat label={copy.history.lifts} value={`${week.lifts}/${week.planned}`} />
         <Stat label={copy.history.sets} value={String(week.sets)} />
-        <Stat label={copy.history.extraBurn} value={Math.round(week.burn).toLocaleString("en-US")} />
+        <Stat label={copy.history.exerciseKcal} value={Math.round(week.burn).toLocaleString("en-US")} />
       </View>
     </>
   );
@@ -718,6 +729,7 @@ function MuscleRow({ muscle }: { muscle: MuscleBar }) {
 
 function LiftsPage({ data }: { data: HistorySnapshot }) {
   const [open, setOpen] = useState<string | null>(null);
+  const [tip, setTip] = useState(false);
   if (!data.lifts.length && !data.prs.length) {
     return (
       <ScrollView contentContainerStyle={styles.stack}>
@@ -749,7 +761,29 @@ function LiftsPage({ data }: { data: HistorySnapshot }) {
           <Text accessibilityRole="header" style={styles.sectionTitle}>
             {copy.history.mainLifts}
           </Text>
-          <Text style={styles.muscleHint}>{copy.history.estWindow}</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={copy.history.about1Rm}
+            accessibilityState={{ expanded: tip }}
+            hitSlop={8}
+            onPress={() => setTip((current) => !current)}
+            style={styles.liftInfo}
+          >
+            <Info size={16} color={theme.muted} />
+          </Pressable>
+        </View>
+      ) : null}
+      {data.lifts.length && tip ? (
+        <View accessibilityRole="text" style={styles.tip}>
+          <Text style={styles.tipBody}>
+            <Text style={styles.tipStrong}>{copy.history.oneRmLead}</Text>
+            {copy.history.oneRmBody}
+          </Text>
+          <View style={styles.tipRow}>
+            <TabWorkouts size={14} color={theme.muted} />
+            <Text style={styles.tipMuted}>{copy.history.topSetMeans}</Text>
+          </View>
+          <Text style={styles.tipMuted}>{copy.history.last8}</Text>
         </View>
       ) : null}
       {data.lifts.map((lift) => (
@@ -761,7 +795,6 @@ function LiftsPage({ data }: { data: HistorySnapshot }) {
           onToggle={() => setOpen((current) => (current === lift.name ? null : lift.name))}
         />
       ))}
-      {data.lifts.length ? <Text style={styles.estNote}>{copy.history.estNote}</Text> : null}
     </ScrollView>
   );
 }
@@ -801,7 +834,7 @@ function LiftCard({
       <Pressable
         accessibilityRole="button"
         accessibilityState={{ expanded: open }}
-        accessibilityLabel={`${lift.name}. ${formatWeight(lift.e1)} ${copy.history.estUnit(unit)}. ${copy.history.prTop} ${top}${delta ? `. ${delta}` : ""}`}
+        accessibilityLabel={`${lift.name}. ${formatWeight(lift.e1)} ${copy.history.oneRm(unit)}. ${copy.history.prTop} ${top}${delta ? `. ${delta}` : ""}`}
         onPress={onToggle}
         style={styles.liftButton}
       >
@@ -811,17 +844,22 @@ function LiftCard({
           </Text>
           <View style={styles.e1Row}>
             <Text style={styles.e1Value}>{formatWeight(lift.e1)}</Text>
-            <Text style={styles.e1Unit}>{copy.history.estUnit(unit)}</Text>
+            <Text style={styles.e1Unit}>{copy.history.oneRm(unit)}</Text>
           </View>
-          <Text style={styles.topLine}>
-            {copy.history.prTop} <Text style={styles.topSet}>{top}</Text>
-            {delta ? " · " : ""}
+          <View style={styles.topLine}>
+            <View accessibilityLabel={copy.history.prTop} accessibilityRole="image">
+              <TabWorkouts size={14} color={theme.muted} />
+            </View>
+            <Text style={styles.topSet}>{top}</Text>
             {delta ? (
-              <Text style={{ color: rising ? theme.green.accent : theme.muted }}>{delta}</Text>
+              <Text style={styles.deltaLine}>
+                {" · "}
+                <Text style={{ color: rising ? theme.green.accent : theme.muted }}>{delta}</Text>
+              </Text>
             ) : null}
-          </Text>
+          </View>
         </View>
-        <Spark values={lift.series} label={`${lift.name}. ${copy.history.estWindow}`} />
+        <Spark values={lift.series} label={`${lift.name}. ${formatWeight(lift.e1)} ${copy.history.oneRm(unit)}`} />
       </Pressable>
       {open ? (
         <Reveal>
@@ -829,7 +867,7 @@ function LiftCard({
             <View style={styles.tableHead}>
               <Text style={styles.tableLabel}>{copy.history.weekColumn}</Text>
               <Text style={styles.tableLabel}>{copy.history.topSetColumn}</Text>
-              <Text style={[styles.tableLabel, styles.tableRight]}>{copy.history.estColumn}</Text>
+              <Text style={[styles.tableLabel, styles.tableRight]}>{copy.history.oneRmColumn}</Text>
             </View>
             {lift.rows
               .slice()
@@ -937,7 +975,18 @@ const styles = StyleSheet.create({
   },
   infoButton: { marginLeft: 6 },
   note: { fontFamily: theme.fonts.body, fontSize: 13, lineHeight: 18, color: theme.muted },
-  mix: { minHeight: 150, flexDirection: "row", alignItems: "flex-end", gap: 8 },
+  mix: { minHeight: 150, flexDirection: "row", alignItems: "flex-end", gap: 8, position: "relative" },
+  trend: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    height: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  trendLine: { flex: 1, height: 1, backgroundColor: theme.fuel },
+  trendValue: { fontFamily: theme.fonts.monoMedium, fontSize: 11, color: theme.fuel },
   mixCol: { flex: 1, alignItems: "center", justifyContent: "flex-end", gap: 4, minWidth: 0 },
   mixHours: { height: 14, fontFamily: theme.fonts.monoMedium, fontSize: 11, color: "#d4cfcc" },
   mixBar: {
@@ -1026,7 +1075,7 @@ const styles = StyleSheet.create({
   streakRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 2, paddingVertical: 4 },
   streakDots: { flexDirection: "row", gap: 4, flexShrink: 1 },
   streakDot: { width: 14, height: 14, borderRadius: 4 },
-  streakText: { flexShrink: 1, fontFamily: theme.fonts.body, fontSize: 13, color: theme.muted },
+  streakText: { flexShrink: 1, fontFamily: theme.fonts.body, fontSize: 13, color: theme.fuel },
   card: { backgroundColor: theme.orange.surface, borderRadius: 16, overflow: "hidden" },
   cardButton: { paddingHorizontal: 16, paddingVertical: 14, gap: 10 },
   weekTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
@@ -1094,15 +1143,22 @@ const styles = StyleSheet.create({
   prName: { fontFamily: theme.fonts.body, fontSize: 13, color: theme.text },
   prValue: { fontFamily: theme.fonts.monoMedium, fontSize: 20, color: theme.text },
   prDate: { fontFamily: theme.fonts.body, fontSize: 12, color: theme.muted },
-  liftHead: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 8 },
+  liftHead: { flexDirection: "row", alignItems: "center", gap: 6 },
+  liftInfo: { width: 28, height: 28, alignItems: "center", justifyContent: "center" },
+  tip: { backgroundColor: "#2f2a27", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, gap: 6 },
+  tipBody: { fontFamily: theme.fonts.body, fontSize: 13, lineHeight: 18, color: theme.text },
+  tipStrong: { fontFamily: theme.fonts.bodySemi, fontSize: 13, color: theme.text },
+  tipRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  tipMuted: { flex: 1, fontFamily: theme.fonts.body, fontSize: 13, lineHeight: 18, color: theme.muted },
   liftButton: { paddingHorizontal: 16, paddingVertical: 14, flexDirection: "row", alignItems: "center", gap: 12 },
   liftCopy: { flex: 1, minWidth: 0 },
   liftName: { fontFamily: theme.fonts.body, fontSize: 14, color: theme.text },
   e1Row: { flexDirection: "row", alignItems: "baseline", gap: 6 },
   e1Value: { fontFamily: theme.fonts.monoMedium, fontSize: 26, lineHeight: 32, color: theme.text },
   e1Unit: { fontFamily: theme.fonts.body, fontSize: 12, color: theme.muted },
-  topLine: { fontFamily: theme.fonts.body, fontSize: 12, color: theme.muted },
+  topLine: { flexDirection: "row", alignItems: "center", gap: 5, fontFamily: theme.fonts.body, fontSize: 12, color: theme.muted },
   topSet: { fontFamily: theme.fonts.mono, fontSize: 12, color: theme.text },
+  deltaLine: { fontFamily: theme.fonts.body, fontSize: 12, color: theme.muted },
   spark: { width: 96, height: 44 },
   liftTable: { paddingHorizontal: 16, paddingBottom: 14, gap: 6 },
   tableHead: { flexDirection: "row", borderTopWidth: 1, borderTopColor: HAIRLINE, paddingTop: 10 },
@@ -1112,7 +1168,6 @@ const styles = StyleSheet.create({
   tableMono: { flex: 1, fontFamily: theme.fonts.mono, fontSize: 13, color: theme.text },
   tableRight: { textAlign: "right" },
   tablePr: { color: theme.fuel },
-  estNote: { fontFamily: theme.fonts.body, fontSize: 12, lineHeight: 17, color: NOTE },
   backdrop: { flex: 1 },
   popover: {
     position: "absolute",

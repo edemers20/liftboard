@@ -532,7 +532,8 @@ function plan(){ buildDefaults(); const cut=cutting();
   const bmr=bfOk?370+21.6*kg()*(1-bf/100):10*kg()+6.25*num(wk.height,64)*2.54-5*num(wk.age,30)+sexOff;
   const stepsK=num(wk.steps,8000)*0.04*num(wk.weight,150)/150;
   const baseM=bmr*1.1;
-  const nLift=DAYS.length, liftDay=nLift*num(wk.liftK,150)/7;
+  if(!(num(wk.liftKAuto,0)>0)) refreshLiftK();
+  const nLift=DAYS.length, liftDay=nLift*num(wk.liftKAuto,0)/7;
   const ouraV=num(wk.oura,0), useOura=ouraV>0;
   const act=baseM+stepsK+liftDay+cardioTotal/7, tef=act/9;
   const raw=useOura?ouraV*0.93:act+tef;
@@ -724,9 +725,20 @@ function logAct(key,n,val,t){
 }
 /** What you did: each exercise with its top set (heaviest, then most reps) and sets done. */
 /* What a logged session actually burned above resting (net kcal), from its minutes:
-   activities by their MET, lifts by the cardio finisher minutes saved with the session. */
+   activities by their MET, lifts by lifting minutes at MET 5 plus the cardio finisher. */
+/* Lifting burn: weight training at MET 5 for the lifting part of the session (finisher minutes are counted on their own).
+   Net of resting burn, like activities. A session without a saved duration counts as your session length. */
+const LIFT_MET=5;
+const finMin=x=>(x.ex||[]).filter(e=>e.cardio&&e.min>0).reduce((a,e)=>a+e.min,0);
+const liftMinOf=x=>Math.max(0,(num(x.min,0)>0?num(x.min,0):num(wk.time,60))-finMin(x));
+/* Per-session lift kcal for the fuel math: average of your last 12 timed lifts (3+ needed, else session length).
+   Worked out once a week (at the week rollover), not on every change. */
+function liftKcal(){ const L=(wk.sessions||[]).filter(x=>x.k==="lift"&&num(x.min,0)>0).slice(-12);
+  const m=L.length>=3?L.reduce((a,x)=>a+liftMinOf(x),0)/L.length:num(wk.time,60);
+  return Math.round(m*perMin(LIFT_MET)/5)*5; }
+function refreshLiftK(){ wk.liftKAuto=liftKcal(); return wk.liftKAuto; }
 function sessionKcal(x){
-  if(x.k==="lift") return (x.ex||[]).filter(e=>e.cardio&&e.min>0).reduce((a,e)=>a+e.min*perMin((CARDIO[e.n]||CARDIO["Incline Walk"]).met),0);
+  if(x.k==="lift") return liftMinOf(x)*perMin(LIFT_MET)+(x.ex||[]).filter(e=>e.cardio&&e.min>0).reduce((a,e)=>a+e.min*perMin((CARDIO[e.n]||CARDIO["Incline Walk"]).met),0);
   const A=ACT[x.k]; if(!A||!(x.min>0)) return 0;
   const met=x.k==="yoga"?yogaMet():x.k==="pilates"?pilMet():x.k==="spin"?(SPIN_MET[wk.spint]||8.5):A.met;
   return met?x.min*perMin(met):0;
@@ -814,6 +826,7 @@ function newWeek(start){
     const slope=xs.reduce((a,x,j)=>a+(x-mx)*(ys[j]-my),0)/Math.max(1e-9,xs.reduce((a,x)=>a+(x-mx)**2,0));
     const avgIn=ws.reduce((a,x)=>a+x.intake,0)/ws.length, avgRaw=ws.reduce((a,x)=>a+x.raw,0)/ws.length;
     wk.calib=Math.max(-400,Math.min(400,r5(avgIn-slope*500-avgRaw))); wk.calibN=ws.length; }
+  refreshLiftK();
   const begin=start||Date.now();
   record.nextStart=begin;
   const rule=chosenWeekRule();
@@ -1040,22 +1053,32 @@ function offerNudge(dayId, i){
 }
 /** Est. 1RM from a top set. Epley, rounded. Bodyweight work has none; callers skip it. */
 function e1rm(w, r){ return Math.round(num(w, 0) * (1 + num(r, 0) / 30)); }
-/** One top set per calendar week, oldest first. A PR is a heavier top set, or more reps at that same weight. A higher estimate alone is not. */
+/** One top set per calendar week, oldest first. A PR is a heavier top set, or more reps at the same or a heavier weight. A higher estimate alone is not. */
 function weekTops(name){
   const by=new Map();
   (exHist[name]||[]).forEach(x=>{ if(!x||!x.t) return; const start=weekStartOf(x.t).getTime();
     const row={w:num(x.w,0),r:num(x.r,0),t:x.t}, cur=by.get(start);
     if(!cur||row.w>cur.w||(row.w===cur.w&&row.r>cur.r)) by.set(start, row); });
-  const bw=isBW(name); let bestW=-Infinity, bestR=-Infinity;
+  const bw=isBW(name), prev=[];
   return [...by.entries()].sort((a,b)=>a[0]-b[0]).map(([start, row])=>{
     let pr="", wasW=null, wasR=null;
-    if(!bw&&bestW!==-Infinity){
-      if(row.w>bestW) pr="top";
-      else if(row.w===bestW&&row.r>bestR) pr="reps";
-      if(pr){ wasW=bestW; wasR=bestR; }
+    if(!bw&&prev.length){
+      const bestW=Math.max(...prev.map(p=>p.w));
+      if(row.w>bestW){
+        pr="top";
+        const was=prev.filter(p=>p.w===bestW).reduce((a,p)=>p.r>a.r?p:a);
+        wasW=was.w; wasR=was.r;
+      } else if(!prev.some(p=>p.w>=row.w&&p.r>=row.r)){
+        const beaten=prev.filter(p=>p.w<=row.w&&p.r<row.r);
+        if(beaten.length){
+          pr="reps";
+          const same=beaten.filter(p=>p.w===row.w), pool=same.length?same:beaten;
+          const was=pool.reduce((a,p)=>p.w>a.w||(p.w===a.w&&p.r>a.r)?p:a);
+          wasW=was.w; wasR=was.r;
+        }
+      }
     }
-    if(bestW===-Infinity||row.w>bestW){ bestW=row.w; bestR=row.r; }
-    else if(row.w===bestW&&row.r>bestR) bestR=row.r;
+    prev.push(row);
     return {start, w:row.w, r:row.r, t:row.t, e1:bw||!(row.w>0)?null:e1rm(row.w, row.r), pr:bw?"":pr, wasW, wasR};
   });
 }
@@ -1120,7 +1143,7 @@ function setsLogged(){
   DAYS.forEach(d=>d.slots.forEach((s,i)=>{ if(s.cardio) return; n+=(get(d.id,i).log||[]).filter(x=>x.d).length; }));
   return n;
 }
-/** PRs whose top set landed in this calendar week. A higher est. 1RM by itself is not one. */
+/** PRs whose top set landed in this calendar week. A higher 1RM by itself is not one. */
 function prsForClose(bucket){
   const out=[];
   Object.keys(exHist).forEach(name=>{
@@ -1179,4 +1202,4 @@ function dayComplete(dayId){
     return (get(dayId,i).log||[]).filter(x=>x.d).length>=A.sets; });
 }
 
-export { sessionKcal, weekActuals, swapOptions, swapDay, earlyDone, planOff, finishWeek, undoFinish, hasFinishSnap, rateLb, isBW, yogaMet, pilMet, YOGA_EFF, PIL_EFF, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, MUSCLES, slotMuscles, musclePriority, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk, weekModel, dayBoard, moveLiftToToday, dayKey, weekStartOf, weekRuleAt, setWeekStart, restPlan, beginRest, adjustRest, clearRest, restView, startingGuess, startWeight, showsSide, sideDefault, lastSide, offerNudge, dayComplete, e1rm, weekTops, liftTrends, recentPrs, weekCompleted, weekStreak, countWeek, weekActivities, weekReport, pendingWeekReport, dismissWeekReport };
+export { sessionKcal, liftKcal, refreshLiftK, LIFT_MET, weekActuals, swapOptions, swapDay, earlyDone, planOff, finishWeek, undoFinish, hasFinishSnap, rateLb, isBW, yogaMet, pilMet, YOGA_EFF, PIL_EFF, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, MUSCLES, slotMuscles, musclePriority, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk, weekModel, dayBoard, moveLiftToToday, dayKey, weekStartOf, weekRuleAt, setWeekStart, restPlan, beginRest, adjustRest, clearRest, restView, startingGuess, startWeight, showsSide, sideDefault, lastSide, offerNudge, dayComplete, e1rm, weekTops, liftTrends, recentPrs, weekCompleted, weekStreak, countWeek, weekActivities, weekReport, pendingWeekReport, dismissWeekReport };

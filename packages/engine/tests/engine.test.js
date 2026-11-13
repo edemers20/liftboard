@@ -563,15 +563,40 @@ describe("week actuals from the log", () => {
     const start = Date.UTC(2026, 10, 2, 5), D = 864e5;
     E.wk.sessions = [
       { t: start + 1 * D, k: "pickle", min: 90 },
-      { t: start + 3 * D, k: "lift", id: "d1", ex: [{ n: "Hip Thrust (Barbell)", w: 185, r: 8 }, { n: "Incline Walk", cardio: 1, min: 80 }] },
+      { t: start + 3 * D, k: "lift", id: "d1", min: 125, ex: [{ n: "Hip Thrust (Barbell)", w: 185, r: 8 }, { n: "Incline Walk", cardio: 1, min: 80 }] },
       { t: start + 9 * D, k: "pickle", min: 60 }
     ];
     const A = E.weekActuals(start);
     expect(A.sport).toBe(90);
     expect(A.lifts).toBe(1);
-    // 138 lb = 62.6 kg; pickleball (4.5-1)*3.5*62.6/200*90 = 345, incline walk (6.5-1)*3.5*62.6/200*80 = 482
-    expect(A.burn).toBeGreaterThan(810);
-    expect(A.burn).toBeLessThan(840);
+    // 138 lb = 62.6 kg; pickleball (4.5-1)*3.5*62.6/200*90 = 345, incline walk (6.5-1)*3.5*62.6/200*80 = 482,
+    // lifting 125 - 80 finisher = 45 min at (5-1)*3.5*62.6/200 = 197
+    expect(A.burn).toBeGreaterThan(1005);
+    expect(A.burn).toBeLessThan(1040);
+  });
+});
+
+describe("lift calories", () => {
+  const D = 864e5;
+  it("uses session length until there are 3 timed lifts", () => {
+    fresh({ weight: "138", time: 60 });
+    // 60 min at (5-1)*3.5*62.6/200 = 4.38 kcal/min = 263 → 265
+    expect(E.liftKcal()).toBe(265);
+  });
+  it("averages the lifting minutes of recent timed lifts, finishers excluded", () => {
+    fresh({ weight: "138", time: 60 });
+    E.wk.sessions = [45, 45, 75].map((m, i) => ({ t: i * D, k: "lift", id: "d1", min: m, ex: i === 2 ? [{ n: "Incline Walk", cardio: 1, min: 30 }] : [] }));
+    // 45, 45, 45 lifting minutes → 197 → 195
+    expect(E.liftKcal()).toBe(195);
+  });
+  it("is worked out weekly, not on every change", () => {
+    fresh({ weight: "138", time: 60 });
+    E.plan();
+    const before = E.wk.liftKAuto;
+    E.wk.time = 30; E.plan();
+    expect(E.wk.liftKAuto).toBe(before);
+    E.newWeek(Date.now());
+    expect(E.wk.liftKAuto).toBeLessThan(before);
   });
 });
 
@@ -615,6 +640,22 @@ describe("estimated 1RM, PRs and the week streak", () => {
     expect(hack[2].e1).toBeGreaterThan(hack[1].e1);
     expect(E.recentPrs().some(pr => pr.name === "Hack Squat" && pr.t === week(2))).toBe(false);
     expect(E.recentPrs()[0]).toMatchObject({ name: "Hip Thrust (Barbell)", kind: "top", w: 145, r: 5 });
+  });
+
+  it("counts more reps at the same or a heavier weight, and ignores a lighter set with a higher estimate", () => {
+    fresh();
+    const first = E.weekStartOf(atNoon(2026, 0, 15)).getTime();
+    const week = (n) => { const d = new Date(first); d.setDate(d.getDate() + 7 * n); d.setHours(12, 0, 0, 0); return d.getTime(); };
+    E.exHist["Overhead Press (Barbell)"] = [
+      { w: 100, r: 8, t: week(0) },
+      { w: 120, r: 5, t: week(1) },
+      { w: 110, r: 10, t: week(2) },
+      { w: 95, r: 12, t: week(3) },
+    ];
+    const rows = E.weekTops("Overhead Press (Barbell)");
+    expect(rows[2]).toMatchObject({ w: 110, r: 10, pr: "reps", wasW: 100, wasR: 8 });
+    expect(rows[3].pr).toBe("");
+    expect(rows[3].e1).toBeGreaterThan(rows[0].e1);
   });
 
   it("gives bodyweight exercises no estimate and leaves them out of trends and PRs", () => {

@@ -44,7 +44,6 @@ import {
   fitPace,
   migratePace,
   paceFromDial,
-  pacePercentLabel,
   readPlan,
   weightForInput,
   weightForStore,
@@ -92,7 +91,6 @@ export default function PlanScreen() {
   const { width } = useWindowDimensions();
   const [view, setView] = useState<ViewName>(savedView);
   const [pendingSeason, setPendingSeason] = useState<"In-season" | "Off-season" | null>(null);
-  const [pendingWeek, setPendingWeek] = useState(false);
   const [pendingFinish, setPendingFinish] = useState(false);
   const weekScroll = useRef<ScrollViewInstance>(null);
   const progress = useSharedValue(view === "season" ? 1 : 0);
@@ -122,9 +120,9 @@ export default function PlanScreen() {
     return (engine.diffFx(before, after) as string[]).slice(0, cap);
   }
 
-  function commitToast(mutate: () => void) {
+  function commitToast(mutate: () => void, pulse = true) {
     const lines = commit(mutate);
-    if (lines.length) show(lines);
+    if (lines.length) show(lines, pulse);
   }
 
   function applySeason(next: "In-season" | "Off-season") {
@@ -135,7 +133,7 @@ export default function PlanScreen() {
       engine.wk.donePlan = {};
       engine.wk.upNext = "";
       engine.wk.missedNote = null;
-    });
+    }, false);
   }
 
   const actions: Actions = {
@@ -143,7 +141,7 @@ export default function PlanScreen() {
       if (engine.wk[key] === value) return;
       commitToast(() => {
         engine.wk[key] = value;
-      });
+      }, false);
     },
     commitWeight(text) {
       const stored = weightForStore(text);
@@ -178,7 +176,7 @@ export default function PlanScreen() {
         engine.wk.ldays = next;
         engine.wk.days = next.length;
         engine.syncDays();
-      });
+      }, false);
     },
     toggleActivity(index) {
       const current: number[] = model.activityDays;
@@ -202,24 +200,24 @@ export default function PlanScreen() {
         commit(() => {
           engine.wk.ramp = value;
         });
-        show([copy.plan.preSeasonRamp, copy.plan.zone2Added]);
+        show([copy.plan.preSeasonRamp, copy.plan.zone2Added], false);
         return;
       }
       commitToast(() => {
         engine.wk.ramp = value;
-      });
+      }, false);
     },
     setDeload(on) {
       commitToast(() => {
         engine.wk.deload = on ? "Yes" : "No";
-      });
+      }, false);
     },
     setGoal(value) {
       if (engine.wk.mode === value) return;
       commitToast(() => {
         engine.wk.mode = value;
         fitPace();
-      });
+      }, false);
     },
     setPace(value) {
       const next = paceFromDial(value);
@@ -232,7 +230,7 @@ export default function PlanScreen() {
       if (engine.wk.focus === value) return;
       commitToast(() => {
         engine.wk.focus = value;
-      });
+      }, false);
     },
     undoFinish() {
       if (!engine.undoFinish()) return;
@@ -295,7 +293,6 @@ export default function PlanScreen() {
       actions={actions}
       scrollRef={weekScroll}
       reduceMotion={reduceMotion}
-      onStartWeek={() => setPendingWeek(true)}
       onFinishWeek={() => setPendingFinish(true)}
     />
   );
@@ -360,18 +357,6 @@ export default function PlanScreen() {
             const next = pendingSeason;
             setPendingSeason(null);
             applySeason(next);
-          }}
-        />
-      ) : null}
-      {pendingWeek ? (
-        <ConfirmCard
-          title={copy.plan.startNewWeekTitle}
-          body={copy.plan.startNewWeekBody}
-          confirm={copy.plan.startNewWeek}
-          onCancel={() => setPendingWeek(false)}
-          onConfirm={() => {
-            setPendingWeek(false);
-            engine.newWeek();
           }}
         />
       ) : null}
@@ -477,14 +462,12 @@ function WeekPane({
   actions,
   scrollRef,
   reduceMotion,
-  onStartWeek,
   onFinishWeek,
 }: {
   model: PlanRead;
   actions: Actions;
   scrollRef: RefObject<ScrollViewInstance | null>;
   reduceMotion: boolean;
-  onStartWeek: () => void;
   onFinishWeek: () => void;
 }) {
   const saving = useRef(false);
@@ -631,12 +614,9 @@ function WeekPane({
       <FuelCard model={model} />
       {model.changes.length ? <ChangeList title={copy.plan.changes} info={copy.plan.info.changes} rows={model.changes} /> : null}
       {model.watch.length ? <WatchList notes={model.watch} /> : null}
-      <Pressable accessibilityRole="button" onPress={onStartWeek} style={styles.newWeek}>
-        <Text style={styles.newWeekText}>{copy.plan.startNewWeek}</Text>
-      </Pressable>
       {model.finishedEarly ? null : (
-        <Pressable accessibilityRole="button" onPress={onFinishWeek} style={styles.finishWeek}>
-          <Text style={styles.finishWeekText}>{copy.plan.markWeekFinished}</Text>
+        <Pressable accessibilityRole="button" onPress={onFinishWeek} style={styles.newWeek}>
+          <Text style={styles.newWeekText}>{copy.plan.markWeekFinished}</Text>
         </Pressable>
       )}
       {model.ckDone ? (
@@ -711,7 +691,6 @@ function SeasonPane({
   actions: Actions;
   reduceMotion: boolean;
 }) {
-  const [goalsOpen, setGoalsOpen] = useState(false);
   const [hot, setHot] = useState<Record<string, boolean>>({});
   const previous = useRef<Record<string, string> | null>(null);
 
@@ -778,22 +757,6 @@ function SeasonPane({
           onChange={actions.setGoal}
           options={copy.plan.goals.map((goal) => ({ value: goal.value, label: goal.label }))}
         />
-        <Pressable
-          accessibilityRole="button"
-          accessibilityState={{ expanded: goalsOpen }}
-          onPress={() => setGoalsOpen((open) => !open)}
-          style={styles.disclosure}
-        >
-          <Text style={linkStyle()}>{copy.plan.goalDefinitions}</Text>
-        </Pressable>
-        {goalsOpen
-          ? copy.plan.goals.map((goal) => (
-              <Text key={goal.value} style={noteStyle()}>
-                <Text style={styles.definitionName}>{goal.label}. </Text>
-                {goal.definition}
-              </Text>
-            ))
-          : null}
         {model.pace ? (
           <Field label={copy.plan.pace}>
             <View style={styles.paceRow}>
@@ -807,14 +770,12 @@ function SeasonPane({
                   step: model.pace.step,
                   unit: model.pace.unit,
                 }}
-                detail={(shown) => <PaceCaption percent={pacePercentLabel(shown)} center />}
                 onChange={actions.setPace}
                 style={[styles.input, styles.shareInput]}
                 textStyle={styles.shareText}
               />
               <Text style={styles.paceUnit}>{model.pace.unit}</Text>
             </View>
-            <PaceCaption percent={model.pace.percent} />
           </Field>
         ) : null}
         {model.lossGoal ? (
@@ -1038,20 +999,6 @@ function RowBody({ row }: { row: PlanRow }) {
   );
 }
 
-function PaceCaption({ percent, center }: { percent: string; center?: boolean }) {
-  const text = fill(copy.plan.paceOfWeight, [percent]);
-  const mark = `${percent}%`;
-  const at = text.indexOf(mark);
-  if (!percent || at < 0) return <Text style={[styles.paceNote, center && styles.paceCenter]}>{text}</Text>;
-  return (
-    <Text style={[styles.paceNote, center && styles.paceCenter]}>
-      {text.slice(0, at)}
-      <Text style={styles.paceNum}>{mark}</Text>
-      {text.slice(at + mark.length)}
-    </Text>
-  );
-}
-
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <View style={styles.field}>
@@ -1124,9 +1071,6 @@ const styles = StyleSheet.create({
   shareText: { textAlign: "center" },
   paceRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   paceUnit: { color: theme.muted, fontFamily: theme.fonts.body, fontSize: 13 },
-  paceNote: { color: theme.muted, fontFamily: theme.fonts.body, fontSize: 12 },
-  paceNum: { color: theme.muted, fontFamily: theme.fonts.mono, fontSize: 12 },
-  paceCenter: { textAlign: "center" },
   save: {
     minHeight: 52,
     borderRadius: 14,
@@ -1221,15 +1165,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   newWeekText: { color: "#fff", fontFamily: theme.fonts.bodySemi, fontSize: 16 },
-  finishWeek: {
-    minHeight: 48,
-    borderRadius: theme.radii.tile,
-    backgroundColor: "rgba(0,0,0,0.3)",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 16,
-  },
-  finishWeekText: { color: theme.text, fontFamily: theme.fonts.bodySemi, fontSize: 16 },
   finished: {
     borderRadius: theme.radii.card,
     borderWidth: 1,
@@ -1266,7 +1201,6 @@ const styles = StyleSheet.create({
     textDecorationColor: theme.orange.accent,
   },
   blankHot: { color: theme.orange.accent },
-  definitionName: { color: theme.text, fontFamily: theme.fonts.bodySemi },
   flag: { backgroundColor: planColors.warn, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8 },
   flagText: { color: theme.text, fontFamily: theme.fonts.body, fontSize: 13, lineHeight: 18 },
 });

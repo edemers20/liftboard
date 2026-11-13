@@ -51,7 +51,6 @@ type Draft = {
   ss?: string;
   stretch?: string;
   sound?: string;
-  liftK?: string;
 };
 
 type Source = {
@@ -74,7 +73,6 @@ type Source = {
   ss: string;
   stretch: string;
   sound: string;
-  liftK: string;
 };
 
 type InfoItem = { label: string; body: string };
@@ -154,7 +152,6 @@ function sourceFrom(draft: Draft | null): Source {
     ss: draft?.ss ?? (week.ss || "Yes"),
     stretch: draft?.stretch ?? (week.stretch || "No"),
     sound: draft?.sound ?? (week.sound || "Yes"),
-    liftK: draft?.liftK ?? str(week.liftK),
   };
 }
 
@@ -164,7 +161,6 @@ function matchesSaved(key: keyof Draft, value: unknown) {
   if (key === "stretch") return value === (week.stretch || "No");
   if (key === "level") return value === levelKey(week);
   if (key === "time") return Number(value) === (Number(week.time) || 60);
-  if (key === "liftK") return str(value) === str(week.liftK);
   return JSON.stringify(value) === JSON.stringify(week[key]);
 }
 
@@ -310,7 +306,6 @@ export function YouTab({ onReplay }: { onReplay: () => void }) {
   const call = useEngineStore((state) => state.call);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<Draft | null>(null);
-  const [liftText, setLiftText] = useState<string | null>(null);
   const [openFaq, setOpenFaq] = useState<Record<number, boolean>>({});
   const [info, setInfo] = useState<InfoItem[] | null>(null);
   const [confirm, setConfirm] = useState<null | "reset" | "delete" | "restore">(null);
@@ -546,10 +541,7 @@ export function YouTab({ onReplay }: { onReplay: () => void }) {
             <Heading
               title={copy.you.trainingPreferences}
               onInfo={() =>
-                setInfo([
-                  { label: copy.you.supersets, body: copy.info.supersets },
-                  { label: copy.you.avgLiftKcal, body: copy.info.avgLiftKcal },
-                ])
+                setInfo([{ label: copy.you.supersets, body: copy.info.supersets }])
               }
             />
             <Text style={styles.fieldTitle}>{copy.you.experience}</Text>
@@ -606,19 +598,6 @@ export function YouTab({ onReplay }: { onReplay: () => void }) {
                 <Text style={styles.secondaryText}>{copy.you.playTestSound}</Text>
               </Pressable>
             ) : null}
-            <Text style={styles.fieldTitle}>{copy.you.avgLiftKcal}</Text>
-            <TextInput
-              accessibilityLabel={copy.you.avgLiftKcal}
-              value={liftText ?? form.liftK}
-              onChangeText={setLiftText}
-              onEndEditing={(event) => {
-                setLiftText(null);
-                stage({ liftK: event.nativeEvent.text });
-              }}
-              keyboardType="number-pad"
-              inputMode="numeric"
-              style={[styles.input, styles.kcalInput]}
-            />
           </View>
         ) : null}
 
@@ -1307,7 +1286,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   inputMono: { fontFamily: theme.fonts.mono },
-  kcalInput: { maxWidth: 120 },
   slider: { position: "relative" },
   track: {
     position: "absolute",

@@ -427,7 +427,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Doesn't fit this week | main.js:359 |
 |  | Any day | main.js:362 |
 |  | Your wearable's daily burn minus 7%, plus this week's cardio. | main.js:386 |
-|  | + lifting {…} | main.js:386 |
+|  | + lifting {…} ({…} kcal a session, worked out weekly from how long your lifts take) | main.js:408 |
 |  | , {…}{…} calibrated from {…} weigh-ins | main.js:386 |
 |  | Resting {…} + light movement {…} + steps {…}{…} + digestion {…}{…}. Your base is what you'd burn on a day with no training; it only moves when your body data or steps change. Fuel today = base + your training this week − your deficit. | main.js:386 |
 |  | Weekly check-in | main.js:387 |
@@ -931,6 +931,10 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Weekly report | Week done sheet. |
 |  | All {…} lifts done. {…} weeks completed in a row. | Week done sheet. One lift or one week uses the singular. |
 |  | Going up next week | Week done sheet. |
+|  | Personal Records | Week done sheet. |
+|  | Activity | Week done sheet. |
+|  | Exercise calories | Week done sheet. |
+|  | More reps | Week done sheet. |
 |  | {…} PRs this week | Week done sheet. One is "1 PR this week". |
 |  | Heaviest top set | Week done sheet. |
 |  | was {…} | Week done sheet. |
@@ -941,7 +945,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Starts {…} with {…} | Week done sheet. |
 |  | Starts {…}. | Week done sheet, when the next week has no lift. |
 | Button | See next week | Week done sheet. Closes it and opens Plan, Week. |
-|  | kcal | Week done sheet, after the extra burn number. |
+|  | kcal | Week done sheet, after the exercise calories number. |
 
 ## Change popups
 
@@ -1041,7 +1045,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | ✓ Counted | History, Weeks |
 |  | {…} of {…} lifts | History, Weeks |
 |  | Sets | History, Weeks |
-|  | Extra burn | History, Weeks |
+|  | Exercise kcal | History, Weeks |
 |  | Sets by muscle | History, Weeks |
 |  | done / planned | History, Weeks |
 |  | Count as completed | History, Weeks |
@@ -1050,13 +1054,15 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Recent PRs | History, Lifts |
 |  | Top set | History, Lifts |
 |  | Reps | History, Lifts |
-|  | est. 1RM · last 8 weeks | History, Lifts |
-|  | {…} est. 1RM | History, Lifts |
+|  | About 1RM and top sets | History, Lifts. The (i) button. |
+|  | {…} 1RM | History, Lifts |
+|  | 1RM is an estimate of the most you could lift once, worked out from your top set (weight × (1 + reps ÷ 30)). It's for tracking trends; you never need to test it. | History, Lifts. The word 1RM is bold. |
+|  | Your top set: the heaviest set you did that week. | History, Lifts |
+|  | Shown for the last 8 weeks. | History, Lifts |
 |  | in 8 wk | History, Lifts |
 |  | Week of | History, Lifts |
-|  | est. 1RM | History, Lifts |
+|  | 1RM | History, Lifts |
 |  | PR | History, Lifts |
-|  | Est. 1RM is worked out from your top set (weight × (1 + reps ÷ 30)). It's for tracking trends; you never need to test it. | History, Lifts |
 |  | Calendar | main.js:667 |
 |  | Weeks | main.js:667 |
 | Slot label | Setting | main.js:767 |
