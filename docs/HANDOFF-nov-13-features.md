@@ -35,7 +35,6 @@ Top to bottom:
 - **Personal Records** (only if there are any): see the PR rule in section 3. Each row shows the exercise, the kind of record ("Heaviest top set", "Best est. 1RM", "More reps"), the new value and what it was before.
 - **Sets by muscle**: done vs planned per muscle group for the week, as bars; groups under plan in yellow, with one line under the bars naming the biggest gap ("Quads came in 2 sets under target.").
 - **Activities**: each logged activity with count and minutes.
-- **Next week**: "Starts {day, date} with {first workout}".
 - Buttons: **Share** (secondary; same share flow as the workout share card) and **See next week** (closes the sheet and opens Plan → Week).
 
 **Data to save:** when a week closes, save its per-muscle sets (done and planned), PRs and lifts done/planned in the week's history record, so the report and History can show them later. Weeks closed before this ships won't have the per-muscle numbers; show what exists and leave that section out.
