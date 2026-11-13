@@ -333,8 +333,6 @@ export function WeekReportHost() {
   useEffect(() => {
     if (!live) return;
     haptic.heavy();
-    const timer = setTimeout(() => haptic.success(), 170);
-    return () => clearTimeout(timer);
   }, [live?.start]);
 
   return (

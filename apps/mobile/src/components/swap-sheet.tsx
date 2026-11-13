@@ -87,7 +87,7 @@ export function SwapSheet({
     haptic.medium();
     engine.moveLiftToToday(nextId);
     const title = (engine.DAYS as Day[]).find((day) => day.id === nextId)?.title || copy.workouts.lift;
-    useNotice.getState().show([fill(copy.workouts.moved, title)]);
+    useNotice.getState().show([fill(copy.workouts.moved, title)], { pulse: false });
     if (onWorkout) onWorkout(nextId);
   }
 

@@ -264,7 +264,7 @@ export function WorkoutScreen({ id }: { id: string }) {
     const before = engine.plan();
     engine.wk.today = { ...(engine.wk.today || {}), [id]: value };
     engine.save();
-    showLines(engine.dayDiff(before, engine.plan(), id));
+    showLines(engine.dayDiff(before, engine.plan(), id), false);
   }
 
   async function skipRest() {
@@ -282,10 +282,7 @@ export function WorkoutScreen({ id }: { id: string }) {
   function finishDay() {
     if (engine.wk.done?.[id]) return;
     engine.markDone(id);
-    const goingUp = ((engine.wk.review || {})[id]?.items || []).some((item: { tag?: string }) => item.tag === "up");
     haptic.success();
-    if (goingUp) setTimeout(() => haptic.success(), 180);
-    setTimeout(() => haptic.doubleTap(), 420);
     setSheet("done");
   }
 

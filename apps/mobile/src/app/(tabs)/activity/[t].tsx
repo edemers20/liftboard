@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
   activityName,
@@ -14,6 +14,7 @@ import {
   useNotice,
   writeSession,
 } from "@/activity-log";
+import { SheetFrame } from "@/components/motion";
 import { copy } from "@/copy";
 import { haptic } from "@/haptic";
 import { useEngineStore } from "@/store";
@@ -31,6 +32,8 @@ export default function ActivityScreen() {
   const [intensity, setIntensity] = useState(spinIntensity);
   const [effort, setEffort] = useState(session ? effortFor(session.k) : copy.activities.moderate);
   const [heated, setHeated] = useState(heatedOn);
+  const [askDelete, setAskDelete] = useState(false);
+  const insets = useSafeAreaInsets();
 
   function leave() {
     if (closing.current) return;
@@ -60,8 +63,9 @@ export default function ActivityScreen() {
     leave();
   }
 
-  function onDelete() {
+  function confirmDelete() {
     haptic.warning();
+    setAskDelete(false);
     writeSession(time, "");
     useNotice.getState().show([copy.workouts.deletedToast(name)], { pulse: false });
     leave();
@@ -152,7 +156,7 @@ export default function ActivityScreen() {
           <View style={styles.actions}>
             <Pressable
               style={({ pressed }) => [styles.delete, pressed && styles.pressed]}
-              onPress={onDelete}
+              onPress={() => setAskDelete(true)}
               accessibilityRole="button"
             >
               <Text style={styles.deleteText}>{copy.workouts.delete}</Text>
@@ -167,6 +171,21 @@ export default function ActivityScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+      <SheetFrame visible={askDelete} onClose={() => setAskDelete(false)} label={copy.you.cancel}>
+        <View style={[styles.sheet, { marginBottom: insets.bottom + 12 }]}>
+          <Text accessibilityRole="header" style={styles.sheetTitle}>
+            {copy.you.areYouSure}
+          </Text>
+          <View style={styles.sheetButtons}>
+            <Pressable accessibilityRole="button" onPress={() => setAskDelete(false)} style={styles.sheetCancel}>
+              <Text style={styles.sheetCancelText}>{copy.you.cancel}</Text>
+            </Pressable>
+            <Pressable accessibilityRole="button" onPress={confirmDelete} style={styles.sheetDelete}>
+              <Text style={styles.sheetDeleteText}>{copy.workouts.delete}</Text>
+            </Pressable>
+          </View>
+        </View>
+      </SheetFrame>
     </SafeAreaView>
   );
 }
@@ -361,4 +380,31 @@ const styles = StyleSheet.create({
   pressed: {
     opacity: 0.72,
   },
+  sheet: {
+    marginHorizontal: 12,
+    backgroundColor: theme.pink.surface,
+    borderRadius: 24,
+    padding: 16,
+    gap: 16,
+  },
+  sheetTitle: { color: theme.text, fontFamily: theme.fonts.bodySemi, fontSize: 20 },
+  sheetButtons: { flexDirection: "row", gap: 8 },
+  sheetCancel: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: 12,
+    backgroundColor: "rgba(0,0,0,0.3)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sheetCancelText: { color: theme.text, fontFamily: theme.fonts.bodySemi, fontSize: 15 },
+  sheetDelete: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: 12,
+    backgroundColor: theme.pink.accent,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sheetDeleteText: { color: theme.pink.onAccent, fontFamily: theme.fonts.bodySemi, fontSize: 15 },
 });

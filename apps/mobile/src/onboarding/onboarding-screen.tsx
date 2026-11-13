@@ -1054,8 +1054,8 @@ function Ready({ draft, preview, reduce }: { draft: Draft; preview: PlanPreview;
   const land = (index: number) => {
     if (fired.current.has(index)) return;
     fired.current.add(index);
-    haptic.tap();
-    if (fired.current.size === total) haptic.success();
+    if (index === total - 1) haptic.success();
+    else haptic.tap();
   };
   return (
     <View style={styles.stack}>

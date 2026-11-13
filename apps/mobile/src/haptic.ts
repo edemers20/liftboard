@@ -1,18 +1,26 @@
 import * as Haptics from "expo-haptics";
+import { AccessibilityInfo } from "react-native";
 
 /**
- * Every haptic in the app goes through here, so they stay consistent
- * and can be silenced with `haptic.setEnabled(false)`.
+ * Every haptic in the app goes through here.
+ * `haptic.setEnabled(false)` silences them, and so does Reduce Motion.
  */
 let enabled = true;
+let reduceMotion = false;
+
+AccessibilityInfo.isReduceMotionEnabled()
+  .then((on) => {
+    reduceMotion = on;
+  })
+  .catch(() => {});
+const reduceMotionWatch = AccessibilityInfo.addEventListener("reduceMotionChanged", (on) => {
+  reduceMotion = on;
+});
+void reduceMotionWatch;
 
 function fire(run: () => Promise<void>) {
-  if (!enabled) return;
+  if (!enabled || reduceMotion) return;
   void run().catch(() => {});
-}
-
-function wait(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export const haptic = {
@@ -22,14 +30,6 @@ export const haptic = {
   /** Light impact. */
   tap() {
     fire(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
-  },
-  /** Two light impacts, close together. */
-  doubleTap() {
-    fire(async () => {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      await wait(90);
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    });
   },
   medium() {
     fire(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium));
