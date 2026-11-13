@@ -39,7 +39,7 @@ import {
 } from "@/components/plan-widgets";
 import { copy, fill } from "@/copy";
 import { Edit } from "@/icons";
-import { takePlanView } from "@/links";
+import { subscribePlanView, takePlanView } from "@/links";
 import {
   fitPace,
   migratePace,
@@ -55,7 +55,6 @@ import {
 import { storage } from "@/storage";
 import { engine, useEngineStore } from "@/store";
 import { theme } from "@/theme";
-import { presentWeekReport } from "@/week-report";
 import { useReduceMotion } from "@/use-reduce-motion";
 
 const VIEW_KEY = "liftboard.v1.pv";
@@ -276,6 +275,7 @@ export default function PlanScreen() {
   }
 
   goRef.current = go;
+  useEffect(() => subscribePlanView((next) => goRef.current(next)), []);
   useFocusEffect(
     useCallback(() => {
       const next = takePlanView();
@@ -372,7 +372,6 @@ export default function PlanScreen() {
           onConfirm={() => {
             setPendingWeek(false);
             engine.newWeek();
-            show([copy.plan.weekStarted]);
           }}
         />
       ) : null}
@@ -384,8 +383,7 @@ export default function PlanScreen() {
           onCancel={() => setPendingFinish(false)}
           onConfirm={() => {
             setPendingFinish(false);
-            const summary = engine.finishWeek();
-            presentWeekReport(summary);
+            engine.finishWeek();
           }}
         />
       ) : null}

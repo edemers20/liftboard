@@ -164,7 +164,7 @@ export function useCountUp(target: number, duration = 600) {
     let frame = 0;
     const step = () => {
       const t = Math.min(1, (Date.now() - start) / duration);
-      const eased = 1 - (1 - t) * (1 - t);
+      const eased = 1 - Math.pow(1 - t, 3);
       setValue(target * eased);
       if (t < 1) frame = requestAnimationFrame(step);
       else setValue(target);
