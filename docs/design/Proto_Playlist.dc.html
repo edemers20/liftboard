@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Lift Board · Prototype · Playlist workout</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Ranchers&amp;family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&amp;family=DM+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;font-synthesis-weight:none}
+@keyframes lbIn{from{opacity:0;transform:translateX(36px)}to{opacity:1;transform:none}}
+@keyframes lbUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes lbPop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.12);opacity:1}100%{transform:scale(1)}}
+button{transition:background-color .18s ease,color .18s ease,transform .12s ease}
+button:active{transform:scale(.96)}
+button:disabled{opacity:.3;cursor:default}
+@media (prefers-reduced-motion:reduce){*{transition-duration:.01ms!important;animation-duration:.01ms!important}}
+</style>
+</helmet>
+<div style="position: relative; width: 390px; height: 844px; overflow: hidden; box-sizing: border-box; background: #131615; color: #edeae8; font-family: 'DM Sans', system-ui, sans-serif; font-size: 15px; line-height: 1.45; display: flex; flex-direction: column">
+
+  <!-- top bar + progress -->
+  <div style="padding: 16px 16px 0; display: flex; flex-direction: column; gap: 12px">
+    <div style="display: grid; grid-template-columns: 1fr auto 1fr; align-items: center">
+      <a href="Proto_Today.dc.html" style="min-height: 44px; display: inline-flex; align-items: center; color: #a8a09c; text-decoration: none; font-size: 14px; font-weight: 600">‹ Workouts</a>
+      <span style="font-size: 13px; font-weight: 600; color: #a8a09c">Lower · Hinge & Glute</span>
+      <span style="justify-self: end; font-family: 'DM Mono', monospace; font-size: 14px; color: #6fd0b4">{{ elapsed }}</span>
+    </div>
+    <div aria-hidden="true" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px">
+      <sc-for list="{{ segs }}" as="s" hint-placeholder-count="4">
+        <div style="height: 4px; border-radius: 999px; background: #2a312e; overflow: hidden"><div style="height: 100%; width: {{ s.w }}; background: #6fd0b4; transition: width .3s ease"></div></div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- SET VIEW -->
+  <sc-if value="{{ showSet }}" hint-placeholder-val="{{ true }}">
+    <div style="flex: 1; display: flex; flex-direction: column; padding: 20px 16px 0; gap: 16px; animation: lbIn .35s cubic-bezier(.2,.8,.2,1) both">
+      <div style="display: flex; flex-direction: column; gap: 4px">
+        <span style="font-size: 13px; color: #a8a09c">Exercise {{ exNum }} of 4</span>
+        <h1 style="margin: 0; font-size: 28px; font-weight: 600; line-height: 1.15">{{ exName }}</h1>
+        <span style="font-size: 14px; color: #a8a09c">Target <span style="font-family: 'DM Mono', monospace; color: #edeae8">{{ target }}</span> · Last time <span style="font-family: 'DM Mono', monospace">{{ last }}</span></span>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 10px">
+        <span style="font-family: 'DM Mono', monospace; font-size: 15px; font-weight: 500">Set {{ setNum }} of {{ setTotal }}</span>
+        <div style="display: flex; gap: 6px">
+          <sc-for list="{{ dots }}" as="d" hint-placeholder-count="4">
+            <span aria-hidden="true" style="width: 10px; height: 10px; border-radius: 999px; background: {{ d.bg }}; box-shadow: {{ d.ring }}"></span>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px">
+        <div style="background: #1d2220; border-radius: 18px; padding: 14px 10px 10px; display: flex; flex-direction: column; align-items: center; gap: 6px">
+          <span style="font-size: 12px; color: #a8a09c">Weight (lb)</span>
+          <span aria-live="polite" style="font-family: 'DM Mono', monospace; font-size: 44px; font-weight: 500; line-height: 1.1">{{ w }}</span>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; width: 100%">
+            <button type="button" aria-label="Weight down 5" onClick="{{ wDown }}" style="min-height: 44px; border: 0; border-radius: 12px; background: #2a312e; color: #edeae8; font: 500 15px 'DM Mono', monospace; cursor: pointer">−5</button>
+            <button type="button" aria-label="Weight up 5" onClick="{{ wUp }}" style="min-height: 44px; border: 0; border-radius: 12px; background: #2a312e; color: #edeae8; font: 500 15px 'DM Mono', monospace; cursor: pointer">+5</button>
+          </div>
+        </div>
+        <div style="background: #1d2220; border-radius: 18px; padding: 14px 10px 10px; display: flex; flex-direction: column; align-items: center; gap: 6px">
+          <span style="font-size: 12px; color: #a8a09c">Reps{{ perLeg }}</span>
+          <span aria-live="polite" style="font-family: 'DM Mono', monospace; font-size: 44px; font-weight: 500; line-height: 1.1">{{ r }}</span>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; width: 100%">
+            <button type="button" aria-label="One fewer rep" onClick="{{ rDown }}" style="min-height: 44px; border: 0; border-radius: 12px; background: #2a312e; color: #edeae8; font: 500 15px 'DM Mono', monospace; cursor: pointer">−1</button>
+            <button type="button" aria-label="One more rep" onClick="{{ rUp }}" style="min-height: 44px; border: 0; border-radius: 12px; background: #2a312e; color: #edeae8; font: 500 15px 'DM Mono', monospace; cursor: pointer">+1</button>
+          </div>
+        </div>
+      </div>
+
+      <button type="button" onClick="{{ logSet }}" style="min-height: 60px; border: 0; border-radius: 18px; background: #6fd0b4; color: #10201b; font: 600 18px 'DM Sans', sans-serif; cursor: pointer">{{ logLabel }}</button>
+
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <sc-for list="{{ logged }}" as="l" hint-placeholder-count="1">
+          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 14px; color: #a8a09c; padding: 0 4px">
+            <span>Set {{ l.n }}</span>
+            <span style="font-family: 'DM Mono', monospace; color: #edeae8">{{ l.v }} <span style="color: #6fd0b4">✓</span></span>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="margin-top: auto; padding-bottom: 28px">
+        <sc-if value="{{ hasNextEx }}" hint-placeholder-val="{{ true }}">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; border-top: 1px solid #252b29; padding-top: 12px">
+            <div style="display: flex; flex-direction: column; min-width: 0">
+              <span style="font-size: 12px; color: #a8a09c">Then</span>
+              <span style="font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ nextEx }}</span>
+            </div>
+            <button type="button" onClick="{{ skipEx }}" style="min-height: 40px; padding: 0 14px; border: 0; border-radius: 999px; background: #1d2220; color: #edeae8; font: 600 13px 'DM Sans', sans-serif; white-space: nowrap; cursor: pointer">Skip to it ›</button>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- REST VIEW -->
+  <sc-if value="{{ resting }}" hint-placeholder-val="{{ false }}">
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; padding: 28px 16px 0; gap: 18px; animation: lbUp .35s cubic-bezier(.2,.8,.2,1) both">
+      <span style="font-size: 14px; color: #a8a09c">{{ justDid }}</span>
+      <div style="position: relative; width: 250px; height: 250px">
+        <svg aria-hidden="true" width="250" height="250" viewBox="0 0 250 250" style="transform: rotate(-90deg)">
+          <circle cx="125" cy="125" r="112" fill="none" stroke="#1d2220" stroke-width="12"/>
+          <circle cx="125" cy="125" r="112" fill="none" stroke="{{ ringC }}" stroke-width="12" stroke-linecap="round" stroke-dasharray="703.7" stroke-dashoffset="{{ ringOff }}" style="transition: stroke-dashoffset .25s linear"/>
+        </svg>
+        <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center">
+          <span style="font-size: 14px; color: #a8a09c">{{ restLabel }}</span>
+          <span role="timer" style="font-family: 'DM Mono', monospace; font-size: 60px; font-weight: 500; line-height: 1.1; color: {{ ringC }}">{{ restTime }}</span>
+        </div>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; width: 100%">
+        <button type="button" onClick="{{ minus }}" style="min-height: 52px; border: 0; border-radius: 14px; background: #1d2220; color: #edeae8; font: 500 15px 'DM Mono', monospace; cursor: pointer">−15s</button>
+        <button type="button" onClick="{{ skipRest }}" style="min-height: 52px; border: 0; border-radius: 14px; background: {{ goBg }}; color: {{ goFg }}; font: 600 15px 'DM Sans', sans-serif; cursor: pointer">{{ goLabel }}</button>
+        <button type="button" onClick="{{ plus }}" style="min-height: 52px; border: 0; border-radius: 14px; background: #1d2220; color: #edeae8; font: 500 15px 'DM Mono', monospace; cursor: pointer">+15s</button>
+      </div>
+      <div style="width: 100%; box-sizing: border-box; margin-top: auto; margin-bottom: 28px; background: #1d2220; border-radius: 16px; padding: 14px 16px; display: flex; flex-direction: column; gap: 2px">
+        <span style="font-size: 12px; color: #a8a09c">Up next</span>
+        <span style="font-size: 17px; font-weight: 600">{{ upNextTitle }}</span>
+        <span style="font-size: 14px; color: #a8a09c">{{ upNextMeta }}</span>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- DONE -->
+  <sc-if value="{{ finished }}" hint-placeholder-val="{{ false }}">
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 0 24px">
+      <div style="width: 84px; height: 84px; border-radius: 999px; background: #1f3029; display: flex; align-items: center; justify-content: center; animation: lbPop .5s both"><svg aria-hidden="true" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#6fd0b4" stroke-width="2.6"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+      <h1 style="margin: 0; font-family: 'Ranchers', sans-serif; font-weight: 400; font-size: 40px; text-transform: uppercase; animation: lbUp .4s .1s both">Day done</h1>
+      <span style="color: #a8a09c; animation: lbUp .4s .16s both">{{ doneLine }}</span>
+      <button type="button" onClick="{{ restart }}" style="margin-top: 16px; min-height: 52px; width: 100%; border: 0; border-radius: 14px; background: #6fd0b4; color: #10201b; font: 600 16px 'DM Sans', sans-serif; cursor: pointer; animation: lbUp .4s .22s both">Finish & close</button>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    /* Playlist-style workout: one exercise and one set at a time.
+       Log set → rest countdown (with what's up next) → the next set, prefilled with what you just did.
+       Rest times are shortened 4× in this mock so it's quick to click through. */
+    const EX = [
+      { n: 'Hip Thrust (Barbell)', sets: 4, w: 155, r: 8, last: '150 × 9', rest: 120 },
+      { n: 'Romanian Deadlift', sets: 3, w: 105, r: 9, last: '105 × 8', rest: 120 },
+      { n: 'Bulgarian Split Squat', sets: 3, w: 30, r: 10, last: '30 × 9', rest: 90, leg: true },
+      { n: 'Hip Abductor', sets: 3, w: 110, r: 15, last: '105 × 15', rest: 60 }
+    ];
+    const SPEED = 4;
+    const now = Date.now();
+    const st = Object.assign({ ei: 0, si: 0, w: EX[0].w, r: EX[0].r, logs: {}, restEnd: 0, restLen: 0, done: false }, this.state || {});
+    if (!this._t0) this._t0 = now;
+    st.t0 = st.t0 || this._t0;
+    clearTimeout(this._t);
+    if (!st.done) this._t = setTimeout(() => this.setState({ tick: Date.now() }), 250);
+
+    const ex = EX[st.ei];
+    const mmss = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+    const restLeft = st.restEnd ? Math.ceil((st.restEnd - now) / 1000) : null;
+    const resting = !!st.restEnd && !st.done;
+    const over = resting && restLeft <= 0;
+    const logsFor = i => st.logs[i] || [];
+    const nextPos = () => st.si + 1 < ex.sets ? { ei: st.ei, si: st.si + 1 } : st.ei + 1 < EX.length ? { ei: st.ei + 1, si: 0 } : null;
+    const moveTo = (p, carry) => {
+      const e = EX[p.ei];
+      return { ei: p.ei, si: p.si, w: carry && p.ei === st.ei ? st.w : e.w, r: carry && p.ei === st.ei ? st.r : e.r, restEnd: 0 };
+    };
+
+    const logSet = () => {
+      const L = Object.assign({}, st.logs); L[st.ei] = logsFor(st.ei).concat([`${st.w} × ${st.r}`]);
+      const p = nextPos();
+      if (!p) { this.setState({ logs: L, done: true, restEnd: 0, tEnd: Date.now() }); return; }
+      const len = Math.round(ex.rest / SPEED);
+      this.setState({ logs: L, restEnd: Date.now() + len * 1000, restLen: len, pending: p });
+    };
+    const endRest = () => { const p = st.pending; this.setState(moveTo(p, true)); };
+    const shift = d => () => { if (over && d < 0) return; const base = over ? Date.now() : st.restEnd; this.setState({ restEnd: base + d * 1000, restLen: over ? d : Math.max(1, st.restLen + d) }); };
+
+    const pend = st.pending || { ei: st.ei, si: st.si };
+    const pe = EX[pend.ei];
+    const sameEx = pend.ei === st.ei;
+    const totalSets = EX.reduce((a, e) => a + e.sets, 0), doneSets = Object.values(st.logs).reduce((a, l) => a + l.length, 0);
+    const el = Math.floor(((st.done ? st.tEnd : now) - st.t0) / 1000);
+    const lastLogged = logsFor(st.ei).slice(-1)[0];
+    const frac = resting && !over ? Math.max(0, restLeft / st.restLen) : 0;
+
+    return {
+      elapsed: mmss(el),
+      segs: EX.map((e, i) => ({ w: Math.min(100, logsFor(i).length / e.sets * 100) + '%' })),
+      showSet: !resting && !st.done, resting, finished: st.done,
+      exNum: st.ei + 1, exName: ex.n, target: `${ex.w} × ${ex.r}`, last: ex.last, perLeg: ex.leg ? ' per leg' : '',
+      setNum: st.si + 1, setTotal: ex.sets,
+      dots: Array.from({ length: ex.sets }, (_, k) => ({ bg: k < logsFor(st.ei).length ? '#6fd0b4' : 'transparent', ring: k < logsFor(st.ei).length ? 'none' : k === st.si ? 'inset 0 0 0 2px #6fd0b4' : 'inset 0 0 0 2px #3a4340' })),
+      w: st.w, r: st.r,
+      wDown: () => this.setState({ w: Math.max(0, st.w - 5) }), wUp: () => this.setState({ w: st.w + 5 }),
+      rDown: () => this.setState({ r: Math.max(1, st.r - 1) }), rUp: () => this.setState({ r: st.r + 1 }),
+      logSet, logLabel: st.si + 1 === ex.sets && st.ei === EX.length - 1 ? 'Log last set' : `Log set ${st.si + 1}`,
+      logged: logsFor(st.ei).map((v, k) => ({ n: k + 1, v })),
+      hasNextEx: st.ei + 1 < EX.length, nextEx: st.ei + 1 < EX.length ? `${EX[st.ei + 1].n} · ${EX[st.ei + 1].sets} × ${EX[st.ei + 1].r}` : '',
+      skipEx: () => this.setState(moveTo({ ei: st.ei + 1, si: 0 }, false)),
+      justDid: lastLogged ? `Set ${logsFor(st.ei).length} logged · ${lastLogged}` : '',
+      restLabel: over ? 'Rest is up' : 'Rest',
+      restTime: resting ? (over ? 'Go' : mmss(restLeft)) : '',
+      ringC: over ? '#fea06a' : '#6fd0b4', ringOff: (703.7 * (1 - frac)).toFixed(1),
+      goLabel: over ? 'Next set' : 'Skip', goBg: over ? '#fea06a' : '#2a312e', goFg: over ? '#2a1608' : '#edeae8',
+      minus: shift(-15), plus: shift(15), skipRest: endRest,
+      upNextTitle: sameEx ? `Set ${pend.si + 1} of ${pe.sets}` : pe.n,
+      upNextMeta: sameEx ? `${pe.n} · ${st.w} × ${st.r}` : `${pe.sets} sets · target ${pe.w} × ${pe.r}`,
+      doneLine: `${EX.length} exercises · ${doneSets} of ${totalSets} sets · ${mmss(el)}`,
+      restart: () => this.setState({ ei: 0, si: 0, w: EX[0].w, r: EX[0].r, logs: {}, restEnd: 0, restLen: 0, t0: Date.now(), done: false, pending: null })
+    };
+  }
+}
+</script>
+</body>
+</html>

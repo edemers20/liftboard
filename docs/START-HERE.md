@@ -7,6 +7,7 @@ Everything Cursor needs is already in this repo:
 - `docs/screens/` — a picture of each screen from the current app
 - `docs/COPY.md` — every word in the app
 - `docs/ICONS.md` and `assets/icons/` — the icon set, and Lucide for anything new
+- `docs/HANDOFF-alerts-haptics.md` and `docs/HANDOFF-nov-13-features.md` — the next things to build, with designs in `docs/design/`
 - `docs/LOGIC.md` — how every rule works
 - `docs/BACKEND-SUPABASE.md` — the backend plan
 - `src/engine.js` and `tests/` — the rules engine and its 67 tests, which move into the new app unchanged

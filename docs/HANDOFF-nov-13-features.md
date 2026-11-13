@@ -1,0 +1,80 @@
+# Today's web changes and three new features
+
+Build in the native app (`apps/mobile`), following `.cursor/rules/`. One section per chat, in order. Commit after each.
+
+The three new features have reference designs in `docs/design/` (`Proto_WeekReport.dc.html`, `Proto_History.dc.html`, `Proto_Playlist.dc.html`). They're HTML mockups: read the markup for layout, colours and copy, and the `renderVals()` script at the bottom for the behaviour. The numbers in them are sample data; real numbers come from the engine.
+
+---
+
+## 1. Onboarding and pace (from the web app, commit `187fe0f`)
+
+**Copy** (update `copy.ts` and `docs/COPY.md`):
+- Step 1 title: **What do you do?**
+- Step 1 text: **Your main activity sets the season. In-season, lifting is deprioritized so you're fresh.**
+- The live card: **Plan so far** (was "Your plan so far").
+
+**Plan your week cards:** each card has a cause pill → result pill example that swaps between two examples. Within each card, the cause pill fades first and the result pill follows **0.45s later**. The three cards stay staggered against each other as before.
+
+**Level demo slider:** it glides to each stop (about 450ms, ease out) instead of jumping, both when it steps on its own and when a level name is tapped. Dragging is continuous and settles on the nearest stop on release. Reduce Motion: no glide.
+
+**Pace (Plan → Season, fat-loss goals only):** replace the pace pills with the existing `NumberDial`:
+- Values in lb a week (kg if units are kg), 0.1 lb steps (0.05 kg), from 0.2 up to the goal's cap: 1% of body weight for Lose weight fast, 0.7% for Lose fat, keep strength. At 138 lb that's 0.2 to 1.3.
+- Under it: "{pct}% of your weight a week".
+- Still store `wk.ratePct` (% of body weight, up to 4 decimals) so the lb figure follows weight as it changes. `fitPace` clamps to the cap instead of snapping to the old three options.
+
+---
+
+## 2. Weekly report
+
+A sheet that opens when the week is finished (Mark week as finished, or the automatic Monday rollover the first time the app opens in the new week). It replaces the current "Week done" summary. Reference: `Proto_WeekReport.dc.html`.
+
+Top to bottom:
+- "Week done", the week's date range in Ranchers, and a **Completed** pill when every planned lift was done. A line: "All {n} lifts done. {streak} weeks completed in a row." (or "{done} of {planned} lifts").
+- Four tiles: **Lifts** {done}/{planned}, **Sets** (sets logged), **Sport** (min, from `weekActuals`), **Extra burn** (kcal, from `weekActuals`). Numbers count up from 0 over 600ms.
+- **Going up next week**: each exercise whose next-time target goes up, "{last top set} → {next target}" with the target in orange.
+- **PRs this week** (only if there are any): see the PR rule in section 3.
+- **Sets by muscle**: done vs planned per muscle group for the week, as bars; groups under plan in yellow, with one line under the bars naming the biggest gap ("Quads came in 2 sets under target.").
+- **Activities**: each logged activity with count and minutes.
+- **Next week**: "Starts {day, date} with {first workout}".
+- Buttons: **Share** (secondary; same share flow as the workout share card) and **See next week** (closes the sheet and opens Plan → Week).
+
+**Data to save:** when a week closes, save its per-muscle sets (done and planned), PRs and lifts done/planned in the week's history record, so the report and History can show them later. Weeks closed before this ships won't have the per-muscle numbers; show what exists and leave that section out.
+
+Haptics and motion are in `docs/HANDOFF-alerts-haptics.md` Part 3 ("Week finished").
+
+---
+
+## 3. History: Weeks and Lifts
+
+Keep the Calendar view as it is. Reference: `Proto_History.dc.html`.
+
+**Weeks**
+- At the top, a strip of small squares for recent weeks (green = completed, dark = not) and "{n} weeks completed in a row".
+- Each week card: date range in Ranchers, a status pill (**✓ Completed**, or "{done} of {planned} lifts"), and three numbers: Lifts, Sets, Extra burn.
+- Tapping a card expands it to show **Sets by muscle** (done / planned, same bars as the report).
+- An incomplete week shows what was missed ("Missed Upper · Pull") and a **Count as completed** button, for sick or travel weeks; it then reads **✓ Counted** and counts toward the streak. **Undo** reverses it.
+- A week is completed when every planned lift was done.
+
+**Lifts**
+- **Recent PRs**: a horizontal row of cards (kind, exercise, value, date).
+- **Main lifts**: one row each with the **est. 1RM** in DM Mono, "Top set {w × r} · {+n} in 8 wk", and a sparkline of est. 1RM over the last 8 weeks. Tapping a row expands a table: week, top set, est. 1RM, with "PR" in orange on new bests.
+- Note under the list: "Est. 1RM is worked out from your top set (weight × (1 + reps ÷ 30)). It's for tracking trends; you never need to test it."
+
+**Engine (add to `packages/engine` with tests):**
+- `e1rm(w, r)` = round(w × (1 + r / 30)). Bodyweight exercises have no est. 1RM.
+- Top set per exercise per week from `exHist`.
+- **PR rule:** a PR is a **heavier top set** than any before, or **more reps at the same or heavier weight**. A higher est. 1RM alone doesn't count; with steady progress it would flag almost every week.
+- `weekStreak()`: consecutive completed (or counted) weeks ending with the last closed week.
+
+---
+
+## 4. Playlist workout (experiment)
+
+A second way to run the workout screen: one exercise and one set at a time. Build it as an option, not a replacement: **You → Training preferences → Workout view: List / One at a time**, default List. Same data and engine rules as the list view; nothing new in the engine. Reference: `Proto_Playlist.dc.html` (its rest times are sped up 4×; use real ones).
+
+- **Top:** back link, workout title, elapsed time; a progress bar per exercise filling as its sets are logged.
+- **Set view:** "Exercise {n} of {total}", exercise name, "Target {w × r} · Last time {w × r}", "Set {n} of {total}" with a dot per set. Two large steppers: **Weight** (−5 / +5, or the exercise's increment) and **Reps** (−1 / +1), prefilled with the target. Big primary button **Log set {n}** (**Log last set** on the final one). Sets already logged for this exercise listed under it. At the bottom: "Then {next exercise}" and **Skip to it ›**.
+- **Rest view** (after Log set): a ring counting down with the time in DM Mono, "Rest" above it; **−15s**, **Skip**, **+15s**; an "Up next" card (the next set and its weight × reps, or the next exercise and its target). At zero the ring and time turn orange and read **Go**, and the middle button becomes **Next set**. Uses the same rest timer, notification, Live Activity and haptics as the list view.
+- The next set is prefilled with what was just logged.
+- After the last set, the usual Day done summary.
+- Count how often each view is used (an `events` row when a workout starts with its view), so you can decide later whether to keep it.
