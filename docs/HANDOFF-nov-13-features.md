@@ -48,7 +48,7 @@ Haptics and motion are in `docs/HANDOFF-alerts-haptics.md` Part 3 ("Week finishe
 Keep the Calendar view as it is. Reference: `Proto_History.dc.html`.
 
 **Weeks**
-- At the top, a strip of small squares for recent weeks (green = completed, dark = not) and "{n} weeks completed in a row".
+- At the top, a strip of small squares for recent weeks (orange #fea06a = completed, dark = not) and the streak line in the same orange: and "{n} weeks completed in a row".
 - Each week card: date range in Ranchers, a status pill (**✓ Completed**, or "{done} of {planned} lifts"), and three numbers: Lifts, Sets, Exercise kcal.
 - Tapping a card expands it to show **Sets by muscle** (done / planned, same bars as the report).
 - An incomplete week shows what was missed ("Missed Upper · Pull") and a **Count as completed** button, for sick or travel weeks; it then reads **✓ Counted** and counts toward the streak. **Undo** reverses it.

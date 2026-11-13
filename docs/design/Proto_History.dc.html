@@ -37,7 +37,7 @@ button:active,a:active{transform:scale(.98)}
               <span aria-hidden="true" style="width: 14px; height: 14px; border-radius: 4px; background: {{ s.c }}"></span>
             </sc-for>
           </div>
-          <span style="font-size: 13px; color: #a8a09c">{{ streakText }}</span>
+          <span style="font-size: 13px; color: #fea06a">{{ streakText }}</span>
         </div>
         <sc-for list="{{ weeks }}" as="w" hint-placeholder-count="4">
           <section style="background: #24201d; border-radius: 16px; overflow: hidden">
@@ -175,7 +175,7 @@ class Component extends DCLogic {
     /* streak strip, oldest to newest */
     const hist = [true, true, true, false].concat(W.slice().reverse().map((w, j) => isDone(w, W.length - 1 - j)));
     let run = 0; for (let k = hist.length - 1; k >= 0 && hist[k]; k--) run++;
-    const streak = hist.map(ok => ({ c: ok ? '#6fd0b4' : '#34302c' }));
+    const streak = hist.map(ok => ({ c: ok ? '#fea06a' : '#34302c' }));
 
     /* Lifts */
     const e1 = (w, r) => Math.round(w * (1 + r / 30));
