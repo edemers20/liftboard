@@ -441,7 +441,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Period | main.js:390 |
 |  | Luteal | main.js:390 |
 |  | Drinking nights | main.js:391 |
-|  | Fuel &amp; recovery | main.js:399 |
+|  | Fuel/Recover | Plan → Week panel title, with an (i) |
 |  | Your base | main.js:399 |
 |  | vs last week | main.js:399 |
 |  | same | Plan fuel tile when this week is within 5 kcal of last week |
@@ -451,7 +451,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Deload this week | Plan deload switch |
 |  | calf | Plan sentence, singular, in "{…} work" |
 |  | adductor | Plan sentence, singular, in "{…} work" |
-|  | How this is calculated | main.js:399 |
+|  | How this is calculated | label inside the Fuel/Recover (i) tip |
 |  | {…}{…}/day | main.js:401 |
 |  | Expected loss | main.js:401 |
 |  | {…} {…}/wk | main.js:401 |
@@ -516,7 +516,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | , lift planned | main.js:302 |
 |  | , activity | main.js:302 |
 |  | MTWTFSS | main.js:302 |
-|  | Sport | main.js:606 |
+|  | Activity | History chart legend |
 |  | Classes | main.js:606 |
 |  | Cardio | main.js:606 |
 |  | Week Breakdown | main.js:616 |
@@ -535,7 +535,6 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | · ramp | main.js:663 |
 |  | · deload | main.js:663 |
 |  | · {…} focus | main.js:663 |
-|  | A new week begins on its own. | main.js:663 |
 |  | Main activity | main.js:1548 |
 |  | No sport | main.js:1548 |
 |  | {…} lift{…}{…}{…} | main.js:1548 |
@@ -572,10 +571,10 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Less | main.js:475 |
 |  | Fewer | main.js:475 |
 |  | wkStart | main.js:476 |
-|  | Week starts on<small>A new week begins on its own</small> | main.js:476 |
+|  | Week starts on | main.js:476 |
 |  | Mon | main.js:476 |
 |  | Sun | main.js:476 |
-|  | Next-morning check<small>"Did you play or train yesterday?"</small> | main.js:477 |
+|  | Next-morning check | main.js:477 |
 |  | Off | main.js:477 |
 |  | Sports in season | main.js:546 |
 |  | · up to two. Tap a picked sport again to make it primary. | main.js:546 |
@@ -1017,8 +1016,8 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Upper body | main.js:378 |
 |  | Week | main.js:380 |
 |  | In-season: up to 3. | main.js:396 |
-|  | Usual lift days · {…} a week | main.js:396 |
-|  | Usual activity days · {…} a week | main.js:397 |
+|  | Lift days{…} a week | main.js:396 |
+|  | Activity days{…} a week | main.js:397 |
 |  | This week | main.js:435 |
 |  | w txt | main.js:455 |
 |  | Experience | main.js:455 |

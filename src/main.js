@@ -63,7 +63,7 @@ const INFO={
 };
 SPORTS.forEach(a=>{ INFO[a]=sportInfo(a); INFO[minKey(a)]="Planned length per session."; });
 INFO.climb="Each session counts as about 75 minutes toward cardio. Pulling and arm work on lift days is trimmed so you don't double up.";INFO.yoga="Counts toward cardio."; INFO.pilates="Counts toward cardio at a light, yoga-like burn."; INFO[minKey("pilates")]="Class length."; INFO.spin="Counts toward cardio. Hard weeks cut a quad set.";
-const LBL={muscles:"Muscles",acts:"Activities",mainSport:"Main sport",focus:"Focus",season:"Season",ramp:"Ramp",deload:"Deload",mode:"Goal",rate:"Pace",share:"From cardio",sex:"Sex",age:"Age",height:"Height",weight:"Weight",bf:"Body fat",steps:"Steps",oura:"Daily burn",days:"Lifting days",time:"Session length",liftK:"Avg lift kcal",ready:"Readiness",sore:"Soreness",cycle:"Cycle",drink:"Drinking",load:"Recovery load",wAvg:"Avg weight",ymin:"Class length",heated:"Heated",yeff:"Effort",peff:"Effort",spint:"Intensity",today:"Today",ss:"Supersets",progress:"Progress",changes:"Changes",watch:"Watch",lifts:"Main lifts",weeks:"Previous weeks",maint:"Maintenance"};
+const LBL={fuelHow:"How this is calculated",muscles:"Muscles",acts:"Activities",mainSport:"Main sport",focus:"Focus",season:"Season",ramp:"Ramp",deload:"Deload",mode:"Goal",rate:"Pace",share:"From cardio",sex:"Sex",age:"Age",height:"Height",weight:"Weight",bf:"Body fat",steps:"Steps",oura:"Daily burn",days:"Lifting days",time:"Session length",liftK:"Avg lift kcal",ready:"Readiness",sore:"Soreness",cycle:"Cycle",drink:"Drinking",load:"Recovery load",wAvg:"Avg weight",ymin:"Class length",heated:"Heated",yeff:"Effort",peff:"Effort",spint:"Intensity",today:"Today",ss:"Supersets",progress:"Progress",changes:"Changes",watch:"Watch",lifts:"Main lifts",weeks:"Previous weeks",maint:"Maintenance"};
 ACT_IDS.forEach(a=>{ LBL[a]=ACT[a].name; LBL[minKey(a)]="Planned min"; });
 const POP={}; let popN=0;
 function hdr(title,keys,tag){ const id="p"+(++popN), t=tag||"h3";
@@ -415,13 +415,14 @@ function planWeek(P){
     <button type="button" class="btn primary" id="ckSave">Save check-in</button></div>`;
   const rowsH=planRows().map(r=>`<button type="button" class="prow2" data-open="${r.id}"><i class="pdot ${r.k}${r.st==="done"?" d":""}"></i><span><b${r.st==="done"?' class="pdone"':""}>${esc(r.title)}</b><small>${esc(r.sub)}</small></span>${ICON[r.st]}</button>`).join("");
   const L=ldays(), inS=inSeason();
-  const daysH=enabled("lift")?`<div class="ldays"><span class="plab">Usual lift days · ${L.length} a week</span><div class="ldgrid" role="group" aria-label="Usual lift days">${"MTWTFSS".split("").map((c,k)=>`<button type="button" data-ld="${k}" aria-pressed="${L.includes(k)}" aria-label="${WD[k]}">${c}</button>`).join("")}</div>${inS?`<p class="small">In-season: up to 3.</p>`:""}</div>`:"";
-  const AD=adays(), adH=`<div class="ldays ad"><span class="plab">Usual activity days · ${AD.length} a week</span><div class="ldgrid" role="group" aria-label="Usual activity days">${"MTWTFSS".split("").map((c,k)=>`<button type="button" data-ad="${k}" aria-pressed="${AD.includes(k)}" aria-label="${WD[k]}">${c}</button>`).join("")}</div></div>`;
+  const daysH=enabled("lift")?`<div class="ldays"><span class="plab">Lift days</span><div class="ldgrid" role="group" aria-label="Lift days">${"MTWTFSS".split("").map((c,k)=>`<button type="button" data-ld="${k}" aria-pressed="${L.includes(k)}" aria-label="${WD[k]}">${c}</button>`).join("")}</div>${inS?`<p class="small">In-season: up to 3.</p>`:""}</div>`:"";
+  const AD=adays(), adH=`<div class="ldays ad"><span class="plab">Activity days</span><div class="ldgrid" role="group" aria-label="Activity days">${"MTWTFSS".split("").map((c,k)=>`<button type="button" data-ad="${k}" aria-pressed="${AD.includes(k)}" aria-label="${WD[k]}">${c}</button>`).join("")}</div></div>`;
   const vs=Mt.vsLast;
-  const food=`<div class="panel food"><h3>Fuel &amp; recovery</h3>
+  INFO.fuelHow=`${INFO.maint}${build?"":`<br><br>Weekly deficit: ${r5(Mt.target).toLocaleString()} kcal.`}${Mt.nLift&&Mt.nFin?`<br>Remaining finishers: ${Mt.m} min × ${Mt.nFin}.`:""}`;
+  const food=`<div class="panel food">${hdr("Fuel/Recover",["fuelHow"])}
     <div class="frrow"><div class="eat"><span>Fuel today</span><b>${r5(Mt.intake).toLocaleString()} <small>kcal</small></b></div>${recovHTML()}</div>
     <div class="ftiles"><div><span>Your base</span><b>${r5(Mt.everyday).toLocaleString()}</b></div><div><span>vs last week</span><b class="${vs>0?"up":vs<0?"dn":""}">${vs==null||Math.abs(vs)<5?"same":`${vs>0?"+":"−"}${Math.abs(vs)}/day`}</b></div><div><span>${build?"Goal":"Expected loss"}</span><b>${build?esc(goalName(wk.mode)):`${KG()?Math.round(Mt.rateEff/L2K*100)/100:Mt.rateEff} ${KG()?"kg":"lb"}/wk`}</b></div></div>
-    <details class="fmath"><summary>How this is calculated</summary><p class="small">${INFO.maint}</p>${build?"":`<div class="prow"><span>Weekly deficit</span><b>${r5(Mt.target).toLocaleString()} kcal</b></div>`}${Mt.nLift&&Mt.nFin?`<p class="small">Remaining finishers: ${Mt.m} min × ${Mt.nFin}</p>`:""}</details></div>`;
+</div>`;
   const E=earlyDone(), nW=new Date(wk.weekStart||0).toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});
   const early=E?`<div class="panel wkfin"><p><b>Week finished.</b> This is next week's plan; it starts ${nW}. Anything you log before then counts toward it.</p>${hasFinishSnap()?`<button type="button" class="btn" id="undoFinish">Undo</button>`:""}</div>`:"";
   return `${early}${nd&&nd.restSuggest?`<p class="flag">Reps dropped two sessions in a row. Take a rest day before ${esc(dayById(P.nextId).title)}.</p>`:""}
@@ -516,8 +517,8 @@ function renderYou(P){
   <div class="panel"><h3>App</h3>
     ${seg("units","Units",[["lb","lb"],["kg","kg"]],wk.units||"lb",0,"sw2")}
     ${seg("guide","Tips",[["More","More"],["Less","Fewer"]],wk.guide||"More",0,"sw2")}
-    ${seg("wkStart","Week starts on<small>A new week begins on its own</small>",[["Mon","Mon"],["Sun","Sun"]],wk.wkStart||"Mon",0,"sw2")}
-    ${seg("remind","Next-morning check<small>\"Did you play or train yesterday?\"</small>",[["On","On"],["Off","Off"]],wk.remind||"On",0,"sw2")}</div>
+    ${seg("wkStart","Week starts on",[["Mon","Mon"],["Sun","Sun"]],wk.wkStart||"Mon",0,"sw2")}
+    ${seg("remind","Next-morning check",[["On","On"],["Off","Off"]],wk.remind||"On",0,"sw2")}</div>
   <div class="panel"><h3>FAQ</h3>${HOW.map(([q,a])=>`<details class="how"><summary>${esc(q)}</summary><p class="small">${esc(a)}</p></details>`).join("")}</div>
   <div class="panel"><h3>Your data</h3><p class="small">Everything lives on this phone only. Download a backup now and then; restoring replaces what's here.</p>
     <div class="foot" style="margin:0"><button class="btn" id="bkDown" type="button">Download backup</button><label class="btn" for="bkFile">Restore backup<input id="bkFile" type="file" accept="application/json,.json" hidden></label></div></div>
@@ -648,7 +649,7 @@ const dowOf=t=>(new Date(t).getDay()+6)%7, dayKey=t=>{ const d=new Date(t); retu
 const sessName=x=>x.k==="lift"?(x.title||"Lift"):x.k==="zone2"?"Zone 2":(ACT[x.k]?ACT[x.k].name:x.k);
 /* Avg week breakdown: time in each kind of training, one stacked bar per week (last 8 weeks).
    Lifts without a saved duration count as your session length; activities use the minutes you logged. */
-const MIX=[["lift","Lifting","var(--lift)"],["sport","Sport","var(--act)"],["cls","Classes","#b9a3f0"],["cardio","Cardio","#fea06a"]];
+const MIX=[["lift","Lifting","var(--lift)"],["sport","Activity","var(--act)"],["cls","Classes","#b9a3f0"],["cardio","Cardio","#fea06a"]];
 function mixKind(x){ if(x.k==="lift") return "lift"; if(x.k==="zone2") return "cardio"; const A=ACT[x.k]; return A&&A.sport?"sport":A&&A.cls?"cls":"cardio"; }
 function mixMin(x){ if(x.k==="lift") return num(x.min,0)||num(wk.time,60); return num(x.min,0)||(ACT[x.k]?plannedMin(x.k):45); }
 function freqHTML(S){
@@ -689,7 +690,7 @@ function calHTML(){
   <div class="panel">
     <div class="calhead"><button type="button" class="btn sm calnav" data-cal="-1" aria-label="Previous month">‹</button><h3>${m0.toLocaleDateString(undefined,{month:"long",year:"numeric"})}</h3><button type="button" class="btn sm calnav" data-cal="1" aria-label="Next month"${calOff>=0?" disabled":""}>›</button></div>
     <div class="cal"><span class="cw">M</span><span class="cw">T</span><span class="cw">W</span><span class="cw">T</span><span class="cw">F</span><span class="cw">S</span><span class="cw">S</span>${cells}</div>
-    ${sel?`<div class="calsel" id="calsel"><span class="plab">${selD}</span><h3>${esc(selT)}</h3>${sel.map(x=>`<div class="csx">${sel.length>1||x.min?`<span class="cs ${x.k==="lift"?"l":"a"}">${esc(sessName(x))}${x.min?` · ${x.min} min`:""}</span>`:""}${x.k==="lift"?workoutRows(sessEx(x)):""}</div>`).join("")}</div>`:""}
+    ${sel?`<div class="calsel" id="calsel"><span class="plab">${selD}</span><h3>${esc(selT)}</h3>${sel.map(x=>`<div class="csx">${x.k!=="lift"&&(sel.length>1||x.min)?`<span class="cs ${x.k==="lift"?"l":"a"}">${esc(sessName(x))}${x.min?` · ${x.min} min`:""}</span>`:""}${x.k==="lift"?workoutRows(sessEx(x)):""}</div>`).join("")}</div>`:""}
     ${S.length?"":`<p class="note">Sessions show up here when you finish a lift day or enter minutes for an activity.</p>`}
   </div>`;
 }
@@ -706,7 +707,7 @@ function weeksHTML(){
    ${H.length?`<div class="wlist">${H.map(w=>`<div class="wrow"><div class="wtop"><b>Week of ${fmt(w.start)}</b>${w.w?`<span class="wwt">${w.w}<small> lb</small></span>`:""}</div>
      ${(()=>{ const A=weekActuals(w.start), act=A.n>0, sp=act?A.sport:(w.sport??w.pickle), bn=act?A.burn:w.cardio;
        return `<div class="wnums"><span class="${w.lifts<w.planned?"miss":""}"><b>${w.lifts}/${w.planned}</b> lifts</span>${sp?`<span><b>${sp}</b> min sport</span>`:""}${bn?`<span><b>${Number(bn).toLocaleString()}</b> exercise kcal</span>`:""}</div>`; })()}
-     <p class="small">${w.season==="In-season"?"In-season":"Off-season"}${w.ramp?" · ramp":""}${w.deload?" · deload":""} · ${esc(goalName(w.mode))}${w.focus?` · ${esc(w.focus)} focus`:""}</p></div>`).join("")}</div>`:`<p class="note">A new week begins on its own.</p>`}
+     <p class="small">${w.season==="In-season"?"In-season":"Off-season"}${w.ramp?" · ramp":""}${w.deload?" · deload":""} · ${esc(goalName(w.mode))}${w.focus?` · ${esc(w.focus)} focus`:""}</p></div>`).join("")}</div>`:""}
   </div>`;
 }
 function renderHistory(){
@@ -989,7 +990,7 @@ function render(){
   if(!SUBS().includes(cur)) cur="home";
   popN=0; for(const k in POP) delete POP[k];
   const P=plan(); renderNav(); document.body.dataset.nav=wk.setupDone?(nav==="workouts"&&cur!=="home"?"sub":nav):"setup";
-  const sub=nav==="workouts"&&cur!=="home", th=!wk.setupDone?"th-orange":sub?themeOf(cur):nav==="workouts"?"th-green":"th-orange";
+  const sub=nav==="workouts"&&cur!=="home", th=!wk.setupDone?"th-orange":sub?themeOf(cur):nav==="workouts"?"th-green":nav==="you"?"th-pink":"th-orange";
   document.body.classList.remove("th-green","th-orange","th-pink"); document.body.classList.add(th); { const m=document.querySelector('meta[name="theme-color"]'); if(m) m.content={"th-green":"#131615","th-orange":"#181513","th-pink":"#181416"}[th]; }
   const v=document.getElementById("view");
   document.getElementById("foot").hidden=!(sub&&DAYS.some(d=>d.id===cur));
@@ -1667,7 +1668,7 @@ function renderOnb(focus){
       ${o.sport&&SEASONAL(o.sport)?`<div class="q tgl"><span id="oinS">In-season now</span><div class="seg toggle"><button type="button" role="switch" aria-checked="${o.inS}" aria-labelledby="oinS" data-oin><i aria-hidden="true"></i></button></div></div>`:""}`;
     if(n===2) body=`<div class="ogoals">${ONB_GOALS.map(([v,l,d])=>`<button type="button" data-og="${v}" aria-pressed="${o.goal===v}"><b>${l}</b><span>${d}</span></button>`).join("")}</div>`;
     if(n===3){ const acts=[...(o.sport?[[o.sport,"pb",ACT[o.sport].name]]:[]),...ONB_ACTS().map(a=>[a,"ac:"+a,ACT[a].name])], val=k=>k.startsWith("ac:")?(o.ac[k.slice(3)]||0):o[k];
-      body=`<span class="plab">Usual lift days · ${o.days.length} a week</span><div class="ldgrid">${"MTWTFSS".split("").map((c,k)=>`<button type="button" data-od="${k}" aria-pressed="${o.days.includes(k)}" aria-label="${WD[k]}">${c}</button>`).join("")}</div>
+      body=`<span class="plab">Lift days</span><div class="ldgrid">${"MTWTFSS".split("").map((c,k)=>`<button type="button" data-od="${k}" aria-pressed="${o.days.includes(k)}" aria-label="${WD[k]}">${c}</button>`).join("")}</div>
       <span class="plab">Other activities · per week, any day</span>${acts.map(([a,k,l])=>`<div class="ostep"><span>${l}</span><span><button type="button" data-oc="${k}" data-d="-1" aria-label="Fewer ${l}">−</button><output>${val(k)}</output><button type="button" data-oc="${k}" data-d="1" aria-label="More ${l}">+</button></span></div>`).join("")}`; }
     if(n===4) body=`<div class="ogrid three">${[["Lower","Lower body"],["Balanced","Balanced"],["Upper","Upper body"]].map(([v,l])=>chip(o.focus===v,`data-of="${v}"`,l)).join("")}</div>`;
     if(n===5) body=`<div class="ogoals">${LEVELS.map(([v,l,d])=>`<button type="button" data-olv="${v}" aria-pressed="${o.level===v}"><b>${l}</b><span>${d}</span></button>`).join("")}</div>`;

@@ -109,3 +109,31 @@ Swiping today only jumps to the next day once you let go. Instead, the day shoul
 **Reduce Motion:** dragging still works (you're moving it directly), but taps jump without animation.
 
 **Done when:** I can put my thumb on today's card, drag slowly left, see tomorrow sliding in, let go halfway and have it settle on tomorrow, and the strip shows tomorrow selected.
+
+---
+
+## 7. Polish pass (Nov 13 night)
+
+Most of these were spotted in the native app; the web app has the same changes where it has the same screen (see the web commit for this section).
+
+**Copy**
+- Remove the small grey line under **Week starts on** ("A new week begins on its own") and under **Next-morning check** ("Did you play or train yesterday?") in You → App. Also remove "A new week begins on its own." as the empty note under History → Weeks (show nothing there).
+- Plan → Week: **Lift days** and **Activity days**, without "Usual" and without the "· 3 a week" count. Same on the onboarding lift-days step.
+- History chart legend: **Activity** instead of "Sport".
+
+**Plan → Week: Fuel/Recover**
+- Panel title **Fuel/Recover** (was "Fuel & recovery") with an (i) button right after it.
+- Remove the "How this is calculated" expandable link. Its content moves into the (i) tip, titled "How this is calculated": the maintenance breakdown, then "Weekly deficit: {n} kcal." and "Remaining finishers: {m} min × {n}." when they apply.
+
+**You**
+- The You tab uses the **pink** theme (like activities): tab bar icon and label, section titles, selected pills and switches, the experience slider. Workouts stays green; Plan and History stay orange.
+- FAQ rows: too much space under each question. Make the space above and below the question equal and tighter (about 9px top, 7px bottom, plus the divider), so the list reads as one even list.
+
+**History → Lifts**
+- Everything on the Lifts view is **orange** (#fea06a) instead of green: sparklines and their end dot, the "+n in 8 wk" change, PR marks.
+- **Main lifts list:** remove the big 1RM number from each row. A row shows the exercise name, the dumbbell icon with the top set and the change, and the sparkline. The 1RM appears only in the expanded table when a row is tapped.
+- The (i) next to "Main lifts" sits right after the title (4–6px gap), not pushed to the far edge.
+
+**History → Calendar**
+- The weekly chart's average line goes **behind** the bars, not over them. Make it a neutral colour (the muted grey, about 40% opacity, dashed is fine) and label its value with a unit: "{n}h" when it's an hour or more, "{n}m" when under an hour (e.g. "1.5h", "45m").
+- When a past day is selected under the calendar, don't repeat the workout title as a line under the heading (the "Lower · Glute & Hamstring" row). The heading already names it; show the exercises directly. Activities keep their "Pickleball · 90 min" line.

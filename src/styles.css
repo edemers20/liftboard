@@ -657,7 +657,7 @@ body.hasnav #toast,body.hasnav #sheet{bottom:calc(78px + env(safe-area-inset-bot
 .fmath summary::-webkit-details-marker,.how summary::-webkit-details-marker{display:none}
 .fmath[open] summary{margin-bottom:6px}
 .fmath .small{margin:4px 0}
-.how{border-top:1px solid var(--line);padding:10px 0}
+.how{border-top:1px solid var(--line);padding:9px 0 7px}
 .how:first-of-type{border-top:0}
 .how summary{color:var(--fg);font-size:14px;font-weight:500}
 .ckline{display:flex;justify-content:space-between;align-items:center;gap:12px;background:var(--surface);border-radius:14px;padding:6px 10px 6px 16px;min-height:48px;font-size:13px;color:var(--muted)}
@@ -767,7 +767,7 @@ button.wcard{border:0;text-align:left;font:inherit;color:var(--fg);cursor:pointe
 #sheet .field input{width:100%;box-sizing:border-box}
 
 /* Plan, History, You: small eyebrow headings, colour by meaning (green lifts, pink activities) instead of all orange */
-body[data-nav="plan"] .panel h3,body[data-nav="history"] .panel h3,body[data-nav="you"] .panel h3,body[data-nav="history"] .calhead h3{font:600 11px var(--body);letter-spacing:.08em;text-transform:uppercase;color:#e9b69b}
+body[data-nav="plan"] .panel h3,body[data-nav="history"] .panel h3,body[data-nav="you"] .panel h3,body[data-nav="history"] .calhead h3{font:600 11px var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--mint)}
 body[data-nav="history"] .calhead h3{font-size:13px;color:var(--fg)}
 body[data-nav="plan"] .panel h3 .ib,body[data-nav="history"] .panel h3 .ib,body[data-nav="you"] .panel h3 .ib{transform:scale(.85)}
 body[data-nav="plan"] .panel ul{color:var(--tx2)} body[data-nav="plan"] .panel ul b{color:var(--fg)}
@@ -951,10 +951,10 @@ body[data-nav="history"] .cd.today[aria-pressed="true"]{box-shadow:inset 0 0 0 2
 .q.q-sw2>span small{display:block;margin-top:2px}
 .seg.sw2{display:inline-flex;flex:0 0 auto;flex-wrap:nowrap;gap:0;background:var(--bg);border-radius:999px;padding:3px}
 .seg.sw2 button{min-height:36px;min-width:54px;border:0;border-radius:999px;padding:0 14px;background:transparent;color:var(--muted);font-weight:600}
-.seg.sw2 button[aria-pressed="true"]{background:#9d5324;color:#fff}
+.seg.sw2 button[aria-pressed="true"]{background:var(--accent-fill);color:#fff}
 /* experience slider */
-.slider.xp::before{background:linear-gradient(90deg,#6fd0b4,#e9b69b)}
-.slider.xp button[aria-pressed="true"] i::after{background:#e9b69b}
+.slider.xp::before{background:linear-gradient(90deg,#6fd0b4,var(--mint))}
+.slider.xp button[aria-pressed="true"] i::after{background:var(--mint)}
 .slider.xp span{font-size:13px;text-align:center}
 /* pill selects: same height as before, round ends, tinted when picked */
 .seg .actt,.sportseg button,.seg[data-key="mode"] button,.seg[data-key="ratePct"] button,.seg[data-key="focus"] button,.seg[data-key="sex"] button,.ogrid button[data-os],.ogrid button[data-ox],.ogrid button[data-of]{border-radius:999px;border:0}

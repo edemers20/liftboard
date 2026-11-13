@@ -71,8 +71,8 @@ Header: the week's date range as a page title ("NOV 2 – 8") or "SEASON"; a Wee
 
 ### Week [`30-plan-week`, `31-plan-week-checkin`]
 1. **Weekly check-in** (only until saved for the week): Readiness, Soreness, Cycle (female only), Drinking nights, Avg weight, Save check-in. Once saved it collapses to a line at the bottom: "Check-in · Feeling normal, no soreness" with a pencil to edit.
-2. **This week's plan**: one row per lift and activity with a status icon (done, next, open); tap opens it. Then "Usual lift days" and "Usual activity days" Mon–Sun toggles.
-3. **Fuel & recovery**: Fuel today kcal, recovery tiles; tiles for Your base, vs last week, Expected loss; "How this is calculated".
+2. **This week's plan**: one row per lift and activity with a status icon (done, next, open); tap opens it. Then "Lift days" and "Activity days" (no count) Mon–Sun toggles.
+3. **Fuel/Recover** with an (i) whose tip is "How this is calculated": Fuel today kcal, recovery tiles; tiles for Your base, vs last week, Expected loss.
 4. **This week's changes** and **Watch** lists, each with an (i).
 
 ### Season [`32-plan-season`]
