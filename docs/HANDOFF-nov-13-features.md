@@ -30,7 +30,7 @@ A sheet that opens when the week is finished (Mark week as finished, or the auto
 
 Top to bottom:
 - The week's date range in Ranchers, with a **Completed** pill on the same line, aligned right, when every planned lift was done (or "{done} of {planned} lifts" when not). No eyebrow and no line of body text.
-- Four tiles: **Lifts** {done}/{planned}, **Sets** (sets logged), **Activity** (min of sport, from `weekActuals`), **Extra burn** (kcal, from `weekActuals`). Numbers count up from 0 over 600ms.
+- Four tiles: **Lifts** {done}/{planned}, **Sets** (sets logged), **Activity** (min of sport, from `weekActuals`), **Exercise calories** (kcal burned by activities and cardio finishers, above what you burn at rest; from `weekActuals`). Numbers count up from 0 over 600ms.
 - **Going up next week**: each exercise whose next-time target goes up, "{last top set} → {next target}" with the target in orange.
 - **Personal Records** (only if there are any): see the PR rule in section 3. Each row shows the exercise, the kind of record ("Heaviest top set", "Best est. 1RM", "More reps"), the new value and what it was before.
 - **Sets by muscle**: done vs planned per muscle group for the week, as bars; groups under plan in yellow, with one line under the bars naming the biggest gap ("Quads came in 2 sets under target.").
@@ -49,7 +49,7 @@ Keep the Calendar view as it is. Reference: `Proto_History.dc.html`.
 
 **Weeks**
 - At the top, a strip of small squares for recent weeks (green = completed, dark = not) and "{n} weeks completed in a row".
-- Each week card: date range in Ranchers, a status pill (**✓ Completed**, or "{done} of {planned} lifts"), and three numbers: Lifts, Sets, Extra burn.
+- Each week card: date range in Ranchers, a status pill (**✓ Completed**, or "{done} of {planned} lifts"), and three numbers: Lifts, Sets, Exercise kcal.
 - Tapping a card expands it to show **Sets by muscle** (done / planned, same bars as the report).
 - An incomplete week shows what was missed ("Missed Upper · Pull") and a **Count as completed** button, for sick or travel weeks; it then reads **✓ Counted** and counts toward the streak. **Undo** reverses it.
 - A week is completed when every planned lift was done.
