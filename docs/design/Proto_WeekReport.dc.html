@@ -120,7 +120,7 @@ class Component extends DCLogic {
         { n: 'Lateral Raise', from: '12.5 × 15', to: '15 × 10' }
       ],
       prs: [
-        { n: 'Hip Thrust (Barbell)', kind: 'Best est. 1RM', v: '196 lb', was: 'was 195' },
+        { n: 'Hip Thrust (Barbell)', kind: 'Heaviest top set', v: '155 × 8', was: 'was 150 × 9' },
         { n: 'Hack Squat', kind: 'Heaviest top set', v: '140 × 8', was: 'was 135 × 9' }
       ],
       muscles: M.map(([nm, d, t]) => ({ n: nm, done: d, t, w: Math.min(100, d / t * 100 * e) + '%', c: d >= t ? '#6fd0b4' : '#e7b94a', tc: d >= t ? '#edeae8' : '#e7b94a' })),
