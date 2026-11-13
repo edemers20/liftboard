@@ -1,4 +1,5 @@
 import { engine } from "@/store";
+import { presentWeekReport } from "@/week-report";
 
 /** First open after the open week ends saves that week and starts the next one. */
 export function rollWeekIfDue(): boolean {
@@ -14,5 +15,6 @@ export function rollWeekIfDue(): boolean {
   next.setDate(next.getDate() + 7);
   if (now < next.getTime()) return false;
   engine.newWeek(Math.max(next.getTime(), engine.weekStartOf(now).getTime()));
+  presentWeekReport();
   return true;
 }

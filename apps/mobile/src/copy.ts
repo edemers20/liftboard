@@ -177,8 +177,8 @@ export const copy = {
     offSeasonWord: "Off-season",
     questions: [
       {
-        title: "What do you play?",
-        body: "Your main sport sets the season. In-season, lifting is deprioritized so you’re fresh to play.",
+        title: "What do you do?",
+        body: "Your main activity sets the season. In-season, lifting is deprioritized so you’re fresh.",
       },
       {
         title: "What are you training for?",
@@ -235,7 +235,7 @@ export const copy = {
     optional: "optional",
     dailySteps: "Daily steps",
     stepsExample: "e.g. 8000",
-    planSoFar: "Your plan so far",
+    planSoFar: "Plan so far",
     season: "Season",
     mainActivity: "Main activity",
     noSport: "No sport",
@@ -521,6 +521,10 @@ export const copy = {
     skip: "Skip",
     goOver: "Go · {…} over",
     rest: "Rest {…}",
+    /** TODO copy: not in docs/COPY.md. Lock screen title when rest ends. */
+    restUp: "Rest's up",
+    /** TODO copy: not in docs/COPY.md. Lock screen body when rest ends. */
+    restUpBody: "Set {…} of {…} · {…}",
     /** Not its own row in docs/COPY.md. Shown on the rest bar. */
     minus15: "−15s",
     /** Not its own row in docs/COPY.md. Shown on the rest bar. */
@@ -705,6 +709,9 @@ export const copy = {
     deloadThisWeek: "Deload this week",
     deloadSuggested: "Deload suggested · {…}",
     pace: "Pace",
+    paceOfWeight: "{…}% of your weight a week",
+    lbPerWeek: "lb / week",
+    kgPerWeek: "kg / week",
     fromCardio: "From cardio %",
     liftingFocus: "Lifting focus",
     goalDefinitions: "Goal definitions",

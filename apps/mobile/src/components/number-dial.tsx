@@ -1,7 +1,6 @@
 import { createContext, useContext, useRef, useState, type ReactNode } from "react";
 import {
   FlatList,
-  Modal,
   Pressable,
   StyleSheet,
   Text,
@@ -12,7 +11,9 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { SheetFrame } from "@/components/motion";
 import { copy } from "@/copy";
+import { Close } from "@/icons";
 import { theme } from "@/theme";
 import { useReduceMotion } from "@/use-reduce-motion";
 
@@ -33,6 +34,8 @@ type Request = DialSpec & {
   value: string;
   accent: string;
   onCommit: (value: string) => void;
+  /** Line under the wheel. Called with the highlighted amount. */
+  detail?: (shown: string) => ReactNode;
 };
 
 const DialContext = createContext<(request: Request) => void>(() => {});
@@ -79,6 +82,7 @@ export function DialValue({
   start,
   accent = theme.orange.selectedFill,
   onChange,
+  detail,
   style,
   textStyle,
 }: {
@@ -90,6 +94,7 @@ export function DialValue({
   start?: number;
   accent?: string;
   onChange: (value: string) => void;
+  detail?: (shown: string) => ReactNode;
   style?: StyleProp<ViewStyle>;
   textStyle?: StyleProp<TextStyle>;
 }) {
@@ -108,9 +113,10 @@ export function DialValue({
           start: start ?? spec.start,
           accent,
           onCommit: onChange,
+          detail,
         })
       }
-      style={style}
+      style={[styles.valueBox, style]}
     >
       <Text style={[styles.valueText, textStyle, !shown && styles.placeholder]} numberOfLines={1}>
         {shown || placeholder || " "}
@@ -170,14 +176,12 @@ function NumberDial({ request, onClose }: { request: Request; onClose: () => voi
   const spoken = current == null ? copy.you.none : `${formatValue(current, request.step)}${request.unit ? ` ${request.unit}` : ""}`;
 
   return (
-    <Modal visible transparent animationType={reduceMotion ? "none" : "slide"} onRequestClose={onClose}>
-      <View style={styles.screen}>
-        <Pressable accessibilityRole="button" accessibilityLabel={copy.you.cancel} onPress={onClose} style={styles.dim} />
+    <SheetFrame visible onClose={onClose} label={copy.you.cancel}>
         <View style={[styles.sheet, { marginBottom: insets.bottom + 12 }]}>
           <View style={styles.top}>
             <Text style={styles.label}>{request.label}</Text>
             <Pressable accessibilityRole="button" accessibilityLabel={copy.you.cancel} onPress={onClose} style={styles.close}>
-              <Text style={styles.closeMark}>×</Text>
+              <Close />
             </Pressable>
           </View>
           <View style={styles.wheelWrap}>
@@ -219,6 +223,9 @@ function NumberDial({ request, onClose }: { request: Request; onClose: () => voi
               }}
             />
           </View>
+          {request.detail && current != null ? (
+            <View style={styles.detail}>{request.detail(formatValue(current, request.step))}</View>
+          ) : null}
           <Pressable
             accessibilityRole="button"
             onPress={() => {
@@ -231,14 +238,13 @@ function NumberDial({ request, onClose }: { request: Request; onClose: () => voi
             <Text style={styles.doneText}>{copy.workout.done}</Text>
           </Pressable>
         </View>
-      </View>
-    </Modal>
+    </SheetFrame>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, justifyContent: "flex-end" },
-  dim: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.55)" },
+  dim: { ...StyleSheet.absoluteFill, backgroundColor: "rgba(0,0,0,0.55)" },
   sheet: {
     marginHorizontal: 12,
     backgroundColor: "#2f2a27",
@@ -258,7 +264,6 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   close: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
-  closeMark: { color: theme.text, fontSize: 22, lineHeight: 24 },
   wheelWrap: { height: PAD * 2 + ITEM },
   band: {
     position: "absolute",
@@ -269,6 +274,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: "rgba(233,182,155,0.18)",
   },
+  detail: { alignItems: "center" },
   wheel: { height: PAD * 2 + ITEM },
   pad: { height: PAD },
   item: { height: ITEM, alignItems: "center", justifyContent: "center" },
@@ -276,6 +282,7 @@ const styles = StyleSheet.create({
   itemOn: { color: "#ffffff" },
   unit: { color: theme.muted, fontFamily: theme.fonts.mono, fontSize: 13 },
   unitOn: { color: theme.orange.accent },
+  valueBox: { justifyContent: "center" },
   valueText: { color: theme.text, fontFamily: theme.fonts.mono, fontSize: 16 },
   placeholder: { color: theme.muted },
   done: { minHeight: 52, borderRadius: 14, alignItems: "center", justifyContent: "center" },

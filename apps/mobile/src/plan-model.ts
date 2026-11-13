@@ -19,9 +19,10 @@ const LIFT_DEFAULTS: Record<number, number[]> = {
   6: [0, 1, 2, 3, 4, 5],
   7: [0, 1, 2, 3, 4, 5, 6],
 };
-const PACE: Record<string, string[]> = {
-  "Deficit only": ["0.5", "0.75", "1"],
-  Recomp: ["0.25", "0.5", "0.7"],
+/** Cap is the last old option. Mid is the fallback when no pace is saved. */
+const PACE_CAP: Record<string, { max: number; mid: string }> = {
+  "Deficit only": { max: 1, mid: "0.75" },
+  Recomp: { max: 0.7, mid: "0.5" },
 };
 
 type Session = { t: number; k: string; id?: string; title?: string };
@@ -59,7 +60,14 @@ export type PlanRead = {
   inSeasonNow: boolean;
   lossGoal: boolean;
   showFocus: boolean;
-  paces: { value: string; label: string }[];
+  pace: {
+    shown: string;
+    percent: string;
+    min: number;
+    max: number;
+    step: number;
+    unit: string;
+  } | null;
   restFlag: string | null;
   finishedEarly: boolean;
   finishedNote: string | null;
@@ -151,10 +159,101 @@ export function migratePace() {
   return true;
 }
 
+/** Keeps a saved percent. An empty pace becomes the goal's middle value; anything over the cap clamps to it. */
+export function clampPace(mode: unknown, ratePct: unknown): string | undefined {
+  const cap = PACE_CAP[String(mode)];
+  if (!cap) return ratePct == null ? undefined : String(ratePct);
+  const p = parseFloat(String(ratePct ?? ""));
+  if (!(p > 0)) return cap.mid;
+  if (p > cap.max) return String(cap.max);
+  return String(ratePct);
+}
+
 export function fitPace() {
-  const options = PACE[engine.wk.mode as string];
-  if (!options) return;
-  if (!options.includes(String(engine.wk.ratePct))) engine.wk.ratePct = options[1];
+  const next = clampPace(engine.wk.mode, engine.wk.ratePct);
+  if (next !== undefined && next !== String(engine.wk.ratePct ?? "")) engine.wk.ratePct = next;
+}
+
+function paceRange() {
+  const cap = PACE_CAP[String(engine.wk.mode)];
+  if (!cap) return null;
+  const kg = isKg();
+  const parsed = engine.num(engine.wk.weight, 150);
+  const weight = parsed > 0 ? parsed : 150;
+  const step = kg ? 0.05 : 0.1;
+  const maxU = (cap.max / 100) * weight / (kg ? L2K : 1);
+  const min = +(step * 2).toFixed(2);
+  if (maxU < min - 1e-9) {
+    const only = +maxU.toFixed(kg ? 2 : 1);
+    return { kg, weight, step, min: only, max: only };
+  }
+  const count = Math.floor((maxU - min) / step + 1e-9);
+  return { kg, weight, step, min, max: +(min + count * step).toFixed(4) };
+}
+
+function nearestStep(current: number, min: number, max: number, step: number) {
+  const count = Math.round((max - min) / step);
+  let best = min;
+  let bestDist = Infinity;
+  for (let i = 0; i <= count; i++) {
+    const value = +(min + i * step).toFixed(4);
+    const dist = Math.abs(value - current);
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = value;
+    }
+  }
+  return best;
+}
+
+function formatStep(value: number, step: number) {
+  const decimals = String(step).includes(".") ? String(step).split(".")[1].length : 0;
+  return decimals ? String(+value.toFixed(decimals)) : String(Math.round(value));
+}
+
+/** Percent label for a pace amount in the current units. */
+export function pacePercentLabel(unitText: string) {
+  const n = parseFloat(unitText);
+  const range = paceRange();
+  if (!range || !Number.isFinite(n)) return "";
+  const lb = n * (range.kg ? L2K : 1);
+  return ((lb / range.weight) * 100).toFixed(2);
+}
+
+/**
+ * Percent to store for a dial amount. Null when it is the step already
+ * closest to the saved pace, so opening the dial and confirming does not move it.
+ */
+export function paceFromDial(unitText: string): string | null {
+  const picked = parseFloat(unitText);
+  const range = paceRange();
+  if (!range || !Number.isFinite(picked)) return null;
+  const stored = parseFloat(String(engine.wk.ratePct ?? ""));
+  if (stored > 0) {
+    const current = (stored / 100) * range.weight / (range.kg ? L2K : 1);
+    const nearest = nearestStep(current, range.min, range.max, range.step);
+    if (Math.abs(picked - nearest) < range.step * 0.01) return null;
+  }
+  const lb = picked * (range.kg ? L2K : 1);
+  const next = String(+((lb / range.weight) * 100).toFixed(4));
+  if (stored > 0 && Math.abs(stored - parseFloat(next)) < 5e-5) return null;
+  return next;
+}
+
+function paceField() {
+  const range = paceRange();
+  if (!range) return null;
+  const stored = parseFloat(String(engine.wk.ratePct ?? ""));
+  const pct = stored > 0 ? stored : 0.5;
+  const current = (pct / 100) * range.weight / (range.kg ? L2K : 1);
+  return {
+    shown: formatStep(current, range.step),
+    percent: pct.toFixed(2),
+    min: range.min,
+    max: range.max,
+    step: range.step,
+    unit: range.kg ? copy.plan.kgPerWeek : copy.plan.lbPerWeek,
+  };
 }
 
 function liftDayIndexes() {
@@ -480,18 +579,6 @@ function ruleLines(rules: string[]) {
   });
 }
 
-function paceChoices() {
-  const options = PACE[engine.wk.mode as string];
-  if (!options) return [];
-  const weight = engine.num(engine.wk.weight, 150);
-  const unit = isKg() ? copy.plan.kg : copy.plan.lb;
-  return options.map((value) => {
-    const pounds = Math.round((Number(value) / 100) * weight * 10) / 10;
-    const shown = isKg() ? Math.round((pounds / L2K) * 10) / 10 : pounds;
-    return { value, label: `${value}% \u00b7 ${shown} ${unit}` };
-  });
-}
-
 function goalLabel(mode: string) {
   return copy.plan.goals.find((goal) => goal.value === mode)?.label ?? mode;
 }
@@ -546,9 +633,9 @@ export function readPlan(): PlanRead {
     deloadFlag:
       deloadWhy.length && engine.wk.deload !== "Yes" ? fill(copy.plan.deloadSuggested, [deloadWhy.join(", ")]) : null,
     inSeasonNow,
-    lossGoal: !!PACE[engine.wk.mode as string],
+    lossGoal: !!PACE_CAP[engine.wk.mode as string],
     showFocus: !!engine.enabled("lift"),
-    paces: paceChoices(),
+    pace: paceField(),
     restFlag: next?.restSuggest && nextDay ? fill(copy.plan.restBefore, [nextDay.title]) : null,
     changes: ruleLines(planned.rules || []),
     watch: planned.notes || [],

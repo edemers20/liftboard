@@ -1,8 +1,13 @@
 import { Tabs } from "expo-router/js-tabs";
 
 import { copy } from "@/copy";
+import { TabHistory, TabPlan, TabWorkouts, TabYou } from "@/icons";
 import { theme } from "@/theme";
 import { useReduceMotion } from "@/use-reduce-motion";
+
+function tint(color: unknown) {
+  return typeof color === "string" ? color : theme.muted;
+}
 
 function bar(background: string) {
   return {
@@ -33,6 +38,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: copy.tabs.workouts,
+          tabBarIcon: ({ color }) => <TabWorkouts size={22} color={tint(color)} />,
           tabBarActiveTintColor: theme.green.accent,
           tabBarStyle: bar(theme.green.background),
           sceneStyle: { backgroundColor: theme.green.background },
@@ -42,6 +48,7 @@ export default function TabLayout() {
         name="plan"
         options={{
           title: copy.tabs.plan,
+          tabBarIcon: ({ color }) => <TabPlan size={22} color={tint(color)} />,
           sceneStyle: { backgroundColor: theme.orange.background },
         }}
       />
@@ -49,6 +56,7 @@ export default function TabLayout() {
         name="history"
         options={{
           title: copy.tabs.history,
+          tabBarIcon: ({ color }) => <TabHistory size={22} color={tint(color)} />,
           sceneStyle: { backgroundColor: theme.orange.background },
         }}
       />
@@ -56,6 +64,7 @@ export default function TabLayout() {
         name="you"
         options={{
           title: copy.tabs.you,
+          tabBarIcon: ({ color }) => <TabYou size={22} color={tint(color)} />,
           sceneStyle: { backgroundColor: theme.orange.background },
         }}
       />

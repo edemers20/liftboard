@@ -10,13 +10,16 @@ import { Redirect, Stack, usePathname } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, type ReactNode } from "react";
-import { AppState, Platform } from "react-native";
+import { AppState, Platform, View } from "react-native";
 import { SharedTransitionBoundary } from "react-native-reanimated";
 
 import { DialHost } from "@/components/number-dial";
+import { NoticeHost } from "@/components/motion";
 import { engine, useEngineStore } from "@/store";
+import { WeekReportHost } from "@/week-report";
 import { theme } from "@/theme";
 import { useReduceMotion } from "@/use-reduce-motion";
+import { prepareRestAlerts } from "@/workout/notify";
 import { rollWeekIfDue } from "@/week-roll";
 
 SplashScreen.preventAutoHideAsync();
@@ -56,6 +59,7 @@ export default function RootLayout() {
   }, [ready, error]);
 
   useEffect(() => {
+    prepareRestAlerts();
     rollWeekIfDue();
     const sub = AppState.addEventListener("change", (next) => {
       if (next === "active") rollWeekIfDue();
@@ -72,6 +76,7 @@ export default function RootLayout() {
       <OnboardingGate />
       <TransitionRoot active={!reduceMotion}>
         <DialHost>
+        <View style={{ flex: 1 }}>
         <Stack
           screenOptions={{
             headerShown: false,
@@ -84,6 +89,9 @@ export default function RootLayout() {
             options={{ animation: "fade", animationDuration: reduceMotion ? 160 : 450 }}
           />
         </Stack>
+        <NoticeHost />
+        </View>
+        <WeekReportHost />
         </DialHost>
       </TransitionRoot>
     </>

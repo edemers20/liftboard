@@ -1,5 +1,5 @@
 import { router, useFocusEffect } from "expo-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Animated, PanResponder, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -28,6 +28,7 @@ import {
   type ActSession,
 } from "@/activity-log";
 import { copy, fill } from "@/copy";
+import { haptic } from "@/haptic";
 import { openPlan, takeWorkoutsDay } from "@/links";
 import { readPlan } from "@/plan-model";
 import { engine, useEngineStore } from "@/store";
@@ -35,6 +36,7 @@ import { theme } from "@/theme";
 import { toDisplay } from "@/units";
 import { nativeDriver, useReduceMotion } from "@/use-reduce-motion";
 import { canSwapDay, SwapSheet, type SwapAnchor } from "@/components/swap-sheet";
+import { Swap } from "@/icons";
 import { ShareBox } from "@/workout/share-box";
 
 export default function WorkoutsScreen() {
@@ -49,14 +51,6 @@ export default function WorkoutsScreen() {
   const fade = useRef(new Animated.Value(1)).current;
   offsetRef.current = offset;
   reduceRef.current = reduce;
-
-  const noticeId = useNotice((state) => state.id);
-  const notice = useNotice((state) => state.lines);
-  useEffect(() => {
-    if (!notice.length) return;
-    const timer = setTimeout(() => useNotice.setState({ lines: [] }), 3200);
-    return () => clearTimeout(timer);
-  }, [noticeId, notice.length]);
 
   function go(next: number) {
     const current = offsetRef.current;
@@ -140,16 +134,6 @@ export default function WorkoutsScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {notice.length ? (
-          <View style={styles.notice} accessibilityLiveRegion="polite">
-            {notice.map((line, index) => (
-              <Text key={`${noticeId}-${index}`} style={index === 0 ? styles.noticeTitle : styles.noticeBody}>
-                {line}
-              </Text>
-            ))}
-          </View>
-        ) : null}
-
         <View style={styles.strip}>
           <Pressable
             style={styles.weekArrow}
@@ -171,7 +155,10 @@ export default function WorkoutsScreen() {
                   day.today && styles.cellToday,
                   day.selected && styles.cellSelected,
                 ]}
-                onPress={() => go(day.offset)}
+                onPress={() => {
+                  if (day.offset !== offset) haptic.selection();
+                  go(day.offset);
+                }}
                 accessibilityRole="button"
                 accessibilityLabel={day.label}
                 accessibilityState={{ selected: day.selected }}
@@ -596,7 +583,8 @@ function PlannedLift({
             }}
             style={styles.swapPill}
           >
-            <Text style={styles.swapPillText}>{`⇄  ${copy.workouts.swap}`}</Text>
+            <Swap size={16} color={theme.text} />
+            <Text style={styles.swapPillText}>{copy.workouts.swap}</Text>
           </Pressable>
         ) : null}
       </View>
@@ -619,6 +607,7 @@ function PlannedLift({
         <Pressable
           accessibilityRole="button"
           onPress={() => {
+            haptic.medium();
             engine.moveLiftToToday(id);
             onMoved();
             useNotice.getState().show([fill(copy.workouts.moved, title)]);
@@ -1053,8 +1042,10 @@ const styles = StyleSheet.create({
     borderRadius: theme.radii.pill,
     backgroundColor: "rgba(0,0,0,0.3)",
     paddingHorizontal: 12,
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    gap: 6,
   },
   swapPillText: { color: theme.text, fontFamily: theme.fonts.bodySemi, fontSize: 13 },
   liftEyebrow: {

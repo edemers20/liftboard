@@ -597,6 +597,10 @@ describe("estimated 1RM, PRs and the week streak", () => {
     ];
     const tops = E.weekTops("Hip Thrust (Barbell)");
     expect(tops.map(row => [row.w, row.r, row.pr])).toEqual([[140, 6, ""], [140, 8, "reps"], [145, 5, "top"]]);
+    expect(tops[1].wasW).toBe(140);
+    expect(tops[1].wasR).toBe(6);
+    expect(tops[2].wasW).toBe(140);
+    expect(tops[2].wasR).toBe(8);
     expect(tops[2].e1).toBe(E.e1rm(145, 5));
     expect(tops[2].e1).toBeLessThan(tops[1].e1);
 
@@ -676,5 +680,53 @@ describe("estimated 1RM, PRs and the week streak", () => {
     const glutes = week.muscles.find(row => row.name === "Glutes");
     expect(glutes.done).toBeGreaterThan(0);
     expect(glutes.planned).toBeGreaterThan(0);
+    expect(week.sets).toBe(2);
+  });
+
+  it("saves PRs and lifts that go up, and skips a lighter set with a higher estimate", () => {
+    fresh({ focus: "Lower", days: 3 });
+    const start = E.weekStartOf(Date.now()).getTime();
+    E.wk.weekStart = start;
+    E.exHist["Hip Thrust (Barbell)"] = [{ w: 135, r: 8, t: start - 864e5 }];
+    E.exHist["Hack Squat"] = [{ w: 100, r: 10, t: start - 864e5 }];
+    E.wk.sessions = [{ t: start + 3600000, k: "pickle", min: 40 }];
+    E.slots.d1 = { 0: { log: [{ w: 140, r: 10, d: true }] } };
+    const upper = E.DAYS.find(d => d.id === "d2");
+    const side = upper.slots.findIndex(s => s.label === "Side delts");
+    E.set("d2", side, "log", [{ w: 15, r: 12, d: true }]);
+    E.slots.d3 = { 0: { log: [{ w: 90, r: 15, d: true }] } };
+    E.markDone("d1");
+    E.markDone("d2");
+    E.markDone("d3");
+    E.newWeek(start + 7 * 864e5);
+    const week = E.wk.weeks.at(-1);
+    expect(week.lifts).toBe(3);
+    expect(week.sets).toBe(3);
+    expect(week.prs).toEqual([expect.objectContaining({ n: "Hip Thrust (Barbell)", kind: "top", w: 140, r: 10, wasW: 135, wasR: 8 })]);
+    expect(week.prs.some(pr => pr.n === "Hack Squat")).toBe(false);
+    expect(E.e1rm(90, 15)).toBeGreaterThan(E.e1rm(100, 10));
+    const thrust = week.ups.find(row => row.n === "Hip Thrust (Barbell)");
+    expect(thrust.toW).toBeGreaterThan(thrust.fromW);
+    expect(week.muscles.some(row => row.name === "Delts")).toBe(true);
+    expect(week.muscles.some(row => row.name === "Side delts")).toBe(false);
+    expect(week.nextTitle).toBe("Lower · Hinge & Glute");
+    const report = E.pendingWeekReport();
+    expect(report.completed).toBe(true);
+    expect(report.streak).toBe(1);
+    expect(report.activities).toEqual([{ k: "pickle", n: 1, min: 40 }]);
+    expect(report.sport).toBe(40);
+    expect(E.dismissWeekReport()).toBe(true);
+    expect(E.pendingWeekReport()).toBe(null);
+  });
+
+  it("leaves muscle bars out of a week closed before they were saved", () => {
+    fresh();
+    E.wk.weeks = [{ start: 5, lifts: 1, planned: 2 }];
+    E.wk.reportPending = 5;
+    const report = E.pendingWeekReport();
+    expect(report.muscles).toBe(null);
+    expect(report.sets).toBe(null);
+    expect(report.prs).toEqual([]);
+    expect(report.completed).toBe(false);
   });
 });

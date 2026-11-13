@@ -199,7 +199,7 @@ Per lift, from your last logged set:
 - **Next-morning check** (`wk.remind`, default On): if yesterday has nothing logged and activities are still open, Workouts asks "Did you play or train yesterday?" and logs it on yesterday's date.
 - **Swap offer:** a leg-heavy sport logged today with a Lower day queued offers the next Upper day instead.
 - **Check-in** sits at the top of Plan until saved, then becomes one line at the bottom. `newWeek` reopens it.
-- **Pace** is stored as % of body weight a week (`wk.ratePct`); lb/week = % × current weight (`rateLb()`). Options: Lose weight fast 0.5 / 0.75 / 1%; Lose fat, keep strength 0.25 / 0.5 / 0.7%. Old lb paces convert to the nearest option once.
+- **Pace** is stored as % of body weight a week (`wk.ratePct`); lb/week = % × current weight (`rateLb()`). Plan → Season picks it in 0.1 lb steps (0.05 kg), from 0.2 up to 1% of body weight for Lose weight fast and 0.7% for Lose fat, keep strength. `fitPace` keeps the saved percent and clamps it to that cap. Old lb paces convert once to the nearest of 0.5 / 0.75 / 1% (or 0.25 / 0.5 / 0.7%).
 - Goal names: Lose weight fast · Lose fat, keep strength · Maintain · Build muscle. Definitions live behind "Goal definitions" on Plan → Season.
 
 ## Onboarding

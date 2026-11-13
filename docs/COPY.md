@@ -468,6 +468,9 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Pick a main sport under You to use seasons. | main.js:419 |
 |  | Deload suggested · {…} | main.js:420 |
 |  | ratePct | main.js:424 |
+|  | {…}% of your weight a week | main.js:444 |
+|  | lb / week | main.js:444 |
+|  | kg / week | main.js:444 |
 |  | From cardio % | main.js:425 |
 |  | Balanced | main.js:426 |
 |  | Lifting focus | main.js:426 |
