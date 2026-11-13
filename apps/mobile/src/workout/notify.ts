@@ -123,11 +123,11 @@ export function claimRestChime(end: number): boolean {
   if (!end || chimedEnd === end) return false;
   if (AppState.currentState !== "active") return false;
   chimedEnd = end;
-  if ((engine.wk.sound || "Yes") !== "No") playChime();
+  playChime();
   return true;
 }
 
-/** Schedule the chime for the end of rest. Cancels the previous one. No-op when the sound setting is off. */
+/** Schedule the lock screen alert for the end of rest. Cancels the previous one. No alert when the sound setting is off. */
 export async function armRest(seconds: number) {
   const my = ++ticket;
   const previous = currentId || engine.wk.rest?.noteId || null;
