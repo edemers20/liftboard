@@ -76,8 +76,10 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Flexible | main.js:1454 |
 |  | 3 × 10 · 65 lb | main.js:1454 |
 |  | 4 × 8 · 135 lb | main.js:1454 |
+|  | 4 × 6–10 · 155 | main.js:1454 |
 |  | 3 × 10 · 45 lb | main.js:1454 |
 |  | 3 × 8 · 95 lb | main.js:1454 |
+|  | 3 × 8–12 · 105 | main.js:1454 |
 |  | Tips on every screen | main.js:1455 |
 |  | The reason for each exercise | main.js:1455 |
 |  | A fixed plan to follow | main.js:1455 |
@@ -145,14 +147,19 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Start light. The app finds your working weight over the first two weeks. | main.js:1514 |
 |  | Why: hip thrusts build glutes with less strain on your back than squats. | main.js:1514 |
 |  | Romanian Deadlift | main.js:1514 |
+|  | Hip Thrust (Barbell) | main.js:1521 |
 |  | Swap freely | main.js:1514 |
 |  | B-Stance Thrust | main.js:1514 |
 |  | Sumo Deadlift | main.js:1514 |
 |  | Rest 2:30. The timer starts when you tick a set and chimes when it's time. | main.js:1514 |
 |  | In-season now | main.js:1532 |
+|  | In-season | onboarding plan summary |
+|  | Off-season | onboarding plan summary |
 |  | Other activities · per week, any day | main.js:1535 |
 |  | Weight ({…}) | main.js:1540 |
 |  | Daily steps | main.js:1540 |
+| Placeholder | optional | main.js:1540 |
+| Placeholder | e.g. 8000 | main.js:1540 |
 |  | whenever you like | main.js:1545 |
 |  | Log an activity | main.js:1545 |
 |  | First workout · {…} | main.js:1545 |
@@ -215,7 +222,12 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Delete | main.js:292 |
 |  | Save | main.js:292 |
 |  | On | main.js:309 |
+|  | No | main.js:310 |
 |  | Did you play or train yesterday? | main.js:310 |
+|  | Previous day | Screen reader name for the day arrow |
+|  | Next day | Screen reader name for the day arrow |
+|  | Previous week | Screen reader name for the week arrow |
+|  | Next week | Screen reader name for the week arrow |
 |  | You logged {…} today. Swap {…} for {…} so your legs can recover? | main.js:314 |
 |  | Swap | main.js:314 |
 |  | Keep plan | main.js:314 |
@@ -305,6 +317,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | That looked easy: {…} reps. Go up to | main.js:826 |
 |  | for the rest? | main.js:826 |
 |  | Use {…} | main.js:826 |
+|  | Keep this weight | screen reader name for the × on a weight nudge |
 |  | Tough set: {…} reps. Drop to | main.js:827 |
 |  | to stay in range? | main.js:827 |
 |  | last time: {…} | main.js:829 |
@@ -323,6 +336,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | + Add exercise | main.js:851 |
 |  | Add exercise | main.js:856 |
 |  | Choose an exercise… | main.js:856 |
+| Placeholder | Custom exercise | custom exercise name field |
 |  | Add to {…} | main.js:856 |
 |  | Counts as | main.js:858 |
 |  | Choose… | main.js:858 |
@@ -336,7 +350,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 | --- | --- | --- |
 |  | Skip | main.js:1129 |
 |  | Go · {…} over | main.js:1132 |
-|  | Rest {…}{…} | main.js:1132 |
+|  | Rest {…} | main.js:1132 |
 
 ## Activities
 
@@ -430,6 +444,13 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Fuel &amp; recovery | main.js:399 |
 |  | Your base | main.js:399 |
 |  | vs last week | main.js:399 |
+|  | same | Plan fuel tile when this week is within 5 kcal of last week |
+| Placeholder | optional | Plan check-in weight field |
+|  | Edit check-in | Plan check-in pencil |
+|  | Season starts in ≤6 weeks | Plan pre-season switch |
+|  | Deload this week | Plan deload switch |
+|  | calf | Plan sentence, singular, in "{…} work" |
+|  | adductor | Plan sentence, singular, in "{…} work" |
 |  | How this is calculated | main.js:399 |
 |  | {…}{…}/day | main.js:401 |
 |  | Expected loss | main.js:401 |
@@ -495,7 +516,10 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Sport | main.js:606 |
 |  | Classes | main.js:606 |
 |  | Cardio | main.js:606 |
-|  | Week mix | main.js:616 |
+|  | Week Breakdown | main.js:616 |
+|  | Previous month | main.js:645 |
+|  | Next month | main.js:645 |
+|  | added | main.js:1190 |
 |  | Hours a week by kind of training{…} | main.js:616 |
 |  | · about {…} a week | main.js:617 |
 |  | {…} {…} min | main.js:618 |
@@ -504,11 +528,11 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Now | main.js:619 |
 |  | Week of {…} | main.js:661 |
 |  | min sport | main.js:662 |
-|  | kcal cardio | main.js:662 |
+|  | kcal extra burn | main.js:662 |
 |  | · ramp | main.js:663 |
 |  | · deload | main.js:663 |
 |  | · {…} focus | main.js:663 |
-|  | Saves when you tap Start new week. | main.js:663 |
+|  | A new week begins on its own. | main.js:663 |
 |  | Main activity | main.js:1548 |
 |  | No sport | main.js:1548 |
 |  | {…} lift{…}{…}{…} | main.js:1548 |
@@ -525,7 +549,9 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Weeks active | main.js:441 |
 |  | · in-season | main.js:444 |
 |  | Edit profile | main.js:463 |
+|  | View preferences | You tab |
 |  | Save changes | main.js:463 |
+|  | Save & close | You tab, preferences |
 |  | App | main.js:463 |
 |  | FAQ | main.js:463 |
 |  | Your data | main.js:463 |
@@ -558,6 +584,16 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Height (in) | main.js:553 |
 |  | Weight (lb) | main.js:553 |
 |  | Body fat % | main.js:553 |
+|  | Stretching after lifts | main.js:470 |
+|  | Rest timer sound | main.js:471 |
+|  | primary | main.js:547 |
+|  | What these do | main.js:71 |
+|  | Decrease | main.js:76 |
+|  | Increase | main.js:76 |
+|  | cm | main.js:454 |
+|  | k | main.js:457 |
+| Button | Export my data | SCREENS.md |
+| Button | Delete account | SCREENS.md |
 
 ## FAQ
 
@@ -587,7 +623,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | How many tips you see. Beginner and Some Experience show tips; Advanced hides them, and (i) explanations stay either way. Change it in You → Training preferences. | main.js:431 |
 |  | Bodyweight exercises? | main.js:431 |
 |  | Leave the weight blank. Add a number only if you hold extra weight. Progress comes from reps, slower lowering or added weight. | main.js:431 |
-|  | How is Week mix counted? | main.js:431 |
+|  | How is Week Breakdown counted? | native FAQ |
 |  | Lifts use how long the workout took, rounded to 15 minutes. Lifts logged before that was saved count as your session length. Activities use the minutes you logged. | main.js:431 |
 |  | Moving to a new phone? | main.js:431 |
 |  | You → Your data → Download backup, then Restore backup on the new phone. With accounts, signing in will do this for you. | main.js:431 |
@@ -636,7 +672,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 | ⓘ Watch | Targets and warnings to keep an eye on this week. | main.js:59 |
 | ⓘ Main lifts | Your top working set each session. The number is the latest weight; the change is since your first logged session. | main.js:60 |
 |  | Time spent each week on lifting, sports, classes and cardio, for the last 8 weeks (or since you started). Lifts use how long the workout took, rounded to 15 minutes; older lifts count as your session length. Activities use the minutes you logged. | main.js:61 |
-| ⓘ Previous weeks | Saved each time you tap Start new week. Weigh-ins logged here calibrate maintenance after 3+ weeks. | main.js:62 |
+| ⓘ Previous weeks | Saved when a new week begins on its own. Weigh-ins logged here calibrate maintenance after 3+ weeks. | main.js:62 |
 | ⓘ Spin intensity | Really hard burns more and adds 1 to recovery load. | main.js:62 |
 | ⓘ Class length | Class length. | main.js:62 |
 |  | {…} min | main.js:279 |
@@ -687,6 +723,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Avg weight | main.js:66 |
 |  | Class length | main.js:66 |
 |  | Heated | main.js:66 |
+|  | Not heated | Yoga heated choice |
 |  | Effort | main.js:66 |
 |  | Intensity | main.js:66 |
 |  | Today | main.js:66 |
@@ -718,6 +755,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 | Slot label | Rear delts | engine.js:78 |
 | Slot label | Arms | engine.js:79 |
 | Slot label | Rotator cuff | engine.js:80 |
+| Title | Upper · Press | engine.js:72 |
 | Title | Lower · Quad & Glute | engine.js:82 |
 | Slot label | Main quad | engine.js:83 |
 | Slot label | Glute (light) | engine.js:84 |
@@ -864,7 +902,29 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | {…} holding | engine.js:751 |
 |  | {…} easing off | engine.js:751 |
 | Title | Day done | main.js:1197 |
-| Button | Back to Workouts | main.js:1199 |
+| Button | Finish & close | Finished lift. Returns to the page that opened it. |
+| Button | Share | Day done sheet. |
+| Button | Share workout | Completed workout. |
+|  | LIFT BOARD | Share image. |
+|  | min | Share image. |
+|  | sets | Share image. |
+|  | going up | Share image. |
+|  | TOP SETS | Share image. |
+|  | + {…} more | Share image. |
+| Button | Swap | Lift card. |
+| Button | Swap workout | Workout screen and swap sheet. |
+|  | The week will adjust to any swaps. | Swap sheet. |
+|  | Same muscle group | Swap sheet. |
+|  | {…} moved to today | Swap sheet, planned lift. |
+| Button | Mark week as finished | Plan, Week. |
+| Title | Finish this week? | Plan, Week. |
+|  | This week's numbers are saved to history and next week's plan starts now. Lifts you didn't get to come first next week. You can undo until next week begins. | Plan, Week. |
+| Button | Finish week | Plan, Week. |
+|  | Week finished. This is next week's plan; it starts {…}. Anything you log before then counts toward it. | Plan, Week. |
+| Button | Undo | Plan, Week. |
+|  | Week reopened | Plan, Week. |
+|  | Next week's plan | Plan, Week. |
+|  | Extra burn | Week done. |
 | Small label | Week complete | main.js:1204 |
 | Title | Week done | main.js:1204 |
 
@@ -969,7 +1029,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Moderate | main.js:894 |
 |  | Light | main.js:894 |
 |  | Hard | main.js:894 |
-|  | ‹ Workouts | main.js:928 |
+|  | Back | Screen back control. Returns to the page that opened it. |
 |  | BW+{…} | main.js:1185 |
 |  | No sets logged. | main.js:1188 |
 |  | application/json | main.js:1221 |
