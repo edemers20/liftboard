@@ -69,10 +69,7 @@ button:active{transform:scale(.97)}
       </section>
 
       <section aria-label="Sets by muscle" style="background: #24201d; border-radius: 16px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; animation: lbUp .4s .29s both">
-        <div style="display: flex; justify-content: space-between; align-items: baseline">
-          <h2 style="margin: 0; font-size: 15px; font-weight: 600">Sets by muscle</h2>
-          <span style="font-size: 12px; color: #a8a09c">done / target</span>
-        </div>
+        <h2 style="margin: 0; font-size: 15px; font-weight: 600">Sets by muscle</h2>
         <sc-for list="{{ muscles }}" as="m" hint-placeholder-count="7">
           <div style="display: grid; grid-template-columns: 92px 1fr 52px; align-items: center; gap: 10px">
             <span style="font-size: 13px">{{ m.n }}</span>
