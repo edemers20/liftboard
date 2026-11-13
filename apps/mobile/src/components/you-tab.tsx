@@ -17,6 +17,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { applyBackup, parseBackup, type LiftBackup } from "@/backup";
+import { ageDial, bodyFatDial, DialValue, heightDial, stepsDial, weightDial } from "@/components/number-dial";
 import { copy, fill } from "@/copy";
 import { storage } from "@/storage";
 import { engine, useEngineStore } from "@/store";
@@ -438,7 +439,6 @@ export function YouTab({ onReplay }: { onReplay: () => void }) {
   const reduceMotion = useReduceMotion();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<Draft | null>(null);
-  const [weightText, setWeightText] = useState<string | null>(null);
   const [liftText, setLiftText] = useState<string | null>(null);
   const [openFaq, setOpenFaq] = useState<Record<number, boolean>>({});
   const [info, setInfo] = useState<InfoItem[] | null>(null);
@@ -449,10 +449,6 @@ export function YouTab({ onReplay }: { onReplay: () => void }) {
   const kgMode = engine.wk.units === "kg";
   const changed = dirty(draft);
   const form = sourceFrom(draft);
-
-  useEffect(() => {
-    setWeightText(null);
-  }, [kgMode]);
 
   function stage(partial: Draft) {
     setDraft((prev) => {
@@ -496,7 +492,6 @@ export function YouTab({ onReplay }: { onReplay: () => void }) {
       api.save();
     });
     setDraft(null);
-    setWeightText(null);
     setEditing(false);
     AccessibilityInfo.announceForAccessibility(copy.you.profileSaved);
   }
@@ -504,7 +499,6 @@ export function YouTab({ onReplay }: { onReplay: () => void }) {
   function closeEdit() {
     if (dirty(draft)) return;
     setDraft(null);
-    setWeightText(null);
     setEditing(false);
   }
 
@@ -530,7 +524,6 @@ export function YouTab({ onReplay }: { onReplay: () => void }) {
   function eraseOnThisPhone() {
     setConfirm(null);
     setDraft(null);
-    setWeightText(null);
     setEditing(false);
     call((api) => {
       storage.setItem(api.KEY, "{}");
@@ -581,7 +574,6 @@ export function YouTab({ onReplay }: { onReplay: () => void }) {
       rollWeekIfDue();
     });
     setDraft(null);
-    setWeightText(null);
     setEditing(false);
     setConfirm(null);
     setPending(null);
@@ -670,8 +662,6 @@ export function YouTab({ onReplay }: { onReplay: () => void }) {
             <ProfileForm
               form={form}
               kgMode={kgMode}
-              weightText={weightText}
-              onWeightText={setWeightText}
               onStage={stage}
               onSport={pickSport}
               sports={sports}
@@ -1105,8 +1095,6 @@ function TwoWay({
 function ProfileForm({
   form,
   kgMode,
-  weightText,
-  onWeightText,
   onStage,
   onSport,
   sports,
@@ -1114,8 +1102,6 @@ function ProfileForm({
 }: {
   form: Source;
   kgMode: boolean;
-  weightText: string | null;
-  onWeightText: (text: string | null) => void;
   onStage: (partial: Draft) => void;
   onSport: (id: string) => void;
   sports: string[];
@@ -1222,26 +1208,22 @@ function ProfileForm({
         </View>
         <View style={styles.fields}>
           <Field label={copy.you.name} value={form.name} placeholder={copy.onboarding.optional} onChange={(name) => onStage({ name })} />
-          <Field label={copy.you.age} value={form.age} numeric onChange={(age) => onStage({ age })} />
-          <Field label={copy.you.heightIn} value={form.height} decimal onChange={(height) => onStage({ height })} />
+          <Field label={copy.you.age} value={form.age} dial={ageDial} onChange={(age) => onStage({ age })} />
+          <Field label={copy.you.heightIn} value={form.height} dial={heightDial} onChange={(height) => onStage({ height })} />
           <Field
             label={kgMode ? copy.you.weightLb.replaceAll("lb", copy.you.kg) : copy.you.weightLb}
-            value={weightText ?? weightShown(form.weight, kgMode)}
-            decimal
-            onChange={(text) => {
-              onWeightText(text);
-              onStage({ weight: weightStored(text, kgMode) });
-            }}
-            onBlur={() => onWeightText(null)}
+            value={weightShown(form.weight, kgMode)}
+            dial={weightDial(kgMode)}
+            onChange={(text) => onStage({ weight: weightStored(text, kgMode) })}
           />
           <Field
             label={copy.you.bodyFatPct}
             value={form.bf}
             placeholder={copy.onboarding.optional}
-            decimal
+            dial={bodyFatDial}
             onChange={(bf) => onStage({ bf })}
           />
-          <Field label={copy.you.stepsPerDay} value={form.steps} numeric onChange={(steps) => onStage({ steps })} />
+          <Field label={copy.you.stepsPerDay} value={form.steps} dial={stepsDial} onChange={(steps) => onStage({ steps })} />
           <Field
             label={copy.you.dailyBurn}
             value={form.oura}
@@ -1288,34 +1270,30 @@ function Field({
   label,
   value,
   placeholder,
-  numeric,
-  decimal,
+  dial,
   onChange,
-  onBlur,
 }: {
   label: string;
   value: string;
   placeholder?: string;
-  numeric?: boolean;
-  decimal?: boolean;
+  dial?: DialSpec;
   onChange: (value: string) => void;
-  onBlur?: () => void;
 }) {
   return (
     <View style={styles.field}>
       <Text style={styles.fieldLabel}>{label}</Text>
-      <TextInput
-        accessibilityLabel={label}
-        value={value}
-        placeholder={placeholder}
-        placeholderTextColor={theme.muted}
-        onChangeText={onChange}
-        onBlur={onBlur}
-        keyboardType={decimal ? "decimal-pad" : numeric ? "number-pad" : "default"}
-        inputMode={decimal ? "decimal" : numeric ? "numeric" : "text"}
-        autoCorrect={numeric || decimal ? false : undefined}
-        style={[styles.input, (numeric || decimal) && styles.inputMono]}
-      />
+      {dial ? (
+        <DialValue label={label} value={value} placeholder={placeholder} spec={dial} onChange={onChange} style={styles.input} textStyle={styles.inputMono} />
+      ) : (
+        <TextInput
+          accessibilityLabel={label}
+          value={value}
+          placeholder={placeholder}
+          placeholderTextColor={theme.muted}
+          onChangeText={onChange}
+          style={styles.input}
+        />
+      )}
     </View>
   );
 }

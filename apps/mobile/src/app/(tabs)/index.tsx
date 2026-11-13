@@ -34,7 +34,7 @@ import { engine, useEngineStore } from "@/store";
 import { theme } from "@/theme";
 import { toDisplay } from "@/units";
 import { nativeDriver, useReduceMotion } from "@/use-reduce-motion";
-import { canSwapDay, SwapSheet } from "@/components/swap-sheet";
+import { canSwapDay, SwapSheet, type SwapAnchor } from "@/components/swap-sheet";
 import { ShareBox } from "@/workout/share-box";
 
 export default function WorkoutsScreen() {
@@ -167,15 +167,24 @@ export default function WorkoutsScreen() {
                 key={day.offset}
                 style={[
                   styles.cell,
-                  day.selected && styles.cellSelected,
+                  day.past && styles.cellPast,
                   day.today && styles.cellToday,
+                  day.selected && styles.cellSelected,
                 ]}
                 onPress={() => go(day.offset)}
                 accessibilityRole="button"
                 accessibilityLabel={day.label}
                 accessibilityState={{ selected: day.selected }}
               >
-                <Text style={[styles.cellLetter, day.past && !day.selected && styles.cellPastText]}>{day.letter}</Text>
+                <Text
+                  style={[
+                    styles.cellLetter,
+                    day.today && styles.cellLetterToday,
+                    day.past && !day.today && styles.cellPastText,
+                  ]}
+                >
+                  {day.letter}
+                </Text>
                 <Text style={[styles.cellDate, day.past && !day.selected && styles.cellPastText]}>{day.date.getDate()}</Text>
                 <View style={styles.dots}>
                   {day.lift ? <View style={styles.dotLift} /> : null}
@@ -277,14 +286,15 @@ function FuelLink() {
       onPress={() => openPlan("week")}
       style={styles.fuel}
     >
-      <View style={styles.fuelHead}>
+      <View style={styles.fuelMain}>
         <Text style={styles.fuelLabel}>{copy.plan.fuelToday}</Text>
-        <Text style={styles.fuelValue}>{fill(copy.plan.kcal, [model.fuel.today])}</Text>
+        <Text style={styles.fuelLine}>
+          <Text style={styles.fuelValue}>{model.fuel.today}</Text>
+          <Text style={styles.fuelUnit}>{` ${fill(copy.plan.kcal, "").trim()}`}</Text>
+        </Text>
       </View>
-      <View style={styles.fuelRec}>
-        <RecoveryBit label={copy.plan.lowerBody} hours={model.recovery.lower} />
-        <RecoveryBit label={copy.plan.upperBody} hours={model.recovery.upper} />
-      </View>
+      <RecoveryBit label={copy.plan.lowerBody} hours={model.recovery.lower} />
+      <RecoveryBit label={copy.plan.upperBody} hours={model.recovery.upper} />
     </Pressable>
   );
 }
@@ -293,7 +303,14 @@ function RecoveryBit({ label, hours }: { label: string; hours: number | null }) 
   return (
     <View style={styles.fuelBit}>
       <Text style={styles.fuelBitLabel}>{label}</Text>
-      <Text style={styles.fuelBitValue}>{hours == null ? copy.plan.ready : `${hours}${copy.plan.hoursRest}`}</Text>
+      {hours == null ? (
+        <Text style={styles.fuelReady}>{copy.plan.ready}</Text>
+      ) : (
+        <Text style={styles.fuelHours}>
+          {hours}
+          <Text style={styles.fuelHoursUnit}>{` ${copy.plan.hoursRest}`}</Text>
+        </Text>
+      )}
     </View>
   );
 }
@@ -448,6 +465,7 @@ function LiftCards({
   onMoved: () => void;
 }) {
   const [swapId, setSwapId] = useState<string | null>(null);
+  const [swapAnchor, setSwapAnchor] = useState<SwapAnchor | null>(null);
   const board = engine.dayBoard(offset);
   const lifts = (board.sessions as { t: number; k: string; id?: string; title?: string; ex?: any[] }[]).filter(
     (session) => session.k === "lift",
@@ -523,10 +541,20 @@ function LiftCards({
           started={board.started}
           onOpen={onOpen}
           onMoved={onMoved}
-          onSwap={() => setSwapId(board.plannedId)}
+          onSwap={(next) => {
+            setSwapAnchor(next);
+            setSwapId(board.plannedId);
+          }}
         />
       ) : null}
-      <SwapSheet id={swapId} onClose={() => setSwapId(null)} />
+      <SwapSheet
+        id={swapId}
+        anchor={swapAnchor}
+        onClose={() => {
+          setSwapId(null);
+          setSwapAnchor(null);
+        }}
+      />
     </>
   );
 }
@@ -546,8 +574,9 @@ function PlannedLift({
   started: boolean;
   onOpen: (id: string) => void;
   onMoved: () => void;
-  onSwap: () => void;
+  onSwap: (anchor: SwapAnchor) => void;
 }) {
+  const swapRef = useRef<any>(null);
   const title = openTitle(id);
   const rows = previewRows(id);
   const showSwap = canSwapDay(id);
@@ -557,9 +586,14 @@ function PlannedLift({
         <Text style={styles.liftEyebrow}>{today ? copy.workouts.today : copy.workouts.planned}</Text>
         {showSwap ? (
           <Pressable
+            ref={swapRef}
             accessibilityRole="button"
             accessibilityLabel={`${copy.workouts.swap} ${title}`}
-            onPress={onSwap}
+            onPress={() => {
+              swapRef.current?.measureInWindow((x: number, y: number, width: number, height: number) => {
+                onSwap({ x, y, width, height });
+              });
+            }}
             style={styles.swapPill}
           >
             <Text style={styles.swapPillText}>{`⇄  ${copy.workouts.swap}`}</Text>
@@ -784,19 +818,23 @@ const styles = StyleSheet.create({
   },
   cell: {
     flex: 1,
-    minHeight: 58,
+    minHeight: 60,
     borderRadius: theme.radii.tile,
     borderWidth: 2,
     borderColor: "transparent",
+    backgroundColor: "#24201d",
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 6,
     gap: 1,
   },
-  cellSelected: {
-    backgroundColor: theme.green.surface,
+  cellPast: {
+    backgroundColor: "#211e1c",
   },
   cellToday: {
+    backgroundColor: "#2f3a35",
+  },
+  cellSelected: {
     borderColor: theme.green.accent,
   },
   cellLetter: {
@@ -804,6 +842,9 @@ const styles = StyleSheet.create({
     fontFamily: theme.fonts.bodySemi,
     fontSize: 10,
     letterSpacing: 0.6,
+  },
+  cellLetterToday: {
+    color: theme.green.accent,
   },
   cellDate: {
     color: theme.text,
@@ -921,25 +962,43 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   fuel: {
+    flexDirection: "row",
+    alignItems: "stretch",
+    gap: 8,
     borderRadius: theme.radii.card,
     backgroundColor: theme.green.surface,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    gap: 12,
+    padding: 12,
   },
-  fuelHead: { gap: 2 },
+  fuelMain: { flex: 1.3, justifyContent: "center", gap: 2, minWidth: 0, paddingHorizontal: 4 },
   fuelLabel: {
     color: theme.muted,
     fontFamily: theme.fonts.bodySemi,
-    fontSize: 11,
-    letterSpacing: 0.88,
+    fontSize: 10,
+    letterSpacing: 0.7,
     textTransform: "uppercase",
   },
-  fuelValue: { color: theme.fuel, fontFamily: theme.fonts.monoMedium, fontSize: 22 },
-  fuelRec: { flexDirection: "row", gap: 16 },
-  fuelBit: { flex: 1, gap: 2 },
-  fuelBitLabel: { color: theme.muted, fontFamily: theme.fonts.body, fontSize: 13 },
-  fuelBitValue: { color: theme.text, fontFamily: theme.fonts.mono, fontSize: 15 },
+  fuelLine: { color: theme.text },
+  fuelValue: { color: theme.text, fontFamily: theme.fonts.monoMedium, fontSize: 22, lineHeight: 26 },
+  fuelUnit: { color: theme.muted, fontFamily: theme.fonts.monoMedium, fontSize: 12 },
+  fuelBit: {
+    flex: 1,
+    backgroundColor: theme.green.background,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    gap: 2,
+    justifyContent: "flex-start",
+  },
+  fuelBitLabel: {
+    color: theme.muted,
+    fontFamily: theme.fonts.bodySemi,
+    fontSize: 10,
+    letterSpacing: 0.7,
+    textTransform: "uppercase",
+  },
+  fuelReady: { color: theme.green.accent, fontFamily: theme.fonts.bodySemi, fontSize: 16, lineHeight: 26 },
+  fuelHours: { color: theme.fuel, fontFamily: theme.fonts.monoMedium, fontSize: 22, lineHeight: 26 },
+  fuelHoursUnit: { color: theme.muted, fontFamily: theme.fonts.monoMedium, fontSize: 12 },
   cards: {
     gap: 10,
   },

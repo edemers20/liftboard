@@ -516,7 +516,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Sport | main.js:606 |
 |  | Classes | main.js:606 |
 |  | Cardio | main.js:606 |
-|  | Avg week breakdown | main.js:616 |
+|  | Week Breakdown | main.js:616 |
 |  | Previous month | main.js:645 |
 |  | Next month | main.js:645 |
 |  | added | main.js:1190 |
@@ -623,7 +623,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | How many tips you see. Beginner and Some Experience show tips; Advanced hides them, and (i) explanations stay either way. Change it in You → Training preferences. | main.js:431 |
 |  | Bodyweight exercises? | main.js:431 |
 |  | Leave the weight blank. Add a number only if you hold extra weight. Progress comes from reps, slower lowering or added weight. | main.js:431 |
-|  | How is Avg week breakdown counted? | native FAQ |
+|  | How is Week Breakdown counted? | native FAQ |
 |  | Lifts use how long the workout took, rounded to 15 minutes. Lifts logged before that was saved count as your session length. Activities use the minutes you logged. | main.js:431 |
 |  | Moving to a new phone? | main.js:431 |
 |  | You → Your data → Download backup, then Restore backup on the new phone. With accounts, signing in will do this for you. | main.js:431 |

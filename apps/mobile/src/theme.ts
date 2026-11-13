@@ -1,0 +1,47 @@
+export const theme = {
+  text: "#edeae8",
+  muted: "#a8a09c",
+  fuel: "#fea06a",
+  green: {
+    background: "#131615",
+    surface: "#1d2220",
+    accent: "#6fd0b4",
+    accentFill: "#237a64",
+    onAccent: "#ffffff",
+  },
+  orange: {
+    background: "#181513",
+    surface: "#24201d",
+    accent: "#e9b69b",
+    selectedFill: "#9d5324",
+  },
+  pink: {
+    background: "#181416",
+    surface: "#241f21",
+    card: "#2a1f25",
+    reminder: "#241d21",
+    input: "#1c1519",
+    accent: "#fc96bf",
+    onAccent: "#2a1520",
+    tint: "rgba(252, 150, 191, 0.18)",
+    line: "#5a3a48",
+    /** Black at 30% over the pink surface. */
+    secondary: "#191617",
+  },
+  banner: "#3a3018",
+  radii: {
+    small: 8,
+    tile: 12,
+    card: 16,
+    pill: 999,
+  },
+  fonts: {
+    display: "Ranchers_400Regular",
+    body: "DMSans_400Regular",
+    bodyMedium: "DMSans_500Medium",
+    bodySemi: "DMSans_600SemiBold",
+    bodyBold: "DMSans_700Bold",
+    mono: "DMMono_400Regular",
+    monoMedium: "DMMono_500Medium",
+  },
+} as const;

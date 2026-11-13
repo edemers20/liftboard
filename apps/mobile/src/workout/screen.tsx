@@ -19,7 +19,7 @@ import { clock, fromDisplay, toDisplay, unitWord, weightText } from "@/units";
 import { useEngineStore } from "@/store";
 import { useReduceMotion } from "@/use-reduce-motion";
 
-import { canSwapDay, openSwappedWorkout, SwapSheet } from "@/components/swap-sheet";
+import { canSwapDay, openSwappedWorkout, SwapSheet, type SwapAnchor } from "@/components/swap-sheet";
 
 import { armRest, cancelRestChime } from "./notify";
 import { ShareBox } from "./share-box";
@@ -167,6 +167,8 @@ export function WorkoutScreen({ id }: { id: string }) {
   const [picker, setPicker] = useState<null | { index: number } | "add" | "cat">(null);
   const [resetAsk, setResetAsk] = useState(false);
   const [swapOpen, setSwapOpen] = useState(false);
+  const [swapAnchor, setSwapAnchor] = useState<SwapAnchor | null>(null);
+  const swapRef = useRef<any>(null);
 
   function leave() {
     if (router.canGoBack()) router.back();
@@ -414,7 +416,17 @@ export function WorkoutScreen({ id }: { id: string }) {
             </Text>
             {timerLabel ? <Text style={styles.timer}>{timerLabel}</Text> : null}
             {canSwapDay(id) ? (
-              <Pressable accessibilityRole="button" onPress={() => setSwapOpen(true)} style={styles.swapPill}>
+              <Pressable
+                ref={swapRef}
+                accessibilityRole="button"
+                onPress={() => {
+                  swapRef.current?.measureInWindow((x: number, y: number, width: number, height: number) => {
+                    setSwapAnchor({ x, y, width, height });
+                    setSwapOpen(true);
+                  });
+                }}
+                style={styles.swapPill}
+              >
                 <Text style={styles.swapPillText}>{copy.workouts.swapWorkout}</Text>
               </Pressable>
             ) : null}
@@ -788,7 +800,11 @@ export function WorkoutScreen({ id }: { id: string }) {
 
       <SwapSheet
         id={swapOpen ? id : null}
-        onClose={() => setSwapOpen(false)}
+        anchor={swapAnchor}
+        onClose={() => {
+          setSwapOpen(false);
+          setSwapAnchor(null);
+        }}
         onWorkout={(nextId) => {
           setSwapOpen(false);
           openSwappedWorkout(nextId);

@@ -440,7 +440,7 @@ export const copy = {
       "Leave the weight blank. Add a number only if you hold extra weight. Progress comes from reps, slower lowering or added weight.",
     ],
     [
-      "How is Avg week breakdown counted?",
+      "How is Week Breakdown counted?",
       "Lifts use how long the workout took, rounded to 15 minutes. Lifts logged before that was saved count as your session length. Activities use the minutes you logged.",
     ],
     [
@@ -496,6 +496,8 @@ export const copy = {
     lastTime: "last time: {…}",
     startOn: "Start on",
     addedWeight: "added weight (blank for bodyweight)",
+    addedWeightTitle: "Added weight",
+    reps: "Reps",
     plusLb: "+lb",
     plusSet: "+ Set",
     collapse: "Collapse",
@@ -831,7 +833,7 @@ export const copy = {
     calendar: "Calendar",
     weeks: "Weeks",
     lifts: "Lifts",
-    weekMix: "Avg week breakdown",
+    weekMix: "Week Breakdown",
     hoursByKind: "Hours a week by kind of training",
     aboutAWeek: (hours: string) => ` · about ${hours} a week`,
     kindMinutes: (kind: string, minutes: string) => `${kind} ${minutes} min`,

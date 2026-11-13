@@ -50,7 +50,7 @@ From step 1 on, a "Your plan so far" card at the bottom updates live. Finishing 
 
 [`23-workout-lift-day`, `24-workout-rest-timer`, `22-workout-completed`]
 
-- Back link "‹ Workouts", workout title, a running timer once started.
+- Back link "Back", which returns to the page that opened the workout. Then the workout title and a running timer once started.
 - "How do you feel today?" slider: Thriving · Normal · Rough (stored values Good / Normal / Rough).
 - Exercise cards in order; the current one is expanded and outlined, others collapsed with a chevron. Each card: slot label, set count badge ("Set 2 of 4"), progress bar, exercise picker, rows of weight × reps with a ✓ per set, "+ Set".
 - Ticking a set starts the rest bar at the bottom: −15s zone, "Rest 2:59", +15s zone, Skip. It chimes at zero (local notification when the phone is locked).
@@ -84,8 +84,8 @@ Header: the week's date range as a page title ("NOV 2 – 8") or "SEASON"; a Wee
 ## 6. History tab
 
 Calendar · Weeks · Lifts switch (slides between them).
-- **Calendar** [`40-history-calendar`]: month grid; days filled green (lift), pink (activity) or split; tap a day for its details. Week mix chart (minutes of lifting vs activities per week).
-- **Weeks** [`41-history-weeks`]: one card per past week; empty state "Saves when you tap Start new week."
+- **Calendar** [`40-history-calendar`]: month grid; days filled green (lift), pink (activity) or split; tap a day for its details. Week Breakdown (minutes of lifting vs activities per week).
+- **Weeks** [`41-history-weeks`]: one card per past week; empty state "A new week begins on its own."
 - **Lifts** [`42-history-lifts`]: main lifts with top-set trend sparklines.
 
 ---
@@ -94,10 +94,9 @@ Calendar · Weeks · Lifts switch (slides between them).
 
 [`50-you`, `51-you-edit-profile`]
 - Profile header: initial in a gradient circle, name, "Member since Aug 2026", a pill for each sport and activity (main sport first), stat tiles Lifts / Activities / Weeks active.
-- Profile grid (label on top, big value below): Goal, Experience, Lifting focus, Lift days, Height, Weight, Body fat, Steps / day, Age, Sex. "Edit profile" opens the full form: activities, sports in season, focus, bio data, name; Save changes sticks above the tab bar and is disabled until something changes.
-- Training preferences: Experience slider, Session length stepper, Supersets, Stretching after lifts, Rest timer sound (+ Play test sound), Avg lift kcal.
-- App: Units (lb / kg), Tips (More / Fewer), Week starts on (Mon / Sun), Next-morning check (On / Off) as two-way switches.
-- FAQ: 15 expandable questions.
+- Profile grid in view mode shows only Goal, Experience, Lifting focus and Lift days. "View preferences" opens the rest, already editable: activities, sports in season, focus, bio data (including height, weight, body fat, steps, age and sex) and training preferences (experience slider, session length, supersets, stretching, rest timer sound with Play test sound, avg lift kcal). "Save & close" sticks above the tab bar when something changed; otherwise the button says "Close".
+- App: Units (lb / kg), Tips (More / Fewer), Week starts on (Mon / Sun), Next-morning check (On / Off) as two-way switches. Stays under preferences.
+- FAQ: 15 expandable questions, no disclosure mark. Stays under App.
 - Your data: in the native app this becomes Export my data and Delete account (replacing Download / Restore backup).
 - Disclaimer line; Replay tour; Reset profile.
 

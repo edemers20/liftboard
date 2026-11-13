@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useNotice } from "@/activity-log";
@@ -31,6 +31,8 @@ export function swapChoices(id: string) {
   return { family, others };
 }
 
+export type SwapAnchor = { x: number; y: number; width: number; height: number };
+
 export function canSwapDay(id: string) {
   if ((engine.wk.done || {})[id]) return false;
   if (((engine.wk.wt || {})[id] || {}).start) return false;
@@ -40,17 +42,31 @@ export function canSwapDay(id: string) {
 
 export function SwapSheet({
   id,
+  anchor,
   onClose,
   onWorkout,
 }: {
   id: string | null;
+  anchor: SwapAnchor | null;
   onClose: () => void;
   /** When the workout screen is open, follow the chosen id. */
   onWorkout?: (nextId: string) => void;
 }) {
   const insets = useSafeAreaInsets();
+  const { width: screenW, height: screenH } = useWindowDimensions();
   useEngineStore((state) => state.version);
   const choices = id ? swapChoices(id) : { family: [], others: [] };
+  const cardW = Math.min(360, screenW - 24);
+  const left = anchor
+    ? Math.max(12, Math.min(anchor.x + anchor.width - cardW, screenW - 12 - cardW))
+    : (screenW - cardW) / 2;
+  const below = anchor ? anchor.y + anchor.height + 6 : screenH * 0.22;
+  const spaceBelow = screenH - insets.bottom - below;
+  const above = anchor != null && spaceBelow < 220 && anchor.y > 240;
+  const place =
+    above && anchor
+      ? { left, bottom: screenH - anchor.y + 6, width: cardW, maxHeight: anchor.y - insets.top - 16 }
+      : { left, top: below, width: cardW, maxHeight: Math.max(180, spaceBelow - 8) };
 
   function pickFamily(nextId: string) {
     if (!id) return;
@@ -69,45 +85,51 @@ export function SwapSheet({
   }
 
   return (
-    <Modal visible={!!id} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable accessibilityRole="button" accessibilityLabel={copy.close} style={styles.dim} onPress={onClose}>
-        <Pressable
-          style={[styles.sheet, { marginBottom: insets.bottom + 12 }]}
-          onPress={(event) => event.stopPropagation()}
-        >
-          <View style={styles.top}>
-            <Text accessibilityRole="header" style={styles.title}>
-              {copy.workouts.swapWorkout}
-            </Text>
-            <Pressable accessibilityRole="button" accessibilityLabel={copy.close} onPress={onClose} style={styles.close}>
-              <Text style={styles.closeText}>×</Text>
-            </Pressable>
-          </View>
-          <Text style={styles.body}>{copy.workouts.swapBody}</Text>
-          {choices.family.length ? (
-            <View style={styles.section}>
-              <Text style={styles.label}>{copy.workouts.sameGroup}</Text>
-              {choices.family.map((day) => (
-                <Pressable key={day.id} accessibilityRole="button" onPress={() => pickFamily(day.id)} style={styles.row}>
-                  <Text style={styles.rowTitle}>{day.title}</Text>
-                  <Text style={styles.rowDetail}>{preview(day)}</Text>
-                </Pressable>
-              ))}
+    <Modal visible={!!id} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
+      <View style={styles.dim}>
+        <Pressable accessibilityRole="button" accessibilityLabel={copy.close} style={StyleSheet.absoluteFill} onPress={onClose} />
+        <View style={[styles.sheet, place]}>
+          <ScrollView keyboardShouldPersistTaps="handled" bounces={false} contentContainerStyle={styles.sheetBody}>
+            <View style={styles.top}>
+              <Text accessibilityRole="header" style={styles.title}>
+                {copy.workouts.swapWorkout}
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={copy.close}
+                hitSlop={12}
+                onPress={onClose}
+                style={styles.close}
+              >
+                <Text style={styles.closeText}>×</Text>
+              </Pressable>
             </View>
-          ) : null}
-          {choices.others.length ? (
-            <View style={styles.section}>
-              <Text style={styles.label}>{copy.workouts.planned}</Text>
-              {choices.others.map((day) => (
-                <Pressable key={day.id} accessibilityRole="button" onPress={() => pickPlanned(day.id)} style={styles.row}>
-                  <Text style={styles.rowTitle}>{day.title}</Text>
-                  <Text style={styles.rowDetail}>{preview(day)}</Text>
-                </Pressable>
-              ))}
-            </View>
-          ) : null}
-        </Pressable>
-      </Pressable>
+            <Text style={styles.body}>{copy.workouts.swapBody}</Text>
+            {choices.family.length ? (
+              <View style={styles.section}>
+                <Text style={styles.label}>{copy.workouts.sameGroup}</Text>
+                {choices.family.map((day) => (
+                  <Pressable key={day.id} accessibilityRole="button" onPress={() => pickFamily(day.id)} style={styles.row}>
+                    <Text style={styles.rowTitle}>{day.title}</Text>
+                    <Text style={styles.rowDetail}>{preview(day)}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
+            {choices.others.length ? (
+              <View style={styles.section}>
+                <Text style={styles.label}>{copy.workouts.planned}</Text>
+                {choices.others.map((day) => (
+                  <Pressable key={day.id} accessibilityRole="button" onPress={() => pickPlanned(day.id)} style={styles.row}>
+                    <Text style={styles.rowTitle}>{day.title}</Text>
+                    <Text style={styles.rowDetail}>{preview(day)}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
+          </ScrollView>
+        </View>
+      </View>
     </Modal>
   );
 }
@@ -118,22 +140,20 @@ export function openSwappedWorkout(nextId: string) {
 }
 
 const styles = StyleSheet.create({
-  dim: { flex: 1, backgroundColor: "rgba(0,0,0,0.75)", justifyContent: "flex-end" },
+  dim: { flex: 1, backgroundColor: "rgba(0,0,0,0.75)" },
   sheet: {
-    marginHorizontal: 12,
+    position: "absolute",
     borderRadius: theme.radii.card,
     backgroundColor: theme.green.surface,
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 16,
-    gap: 6,
+    overflow: "hidden",
   },
-  top: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingTop: 4 },
-  title: { color: theme.text, fontFamily: theme.fonts.bodySemi, fontSize: 20 },
-  close: { minWidth: 44, minHeight: 44, alignItems: "center", justifyContent: "center" },
+  sheetBody: { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 14, gap: 6 },
+  top: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
+  title: { flex: 1, color: theme.text, fontFamily: theme.fonts.bodySemi, fontSize: 20, lineHeight: 24 },
+  close: { width: 28, height: 28, alignItems: "center", justifyContent: "center" },
   closeText: { color: theme.text, fontSize: 22, lineHeight: 24 },
-  body: { color: theme.muted, fontFamily: theme.fonts.body, fontSize: 14 },
-  section: { gap: 6, marginTop: 2 },
+  body: { color: theme.muted, fontFamily: theme.fonts.body, fontSize: 14, lineHeight: 18 },
+  section: { gap: 6 },
   label: {
     color: theme.muted,
     fontFamily: theme.fonts.bodySemi,

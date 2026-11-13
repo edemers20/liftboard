@@ -16,6 +16,9 @@ import Animated, {
   Easing,
   useAnimatedStyle,
   useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
   withTiming,
   type SharedValue,
 } from "react-native-reanimated";
@@ -702,6 +705,48 @@ function WeekPane({
   );
 }
 
+const SHINE_BANDS = [
+  { left: "30%", width: "10%", backgroundColor: "rgba(111,208,180,0.05)" },
+  { left: "40%", width: "6%", backgroundColor: "rgba(111,208,180,0.10)" },
+  { left: "46%", width: "4%", backgroundColor: "rgba(255,255,255,0.14)" },
+  { left: "50%", width: "4%", backgroundColor: "rgba(255,255,255,0.20)" },
+  { left: "54%", width: "4%", backgroundColor: "rgba(255,255,255,0.14)" },
+  { left: "58%", width: "6%", backgroundColor: "rgba(111,208,180,0.10)" },
+  { left: "64%", width: "6%", backgroundColor: "rgba(111,208,180,0.05)" },
+] as const;
+
+function PlanShine() {
+  const progress = useSharedValue(0);
+  const width = useSharedValue(0);
+  useEffect(() => {
+    progress.value = withRepeat(
+      withSequence(
+        withDelay(700, withTiming(1, { duration: 1300, easing: Easing.inOut(Easing.ease) })),
+        withDelay(3000, withTiming(0, { duration: 0 })),
+      ),
+      -1,
+      false,
+    );
+  }, [progress]);
+  const sweep = useAnimatedStyle(() => ({
+    transform: [{ translateX: width.value * (-1.2 + progress.value * 2.4) }, { rotate: "15deg" }],
+  }));
+  return (
+    <View pointerEvents="none" style={styles.shineClip}>
+      <Animated.View
+        onLayout={(event) => {
+          width.value = event.nativeEvent.layout.width;
+        }}
+        style={[styles.shine, sweep]}
+      >
+        {SHINE_BANDS.map((band) => (
+          <View key={band.left} style={[styles.shineBand, band]} />
+        ))}
+      </Animated.View>
+    </View>
+  );
+}
+
 function SeasonPane({
   model,
   actions,
@@ -747,9 +792,10 @@ function SeasonPane({
       keyboardDismissMode={reduceMotion ? "none" : "on-drag"}
       automaticallyAdjustKeyboardInsets
     >
-      <View style={panelStyle()}>
+      <View style={[panelStyle(), styles.planCard]}>
         <Eyebrow title={copy.plan.yourPlan} />
         <Sentence parts={model.sentence} hot={hot} />
+        {reduceMotion ? null : <PlanShine />}
       </View>
       <View style={panelStyle()}>
         <Eyebrow title={copy.plan.season} info={copy.plan.info.season} />
@@ -920,7 +966,7 @@ function RecoveryTile({ label, hours }: { label: string; hours: number | null })
       ) : (
         <Text style={styles.restValue}>
           {hours}
-          <Text style={styles.restUnit}>{copy.plan.hoursRest}</Text>
+          <Text style={styles.restUnit}>{` ${copy.plan.hoursRest}`}</Text>
         </Text>
       )}
     </View>
@@ -1261,6 +1307,10 @@ const styles = StyleSheet.create({
     borderTopColor: theme.orange.accent,
   },
   sentence: { color: planColors.sentence, fontFamily: theme.fonts.body, fontSize: 17, lineHeight: 27 },
+  planCard: { overflow: "hidden" },
+  shineClip: { position: "absolute", top: 0, right: 0, bottom: 0, left: 0, overflow: "hidden" },
+  shine: { position: "absolute", top: "-40%", bottom: "-40%", left: 0, right: 0 },
+  shineBand: { position: "absolute", top: 0, bottom: 0 },
   blank: {
     color: planColors.white,
     fontFamily: theme.fonts.bodySemi,

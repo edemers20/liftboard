@@ -783,7 +783,7 @@ const styles = StyleSheet.create({
   mixNow: { opacity: 0.85 },
   mixLabel: { fontFamily: theme.fonts.monoMedium, fontSize: 10, color: theme.muted },
   mixLabelNow: { color: theme.text },
-  legend: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  legend: { flexDirection: "row", flexWrap: "wrap", gap: 10, justifyContent: "center" },
   legendItem: { flexDirection: "row", alignItems: "center", gap: 5 },
   legendSwatch: { width: 9, height: 9, borderRadius: 2 },
   legendText: { fontFamily: theme.fonts.body, fontSize: 12, color: theme.muted },
