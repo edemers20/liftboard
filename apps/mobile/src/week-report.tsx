@@ -52,10 +52,6 @@ function rangeLabel(start: number) {
   return `${short(open)} – ${short(close)}`;
 }
 
-function whenLabel(start: number) {
-  return new Date(start).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
-}
-
 function setLine(name: string, weight: number, reps: number) {
   if (engine.isBW(name) && !(weight > 0)) return `${copy.history.bw} ${copy.history.times} ${reps}`;
   const shown = toDisplay(weight);
@@ -73,8 +69,7 @@ function shownMuscles(muscles: Muscle[]) {
   return muscles.map((row) => {
     const done = Math.round(row.done);
     const planned = Math.round(row.planned);
-    const met = planned <= 0 || done >= planned;
-    return { name: row.name, done, planned, met, short: met ? 0 : planned - done };
+    return { name: row.name, done, planned, met: planned <= 0 || done >= planned };
   });
 }
 
@@ -107,7 +102,7 @@ function ReportShare({ report }: { report: Report }) {
       <Text style={styles.shareBrand}>{copy.workout.liftBoard}</Text>
       <Text style={styles.shareTitle}>{range}</Text>
       <Text style={styles.shareLine}>
-        {report.completed ? copy.report.allDone(report.lifts, report.streak) : copy.history.liftsOf(report.lifts, report.planned)}
+        {report.completed ? copy.workouts.completed : copy.history.liftsOf(report.lifts, report.planned)}
       </Text>
       <Text style={styles.shareStat}>
         {copy.you.lifts} {report.lifts}/{report.planned}
@@ -116,10 +111,10 @@ function ReportShare({ report }: { report: Report }) {
         {copy.history.sets} {report.sets == null ? "–" : report.sets}
       </Text>
       <Text style={styles.shareStat}>
-        {copy.history.sport} {report.sport} {copy.you.min}
+        {copy.report.activityTile} {report.sport} {copy.you.min}
       </Text>
       <Text style={styles.shareStat}>
-        {copy.plan.extraBurn} {report.burn.toLocaleString("en-US")} {copy.report.kcal}
+        {copy.report.exerciseCalories} {report.burn.toLocaleString("en-US")} {copy.report.kcal}
       </Text>
       {report.ups.map((row) => (
         <Text key={row.n} style={styles.shareStat}>
@@ -137,11 +132,6 @@ function ReportSheet({ report }: { report: Report }) {
   const shot = useRef<any>(null);
   const [busy, setBusy] = useState(false);
   const muscles = report.muscles ? shownMuscles(report.muscles) : null;
-  const gap = muscles?.reduce<{ name: string; short: number } | null>((best, row) => {
-    if (row.short <= 0) return best;
-    if (!best || row.short > best.short) return { name: row.name, short: row.short };
-    return best;
-  }, null);
   const range = rangeLabel(report.start);
 
   async function share() {
@@ -164,22 +154,16 @@ function ReportSheet({ report }: { report: Report }) {
       </View>
       <View style={styles.handle} />
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <View style={styles.headerRow}>
-            <Text style={styles.eyebrow}>{copy.plan.weekDone}</Text>
-            {report.completed ? (
-              <View style={styles.pill}>
-                <Check size={12} color={theme.green.accent} />
-                <Text style={styles.pillText}>{copy.workouts.completed}</Text>
-              </View>
-            ) : null}
-          </View>
-          <Text accessibilityRole="header" style={styles.title}>
+        <View style={styles.headerRow}>
+          <Text accessibilityRole="header" numberOfLines={1} style={styles.title}>
             {range}
           </Text>
-          <Text style={styles.summary}>
-            {report.completed ? copy.report.allDone(report.lifts, report.streak) : copy.history.liftsOf(report.lifts, report.planned)}
-          </Text>
+          <View style={[styles.pill, !report.completed && styles.pillOpen]}>
+            {report.completed ? <Check size={12} color={theme.green.accent} /> : null}
+            <Text style={[styles.pillText, !report.completed && styles.pillTextOpen]}>
+              {report.completed ? copy.workouts.completed : copy.history.liftsOf(report.lifts, report.planned)}
+            </Text>
+          </View>
         </View>
 
         <View style={styles.tiles}>
@@ -195,12 +179,12 @@ function ReportSheet({ report }: { report: Report }) {
           </View>
           <View style={styles.tileRow}>
             <View style={styles.tile}>
-              <Text style={styles.tileLabel}>{copy.history.sport}</Text>
-              <CountValue target={report.sport} color={theme.pink.accent} unit={` ${copy.you.min}`} label={copy.history.sport} />
+              <Text style={styles.tileLabel}>{copy.report.activityTile}</Text>
+              <CountValue target={report.sport} color={theme.pink.accent} unit={` ${copy.you.min}`} label={copy.report.activityTile} />
             </View>
             <View style={styles.tile}>
-              <Text style={styles.tileLabel}>{copy.plan.extraBurn}</Text>
-              <CountValue target={report.burn} color={theme.fuel} unit={` ${copy.report.kcal}`} label={copy.plan.extraBurn} />
+              <Text style={styles.tileLabel}>{copy.report.exerciseCalories}</Text>
+              <CountValue target={report.burn} color={theme.fuel} unit={` ${copy.report.kcal}`} label={copy.report.exerciseCalories} />
             </View>
           </View>
         </View>
@@ -224,13 +208,13 @@ function ReportSheet({ report }: { report: Report }) {
 
         {report.prs.length ? (
           <Rise delay={220}>
-            <View accessibilityLabel={copy.report.prs(report.prs.length)} style={styles.prCard}>
-              <Text style={styles.prTitle}>{copy.report.prs(report.prs.length)}</Text>
+            <View accessibilityLabel={copy.report.records} style={styles.prCard}>
+              <Text style={styles.prTitle}>{copy.report.records}</Text>
               {report.prs.map((row) => (
                 <View key={row.n} style={styles.split}>
                   <View style={styles.prName}>
                     <Text style={styles.rowName}>{row.n}</Text>
-                    <Text style={styles.kind}>{row.kind === "top" ? copy.report.heaviest : copy.history.prReps}</Text>
+                    <Text style={styles.kind}>{row.kind === "top" ? copy.report.heaviest : copy.report.moreReps}</Text>
                   </View>
                   <View style={styles.prValue}>
                     <Text style={styles.prNumber}>{setLine(row.n, row.w, row.r)}</Text>
@@ -247,10 +231,7 @@ function ReportSheet({ report }: { report: Report }) {
         {muscles?.length ? (
           <Rise delay={290}>
             <View accessibilityLabel={copy.history.setsByMuscle} style={styles.card}>
-              <View style={styles.split}>
-                <Text style={styles.cardTitle}>{copy.history.setsByMuscle}</Text>
-                <Text style={styles.kind}>{copy.report.doneTarget}</Text>
-              </View>
+              <Text style={styles.cardTitle}>{copy.history.setsByMuscle}</Text>
               {muscles.map((row) => {
                 const widthPct = row.planned <= 0 ? 100 : Math.min(100, (row.done / row.planned) * 100 * progress);
                 const color = row.met ? theme.green.accent : SHORT;
@@ -266,7 +247,6 @@ function ReportSheet({ report }: { report: Report }) {
                   </View>
                 );
               })}
-              {gap ? <Text style={styles.gap}>{copy.report.under(gap.name, gap.short)}</Text> : null}
             </View>
           </Rise>
         ) : null}
@@ -285,23 +265,6 @@ function ReportSheet({ report }: { report: Report }) {
           </Rise>
         ) : null}
 
-        {report.nextStart ? (
-          <Rise delay={430}>
-            <View accessibilityLabel={copy.report.next} style={styles.nextCard}>
-              <Text style={styles.kind}>{copy.report.next}</Text>
-              <Text style={styles.nextLine}>
-                {report.nextTitle ? (
-                  <>
-                    {copy.report.startsWith(whenLabel(report.nextStart))}
-                    <Text style={styles.nextName}>{report.nextTitle}</Text>
-                  </>
-                ) : (
-                  copy.report.starts(whenLabel(report.nextStart))
-                )}
-              </Text>
-            </View>
-          </Rise>
-        ) : null}
       </ScrollView>
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
         <Pressable accessibilityRole="button" disabled={busy} onPress={() => void share()} style={[styles.share, busy && styles.busy]}>
@@ -358,10 +321,9 @@ const styles = StyleSheet.create({
   },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 16, gap: 14 },
-  header: { gap: 6 },
-  headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  eyebrow: { color: theme.muted, fontFamily: theme.fonts.bodySemi, fontSize: 13 },
+  headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 12 },
   pill: {
+    flexShrink: 0,
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
@@ -370,15 +332,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
+  pillOpen: { backgroundColor: LINE },
   pillText: { color: theme.green.accent, fontFamily: theme.fonts.bodySemi, fontSize: 12 },
+  pillTextOpen: { color: theme.muted },
   title: {
+    flexShrink: 1,
     color: theme.text,
     fontFamily: theme.fonts.display,
     fontSize: 40,
     lineHeight: 42,
     textTransform: "uppercase",
   },
-  summary: { color: theme.muted, fontFamily: theme.fonts.body, fontSize: 14, lineHeight: 20 },
   tiles: { gap: 8 },
   tileRow: { flexDirection: "row", gap: 8 },
   tile: {
@@ -410,18 +374,7 @@ const styles = StyleSheet.create({
   track: { flex: 1, height: 8, borderRadius: 999, backgroundColor: TRACK, overflow: "hidden" },
   fill: { height: 8, borderRadius: 999 },
   muscleCount: { width: 52, textAlign: "right", fontFamily: theme.fonts.mono, fontSize: 13 },
-  gap: { color: theme.muted, fontFamily: theme.fonts.body, fontSize: 13, marginTop: 2 },
   minutes: { color: theme.muted, fontFamily: theme.fonts.mono, fontSize: 14 },
-  nextCard: {
-    borderWidth: 1,
-    borderColor: LINE,
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    gap: 4,
-  },
-  nextLine: { color: theme.text, fontFamily: theme.fonts.body, fontSize: 15, lineHeight: 22 },
-  nextName: { fontFamily: theme.fonts.bodySemi },
   footer: {
     flexDirection: "row",
     gap: 8,

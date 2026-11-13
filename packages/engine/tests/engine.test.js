@@ -658,13 +658,16 @@ describe("estimated 1RM, PRs and the week streak", () => {
     expect(rows[3].e1).toBeGreaterThan(rows[0].e1);
   });
 
-  it("gives bodyweight exercises no estimate and leaves them out of trends and PRs", () => {
+  it("gives bodyweight exercises no estimate, leaves them out of trends, and counts more reps as a PR", () => {
     fresh();
     const t = atNoon(2026, 0, 12);
     E.exHist["Push-Up"] = [{ w: 0, r: 12, t }, { w: 0, r: 15, t: t + 8 * 864e5 }];
-    expect(E.weekTops("Push-Up").map(row => row.e1)).toEqual([null, null]);
+    const rows = E.weekTops("Push-Up");
+    expect(rows.map(row => row.e1)).toEqual([null, null]);
+    expect(rows[0].pr).toBe("");
+    expect(rows[1]).toMatchObject({ pr: "reps", w: 0, r: 15, wasW: 0, wasR: 12 });
     expect(E.liftTrends().some(row => row.name === "Push-Up")).toBe(false);
-    expect(E.recentPrs().some(pr => pr.name === "Push-Up")).toBe(false);
+    expect(E.recentPrs().some(pr => pr.name === "Push-Up" && pr.kind === "reps")).toBe(true);
   });
 
   it("charts the last 8 weeks, newest training first", () => {

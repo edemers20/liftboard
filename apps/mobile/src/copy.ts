@@ -928,26 +928,14 @@ export const copy = {
   },
   report: {
     label: "Weekly report",
-    allDone: (lifts: number, streak: number) => {
-      const liftWord = lifts === 1 ? "lift" : "lifts";
-      const weekWord = streak === 1 ? "week" : "weeks";
-      return `All ${lifts} ${liftWord} done. ${streak} ${weekWord} completed in a row.`;
-    },
     goingUp: "Going up next week",
     records: "Personal Records",
-    activityTile: "Activity",
+    activityTile: "Activity minutes",
     exerciseCalories: "Exercise calories",
     moreReps: "More reps",
-    prs: (n: number) => (n === 1 ? "1 PR this week" : `${n} PRs this week`),
     heaviest: "Heaviest top set",
     was: "was {…}",
-    doneTarget: "done / target",
-    under: (name: string, n: number) =>
-      n === 1 ? `${name} came in 1 set under target.` : `${name} came in ${n} sets under target.`,
     activity: (name: string, n: number) => `${name} × ${n}`,
-    next: "Next week",
-    startsWith: (when: string) => `Starts ${when} with `,
-    starts: (when: string) => `Starts ${when}.`,
     seeNext: "See next week",
     kcal: "kcal",
   },

@@ -1062,7 +1062,7 @@ function weekTops(name){
   const bw=isBW(name), prev=[];
   return [...by.entries()].sort((a,b)=>a[0]-b[0]).map(([start, row])=>{
     let pr="", wasW=null, wasR=null;
-    if(!bw&&prev.length){
+    if(prev.length){
       const bestW=Math.max(...prev.map(p=>p.w));
       if(row.w>bestW){
         pr="top";
@@ -1079,7 +1079,7 @@ function weekTops(name){
       }
     }
     prev.push(row);
-    return {start, w:row.w, r:row.r, t:row.t, e1:bw||!(row.w>0)?null:e1rm(row.w, row.r), pr:bw?"":pr, wasW, wasR};
+    return {start, w:row.w, r:row.r, t:row.t, e1:bw||!(row.w>0)?null:e1rm(row.w, row.r), pr, wasW, wasR};
   });
 }
 /** Weighted lifts only, most recently trained first. Each row is the last 8 weeks. */
@@ -1090,10 +1090,10 @@ function liftTrends(){
     return {name, rows, lastT:last?last.t:0};
   }).filter(row=>row.rows.length).sort((a,b)=>b.lastT-a.lastT||a.name.localeCompare(b.name));
 }
-/** PRs across weighted lifts, newest first. */
+/** PRs, newest first. Bodyweight work is included; it still has no 1RM. */
 function recentPrs(){
   const out=[];
-  Object.keys(exHist).forEach(name=>{ if(isBW(name)) return; weekTops(name).forEach(row=>{ if(row.pr) out.push({kind:row.pr, name, w:row.w, r:row.r, t:row.t, e1:row.e1}); }); });
+  Object.keys(exHist).forEach(name=>{ weekTops(name).forEach(row=>{ if(row.pr) out.push({kind:row.pr, name, w:row.w, r:row.r, t:row.t, e1:row.e1}); }); });
   return out.sort((a,b)=>b.t-a.t||a.name.localeCompare(b.name));
 }
 /** Every planned lift was done, or the week was counted by hand. */

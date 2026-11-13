@@ -30,10 +30,10 @@ A sheet that opens when the week is finished (Mark week as finished, or the auto
 
 Top to bottom:
 - The week's date range in Ranchers, with a **Completed** pill on the same line, aligned right, when every planned lift was done (or "{done} of {planned} lifts" when not). No eyebrow and no line of body text.
-- Four tiles: **Lifts** {done}/{planned}, **Sets** (sets logged), **Activity** (min of sport, from `weekActuals`), **Exercise calories** (kcal burned by activities and cardio finishers, above what you burn at rest; from `weekActuals`). Numbers count up from 0 over 600ms.
+- Four tiles: **Lifts** {done}/{planned}, **Sets** (sets logged), **Activity minutes** (min of sport, from `weekActuals`), **Exercise calories** (kcal from lifts, activities and cardio, above resting burn; from `weekActuals().burn`). Numbers count up from 0 over 600ms.
 - **Going up next week**: each exercise whose next-time target goes up, "{last top set} → {next target}" with the target in orange.
 - **Personal Records** (only if there are any): see the PR rule in section 3. Each row shows the exercise, the kind of record ("Heaviest top set", "More reps"), the new value and what it was before.
-- **Sets by muscle**: done vs planned per muscle group for the week, as bars; groups under plan in yellow, with one line under the bars naming the biggest gap ("Quads came in 2 sets under target."). No "done / target" label.
+- **Sets by muscle**: done vs planned per muscle group for the week, as bars; groups under plan in yellow. No sentence under the bars and no "done / target" label.
 - **Activities**: each logged activity with count and minutes.
 - Buttons: **Share** (secondary; same share flow as the workout share card) and **See next week** (closes the sheet and opens Plan → Week).
 
@@ -62,7 +62,7 @@ Keep the Calendar view as it is. Reference: `Proto_History.dc.html`.
 **Engine (add to `packages/engine` with tests):**
 - `e1rm(w, r)` = round(w × (1 + r / 30)). Bodyweight exercises have no 1RM.
 - Top set per exercise per week from `exHist`.
-- **PR rule:** a PR is a **heavier top set** than any before, or **more reps at the same or heavier weight**. A higher 1RM alone doesn't count; with steady progress it would flag almost every week.
+- **PR rule:** a PR is a **heavier top set** than any before, or **more reps at the same or heavier weight**. A higher 1RM alone doesn't count; with steady progress it would flag almost every week. Bodyweight exercises can be a PR the same way (more reps, or more added load). They still have no 1RM.
 - `weekStreak()`: consecutive completed (or counted) weeks ending with the last closed week.
 
 ---

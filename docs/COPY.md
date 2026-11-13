@@ -929,21 +929,14 @@ To change wording: edit it here first, then update `copy.ts` to match.
 | Small label | Week complete | main.js:1204 |
 | Title | Week done | main.js:1204 |
 |  | Weekly report | Week done sheet. |
-|  | All {…} lifts done. {…} weeks completed in a row. | Week done sheet. One lift or one week uses the singular. |
 |  | Going up next week | Week done sheet. |
 |  | Personal Records | Week done sheet. |
-|  | Activity | Week done sheet. |
+|  | Activity minutes | Week done sheet. |
 |  | Exercise calories | Week done sheet. |
 |  | More reps | Week done sheet. |
-|  | {…} PRs this week | Week done sheet. One is "1 PR this week". |
 |  | Heaviest top set | Week done sheet. |
 |  | was {…} | Week done sheet. |
-|  | done / target | Week done sheet. |
-|  | {…} came in {…} sets under target. | Week done sheet. One set uses the singular. |
 |  | {…} × {…} | Week done sheet, an activity and how many times it was logged. |
-|  | Next week | Week done sheet. |
-|  | Starts {…} with {…} | Week done sheet. |
-|  | Starts {…}. | Week done sheet, when the next week has no lift. |
 | Button | See next week | Week done sheet. Closes it and opens Plan, Week. |
 |  | kcal | Week done sheet, after the exercise calories number. |
 
