@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import {
   Animated,
   Easing,
@@ -16,22 +16,26 @@ import {
   type ViewStyle,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Svg, { Circle, Polyline } from "react-native-svg";
 
 import { copy } from "@/copy";
-import { openPlan } from "@/links";
-import type { HistoryDay, HistorySession, HistorySnapshot, LiftTrend, PastWeek, SessionExercise } from "@/history-data";
+import type { HistoryDay, HistoryLift, HistoryPr, HistorySession, HistorySnapshot, HistoryWeek, MuscleBar, SessionExercise } from "@/history-data";
+import { Info } from "@/icons";
 import {
   displayWeight,
   formatHours,
   formatWeight,
+  linePoints,
   MIX_ORDER,
   monthGrid,
-  sparkPoints,
+  weekRange,
   type MixKind,
   type MonthCell,
   type MixWeek,
 } from "@/history-model";
+import { openPlan } from "@/links";
 import { storage } from "@/storage";
+import { useEngineStore } from "@/store";
 import { theme } from "@/theme";
 import { nativeDriver, useReduceMotion } from "@/use-reduce-motion";
 
@@ -45,7 +49,6 @@ const LIFT_INK = "#e6fff6";
 const ACT_FILL = "#5a3447";
 const ACT_INK = "#ffe6f0";
 const CLASSES = "#b9a3f0";
-const NEGATIVE = "#ec8b68";
 const TODAY = "#6fd0b4";
 const BAR_MAX = 112;
 
@@ -63,12 +66,17 @@ const SPLIT_FILL = {
     : null),
 } as ViewStyle;
 
-type InfoId = "mix" | "weeks" | "lifts";
+const UNDER = "#e7b94a";
+const DONE_PILL = "#1f3029";
+const TRACK = "#34302c";
+const NOTE = "#8f8783";
+const PR_CARD = "#2a211c";
+const HAIRLINE = "#2f2a27";
+
+type InfoId = "mix";
 
 const INFO: Record<InfoId, { title: string; body: string }> = {
   mix: { title: copy.history.weekMix, body: copy.history.weekMixInfo },
-  weeks: { title: copy.history.previousWeeks, body: copy.history.previousWeeksInfo },
-  lifts: { title: copy.history.mainLifts, body: copy.history.mainLiftsInfo },
 };
 
 function storedView(): ViewId {
@@ -132,11 +140,20 @@ function setText(exercise: SessionExercise, units: string): string {
   return `${weight} ${copy.history.times} ${exercise.reps}`;
 }
 
-function deltaText(delta: number): string {
+function signedDelta(delta: number): string {
   const amount = formatWeight(Math.abs(delta));
-  if (delta > 0) return `+${amount}`;
   if (delta < 0) return `−${amount}`;
-  return `±${amount}`;
+  return `+${amount}`;
+}
+
+function formatCount(value: number): string {
+  return String(Math.round(value * 10) / 10);
+}
+
+function joinNames(names: string[]): string {
+  if (names.length <= 1) return names[0] || "";
+  if (names.length === 2) return `${names[0]} and ${names[1]}`;
+  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
 }
 
 function mixSummary(weeks: MixWeek[]): string {
@@ -260,7 +277,7 @@ export function HistoryTab({ data }: { data: HistorySnapshot }) {
             importantForAccessibility={view === "weeks" ? "auto" : "no-hide-descendants"}
             pointerEvents={view === "weeks" ? "auto" : "none"}
           >
-            <WeeksPage data={data} infoOpen={info === "weeks"} onInfo={(node) => toggleInfo("weeks", node)} />
+            <WeeksPage data={data} />
           </View>
           <View
             style={{ width, height: "100%" }}
@@ -268,7 +285,7 @@ export function HistoryTab({ data }: { data: HistorySnapshot }) {
             importantForAccessibility={view === "lifts" ? "auto" : "no-hide-descendants"}
             pointerEvents={view === "lifts" ? "auto" : "none"}
           >
-            <LiftsPage data={data} infoOpen={info === "lifts"} onInfo={(node) => toggleInfo("lifts", node)} />
+            <LiftsPage data={data} />
           </View>
         </Animated.View>
       </View>
@@ -303,12 +320,11 @@ function SectionHeading({
         accessibilityRole="button"
         accessibilityLabel={copy.history.whatThisDoes}
         accessibilityState={{ expanded: open }}
-        hitSlop={13}
+        hitSlop={14}
         onPress={() => onInfo(ref.current)}
+        style={styles.infoButton}
       >
-        <View style={[styles.infoDot, open && styles.infoDotOpen]}>
-          <Text style={[styles.infoGlyph, open && styles.infoGlyphOpen]}>i</Text>
-        </View>
+        <Info size={16} color={open ? theme.orange.accent : "#d4cfcc"} />
       </Pressable>
     </View>
   );
@@ -567,153 +583,316 @@ function WeekMix({
   );
 }
 
-function WeeksPage({
-  data,
-  infoOpen,
-  onInfo,
-}: {
-  data: HistorySnapshot;
-  infoOpen: boolean;
-  onInfo: (node: ViewInstance | null) => void;
-}) {
+function WeeksPage({ data }: { data: HistorySnapshot }) {
+  const [open, setOpen] = useState<number | null>(null);
   return (
-    <ScrollView contentContainerStyle={styles.page}>
-      <View style={styles.panel}>
-        <SectionHeading title={copy.history.previousWeeks} open={infoOpen} onInfo={onInfo} />
-        {data.weeks.length ? (
-          data.weeks.map((week, index) => <WeekCard key={week.start} week={week} first={index === 0} units={data.units} />)
-        ) : (
-          <Pressable accessibilityRole="button" onPress={() => openPlan("week")}>
-            <Text style={styles.note}>{copy.history.savesWhen}</Text>
-          </Pressable>
-        )}
-      </View>
+    <ScrollView contentContainerStyle={styles.stack}>
+      {data.weeks.length ? (
+        <>
+          <View style={styles.streakRow}>
+            <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.streakDots}>
+              {data.dots.map((done, index) => (
+                <View key={index} style={[styles.streakDot, { backgroundColor: done ? theme.green.accent : TRACK }]} />
+              ))}
+            </View>
+            <Text style={styles.streakText}>{copy.history.streakWeeks(data.streak)}</Text>
+          </View>
+          {data.weeks.map((week) => (
+            <WeekCard
+              key={week.start}
+              week={week}
+              open={open === week.start}
+              onToggle={() => setOpen((current) => (current === week.start ? null : week.start))}
+            />
+          ))}
+        </>
+      ) : (
+        <Pressable accessibilityRole="button" onPress={() => openPlan("week")}>
+          <Text style={styles.note}>{copy.history.savesWhen}</Text>
+        </Pressable>
+      )}
     </ScrollView>
   );
 }
 
-function WeekCard({ week, first, units }: { week: PastWeek; first: boolean; units: string }) {
-  const missed = week.lifts < week.planned;
-  const season = week.season === "In-season" ? copy.history.inSeason : copy.history.offSeason;
-  let line = season;
-  if (week.ramp) line += ` ${copy.history.ramp}`;
-  if (week.deload) line += ` ${copy.history.deload}`;
-  line += ` · ${week.goal}`;
-  if (week.focus) line += ` ${copy.history.focusLine(week.focus.toLowerCase())}`;
-  return (
-    <View style={[styles.week, !first && styles.weekLine]}>
+function WeekCard({ week, open, onToggle }: { week: HistoryWeek; open: boolean; onToggle: () => void }) {
+  const expandable = !!week.muscles || week.lifts < week.planned;
+  const pill = week.counted ? copy.history.counted : week.completed ? copy.history.completed : copy.history.liftsOf(week.lifts, week.planned);
+  const header = (
+    <>
       <View style={styles.weekTop}>
-        <Text style={styles.weekTitle}>{copy.history.weekOf(shortDate(week.start))}</Text>
-        {week.weightLb ? (
-          <Text style={styles.weekWeight}>
-            {formatWeight(displayWeight(week.weightLb, units))}
-            <Text style={styles.unit}> {unitWord(units)}</Text>
-          </Text>
-        ) : null}
+        <Text numberOfLines={1} style={styles.weekRange}>{weekRange(week.start)}</Text>
+        <View style={[styles.pill, week.completed ? styles.pillDone : styles.pillOpen]}>
+          <Text style={[styles.pillText, week.completed ? styles.pillTextDone : styles.pillTextOpen]}>{pill}</Text>
+        </View>
       </View>
-      <View style={styles.weekNums}>
-        <Text style={styles.stat}>
-          <Text style={[styles.statNum, missed && styles.statMiss]}>
-            {week.lifts}/{week.planned}
-          </Text>
-          {` ${copy.history.liftsCount}`}
-        </Text>
-        {week.sport ? (
-          <Text style={styles.stat}>
-            <Text style={styles.statNum}>{week.sport}</Text>
-            {` ${copy.history.minSport}`}
-          </Text>
-        ) : null}
-        {week.cardio ? (
-          <Text style={styles.stat}>
-            <Text style={styles.statNum}>{Number(week.cardio).toLocaleString("en-US")}</Text>
-            {` ${copy.history.kcalExtraBurn}`}
-          </Text>
-        ) : null}
+      <View style={styles.weekStats}>
+        <Stat label={copy.history.lifts} value={`${week.lifts}/${week.planned}`} />
+        <Stat label={copy.history.sets} value={String(week.sets)} />
+        <Stat label={copy.history.extraBurn} value={Math.round(week.burn).toLocaleString("en-US")} />
       </View>
-      <Text style={styles.season}>{line}</Text>
+    </>
+  );
+  return (
+    <View style={styles.card}>
+      {expandable ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ expanded: open }}
+          onPress={onToggle}
+          style={styles.cardButton}
+        >
+          {header}
+        </Pressable>
+      ) : (
+        <View style={styles.cardButton}>{header}</View>
+      )}
+      {open && expandable ? (
+        <Reveal>
+          <WeekDetail week={week} />
+        </Reveal>
+      ) : null}
     </View>
   );
 }
 
-function LiftsPage({
-  data,
-  infoOpen,
-  onInfo,
-}: {
-  data: HistorySnapshot;
-  infoOpen: boolean;
-  onInfo: (node: ViewInstance | null) => void;
-}) {
+function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <ScrollView contentContainerStyle={styles.page}>
-      <View style={styles.panel}>
-        <SectionHeading title={copy.history.mainLifts} open={infoOpen} onInfo={onInfo} />
-        {data.lifts.length ? (
-          data.lifts.map((lift) => <LiftRow key={lift.name} lift={lift} units={data.units} />)
-        ) : (
-          <Text style={styles.note}>{copy.history.appearsAfter}</Text>
-        )}
+    <View style={styles.statCol}>
+      <Text style={styles.statLabel}>{label}</Text>
+      <Text style={styles.statValue}>{value}</Text>
+    </View>
+  );
+}
+
+function WeekDetail({ week }: { week: HistoryWeek }) {
+  return (
+    <View style={styles.detailBlock}>
+      {week.muscles ? (
+        <View style={styles.muscleBlock}>
+          <View style={styles.muscleHead}>
+            <Text style={styles.muscleTitle}>{copy.history.setsByMuscle}</Text>
+            <Text style={styles.muscleHint}>{copy.history.donePlanned}</Text>
+          </View>
+          {week.muscles.map((muscle) => (
+            <MuscleRow key={muscle.name} muscle={muscle} />
+          ))}
+        </View>
+      ) : null}
+      {week.lifts < week.planned ? (
+        <View style={styles.missedRow}>
+          <Text style={styles.missedText}>{week.miss.length ? copy.history.missed(joinNames(week.miss)) : ""}</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={week.counted ? copy.history.undo : copy.history.countCompleted}
+            onPress={() => useEngineStore.getState().call((api) => api.countWeek(week.start))}
+            style={styles.countButton}
+          >
+            <Text style={styles.countText}>{week.counted ? copy.history.undo : copy.history.countCompleted}</Text>
+          </Pressable>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+function MuscleRow({ muscle }: { muscle: MuscleBar }) {
+  const met = muscle.planned <= 0 || muscle.done >= muscle.planned;
+  const width = muscle.planned > 0 ? Math.min(100, (muscle.done / muscle.planned) * 100) : muscle.done > 0 ? 100 : 0;
+  const color = met ? theme.green.accent : UNDER;
+  return (
+    <View
+      accessibilityLabel={`${muscle.name} ${formatCount(muscle.done)}/${formatCount(muscle.planned)}`}
+      style={styles.muscleRow}
+    >
+      <Text style={styles.muscleName}>{muscle.name}</Text>
+      <View style={styles.muscleTrack}>
+        <View style={[styles.muscleFill, { width: `${width}%`, backgroundColor: color }]} />
       </View>
+      <Text style={[styles.muscleCount, { color }]}>
+        {formatCount(muscle.done)}/{formatCount(muscle.planned)}
+      </Text>
+    </View>
+  );
+}
+
+function LiftsPage({ data }: { data: HistorySnapshot }) {
+  const [open, setOpen] = useState<string | null>(null);
+  if (!data.lifts.length && !data.prs.length) {
+    return (
+      <ScrollView contentContainerStyle={styles.stack}>
+        <Text style={styles.note}>{copy.history.appearsAfter}</Text>
+      </ScrollView>
+    );
+  }
+  return (
+    <ScrollView contentContainerStyle={styles.stack}>
+      {data.prs.length ? (
+        <View style={styles.prBlock}>
+          <Text accessibilityRole="header" style={styles.sectionTitle}>
+            {copy.history.recentPrs}
+          </Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.prScroll}
+            style={styles.prBleed}
+          >
+            {data.prs.map((pr) => (
+              <PrCard key={`${pr.name}-${pr.t}-${pr.kind}`} pr={pr} units={data.units} />
+            ))}
+          </ScrollView>
+        </View>
+      ) : null}
+      {data.lifts.length ? (
+        <View style={styles.liftHead}>
+          <Text accessibilityRole="header" style={styles.sectionTitle}>
+            {copy.history.mainLifts}
+          </Text>
+          <Text style={styles.muscleHint}>{copy.history.estWindow}</Text>
+        </View>
+      ) : null}
+      {data.lifts.map((lift) => (
+        <LiftCard
+          key={lift.name}
+          lift={lift}
+          units={data.units}
+          open={open === lift.name}
+          onToggle={() => setOpen((current) => (current === lift.name ? null : lift.name))}
+        />
+      ))}
+      {data.lifts.length ? <Text style={styles.estNote}>{copy.history.estNote}</Text> : null}
     </ScrollView>
   );
 }
 
-function LiftRow({ lift, units }: { lift: LiftTrend; units: string }) {
-  const points = sparkPoints(lift.weights);
-  const tone = lift.delta === null || lift.delta === 0 ? styles.deltaFlat : lift.delta > 0 ? styles.deltaUp : styles.deltaDown;
+function PrCard({ pr, units }: { pr: HistoryPr; units: string }) {
+  const value = `${formatWeight(pr.weight)} ${copy.history.times} ${pr.reps}`;
+  const kind = pr.kind === "reps" ? copy.history.prReps : copy.history.prTop;
   return (
-    <View style={styles.liftRow}>
-      <Text style={styles.liftName}>{lift.name}</Text>
-      <Spark points={points} label={trendLabel(lift.weights, units)} />
-      <View style={styles.liftWeight}>
-        <Text style={styles.liftLatest}>
-          {formatWeight(lift.latest)}
-          <Text style={styles.unit}> {unitWord(units)}</Text>
-        </Text>
-        {lift.delta !== null ? <Text style={[styles.delta, tone]}>{deltaText(lift.delta)}</Text> : null}
-      </View>
+    <View accessibilityLabel={`${kind}, ${pr.name}, ${value}, ${shortDate(pr.t)}`} style={styles.prCard}>
+      <Text style={styles.prKind}>{kind}</Text>
+      <Text numberOfLines={1} style={styles.prName}>
+        {pr.name}
+      </Text>
+      <Text style={styles.prValue}>{value}</Text>
+      <Text style={styles.prDate}>{shortDate(pr.t)}</Text>
     </View>
   );
 }
 
-function trendLabel(weights: number[], units: string): string {
-  const recent = weights.slice(-8);
-  const from = formatWeight(displayWeight(recent[0] ?? 0, units));
-  const to = formatWeight(displayWeight(recent[recent.length - 1] ?? 0, units));
-  return copy.history.topSet(from, to, unitWord(units), recent.length);
+function LiftCard({
+  lift,
+  units,
+  open,
+  onToggle,
+}: {
+  lift: HistoryLift;
+  units: string;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  const unit = unitWord(units);
+  const top = `${formatWeight(lift.weight)} ${copy.history.times} ${lift.reps}`;
+  const delta = lift.delta === null ? "" : `${signedDelta(lift.delta)} ${copy.history.in8wk}`;
+  const rising = (lift.delta ?? 0) > 0;
+  return (
+    <View style={styles.card}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
+        accessibilityLabel={`${lift.name}. ${formatWeight(lift.e1)} ${copy.history.estUnit(unit)}. ${copy.history.prTop} ${top}${delta ? `. ${delta}` : ""}`}
+        onPress={onToggle}
+        style={styles.liftButton}
+      >
+        <View style={styles.liftCopy}>
+          <Text numberOfLines={1} style={styles.liftName}>
+            {lift.name}
+          </Text>
+          <View style={styles.e1Row}>
+            <Text style={styles.e1Value}>{formatWeight(lift.e1)}</Text>
+            <Text style={styles.e1Unit}>{copy.history.estUnit(unit)}</Text>
+          </View>
+          <Text style={styles.topLine}>
+            {copy.history.prTop} <Text style={styles.topSet}>{top}</Text>
+            {delta ? " · " : ""}
+            {delta ? (
+              <Text style={{ color: rising ? theme.green.accent : theme.muted }}>{delta}</Text>
+            ) : null}
+          </Text>
+        </View>
+        <Spark values={lift.series} label={`${lift.name}. ${copy.history.estWindow}`} />
+      </Pressable>
+      {open ? (
+        <Reveal>
+          <View style={styles.liftTable}>
+            <View style={styles.tableHead}>
+              <Text style={styles.tableLabel}>{copy.history.weekColumn}</Text>
+              <Text style={styles.tableLabel}>{copy.history.topSetColumn}</Text>
+              <Text style={[styles.tableLabel, styles.tableRight]}>{copy.history.estColumn}</Text>
+            </View>
+            {lift.rows
+              .slice()
+              .reverse()
+              .map((row) => (
+                <View key={row.start} style={styles.tableRow}>
+                  <Text style={styles.tableWeek}>{shortDate(row.start)}</Text>
+                  <Text style={styles.tableMono}>
+                    {formatWeight(row.weight)} {copy.history.times} {row.reps}
+                  </Text>
+                  <Text style={[styles.tableMono, styles.tableRight, row.pr && styles.tablePr]}>
+                    {formatWeight(row.e1)}
+                    {row.pr ? ` ${copy.history.prMark}` : ""}
+                  </Text>
+                </View>
+              ))}
+          </View>
+        </Reveal>
+      ) : null}
+    </View>
+  );
 }
 
-function Spark({ points, label }: { points: { x: number; y: number }[]; label: string }) {
+function Spark({ values, label }: { values: number[]; label: string }) {
+  const points = linePoints(values);
   const last = points[points.length - 1];
   return (
     <View accessibilityRole="image" accessibilityLabel={label} style={styles.spark}>
-      <View style={styles.sparkBase} />
-      {points.slice(1).map((point, index) => {
-        const previous = points[index];
-        if (!previous) return null;
-        const dx = point.x - previous.x;
-        const dy = point.y - previous.y;
-        const length = Math.sqrt(dx * dx + dy * dy);
-        return (
-          <View
-            key={`${point.x}-${point.y}`}
-            style={{
-              position: "absolute",
-              left: (previous.x + point.x) / 2 - length / 2,
-              top: (previous.y + point.y) / 2 - 1,
-              width: length,
-              height: 2,
-              borderRadius: 1,
-              backgroundColor: theme.fuel,
-              transform: [{ rotate: `${Math.atan2(dy, dx)}rad` }],
-            }}
+      <Svg width={96} height={44}>
+        {points.length > 1 ? (
+          <Polyline
+            points={points.map((point) => `${point.x},${point.y}`).join(" ")}
+            fill="none"
+            stroke={theme.green.accent}
+            strokeWidth={2}
+            strokeLinejoin="round"
+            strokeLinecap="round"
           />
-        );
-      })}
-      {last ? <View style={[styles.sparkDot, { left: last.x - 3, top: last.y - 3 }]} /> : null}
+        ) : null}
+        {last ? <Circle cx={last.x} cy={last.y} r={3.5} fill={theme.green.accent} /> : null}
+      </Svg>
     </View>
   );
+}
+
+function Reveal({ children }: { children: ReactNode }) {
+  const reduce = useReduceMotion();
+  const progress = useRef(new Animated.Value(reduce ? 1 : 0)).current;
+  useEffect(() => {
+    if (reduce) {
+      progress.setValue(1);
+      return;
+    }
+    progress.setValue(0);
+    Animated.timing(progress, {
+      toValue: 1,
+      duration: 250,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: nativeDriver,
+    }).start();
+  }, [progress, reduce]);
+  const translateY = progress.interpolate({ inputRange: [0, 1], outputRange: [reduce ? 0 : 10, 0] });
+  return <Animated.View style={{ opacity: progress, transform: [{ translateY }] }}>{children}</Animated.View>;
 }
 
 const styles = StyleSheet.create({
@@ -756,18 +935,7 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     color: theme.orange.accent,
   },
-  infoDot: {
-    width: 18,
-    height: 18,
-    marginLeft: 6,
-    borderRadius: 9,
-    backgroundColor: LINE,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  infoDotOpen: { backgroundColor: theme.orange.accent },
-  infoGlyph: { fontFamily: theme.fonts.monoMedium, fontSize: 11, color: "#d4cfcc" },
-  infoGlyphOpen: { color: "#231c18" },
+  infoButton: { marginLeft: 6 },
   note: { fontFamily: theme.fonts.body, fontSize: 13, lineHeight: 18, color: theme.muted },
   mix: { minHeight: 150, flexDirection: "row", alignItems: "flex-end", gap: 8 },
   mixCol: { flex: 1, alignItems: "center", justifyContent: "flex-end", gap: 4, minWidth: 0 },
@@ -854,28 +1022,97 @@ const styles = StyleSheet.create({
   exerciseName: { flex: 1, fontFamily: theme.fonts.body, fontSize: 13, color: "#d4cfcc" },
   added: { fontFamily: theme.fonts.body, fontSize: 11, color: theme.muted },
   exerciseValue: { fontFamily: theme.fonts.monoMedium, fontSize: 13, color: theme.text },
-  week: { gap: 4, paddingBottom: 10 },
-  weekLine: { borderTopWidth: 1, borderTopColor: LINE, paddingTop: 10 },
-  weekTop: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 12 },
-  weekTitle: { fontFamily: theme.fonts.bodySemi, fontSize: 14, color: theme.text },
-  weekWeight: { fontFamily: theme.fonts.monoMedium, fontSize: 14, color: theme.text },
-  unit: { fontFamily: theme.fonts.mono, fontSize: 11, color: theme.muted },
-  weekNums: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
-  stat: { fontFamily: theme.fonts.body, fontSize: 13, color: theme.muted },
-  statNum: { fontFamily: theme.fonts.monoMedium, fontSize: 14, color: theme.text },
-  statMiss: { color: theme.fuel },
-  season: { fontFamily: theme.fonts.body, fontSize: 13, color: theme.muted },
-  liftRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  liftName: { flex: 1, fontFamily: theme.fonts.bodySemi, fontSize: 14, color: theme.text },
-  liftWeight: { minWidth: 64, alignItems: "flex-end" },
-  liftLatest: { fontFamily: theme.fonts.monoMedium, fontSize: 15, color: theme.text },
-  delta: { fontFamily: theme.fonts.monoMedium, fontSize: 12 },
-  deltaUp: { color: theme.fuel },
-  deltaDown: { color: NEGATIVE },
-  deltaFlat: { color: theme.muted },
-  spark: { width: 112, height: 32 },
-  sparkBase: { position: "absolute", left: 0, right: 0, top: 30, height: 1, backgroundColor: LINE },
-  sparkDot: { position: "absolute", width: 6, height: 6, borderRadius: 3, backgroundColor: theme.fuel },
+  stack: { paddingHorizontal: 16, paddingBottom: 32, gap: 12 },
+  streakRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 2, paddingVertical: 4 },
+  streakDots: { flexDirection: "row", gap: 4, flexShrink: 1 },
+  streakDot: { width: 14, height: 14, borderRadius: 4 },
+  streakText: { flexShrink: 1, fontFamily: theme.fonts.body, fontSize: 13, color: theme.muted },
+  card: { backgroundColor: theme.orange.surface, borderRadius: 16, overflow: "hidden" },
+  cardButton: { paddingHorizontal: 16, paddingVertical: 14, gap: 10 },
+  weekTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
+  weekRange: {
+    flexShrink: 1,
+    fontFamily: theme.fonts.display,
+    fontSize: 22,
+    lineHeight: 26,
+    textTransform: "uppercase",
+    color: theme.text,
+  },
+  pill: { flexShrink: 0, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
+  pillDone: { backgroundColor: DONE_PILL },
+  pillOpen: { backgroundColor: HAIRLINE },
+  pillText: { fontFamily: theme.fonts.bodySemi, fontSize: 12 },
+  pillTextDone: { color: theme.green.accent },
+  pillTextOpen: { color: theme.muted },
+  weekStats: { flexDirection: "row", gap: 8 },
+  statCol: { flex: 1 },
+  statLabel: { fontFamily: theme.fonts.body, fontSize: 12, color: theme.muted },
+  statValue: { fontFamily: theme.fonts.monoMedium, fontSize: 18, color: theme.text },
+  detailBlock: { paddingHorizontal: 16, paddingBottom: 14, gap: 8 },
+  muscleBlock: { gap: 8, borderTopWidth: 1, borderTopColor: HAIRLINE, paddingTop: 12 },
+  muscleHead: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between" },
+  muscleTitle: { fontFamily: theme.fonts.bodySemi, fontSize: 13, color: theme.text },
+  muscleHint: { fontFamily: theme.fonts.body, fontSize: 12, color: theme.muted },
+  muscleRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  muscleName: { width: 100, fontFamily: theme.fonts.body, fontSize: 13, color: theme.text },
+  muscleTrack: { flex: 1, height: 6, borderRadius: 999, backgroundColor: TRACK, overflow: "hidden" },
+  muscleFill: { height: 6, borderRadius: 999 },
+  muscleCount: { width: 52, textAlign: "right", fontFamily: theme.fonts.mono, fontSize: 12 },
+  missedRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+    backgroundColor: "#1f1b19",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginTop: 4,
+  },
+  missedText: { flex: 1, fontFamily: theme.fonts.body, fontSize: 13, color: theme.muted },
+  countButton: {
+    minHeight: 44,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    backgroundColor: HAIRLINE,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  countText: { fontFamily: theme.fonts.bodySemi, fontSize: 13, color: theme.text },
+  prBlock: { gap: 8 },
+  sectionTitle: { fontFamily: theme.fonts.bodySemi, fontSize: 15, color: theme.text },
+  prBleed: { marginHorizontal: -16 },
+  prScroll: { paddingHorizontal: 16, gap: 8 },
+  prCard: { width: 150, backgroundColor: PR_CARD, borderRadius: 14, padding: 12, gap: 2 },
+  prKind: {
+    fontFamily: theme.fonts.bodySemi,
+    fontSize: 11,
+    letterSpacing: 0.44,
+    textTransform: "uppercase",
+    color: theme.fuel,
+  },
+  prName: { fontFamily: theme.fonts.body, fontSize: 13, color: theme.text },
+  prValue: { fontFamily: theme.fonts.monoMedium, fontSize: 20, color: theme.text },
+  prDate: { fontFamily: theme.fonts.body, fontSize: 12, color: theme.muted },
+  liftHead: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 8 },
+  liftButton: { paddingHorizontal: 16, paddingVertical: 14, flexDirection: "row", alignItems: "center", gap: 12 },
+  liftCopy: { flex: 1, minWidth: 0 },
+  liftName: { fontFamily: theme.fonts.body, fontSize: 14, color: theme.text },
+  e1Row: { flexDirection: "row", alignItems: "baseline", gap: 6 },
+  e1Value: { fontFamily: theme.fonts.monoMedium, fontSize: 26, lineHeight: 32, color: theme.text },
+  e1Unit: { fontFamily: theme.fonts.body, fontSize: 12, color: theme.muted },
+  topLine: { fontFamily: theme.fonts.body, fontSize: 12, color: theme.muted },
+  topSet: { fontFamily: theme.fonts.mono, fontSize: 12, color: theme.text },
+  spark: { width: 96, height: 44 },
+  liftTable: { paddingHorizontal: 16, paddingBottom: 14, gap: 6 },
+  tableHead: { flexDirection: "row", borderTopWidth: 1, borderTopColor: HAIRLINE, paddingTop: 10 },
+  tableRow: { flexDirection: "row", alignItems: "center" },
+  tableLabel: { flex: 1, fontFamily: theme.fonts.body, fontSize: 12, color: theme.muted },
+  tableWeek: { flex: 1, fontFamily: theme.fonts.body, fontSize: 13, color: theme.muted },
+  tableMono: { flex: 1, fontFamily: theme.fonts.mono, fontSize: 13, color: theme.text },
+  tableRight: { textAlign: "right" },
+  tablePr: { color: theme.fuel },
+  estNote: { fontFamily: theme.fonts.body, fontSize: 12, lineHeight: 17, color: NOTE },
   backdrop: { flex: 1 },
   popover: {
     position: "absolute",

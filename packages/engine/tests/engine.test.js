@@ -574,3 +574,107 @@ describe("week actuals from the log", () => {
     expect(A.burn).toBeLessThan(840);
   });
 });
+
+describe("estimated 1RM, PRs and the week streak", () => {
+  const atNoon = (year, month, day) => new Date(year, month, day, 12).getTime();
+
+  it("rounds the Epley estimate from the top set", () => {
+    fresh();
+    expect(E.e1rm(155, 8)).toBe(196);
+    expect(E.e1rm(100, 8)).toBe(127);
+    expect(E.e1rm(110, 3)).toBe(121);
+  });
+
+  it("keeps one top set per week and ignores a higher estimate that is not a heavier set or more reps", () => {
+    fresh();
+    const first = E.weekStartOf(atNoon(2026, 0, 15)).getTime();
+    const week = (n) => { const d = new Date(first); d.setDate(d.getDate() + 7 * n); d.setHours(12, 0, 0, 0); return d.getTime(); };
+    E.exHist["Hip Thrust (Barbell)"] = [
+      { w: 135, r: 8, t: week(0) },
+      { w: 140, r: 6, t: week(0) + 864e5 },
+      { w: 140, r: 8, t: week(1) },
+      { w: 145, r: 5, t: week(2) },
+    ];
+    const tops = E.weekTops("Hip Thrust (Barbell)");
+    expect(tops.map(row => [row.w, row.r, row.pr])).toEqual([[140, 6, ""], [140, 8, "reps"], [145, 5, "top"]]);
+    expect(tops[2].e1).toBe(E.e1rm(145, 5));
+    expect(tops[2].e1).toBeLessThan(tops[1].e1);
+
+    E.exHist["Hack Squat"] = [
+      { w: 100, r: 10, t: week(0) },
+      { w: 110, r: 5, t: week(1) },
+      { w: 105, r: 8, t: week(2) },
+    ];
+    const hack = E.weekTops("Hack Squat");
+    expect(hack[1].pr).toBe("top");
+    expect(hack[2].pr).toBe("");
+    expect(hack[2].e1).toBeGreaterThan(hack[1].e1);
+    expect(E.recentPrs().some(pr => pr.name === "Hack Squat" && pr.t === week(2))).toBe(false);
+    expect(E.recentPrs()[0]).toMatchObject({ name: "Hip Thrust (Barbell)", kind: "top", w: 145, r: 5 });
+  });
+
+  it("gives bodyweight exercises no estimate and leaves them out of trends and PRs", () => {
+    fresh();
+    const t = atNoon(2026, 0, 12);
+    E.exHist["Push-Up"] = [{ w: 0, r: 12, t }, { w: 0, r: 15, t: t + 8 * 864e5 }];
+    expect(E.weekTops("Push-Up").map(row => row.e1)).toEqual([null, null]);
+    expect(E.liftTrends().some(row => row.name === "Push-Up")).toBe(false);
+    expect(E.recentPrs().some(pr => pr.name === "Push-Up")).toBe(false);
+  });
+
+  it("charts the last 8 weeks, newest training first", () => {
+    fresh();
+    const first = E.weekStartOf(atNoon(2026, 0, 15)).getTime();
+    const points = [];
+    for (let i = 0; i < 9; i++) {
+      const d = new Date(first); d.setDate(d.getDate() + 7 * i); d.setHours(12, 0, 0, 0);
+      points.push({ w: 100 + i * 5, r: 8, t: d.getTime() });
+    }
+    E.exHist["Romanian Deadlift (Barbell)"] = points;
+    E.exHist["Hip Thrust (Barbell)"] = [points[0]];
+    const trend = E.liftTrends().find(row => row.name === "Romanian Deadlift (Barbell)");
+    expect(E.liftTrends()[0].name).toBe("Romanian Deadlift (Barbell)");
+    expect(trend.rows).toHaveLength(8);
+    expect(trend.rows[0].w).toBe(105);
+    expect(trend.rows[7].w).toBe(140);
+    expect(trend.rows[7].pr).toBe("top");
+  });
+
+  it("counts a finished week, and a counted week, back from the last one closed", () => {
+    fresh();
+    expect(E.weekStreak()).toBe(0);
+    E.wk.weeks = [
+      { start: 1, lifts: 2, planned: 2 },
+      { start: 2, lifts: 1, planned: 2 },
+      { start: 3, lifts: 2, planned: 2 },
+      { start: 4, lifts: 2, planned: 2 },
+    ];
+    expect(E.weekStreak()).toBe(2);
+    expect(E.weekCompleted(E.wk.weeks[1])).toBe(false);
+    expect(E.countWeek(2)).toBe(true);
+    expect(E.weekStreak()).toBe(4);
+    expect(E.countWeek(2)).toBe(false);
+    expect(E.weekStreak()).toBe(2);
+    expect(E.countWeek(4)).toBe(false);
+    expect(E.wk.weeks[3].counted).toBeUndefined();
+    E.wk.weeks = [{ start: 1, lifts: 2, planned: 2 }, { start: 2, lifts: 0, planned: 2 }];
+    expect(E.weekStreak()).toBe(0);
+    E.wk.weeks = [{ start: 1, lifts: 0, planned: 0 }];
+    expect(E.weekCompleted(E.wk.weeks[0])).toBe(false);
+    expect(E.countWeek(99)).toBe(false);
+  });
+
+  it("saves missed workouts and muscle sets when the week closes", () => {
+    fresh({ focus: "Lower", days: 3 });
+    E.slots.d1 = { 0: { log: [{ w: 135, r: 8, d: 1 }, { w: 135, r: 8, d: 1 }] } };
+    E.markDone("d1");
+    E.newWeek();
+    const week = E.wk.weeks.at(-1);
+    expect(week.lifts).toBe(1);
+    expect(week.planned).toBe(3);
+    expect(week.miss).toEqual(["Upper · Press", "Lower · Quad & Glute"]);
+    const glutes = week.muscles.find(row => row.name === "Glutes");
+    expect(glutes.done).toBeGreaterThan(0);
+    expect(glutes.planned).toBeGreaterThan(0);
+  });
+});

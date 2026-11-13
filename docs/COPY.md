@@ -1021,6 +1021,27 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | · {…} min | main.js:647 |
 |  | Sessions show up here when you finish a lift day or enter minutes for an activity. | main.js:648 |
 |  | Appears after you finish a lift day. | main.js:654 |
+|  | {…} weeks completed in a row | History, Weeks |
+|  | ✓ Completed | History, Weeks |
+|  | ✓ Counted | History, Weeks |
+|  | {…} of {…} lifts | History, Weeks |
+|  | Sets | History, Weeks |
+|  | Extra burn | History, Weeks |
+|  | Sets by muscle | History, Weeks |
+|  | done / planned | History, Weeks |
+|  | Count as completed | History, Weeks |
+| Button | Undo | History, Weeks |
+|  | Missed {…} | History, Weeks |
+|  | Recent PRs | History, Lifts |
+|  | Top set | History, Lifts |
+|  | Reps | History, Lifts |
+|  | est. 1RM · last 8 weeks | History, Lifts |
+|  | {…} est. 1RM | History, Lifts |
+|  | in 8 wk | History, Lifts |
+|  | Week of | History, Lifts |
+|  | est. 1RM | History, Lifts |
+|  | PR | History, Lifts |
+|  | Est. 1RM is worked out from your top set (weight × (1 + reps ÷ 30)). It's for tracking trends; you never need to test it. | History, Lifts |
 |  | Calendar | main.js:667 |
 |  | Weeks | main.js:667 |
 | Slot label | Setting | main.js:767 |
