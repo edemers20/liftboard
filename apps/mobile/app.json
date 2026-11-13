@@ -36,7 +36,12 @@
           "imageWidth": 76
         }
       ],
-      "expo-notifications",
+      [
+        "expo-notifications",
+        {
+          "sounds": ["./assets/sounds/rest_chime.wav"]
+        }
+      ],
       "expo-audio",
       "expo-sharing"
     ],

@@ -40,13 +40,25 @@ const WEEK_LIMIT_FORWARD = 1;
 type NoticeState = {
   lines: string[];
   id: number;
-  show: (lines: string[]) => void;
+  pulse: boolean;
+  variant: "plan" | "plain";
+  show: (lines: string[], options?: { pulse?: boolean; variant?: "plan" | "plain" }) => void;
+  clear: () => void;
 };
 
 export const useNotice = create<NoticeState>((set) => ({
   lines: [],
   id: 0,
-  show: (lines) => set((state) => ({ lines, id: state.id + 1 })),
+  pulse: true,
+  variant: "plain",
+  show: (lines, options) =>
+    set((state) => ({
+      lines,
+      id: state.id + 1,
+      pulse: options?.pulse !== false,
+      variant: options?.variant ?? "plain",
+    })),
+  clear: () => set({ lines: [] }),
 }));
 
 export function activityName(id: string): string {

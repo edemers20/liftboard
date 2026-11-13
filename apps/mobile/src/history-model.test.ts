@@ -5,8 +5,10 @@ import {
   displayWeight,
   dueWeekStart,
   formatHours,
+  linePoints,
   monthGrid,
   sparkPoints,
+  weekRange,
   weekStart,
 } from "./history-model.ts";
 
@@ -43,6 +45,21 @@ assert.deepEqual(sparkPoints([40, 40]), [
   { x: 4, y: 16 },
   { x: 108, y: 16 },
 ]);
+
+assert.deepEqual(linePoints([100, 120]), [
+  { x: 4, y: 40 },
+  { x: 92, y: 6 },
+]);
+assert.deepEqual(linePoints([80, 80]), [
+  { x: 4, y: 40 },
+  { x: 92, y: 40 },
+]);
+assert.deepEqual(linePoints([50]), [{ x: 48, y: 40 }]);
+
+const nov2 = new Date(2026, 10, 2).getTime();
+const oct26 = new Date(2026, 9, 26).getTime();
+assert.equal(weekRange(nov2), "Nov 2 – 8");
+assert.equal(weekRange(oct26), "Oct 26 – Nov 1");
 
 const now = new Date(2026, 10, 8, 12).getTime();
 const thisWeek = new Date(2026, 10, 2, 12).getTime();

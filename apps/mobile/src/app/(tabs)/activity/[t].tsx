@@ -15,6 +15,7 @@ import {
   writeSession,
 } from "@/activity-log";
 import { copy } from "@/copy";
+import { haptic } from "@/haptic";
 import { useEngineStore } from "@/store";
 import { theme } from "@/theme";
 
@@ -60,8 +61,9 @@ export default function ActivityScreen() {
   }
 
   function onDelete() {
+    haptic.warning();
     writeSession(time, "");
-    useNotice.getState().show([copy.workouts.deletedToast(name)]);
+    useNotice.getState().show([copy.workouts.deletedToast(name)], { pulse: false });
     leave();
   }
 
@@ -122,7 +124,10 @@ export default function ActivityScreen() {
                 >
                   <Pressable
                     style={[styles.segment, !heated && styles.segmentOn]}
-                    onPress={() => setHeated(false)}
+                    onPress={() => {
+                      if (heated) haptic.selection();
+                      setHeated(false);
+                    }}
                     accessibilityRole="radio"
                     accessibilityState={{ selected: !heated }}
                   >
@@ -130,7 +135,10 @@ export default function ActivityScreen() {
                   </Pressable>
                   <Pressable
                     style={[styles.segment, heated && styles.segmentOn]}
-                    onPress={() => setHeated(true)}
+                    onPress={() => {
+                      if (!heated) haptic.selection();
+                      setHeated(true);
+                    }}
                     accessibilityRole="radio"
                     accessibilityState={{ selected: heated }}
                   >
@@ -184,7 +192,10 @@ function PillField({
             <Pressable
               key={option}
               style={[styles.pill, selected && styles.pillOn]}
-              onPress={() => onChange(option)}
+              onPress={() => {
+                if (option !== value) haptic.selection();
+                onChange(option);
+              }}
               accessibilityRole="radio"
               accessibilityState={{ selected }}
             >

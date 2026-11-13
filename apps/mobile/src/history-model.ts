@@ -81,6 +81,32 @@ export function formatWeight(value: number): string {
   return String(Math.round(value * 10) / 10);
 }
 
+/** Est. 1RM points in a 96×44 sparkline. A flat series sits on the baseline. */
+export function linePoints(values: number[]): { x: number; y: number }[] {
+  const count = values.length;
+  if (!count) return [];
+  const low = Math.min(...values);
+  const high = Math.max(...values);
+  const span = Math.max(1, high - low);
+  return values.map((value, index) => ({
+    x: +(count > 1 ? 4 + (index * 88) / (count - 1) : 48).toFixed(1),
+    y: +(40 - ((value - low) / span) * 34).toFixed(1),
+  }));
+}
+
+/** "Nov 2 – 8", or "Oct 26 – Nov 1" when the week crosses a month. */
+export function weekRange(start: number): string {
+  const open = new Date(start);
+  const close = new Date(start);
+  close.setDate(close.getDate() + 6);
+  const left = open.toLocaleDateString("en-US", { month: "short" });
+  const right = close.toLocaleDateString("en-US", { month: "short" });
+  if (open.getMonth() === close.getMonth() && open.getFullYear() === close.getFullYear()) {
+    return `${left} ${open.getDate()} – ${close.getDate()}`;
+  }
+  return `${left} ${open.getDate()} – ${right} ${close.getDate()}`;
+}
+
 /** Last 8 top-set weights, plotted in a 112×32 box. */
 export function sparkPoints(weights: number[]): { x: number; y: number }[] {
   const recent = weights.slice(-8);

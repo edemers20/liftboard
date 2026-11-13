@@ -1,4 +1,5 @@
 import { copy } from "@/copy";
+import { clampPace } from "@/plan-model";
 import { engine } from "@/store";
 import { fromDisplay, toDisplay } from "@/units";
 
@@ -42,11 +43,6 @@ const LDEF: Record<number, number[]> = {
   5: [0, 1, 3, 4, 6],
   6: [0, 1, 2, 3, 4, 5],
   7: [0, 1, 2, 3, 4, 5, 6],
-};
-
-const PACES: Record<string, number[]> = {
-  "Deficit only": [0.5, 0.75, 1],
-  Recomp: [0.25, 0.5, 0.7],
 };
 
 function currentDays(wk: { ldays?: number[]; days?: number }): number[] {
@@ -271,9 +267,8 @@ export function firstWorkout(draft: Draft, preview: PlanPreview): { eyebrow: str
 }
 
 function fitPace(wk: { mode?: string; ratePct?: string }) {
-  const options = wk.mode ? PACES[wk.mode] : undefined;
-  if (!options) return;
-  if (!options.map(String).includes(String(wk.ratePct))) wk.ratePct = String(options[1]);
+  const next = clampPace(wk.mode, wk.ratePct);
+  if (next !== undefined) wk.ratePct = next;
 }
 
 function weekStartMs(time: number, weekStart: unknown): number {

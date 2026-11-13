@@ -1,4 +1,18 @@
-import { ACT, daySummary, exHist, isBW, num, plannedMin, weekActuals, weekRuleAt, wk } from "@liftboard/engine";
+import {
+  ACT,
+  daySummary,
+  exHist,
+  isBW,
+  liftTrends,
+  num,
+  plannedMin,
+  recentPrs,
+  weekActuals,
+  weekCompleted,
+  weekRuleAt,
+  weekStreak,
+  wk,
+} from "@liftboard/engine";
 
 import { copy } from "@/copy";
 import {
@@ -37,25 +51,49 @@ export type HistoryDay = {
   sessions: HistorySession[];
 };
 
-export type PastWeek = {
-  start: number;
-  weightLb: number | null;
-  lifts: number;
+export type MuscleBar = {
+  name: string;
+  done: number;
   planned: number;
-  sport: number;
-  cardio: number;
-  season: string;
-  ramp: boolean;
-  deload: boolean;
-  goal: string;
-  focus: string;
 };
 
-export type LiftTrend = {
+export type HistoryWeek = {
+  start: number;
+  lifts: number;
+  planned: number;
+  sets: number;
+  burn: number;
+  completed: boolean;
+  counted: boolean;
+  miss: string[];
+  /** Null when this week was closed before muscle sets were saved. */
+  muscles: MuscleBar[] | null;
+};
+
+export type HistoryPr = {
+  kind: "top" | "reps";
   name: string;
-  weights: number[];
-  latest: number;
+  weight: number;
+  reps: number;
+  t: number;
+};
+
+export type HistoryLiftWeek = {
+  start: number;
+  weight: number;
+  reps: number;
+  e1: number;
+  pr: boolean;
+};
+
+export type HistoryLift = {
+  name: string;
+  e1: number;
+  weight: number;
+  reps: number;
   delta: number | null;
+  series: number[];
+  rows: HistoryLiftWeek[];
 };
 
 export type HistorySnapshot = {
@@ -64,8 +102,13 @@ export type HistorySnapshot = {
   hasSessions: boolean;
   days: Record<string, HistoryDay>;
   mix: WeekMix | null;
-  weeks: PastWeek[];
-  lifts: LiftTrend[];
+  /** Newest closed week first. */
+  weeks: HistoryWeek[];
+  /** Oldest of the recent closed weeks first. Green when that week counts toward the streak. */
+  dots: boolean[];
+  streak: number;
+  prs: HistoryPr[];
+  lifts: HistoryLift[];
 };
 
 type RawExercise = {
@@ -75,6 +118,7 @@ type RawExercise = {
   extra?: boolean;
   cardio?: boolean;
   min?: number;
+  sets?: number;
 };
 
 type RawSession = {
@@ -153,12 +197,6 @@ function mixMinutes(session: RawSession): number {
   return num(session.min, 0) || (ACT[session.k || ""] ? plannedMin(session.k) : 45);
 }
 
-function goalName(mode: string | undefined): string {
-  const goals = copy.history.goals;
-  if (mode && Object.prototype.hasOwnProperty.call(goals, mode)) return goals[mode as keyof typeof goals];
-  return mode || "";
-}
-
 function dayKind(sessions: HistorySession[]): DayKind {
   const lift = sessions.some((session) => session.lift);
   const activity = sessions.some((session) => !session.lift);
@@ -193,39 +231,57 @@ export function readHistory(now = Date.now()): HistorySnapshot {
     day.kind = dayKind(day.sessions);
   });
 
-  const weeks = ((wk.weeks || []) as Record<string, unknown>[]).slice().reverse().map((week) => {
-    const start = num(week.start, 0);
-    const actual = weekActuals(start);
-    const fromLog = actual.n > 0;
-    return {
-    start,
-    weightLb: week.w ? num(week.w, 0) : null,
-    lifts: num(week.lifts, 0),
-    planned: num(week.planned, 0),
-    sport: fromLog ? actual.sport : num(week.sport ?? week.pickle, 0),
-    cardio: fromLog ? actual.burn : num(week.cardio, 0),
-    season: String(week.season || ""),
-    ramp: !!week.ramp,
-    deload: !!week.deload,
-    goal: goalName(typeof week.mode === "string" ? week.mode : undefined),
-    focus: typeof week.focus === "string" ? week.focus : "",
-  };
-  });
-
-  const lifts: LiftTrend[] = Object.keys(exHist as Record<string, { w?: number }[]>)
-    .filter((name) => ((exHist as Record<string, unknown[]>)[name] || []).length)
-    .map((name) => {
-      const points = (exHist as Record<string, { w?: number }[]>)[name] || [];
-      const weights = points.map((point) => num(point.w, 0));
-      const shown = weights.map((weight) => displayWeight(weight, units));
-      const latest = shown[shown.length - 1] ?? 0;
+  const weeks = ((wk.weeks || []) as Record<string, unknown>[])
+    .slice()
+    .sort((a, b) => num(b.start, 0) - num(a.start, 0))
+    .map((week) => {
+      const start = num(week.start, 0);
+      const liftsDone = num(week.lifts, 0);
+      const planned = num(week.planned, 0);
+      const muscles = muscleBars(week.muscles);
       return {
-        name,
-        weights,
-        latest,
-        delta: shown.length > 1 ? latest - (shown[0] ?? 0) : null,
+        start,
+        lifts: liftsDone,
+        planned,
+        sets: loggedSets(start, raw),
+        burn: weekActuals(start).burn,
+        completed: weekCompleted({ counted: week.counted === true, lifts: liftsDone, planned }),
+        counted: !!week.counted && liftsDone < planned,
+        miss: Array.isArray(week.miss) ? week.miss.filter((name): name is string => typeof name === "string" && name.length > 0) : [],
+        muscles,
       };
     });
+
+  const lifts: HistoryLift[] = liftTrends().map((trend) => {
+    const rows = trend.rows.map((row) => ({
+      start: row.start,
+      weight: displayWeight(row.w, units),
+      reps: row.r,
+      e1: displayWeight(row.e1 ?? 0, units),
+      pr: row.pr === "top" || row.pr === "reps",
+    }));
+    const last = rows[rows.length - 1];
+    const first = rows[0];
+    return {
+      name: trend.name,
+      e1: last?.e1 ?? 0,
+      weight: last?.weight ?? 0,
+      reps: last?.reps ?? 0,
+      delta: rows.length > 1 && last && first ? last.e1 - first.e1 : null,
+      series: rows.map((row) => row.e1),
+      rows,
+    };
+  });
+
+  const prs: HistoryPr[] = recentPrs()
+    .slice(0, 12)
+    .map((pr) => ({
+      kind: pr.kind,
+      name: pr.name,
+      weight: displayWeight(pr.w, units),
+      reps: pr.r,
+      t: pr.t,
+    }));
 
   return {
     units,
@@ -240,6 +296,43 @@ export function readHistory(now = Date.now()): HistorySnapshot {
         )
       : null,
     weeks,
+    dots: weeks
+      .slice()
+      .sort((a, b) => a.start - b.start)
+      .slice(-12)
+      .map((week) => week.completed),
+    streak: weekStreak(),
+    prs,
     lifts,
   };
+}
+
+function loggedSets(start: number, sessions: RawSession[]): number {
+  const end = start + 7 * 864e5;
+  let total = 0;
+  for (const session of sessions) {
+    const t = num(session.t, 0);
+    if (session.k !== "lift" || t < start || t >= end) continue;
+    for (const exercise of session.ex || []) {
+      if (exercise.cardio) continue;
+      const sets = num(exercise.sets, 0);
+      total += sets > 0 ? sets : num(exercise.r, 0) > 0 ? 1 : 0;
+    }
+  }
+  return total;
+}
+
+function muscleBars(value: unknown): MuscleBar[] | null {
+  if (!Array.isArray(value)) return null;
+  const rows = value
+    .map((row) => {
+      const item = row as { name?: unknown; done?: unknown; planned?: unknown };
+      return {
+        name: typeof item.name === "string" ? item.name : "",
+        done: num(item.done, 0),
+        planned: num(item.planned, 0),
+      };
+    })
+    .filter((row) => row.name && (row.done > 0 || row.planned > 0));
+  return rows.length ? rows : null;
 }

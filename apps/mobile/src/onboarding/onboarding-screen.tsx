@@ -11,12 +11,18 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
+  type StyleProp,
+  type ViewStyle,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Reanimated, { useAnimatedStyle, useSharedValue, withDelay, withTiming } from "react-native-reanimated";
 
+import { BottomToast } from "@/components/motion";
+import { ageDial, bodyFatDial, DialValue, heightDial, stepsDial, weightDial, type DialSpec } from "@/components/number-dial";
 import { copy } from "@/copy";
+import { haptic } from "@/haptic";
+import { ArrowRight, CheckCircle, Fuel, Info, TabWorkouts } from "@/icons";
 import {
   chooseSport,
   clampCount,
@@ -32,6 +38,7 @@ import {
   toDisplayWeight,
   toggleDay,
   toggleInSeason,
+  usesKg,
   weightUnit,
   type Draft,
   type PlanPreview,
@@ -98,39 +105,62 @@ function FadeBlock({ step, reduce, children }: { step: number; reduce: boolean; 
   return <Animated.View style={{ opacity, transform: [{ translateY: y }], gap: 12 }}>{children}</Animated.View>;
 }
 
-function BarbellIcon() {
-  return (
-    <View style={styles.iconBox}>
-      <View style={[styles.barbellShaft, { backgroundColor: "#6fd0b4" }]} />
-      <View style={[styles.barbellEnd, { left: 2, height: 12, backgroundColor: "#6fd0b4" }]} />
-      <View style={[styles.barbellEnd, { left: 6, height: 18, backgroundColor: "#6fd0b4" }]} />
-      <View style={[styles.barbellEnd, { right: 6, height: 18, backgroundColor: "#6fd0b4" }]} />
-      <View style={[styles.barbellEnd, { right: 2, height: 12, backgroundColor: "#6fd0b4" }]} />
-    </View>
-  );
+const PILL_HOLD = 2800;
+const PILL_FADE = 700;
+const PILL_EASE = Easing.bezier(0.42, 0, 0.58, 1);
+
+/** One example fades out as the other fades in, on a 7s loop. `start` waits before the first fade. */
+function useSwapOpacity(start: number, reduce: boolean) {
+  const lead = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    if (reduce) {
+      lead.setValue(1);
+      return;
+    }
+    const fade = (to: number) =>
+      Animated.timing(lead, { toValue: to, duration: PILL_FADE, easing: PILL_EASE, useNativeDriver: nativeDriver });
+    const cycle = Animated.loop(
+      Animated.sequence([Animated.delay(PILL_HOLD), fade(0), Animated.delay(PILL_HOLD), fade(1)]),
+    );
+    const wait = setTimeout(() => cycle.start(), start);
+    return () => {
+      clearTimeout(wait);
+      cycle.stop();
+      lead.setValue(1);
+    };
+  }, [lead, reduce, start]);
+  const follow = lead.interpolate({ inputRange: [0, 1], outputRange: [1, 0] });
+  return [lead, reduce ? lead.interpolate({ inputRange: [0, 1], outputRange: [0, 0] }) : follow] as const;
 }
 
-function CheckIcon() {
+function PillSlot({
+  texts,
+  opacities,
+  tint,
+}: {
+  texts: readonly [string, string];
+  opacities: readonly [
+    Animated.AnimatedInterpolation<number> | Animated.Value,
+    Animated.AnimatedInterpolation<number> | Animated.Value,
+  ];
+  tint?: string;
+}) {
+  const [width, setWidth] = useState(0);
+  const grow = (next: number) => setWidth((current) => (next > current ? next : current));
+  const tintStyle = tint ? { color: tint, backgroundColor: `${tint}38` } : null;
   return (
-    <View style={styles.iconBox}>
-      <View style={styles.checkRing}>
-        <View style={styles.checkMark} />
-      </View>
+    <View style={[styles.slot, width ? { width } : null]}>
+      {texts.map((text, index) => (
+        <Animated.Text
+          key={text}
+          onLayout={(event) => grow(event.nativeEvent.layout.width)}
+          numberOfLines={1}
+          style={[styles.chip, tintStyle, index === 1 && styles.slotOver, { opacity: opacities[index] }]}
+        >
+          {text}
+        </Animated.Text>
+      ))}
     </View>
-  );
-}
-
-function DropIcon() {
-  return (
-    <View style={styles.iconBox}>
-      <View style={styles.drop} />
-    </View>
-  );
-}
-
-function ExampleChip({ text, tint }: { text: string; tint?: string }) {
-  return (
-    <Text style={[styles.chip, tint ? { color: tint, backgroundColor: `${tint}38` } : null]}>{text}</Text>
   );
 }
 
@@ -138,32 +168,23 @@ function ExampleLever({
   color,
   pairs,
   reduce,
+  delay,
 }: {
   color: string;
   pairs: readonly (readonly [string, string])[];
   reduce: boolean;
+  /** How far this card sits behind the first card's pill cycle. */
+  delay: number;
 }) {
-  const [index, setIndex] = useState(0);
-  const opacity = useRef(new Animated.Value(1)).current;
-  useEffect(() => {
-    if (reduce) return;
-    const id = setInterval(() => {
-      Animated.timing(opacity, { toValue: 0, duration: 280, useNativeDriver: nativeDriver }).start(({ finished }) => {
-        if (!finished) return;
-        setIndex((current) => (current + 1) % pairs.length);
-        Animated.timing(opacity, { toValue: 1, duration: 280, useNativeDriver: nativeDriver }).start();
-      });
-    }, 3500);
-    return () => clearInterval(id);
-  }, [opacity, pairs.length, reduce]);
-  const pair = pairs[reduce ? 0 : index] ?? pairs[0];
+  const cause = useSwapOpacity(delay, reduce);
+  const result = useSwapOpacity(delay + 450, reduce);
   const label = pairs.map((item) => `${item[0]}. ${item[1]}`).join(". ");
   return (
-    <Animated.View accessibilityLabel={label} style={[styles.lever, { opacity }]}>
-      <ExampleChip text={pair[0]} />
-      <Text style={styles.arrow}>→</Text>
-      <ExampleChip text={pair[1]} tint={color} />
-    </Animated.View>
+    <View accessibilityLabel={label} style={styles.lever}>
+      <PillSlot texts={[pairs[0][0], pairs[1][0]]} opacities={cause} />
+      <ArrowRight size={14} color={theme.muted} />
+      <PillSlot texts={[pairs[0][1], pairs[1][1]]} opacities={result} tint={color} />
+    </View>
   );
 }
 
@@ -206,13 +227,14 @@ function PlanWeek({ reduce }: { reduce: boolean }) {
         delay={300}
         reduce={reduce}
         background="#1d2220"
-        icon={<BarbellIcon />}
+        icon={<TabWorkouts size={28} color="#6fd0b4" />}
         title={o.liftToday}
         body={o.liftTodayBody}
         lever={
           <ExampleLever
             color="#6fd0b4"
             reduce={reduce}
+            delay={0}
             pairs={[
               [o.lastUp, o.todayUp],
               [o.lastHold, o.todayHold],
@@ -224,13 +246,14 @@ function PlanWeek({ reduce }: { reduce: boolean }) {
         delay={600}
         reduce={reduce}
         background="#241f21"
-        icon={<CheckIcon />}
+        icon={<CheckCircle size={28} color="#fc96bf" />}
         title={o.fits}
         body={o.fitsBody}
         lever={
           <ExampleLever
             color="#fc96bf"
             reduce={reduce}
+            delay={800}
             pairs={[
               [o.pickleTwice, o.legDay],
               [o.missedWed, o.liftMoves],
@@ -242,13 +265,14 @@ function PlanWeek({ reduce }: { reduce: boolean }) {
         delay={900}
         reduce={reduce}
         background="#2a221c"
-        icon={<DropIcon />}
+        icon={<Fuel size={28} color="#fea06a" />}
         title={o.fuelRecover}
         body={o.fuelRecoverBody}
         lever={
           <ExampleLever
             color="#fea06a"
             reduce={reduce}
+            delay={1600}
             pairs={[
               [o.spinClass, o.fuelPlus],
               [o.feelingRough, o.restPlus],
@@ -263,15 +287,69 @@ function PlanWeek({ reduce }: { reduce: boolean }) {
 function LevelSlider({
   value,
   onChange,
+  onTouch,
 }: {
   value: 0 | 1 | 2;
   onChange: (level: 0 | 1 | 2) => void;
+  onTouch: () => void;
 }) {
-  const width = useRef(1);
-  const pick = (x: number) => {
-    const ratio = Math.min(1, Math.max(0, x / width.current));
-    onChange(Math.round(ratio * 2) as 0 | 1 | 2);
+  const reduce = useReduceMotion();
+  const pos = useRef(new Animated.Value(value)).current;
+  const posRef = useRef<number>(value);
+  const dragging = useRef(false);
+  const [track, setTrack] = useState(0);
+
+  useEffect(() => {
+    const id = pos.addListener(({ value: next }) => {
+      posRef.current = next;
+    });
+    return () => pos.removeListener(id);
+  }, [pos]);
+
+  const glide = useCallback(
+    (to: number) => {
+      pos.stopAnimation();
+      if (reduce) {
+        pos.setValue(to);
+        return;
+      }
+      Animated.timing(pos, {
+        toValue: to,
+        duration: 450,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: false,
+      }).start();
+    },
+    [pos, reduce],
+  );
+
+  useEffect(() => {
+    if (dragging.current) return;
+    if (Math.abs(posRef.current - value) < 0.001) return;
+    glide(value);
+  }, [glide, value]);
+
+  const travel = Math.max(track - 28, 0);
+  const left = pos.interpolate({ inputRange: [0, 2], outputRange: [0, travel] });
+
+  const place = (x: number) => {
+    if (track <= 28) return;
+    const center = Math.min(track - 14, Math.max(14, x));
+    const next = ((center - 14) / (track - 28)) * 2;
+    pos.setValue(next);
+    const level = Math.round(next) as 0 | 1 | 2;
+    if (level !== value) onChange(level);
   };
+
+  const grab = useRef(value);
+  const settle = () => {
+    dragging.current = false;
+    const level = Math.max(0, Math.min(2, Math.round(posRef.current))) as 0 | 1 | 2;
+    if (level !== grab.current) haptic.selection();
+    if (level !== value) onChange(level);
+    glide(level);
+  };
+
   return (
     <View style={styles.sliderBlock}>
       <View
@@ -280,16 +358,30 @@ function LevelSlider({
         accessibilityValue={{ min: 0, max: 2, now: value, text: LEVEL_NAMES[value] }}
         accessibilityActions={[{ name: "increment" }, { name: "decrement" }]}
         onAccessibilityAction={(event) => {
-          if (event.nativeEvent.actionName === "increment") onChange(Math.min(2, value + 1) as 0 | 1 | 2);
-          if (event.nativeEvent.actionName === "decrement") onChange(Math.max(0, value - 1) as 0 | 1 | 2);
+          onTouch();
+          const next =
+            event.nativeEvent.actionName === "increment"
+              ? (Math.min(2, value + 1) as 0 | 1 | 2)
+              : event.nativeEvent.actionName === "decrement"
+                ? (Math.max(0, value - 1) as 0 | 1 | 2)
+                : value;
+          if (next !== value) haptic.selection();
+          onChange(next);
         }}
-        onLayout={(event) => {
-          width.current = event.nativeEvent.layout.width;
-        }}
+        onLayout={(event) => setTrack(event.nativeEvent.layout.width)}
         onStartShouldSetResponder={() => true}
         onMoveShouldSetResponder={() => true}
-        onResponderGrant={(event) => pick(event.nativeEvent.locationX)}
-        onResponderMove={(event) => pick(event.nativeEvent.locationX)}
+        onResponderTerminationRequest={() => false}
+        onResponderGrant={(event) => {
+          dragging.current = true;
+          grab.current = value;
+          pos.stopAnimation();
+          onTouch();
+          place(event.nativeEvent.locationX);
+        }}
+        onResponderMove={(event) => place(event.nativeEvent.locationX)}
+        onResponderRelease={settle}
+        onResponderTerminate={settle}
         style={styles.sliderHit}
       >
         <View style={styles.sliderTrack}>
@@ -299,15 +391,7 @@ function LevelSlider({
             ))}
           </View>
         </View>
-        <View
-          pointerEvents="none"
-          style={[
-            styles.thumb,
-            value === 0 && styles.thumbStart,
-            value === 1 && styles.thumbMid,
-            value === 2 && styles.thumbEnd,
-          ]}
-        />
+        <Animated.View pointerEvents="none" style={[styles.thumb, { left }]} />
       </View>
       <View style={styles.levelNames}>
         {LEVEL_NAMES.map((name, index) => (
@@ -315,7 +399,11 @@ function LevelSlider({
             key={name}
             accessibilityRole="button"
             accessibilityState={{ selected: value === index }}
-            onPress={() => onChange(index as 0 | 1 | 2)}
+            onPress={() => {
+              onTouch();
+              if (index !== value) haptic.selection();
+              onChange(index as 0 | 1 | 2);
+            }}
             style={styles.levelNameHit}
           >
             <Text style={[styles.levelName, value === index && { color: LEVEL_COLORS[index] }, index === 1 && styles.levelCenter, index === 2 && styles.levelEnd]}>
@@ -328,7 +416,15 @@ function LevelSlider({
   );
 }
 
-function LevelDemo({ level, onChange }: { level: 0 | 1 | 2; onChange: (level: 0 | 1 | 2) => void }) {
+function LevelDemo({
+  level,
+  onChange,
+  onTouch,
+}: {
+  level: 0 | 1 | 2;
+  onChange: (level: 0 | 1 | 2) => void;
+  onTouch: () => void;
+}) {
   const o = copy.onboarding;
   const showTip = level === 0;
   const showWhy = level === 0;
@@ -336,7 +432,7 @@ function LevelDemo({ level, onChange }: { level: 0 | 1 | 2; onChange: (level: 0 
   const showRest = level !== 2;
   return (
     <View>
-      <LevelSlider value={level} onChange={onChange} />
+      <LevelSlider value={level} onChange={onChange} onTouch={onTouch} />
       <View accessibilityLiveRegion="polite" style={styles.demo}>
         <View style={styles.demoTop}>
           <Text style={styles.demoEye}>{o.dayOneLower}</Text>
@@ -344,9 +440,7 @@ function LevelDemo({ level, onChange }: { level: 0 | 1 | 2; onChange: (level: 0 
         </View>
         {showTip ? (
           <View style={styles.tip}>
-            <View style={styles.infoDot}>
-              <Text style={styles.infoLetter}>i</Text>
-            </View>
+            <Info size={16} color="#6fd0b4" />
             <Text style={styles.tipText}>{o.startLight}</Text>
           </View>
         ) : null}
@@ -409,7 +503,10 @@ function PillGrid({
             <Pressable
               accessibilityRole="button"
               accessibilityState={{ selected: on }}
-              onPress={() => onPress(item.id)}
+              onPress={() => {
+                haptic.selection();
+                onPress(item.id);
+              }}
               style={[styles.pill, on && (tone === "pink" ? styles.pillPink : styles.pillGreen)]}
             >
               <Text style={[styles.pillText, on && (tone === "pink" ? styles.pillPinkText : styles.pillGreenText)]}>
@@ -441,7 +538,10 @@ function ChoiceList({
             key={item.id}
             accessibilityRole="button"
             accessibilityState={{ selected: on }}
-            onPress={() => onPress(item.id)}
+            onPress={() => {
+              haptic.selection();
+              onPress(item.id);
+            }}
             style={[styles.choice, on && styles.choiceOn]}
           >
             <Text style={[styles.choiceTitle, on && styles.choiceOnText]}>{item.label}</Text>
@@ -461,7 +561,10 @@ function SwitchRow({ label, on, onToggle }: { label: string; on: boolean; onTogg
         accessibilityRole="switch"
         accessibilityLabel={label}
         accessibilityState={{ checked: on }}
-        onPress={onToggle}
+        onPress={() => {
+          haptic.selection();
+          onToggle();
+        }}
         hitSlop={8}
         style={styles.switchHit}
       >
@@ -511,7 +614,10 @@ function DaysStep({
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={o.fewer(row.name)}
-              onPress={() => onCount(row.id, row.kind, -1)}
+              onPress={() => {
+                haptic.selection();
+                onCount(row.id, row.kind, -1);
+              }}
               style={styles.stepperButton}
             >
               <Text style={styles.stepperSymbol}>−</Text>
@@ -520,7 +626,10 @@ function DaysStep({
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={o.more(row.name)}
-              onPress={() => onCount(row.id, row.kind, 1)}
+              onPress={() => {
+                haptic.selection();
+                onCount(row.id, row.kind, 1);
+              }}
               style={styles.stepperButton}
             >
               <Text style={styles.stepperSymbol}>+</Text>
@@ -532,39 +641,32 @@ function DaysStep({
   );
 }
 
-function Field({
+function DialField({
   label,
   value,
-  onChange,
+  spec,
   placeholder,
-  numeric,
-  focused,
-  onFocus,
-  onBlur,
+  start,
+  onChange,
 }: {
   label: string;
   value: string;
-  onChange: (value: string) => void;
+  spec: DialSpec;
   placeholder?: string;
-  numeric: boolean;
-  focused: boolean;
-  onFocus: () => void;
-  onBlur: () => void;
+  start?: number;
+  onChange: (value: string) => void;
 }) {
   return (
     <View style={styles.field}>
       <Text style={styles.fieldLabel}>{label}</Text>
-      <TextInput
-        accessibilityLabel={label}
+      <DialValue
+        label={label}
         value={value}
-        onChangeText={onChange}
         placeholder={placeholder}
-        placeholderTextColor="#8a827e"
-        keyboardType={numeric ? "number-pad" : "decimal-pad"}
-        inputMode={numeric ? "numeric" : "decimal"}
-        onFocus={onFocus}
-        onBlur={onBlur}
-        style={[styles.input, focused && styles.inputFocused]}
+        spec={spec}
+        start={start}
+        onChange={onChange}
+        style={styles.input}
       />
     </View>
   );
@@ -591,66 +693,32 @@ function AboutFields({
   onBio: (key: "age" | "height" | "weight" | "bodyFat" | "steps", value: string) => void;
 }) {
   const o = copy.onboarding;
-  const [focused, setFocused] = useState<string | null>(null);
-  const [weightText, setWeightText] = useState<string | null>(null);
+  const kg = usesKg();
   return (
     <View style={styles.stack}>
       <SexPills sex={draft.sex} onPress={onSex} />
       <View style={styles.fields}>
-        <Field
-          label={o.age}
-          value={draft.age}
-          numeric
-          focused={focused === "age"}
-          onFocus={() => setFocused("age")}
-          onBlur={() => setFocused(null)}
-          onChange={(value) => onBio("age", value)}
-        />
-        <Field
-          label={o.height}
-          value={draft.height}
-          numeric={false}
-          focused={focused === "height"}
-          onFocus={() => setFocused("height")}
-          onBlur={() => setFocused(null)}
-          onChange={(value) => onBio("height", value)}
-        />
-        <Field
+        <DialField label={o.age} value={draft.age} spec={ageDial} onChange={(value) => onBio("age", value)} />
+        <DialField label={o.height} value={draft.height} spec={heightDial} onChange={(value) => onBio("height", value)} />
+        <DialField
           label={o.weight(weightUnit())}
-          value={weightText ?? toDisplayWeight(draft.weight)}
-          numeric={false}
-          focused={focused === "weight"}
-          onFocus={() => {
-            setFocused("weight");
-            setWeightText(toDisplayWeight(draft.weight));
-          }}
-          onBlur={() => {
-            setFocused(null);
-            setWeightText(null);
-          }}
-          onChange={(value) => {
-            setWeightText(value);
-            onBio("weight", fromDisplayWeight(value));
-          }}
+          value={toDisplayWeight(draft.weight)}
+          spec={weightDial(kg)}
+          onChange={(value) => onBio("weight", fromDisplayWeight(value))}
         />
-        <Field
+        <DialField
           label={o.bodyFat}
           value={draft.bodyFat}
           placeholder={o.optional}
-          numeric={false}
-          focused={focused === "bodyFat"}
-          onFocus={() => setFocused("bodyFat")}
-          onBlur={() => setFocused(null)}
+          spec={bodyFatDial}
           onChange={(value) => onBio("bodyFat", value)}
         />
-        <Field
+        <DialField
           label={o.dailySteps}
           value={draft.steps}
           placeholder={o.stepsExample}
-          numeric
-          focused={focused === "steps"}
-          onFocus={() => setFocused("steps")}
-          onBlur={() => setFocused(null)}
+          spec={stepsDial}
+          start={draft.steps.trim() ? undefined : Number(o.stepsExample.replace(/[^\d]/g, "")) || undefined}
           onChange={(value) => onBio("steps", value)}
         />
       </View>
@@ -672,31 +740,54 @@ function PlanCard({ rows }: { rows: PlanRow[] }) {
   );
 }
 
-function FadedRow({ item, index, reduce }: { item: { title: string; when: string; activity: boolean }; index: number; reduce: boolean }) {
-  const opacity = useRef(new Animated.Value(reduce ? 0.45 : 0)).current;
-  const y = useRef(new Animated.Value(reduce ? 0 : 6)).current;
+const FIRST_MS = 260;
+const DAY_MS = 200;
+
+function landingGap(count: number) {
+  if (count <= 1) return 80;
+  const room = 1150 - FIRST_MS - DAY_MS;
+  return Math.min(80, Math.max(32, Math.floor(room / (count - 1))));
+}
+
+function WeekDrop({
+  reduce,
+  delay,
+  duration,
+  fromY,
+  fromScale,
+  onLand,
+  style,
+  children,
+}: {
+  reduce: boolean;
+  delay: number;
+  duration: number;
+  fromY: number;
+  fromScale: number;
+  onLand: () => void;
+  style?: StyleProp<ViewStyle>;
+  children: ReactNode;
+}) {
+  const opacity = useSharedValue(0);
+  const y = useSharedValue(reduce ? 0 : fromY);
+  const scale = useSharedValue(reduce ? 1 : fromScale);
+  const landRef = useRef(onLand);
+  landRef.current = onLand;
   useEffect(() => {
-    Animated.parallel([
-      Animated.timing(opacity, {
-        toValue: 0.45,
-        duration: reduce ? 0 : 500,
-        delay: reduce ? 0 : 300 + index * 120,
-        useNativeDriver: nativeDriver,
-      }),
-      Animated.timing(y, {
-        toValue: 0,
-        duration: reduce ? 0 : 500,
-        delay: reduce ? 0 : 300 + index * 120,
-        useNativeDriver: nativeDriver,
-      }),
-    ]).start();
-  }, [index, opacity, reduce, y]);
-  return (
-    <Animated.View style={[styles.restRow, item.activity && styles.restActivity, { opacity, transform: [{ translateY: y }] }]}>
-      <Text style={styles.restTitle}>{item.title}</Text>
-      <Text style={styles.restWhen}>{item.when}</Text>
-    </Animated.View>
-  );
+    const ms = reduce ? 160 : duration;
+    opacity.value = withDelay(delay, withTiming(1, { duration: ms }));
+    if (!reduce) {
+      y.value = withDelay(delay, withTiming(0, { duration: ms }));
+      scale.value = withDelay(delay, withTiming(1, { duration: ms }));
+    }
+    const timer = setTimeout(() => landRef.current(), delay + ms);
+    return () => clearTimeout(timer);
+  }, [delay, duration, opacity, reduce, scale, y]);
+  const anim = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ translateY: y.value }, { scale: scale.value }],
+  }));
+  return <Reanimated.View style={[style, anim]}>{children}</Reanimated.View>;
 }
 
 function Dots({ step }: { step: number }) {
@@ -747,12 +838,6 @@ export function OnboardingScreen() {
     }, 2600);
     return () => clearTimeout(id);
   }, [change, draft.demoLevel, draft.demoTouched, draft.step]);
-
-  useEffect(() => {
-    if (!toast) return;
-    const id = setTimeout(() => setToast(null), 3400);
-    return () => clearTimeout(id);
-  }, [toast]);
 
   const leaveToWorkouts = useCallback(() => {
     if (router.canDismiss()) router.dismissTo("/");
@@ -853,6 +938,7 @@ export function OnboardingScreen() {
             {draft.step === 2 ? (
               <LevelDemo
                 level={draft.demoLevel}
+                onTouch={() => change((item) => (item.demoTouched ? item : { ...item, demoTouched: true }))}
                 onChange={(level) => change((item) => ({ ...item, demoTouched: true, demoLevel: level }))}
               />
             ) : null}
@@ -889,6 +975,7 @@ export function OnboardingScreen() {
                     setToast({ title: copy.onboarding.inSeason, body: copy.onboarding.inSeasonLimit });
                     return;
                   }
+                  haptic.selection();
                   change(() => result.draft);
                 }}
                 onCount={(id, kind, delta) =>
@@ -930,10 +1017,13 @@ export function OnboardingScreen() {
           {showPlan ? <PlanCard rows={planRows(draft, preview?.food ?? null)} /> : null}
         </ScrollView>
         {toast ? (
-          <Pressable accessibilityRole="alert" onPress={() => setToast(null)} style={styles.toast}>
-            <Text style={styles.toastTitle}>{toast.title}</Text>
-            <Text style={styles.toastBody}>{toast.body}</Text>
-          </Pressable>
+          <BottomToast
+            lines={[toast.title, toast.body]}
+            bottom={88}
+            pulse={false}
+            variant="plan"
+            onDismiss={() => setToast(null)}
+          />
         ) : null}
         <View style={styles.actions}>
           {showBack ? (
@@ -958,16 +1048,45 @@ export function OnboardingScreen() {
 
 function Ready({ draft, preview, reduce }: { draft: Draft; preview: PlanPreview; reduce: boolean }) {
   const workout = firstWorkout(draft, preview);
+  const gap = landingGap(workout.rest.length);
+  const total = 1 + workout.rest.length;
+  const fired = useRef(new Set<number>());
+  const land = (index: number) => {
+    if (fired.current.has(index)) return;
+    fired.current.add(index);
+    haptic.tap();
+    if (fired.current.size === total) haptic.success();
+  };
   return (
     <View style={styles.stack}>
-      <View style={styles.first}>
+      <WeekDrop
+        reduce={reduce}
+        delay={0}
+        duration={FIRST_MS}
+        fromY={0}
+        fromScale={0.96}
+        onLand={() => land(0)}
+        style={styles.first}
+      >
         <Text style={styles.weye}>{workout.eyebrow}</Text>
         <Text style={styles.workoutTitle}>{workout.title}</Text>
         <Text style={styles.firstNote}>{copy.onboarding.startingWeights}</Text>
-      </View>
+      </WeekDrop>
       <View style={styles.restList}>
         {workout.rest.map((item, index) => (
-          <FadedRow key={item.key} item={item} index={index} reduce={reduce} />
+          <WeekDrop
+            key={item.key}
+            reduce={reduce}
+            delay={FIRST_MS + index * gap}
+            duration={DAY_MS}
+            fromY={12}
+            fromScale={1}
+            onLand={() => land(index + 1)}
+            style={[styles.restRow, item.activity && styles.restActivity]}
+          >
+            <Text style={styles.restTitle}>{item.title}</Text>
+            <Text style={styles.restWhen}>{item.when}</Text>
+          </WeekDrop>
         ))}
       </View>
     </View>
@@ -1016,38 +1135,9 @@ const styles = StyleSheet.create({
   featureText: { flex: 1, gap: 2 },
   featureTitle: { color: theme.text, fontFamily: theme.fonts.bodySemi, fontSize: 16 },
   featureBody: { color: "#d4cfcc", fontFamily: theme.fonts.body, fontSize: 14, lineHeight: 20 },
-  iconBox: { width: 28, height: 28, alignItems: "center", justifyContent: "center" },
-  barbellShaft: { position: "absolute", width: 16, height: 2, borderRadius: 1 },
-  barbellEnd: { position: "absolute", width: 2, borderRadius: 1 },
-  checkRing: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 1.8,
-    borderColor: "#fc96bf",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  checkMark: {
-    width: 8,
-    height: 5,
-    marginTop: -2,
-    borderLeftWidth: 1.8,
-    borderBottomWidth: 1.8,
-    borderColor: "#fc96bf",
-    transform: [{ rotate: "-45deg" }],
-  },
-  drop: {
-    width: 14,
-    height: 14,
-    backgroundColor: "#fea06a",
-    borderTopLeftRadius: 0,
-    borderTopRightRadius: 12,
-    borderBottomRightRadius: 12,
-    borderBottomLeftRadius: 12,
-    transform: [{ rotate: "45deg" }],
-  },
   lever: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 6, marginTop: 8 },
+  slot: { alignSelf: "flex-start" },
+  slotOver: { position: "absolute", left: 0, top: 0 },
   chip: {
     color: theme.text,
     backgroundColor: "rgba(255,255,255,0.07)",
@@ -1058,7 +1148,6 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     overflow: "hidden",
   },
-  arrow: { color: theme.muted, fontSize: 14 },
   sliderBlock: { gap: 2 },
   sliderHit: { height: 44, justifyContent: "center" },
   sliderTrack: { marginHorizontal: 14 },
@@ -1076,9 +1165,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 4,
   },
-  thumbStart: { left: 0 },
-  thumbMid: { left: "50%", marginLeft: -14 },
-  thumbEnd: { right: 0 },
   levelNames: { flexDirection: "row" },
   levelNameHit: { flex: 1, minHeight: 44, justifyContent: "center" },
   levelName: { color: "#8f8783", fontFamily: theme.fonts.bodySemi, fontSize: 12 },
@@ -1093,17 +1179,6 @@ const styles = StyleSheet.create({
   demoName: { color: theme.text, fontFamily: theme.fonts.bodySemi, fontSize: 15, flexShrink: 1 },
   demoSets: { color: theme.text, fontFamily: theme.fonts.monoMedium, fontSize: 13 },
   tip: { flexDirection: "row", gap: 8, alignItems: "flex-start", backgroundColor: "#24302b", borderRadius: 10, padding: 10 },
-  infoDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    borderWidth: 1.6,
-    borderColor: "#6fd0b4",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 1,
-  },
-  infoLetter: { color: "#6fd0b4", fontFamily: theme.fonts.bodySemi, fontSize: 10, lineHeight: 12 },
   tipText: { color: "#d4cfcc", fontFamily: theme.fonts.body, fontSize: 13, lineHeight: 18, flex: 1 },
   why: { color: theme.muted, fontFamily: theme.fonts.body, fontSize: 13, lineHeight: 18 },
   swap: { gap: 6 },

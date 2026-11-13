@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  Modal,
+  AppState,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -12,16 +12,21 @@ import {
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { useNotice } from "@/activity-log";
+import { Rise, SetBounce, SheetFrame } from "@/components/motion";
+import { DialValue, liftWeightDial, repsDial } from "@/components/number-dial";
 import { copy, fill } from "@/copy";
+import { haptic } from "@/haptic";
 import { engine } from "@/store";
 import { theme } from "@/theme";
-import { clock, fromDisplay, toDisplay, unitWord, weightText } from "@/units";
+import { clock, fromDisplay, toDisplay, unitWord, usingKg, weightText } from "@/units";
 import { useEngineStore } from "@/store";
 import { useReduceMotion } from "@/use-reduce-motion";
 
 import { canSwapDay, openSwappedWorkout, SwapSheet, type SwapAnchor } from "@/components/swap-sheet";
+import { Check, Close, Info, Swap } from "@/icons";
 
-import { armRest, cancelRestChime } from "./notify";
+import { armRest, cancelRestChime, claimRestChime } from "./notify";
 import { ShareBox } from "./share-box";
 import { ShareWorkoutButton } from "./share-card";
 
@@ -157,7 +162,8 @@ export function WorkoutScreen({ id }: { id: string }) {
   const listY = useRef(0);
   const [rest, setRest] = useState<Rest | null>(null);
   const [now, setNow] = useState(() => Date.now());
-  const [toast, setToast] = useState<string[]>([]);
+  const restOver = useRef<boolean | null>(null);
+  const leftWhileCounting = useRef(false);
   const [info, setInfo] = useState(false);
   const [sheet, setSheet] = useState<null | "done" | number>(null);
   const [adding, setAdding] = useState(false);
@@ -186,10 +192,27 @@ export function WorkoutScreen({ id }: { id: string }) {
   }, [version]);
 
   useEffect(() => {
-    if (!toast.length) return;
-    const timer = setTimeout(() => setToast([]), 4500);
-    return () => clearTimeout(timer);
-  }, [toast]);
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state !== "active" && restOver.current === false) leftWhileCounting.current = true;
+    });
+    return () => sub.remove();
+  }, []);
+
+  useEffect(() => {
+    if (!rest) {
+      restOver.current = null;
+      leftWhileCounting.current = false;
+      return;
+    }
+    if (restOver.current === false && rest.over) {
+      haptic.success();
+      if (!leftWhileCounting.current && AppState.currentState === "active" && claimRestChime(rest.end)) {
+        void cancelRestChime();
+      }
+    }
+    if (!rest.over) leftWhileCounting.current = false;
+    restOver.current = rest.over;
+  }, [rest]);
 
   useEffect(() => {
     const view = engine.restView();
@@ -228,13 +251,16 @@ export function WorkoutScreen({ id }: { id: string }) {
     scroll.current?.scrollTo({ y: Math.max(0, listY.current + y - 8), animated: !reduceMotion });
   }
 
-  function showLines(lines: string[]) {
+  function showLines(lines: string[], pulse = true) {
     const cap = engine.wk.guide === "Less" ? 2 : 5;
-    setToast(lines.filter(Boolean).slice(0, cap));
+    const next = lines.filter(Boolean).slice(0, cap);
+    if (!next.length) return;
+    useNotice.getState().show(next, { pulse, variant: "plain" });
   }
 
   function setFeel(value: Feel) {
     if (readOnly || planned.today === value) return;
+    haptic.selection();
     const before = engine.plan();
     engine.wk.today = { ...(engine.wk.today || {}), [id]: value };
     engine.save();
@@ -242,11 +268,13 @@ export function WorkoutScreen({ id }: { id: string }) {
   }
 
   async function skipRest() {
+    haptic.selection();
     await cancelRestChime();
     engine.clearRest();
   }
 
   async function nudgeRest(delta: number) {
+    haptic.selection();
     const next = engine.adjustRest(delta);
     if (next) await armRest(next.secs);
   }
@@ -254,10 +282,15 @@ export function WorkoutScreen({ id }: { id: string }) {
   function finishDay() {
     if (engine.wk.done?.[id]) return;
     engine.markDone(id);
+    const goingUp = ((engine.wk.review || {})[id]?.items || []).some((item: { tag?: string }) => item.tag === "up");
+    haptic.success();
+    if (goingUp) setTimeout(() => haptic.success(), 180);
+    setTimeout(() => haptic.doubleTap(), 420);
     setSheet("done");
   }
 
   function resetDay() {
+    haptic.warning();
     if (engine.wk.done?.[id]) engine.markDone(id);
     delete engine.slots[id];
     if (engine.wk.wt) delete engine.wk.wt[id];
@@ -266,7 +299,7 @@ export function WorkoutScreen({ id }: { id: string }) {
     engine.clearRest();
     engine.save();
     setResetAsk(false);
-    showLines([copy.workout.dayReset, copy.workout.logsCleared]);
+    showLines([copy.workout.dayReset, copy.workout.logsCleared], false);
   }
 
   function commitSet(
@@ -287,6 +320,7 @@ export function WorkoutScreen({ id }: { id: string }) {
     if (draft.reps !== null) reps = draft.reps.trim();
     if (!String(reps).trim() && +draft.placeholderReps > 0) reps = String(+draft.placeholderReps);
     log[setIndex] = { ...row, w: weight, r: reps, d: !was };
+    if (!was) haptic.tap();
     if (!was) {
       const timers = { ...(engine.wk.wt || {}) };
       if (!timers[id]?.start) timers[id] = { start: Date.now() };
@@ -296,7 +330,9 @@ export function WorkoutScreen({ id }: { id: string }) {
     engine.set(id, index, "log", log);
     if (wasDone) engine.resyncDone(id);
     if (!was) {
+      const previousNote = engine.wk.rest?.noteId;
       const started = engine.beginRest(id, index, setIndex);
+      if (started && previousNote && engine.wk.rest) engine.wk.rest.noteId = previousNote;
       if (started) void armRest(started.secs);
     }
     if (!was && !wasDone && engine.dayComplete(id)) {
@@ -427,6 +463,7 @@ export function WorkoutScreen({ id }: { id: string }) {
                 }}
                 style={styles.swapPill}
               >
+                <Swap size={16} color={theme.text} />
                 <Text style={styles.swapPillText}>{copy.workouts.swapWorkout}</Text>
               </Pressable>
             ) : null}
@@ -443,7 +480,7 @@ export function WorkoutScreen({ id }: { id: string }) {
               onPress={() => setInfo(true)}
               style={styles.info}
             >
-              <Text style={styles.infoText}>i</Text>
+              <Info size={16} color="#c9d3cf" />
             </Pressable>
           </View>
           <View
@@ -620,7 +657,7 @@ export function WorkoutScreen({ id }: { id: string }) {
             <View style={styles.cardHead}>
               <Text style={styles.slotLabel}>{copy.workout.addExercise}</Text>
               <Pressable accessibilityRole="button" accessibilityLabel={copy.close} onPress={() => setAdding(false)} style={styles.iconHit}>
-                <Text style={styles.dismiss}>×</Text>
+                <Close />
               </Pressable>
             </View>
             <Pressable accessibilityRole="button" onPress={() => setPicker("add")} style={styles.picker}>
@@ -757,19 +794,8 @@ export function WorkoutScreen({ id }: { id: string }) {
         </View>
       ) : null}
 
-      {toast.length ? (
-        <View pointerEvents="none" style={[styles.toast, { top: insets.top + 8 }]}>
-          {toast.map((line, index) => (
-            <Text key={`${index}-${line}`} style={styles.toastText}>
-              {line}
-            </Text>
-          ))}
-        </View>
-      ) : null}
-
-      <Modal visible={resetAsk} transparent animationType={reduceMotion ? "fade" : "slide"} onRequestClose={() => setResetAsk(false)}>
-        <Pressable accessibilityRole="button" accessibilityLabel={copy.you.cancel} style={styles.dim} onPress={() => setResetAsk(false)}>
-          <Pressable style={[styles.sheet, { marginBottom: insets.bottom + 12 }]} onPress={(event) => event.stopPropagation()}>
+      <SheetFrame visible={resetAsk} onClose={() => setResetAsk(false)} label={copy.you.cancel}>
+          <View style={[styles.sheet, { marginBottom: insets.bottom + 12 }]}>
             <Text style={styles.section}>{copy.you.areYouSure}</Text>
             <Text accessibilityRole="header" style={styles.confirmTitle}>
               {fill(copy.workout.resetTitle, day.tab || copy.workout.thisDay)}
@@ -783,20 +809,17 @@ export function WorkoutScreen({ id }: { id: string }) {
                 <Text style={styles.primaryText}>{copy.workout.resetDay}</Text>
               </Pressable>
             </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
+          </View>
+      </SheetFrame>
 
-      <Modal visible={info} transparent animationType={reduceMotion ? "fade" : "slide"} onRequestClose={() => setInfo(false)}>
-        <Pressable accessibilityRole="button" accessibilityLabel={copy.close} style={styles.dim} onPress={() => setInfo(false)}>
-          <View style={styles.sheet}>
+      <SheetFrame visible={info} onClose={() => setInfo(false)}>
+          <View style={[styles.sheet, { marginBottom: insets.bottom + 12 }]}>
             <Text style={styles.body}>{copy.workout.feelInfo}</Text>
             <Pressable accessibilityRole="button" onPress={() => setInfo(false)} style={styles.primary}>
               <Text style={styles.primaryText}>{copy.close}</Text>
             </Pressable>
           </View>
-        </Pressable>
-      </Modal>
+      </SheetFrame>
 
       <SwapSheet
         id={swapOpen ? id : null}
@@ -811,9 +834,8 @@ export function WorkoutScreen({ id }: { id: string }) {
         }}
       />
 
-      <Modal visible={sheet != null} transparent animationType={reduceMotion ? "fade" : "slide"} onRequestClose={() => setSheet(null)}>
-        <Pressable style={styles.dim} onPress={() => setSheet(null)}>
-          <Pressable style={[styles.sheet, { marginBottom: insets.bottom + 12 }]} onPress={(event) => event.stopPropagation()}>
+      <SheetFrame visible={sheet != null} onClose={() => setSheet(null)}>
+          <View style={[styles.sheet, { marginBottom: insets.bottom + 12 }]}>
             {sheet === "done" ? (
               <>
                 <View style={styles.sheetTop}>
@@ -821,19 +843,21 @@ export function WorkoutScreen({ id }: { id: string }) {
                     {`${day.tab} · ${day.title}${timer?.start && timer.end ? ` ${fill(copy.workout.minDot, Math.max(1, Math.round((timer.end - timer.start) / 60000)))}` : ""}`}
                   </Text>
                   <Pressable accessibilityRole="button" accessibilityLabel={copy.close} onPress={() => setSheet(null)} style={styles.iconHit}>
-                    <Text style={styles.dismiss}>×</Text>
+                    <Close />
                   </Pressable>
                 </View>
                 <View style={styles.doneHead}>
                   <View style={styles.checkCircle}>
-                    <Text style={styles.checkMark}>✓</Text>
+                    <Check size={28} color={theme.green.accent} draw />
                   </View>
-                  <Text accessibilityRole="header" style={styles.doneTitle}>
-                    {copy.workout.doneTitle}
-                  </Text>
+                  <Rise delay={60}>
+                    <Text accessibilityRole="header" style={styles.doneTitle}>
+                      {copy.workout.doneTitle}
+                    </Text>
+                  </Rise>
                 </View>
                 {summary.length ? (
-                  summary.map((row) => {
+                  summary.map((row, rowIndex) => {
                     const item = (review?.items || (engine.wk.review || {})[id]?.items || []).find((entry: any) => entry.n === row.n);
                     const value = row.cardio
                       ? row.min
@@ -841,34 +865,44 @@ export function WorkoutScreen({ id }: { id: string }) {
                         : copy.workout.done
                       : loggedLine(row.n, row.w, row.r);
                     return (
-                      <View key={row.n} style={styles.summaryRow}>
-                        <Text style={[styles.body, styles.summaryName]}>{row.n}</Text>
-                        <Text style={[styles.mono, item?.tag === "up" ? styles.up : null]}>
-                          {value}
-                          {item ? (
-                            <Text accessibilityLabel={TAG_NAME[item.tag] || item.tag}>{` ${TAG_ICON[item.tag] || ""}`}</Text>
-                          ) : null}
-                        </Text>
-                      </View>
+                      <Rise key={row.n} delay={120 + rowIndex * 60}>
+                        <View style={styles.summaryRow}>
+                          <Text style={[styles.body, styles.summaryName]}>{row.n}</Text>
+                          <Text style={[styles.mono, item?.tag === "up" ? styles.up : null]}>
+                            {value}
+                            {item ? (
+                              <Text accessibilityLabel={TAG_NAME[item.tag] || item.tag}>{` ${TAG_ICON[item.tag] || ""}`}</Text>
+                            ) : null}
+                          </Text>
+                        </View>
+                      </Rise>
                     );
                   })
                 ) : (
-                  <Text style={styles.hint}>{copy.workout.noSetsLogged}</Text>
+                  <Rise delay={120}>
+                    <Text style={styles.hint}>{copy.workout.noSetsLogged}</Text>
+                  </Rise>
                 )}
-                {(engine.wk.review || {})[id]?.note ? <Text style={styles.hint}>{(engine.wk.review || {})[id].note}</Text> : null}
+                {(engine.wk.review || {})[id]?.note ? (
+                  <Rise delay={120 + summary.length * 60}>
+                    <Text style={styles.hint}>{(engine.wk.review || {})[id].note}</Text>
+                  </Rise>
+                ) : null}
+                <Rise delay={180 + summary.length * 60}>
                 <View style={styles.doneActions}>
                   <ShareWorkoutButton id={id} label={copy.workout.share} />
                   <Pressable accessibilityRole="button" onPress={leave} style={[styles.primary, styles.doneClose]}>
                     <Text style={styles.primaryText}>{copy.workout.backWorkouts}</Text>
                   </Pressable>
                 </View>
+                </Rise>
               </>
             ) : (
               <>
                 <View style={styles.sheetTop}>
                   <Text style={styles.section}>{fill(copy.workout.exDone, upName)}</Text>
                   <Pressable accessibilityRole="button" accessibilityLabel={copy.close} onPress={() => setSheet(null)} style={styles.iconHit}>
-                    <Text style={styles.dismiss}>×</Text>
+                    <Close />
                   </Pressable>
                 </View>
                 {upReview ? (
@@ -896,9 +930,8 @@ export function WorkoutScreen({ id }: { id: string }) {
                 ) : null}
               </>
             )}
-          </Pressable>
-        </Pressable>
-      </Modal>
+          </View>
+      </SheetFrame>
 
       <PickerModal
         open={picker != null}
@@ -1189,7 +1222,7 @@ function ExerciseCard(props: {
                 onPress={() => props.onNudge(null)}
                 style={styles.iconHit}
               >
-                <Text style={styles.dismiss}>×</Text>
+                <Close />
               </Pressable>
             </View>
           ) : null}
@@ -1292,8 +1325,6 @@ function SetRow({
   onCommit: (draft: { weight: string | null; reps: string | null; placeholderLb: number; placeholderReps: string }) => void;
   onField: (field: "w" | "r", value: string) => void;
 }) {
-  const [weight, setWeight] = useState<string | null>(null);
-  const [reps, setReps] = useState<string | null>(null);
   const previousLb = previous && +previous.w > 0 ? +previous.w : 0;
   const suggestedLb = suggestion && suggestion.w ? +suggestion.w : guess ? +guess.w : 0;
   const placeholderLb = bodyweight
@@ -1309,8 +1340,8 @@ function SetRow({
         ? "BW"
         : "lb";
   const placeholderReps = done ? "" : suggestion && suggestion.r ? String(suggestion.r) : fallbackReps;
-  const shownWeight = weight !== null ? weight : row.w ? String(toDisplay(+row.w)) : "";
-  const shownReps = reps !== null ? reps : row.r ? String(row.r) : "";
+  const shownWeight = row.w ? String(toDisplay(+row.w)) : "";
+  const shownReps = row.r ? String(row.r) : "";
   const setLabel = fill(copy.workout.setOf, setIndex + 1, total);
 
   return (
@@ -1319,17 +1350,15 @@ function SetRow({
       {readOnly ? (
         <Text style={[styles.mono, styles.setValue]}>{shownWeight}</Text>
       ) : (
-        <TextInput
+        <DialValue
+          label={bodyweight ? copy.workout.addedWeightTitle : copy.you.weight}
           accessibilityLabel={bodyweight ? copy.workout.addedWeight : setLabel}
           value={shownWeight}
-          onChangeText={setWeight}
-          onEndEditing={() => {
-            if (weight !== null) onField("w", weight);
-            setWeight(null);
-          }}
-          keyboardType="decimal-pad"
           placeholder={placeholderWeight}
-          placeholderTextColor={theme.muted}
+          spec={liftWeightDial(usingKg())}
+          start={shownWeight ? undefined : placeholderLb > 0 ? toDisplay(placeholderLb) : undefined}
+          accent={theme.green.accentFill}
+          onChange={(value) => onField("w", value)}
           style={[styles.setInput, row.d ? styles.setInputDone : null, current ? styles.setInputNow : null]}
         />
       )}
@@ -1337,37 +1366,37 @@ function SetRow({
       {readOnly ? (
         <Text style={[styles.mono, styles.setValue]}>{shownReps}</Text>
       ) : (
-        <TextInput
+        <DialValue
+          label={copy.workout.reps}
           accessibilityLabel={setLabel}
           value={shownReps}
-          onChangeText={(value) => setReps(value.replace(/[^\d]/g, ""))}
-          onEndEditing={() => {
-            if (reps !== null) onField("r", reps);
-            setReps(null);
-          }}
-          keyboardType="number-pad"
           placeholder={placeholderReps}
-          placeholderTextColor={theme.muted}
+          spec={repsDial}
+          start={shownReps ? undefined : Number(placeholderReps) || undefined}
+          accent={theme.green.accentFill}
+          onChange={(value) => onField("r", value)}
           style={[styles.setInput, row.d ? styles.setInputDone : null, current ? styles.setInputNow : null]}
         />
       )}
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={setLabel}
-        accessibilityState={{ selected: !!row.d, disabled: readOnly }}
-        disabled={readOnly}
-        onPress={() =>
-          onCommit({
-            weight,
-            reps,
-            placeholderLb: done ? 0 : placeholderLb,
-            placeholderReps,
-          })
-        }
-        style={[styles.check, row.d ? styles.checkOn : null]}
-      >
-        <Text style={[styles.checkText, row.d ? styles.checkTextOn : null]}>✓</Text>
-      </Pressable>
+      <SetBounce on={!!row.d}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={setLabel}
+          accessibilityState={{ selected: !!row.d, disabled: readOnly }}
+          disabled={readOnly}
+          onPress={() =>
+            onCommit({
+              weight: null,
+              reps: null,
+              placeholderLb: done ? 0 : placeholderLb,
+              placeholderReps,
+            })
+          }
+          style={[styles.check, row.d ? styles.checkOn : null]}
+        >
+          <Text style={[styles.checkText, row.d ? styles.checkTextOn : null]}>✓</Text>
+        </Pressable>
+      </SetBounce>
     </View>
   );
 }
@@ -1387,11 +1416,9 @@ function PickerModal({
   onClose: () => void;
   onSelect: (value: string) => void;
 }) {
-  const reduceMotion = useReduceMotion();
   return (
-    <Modal visible={open} transparent animationType={reduceMotion ? "fade" : "slide"} onRequestClose={onClose}>
-      <Pressable accessibilityRole="button" accessibilityLabel={copy.close} style={styles.dim} onPress={onClose}>
-        <Pressable style={styles.pickerSheet} onPress={(event) => event.stopPropagation()}>
+    <SheetFrame visible={open} onClose={onClose}>
+        <View style={styles.pickerSheet}>
           <Text style={styles.section}>{title}</Text>
           <ScrollView style={styles.pickerList} keyboardShouldPersistTaps="handled">
             {groups.map((group) => (
@@ -1411,9 +1438,8 @@ function PickerModal({
               </View>
             ))}
           </ScrollView>
-        </Pressable>
-      </Pressable>
-    </Modal>
+        </View>
+    </SheetFrame>
   );
 }
 
@@ -1438,16 +1464,8 @@ const styles = StyleSheet.create({
     width: 18,
     height: 18,
     marginLeft: 6,
-    borderRadius: 9,
-    backgroundColor: "#2c3833",
     alignItems: "center",
     justifyContent: "center",
-  },
-  infoText: {
-    color: "#c9d3cf",
-    fontFamily: theme.fonts.monoMedium,
-    fontSize: 11,
-    lineHeight: 13,
   },
   feelRow: { flexDirection: "row", alignItems: "flex-start" },
   feelTrack: {
@@ -1704,8 +1722,10 @@ const styles = StyleSheet.create({
     borderRadius: theme.radii.pill,
     backgroundColor: "rgba(0,0,0,0.3)",
     paddingHorizontal: 14,
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    gap: 6,
   },
   swapPillText: { color: theme.text, fontFamily: theme.fonts.bodySemi, fontSize: 13 },
   doneActions: { flexDirection: "row", gap: 10, alignItems: "center" },
@@ -1739,7 +1759,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  checkMark: { color: theme.green.accent, fontSize: 28 },
   doneTitle: {
     color: theme.text,
     fontFamily: theme.fonts.display,
@@ -1756,7 +1775,6 @@ const styles = StyleSheet.create({
     borderTopColor: "rgba(168,160,156,0.25)",
   },
   summaryName: { flex: 1 },
-  dismiss: { color: theme.text, fontSize: 22 },
   iconHit: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   pickerSheet: {
     marginHorizontal: 12,

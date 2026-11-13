@@ -7,7 +7,6 @@ import {
   StyleSheet,
   type ScrollViewInstance,
   Text,
-  TextInput,
   useWindowDimensions,
   View,
 } from "react-native";
@@ -23,12 +22,13 @@ import Animated, {
   type SharedValue,
 } from "react-native-reanimated";
 
+import { useNotice } from "@/activity-log";
+import { avgWeightDial, DialValue, shareDial } from "@/components/number-dial";
 import {
   ChoicePills,
   ConfirmCard,
   DayPicker,
   Eyebrow,
-  Notice,
   StatusMark,
   ToggleRow,
   fieldLabelStyle,
@@ -38,11 +38,15 @@ import {
   planColors,
 } from "@/components/plan-widgets";
 import { copy, fill } from "@/copy";
+import { Edit } from "@/icons";
 import { takePlanView } from "@/links";
 import {
   fitPace,
   migratePace,
+  paceFromDial,
+  pacePercentLabel,
   readPlan,
+  weightForInput,
   weightForStore,
   type PlanPart,
   type PlanRead,
@@ -51,6 +55,7 @@ import {
 import { storage } from "@/storage";
 import { engine, useEngineStore } from "@/store";
 import { theme } from "@/theme";
+import { presentWeekReport } from "@/week-report";
 import { useReduceMotion } from "@/use-reduce-motion";
 
 const VIEW_KEY = "liftboard.v1.pv";
@@ -73,7 +78,7 @@ type Actions = {
   setFocus: (value: string) => void;
   commitShare: (text: string) => void;
   openRow: (row: PlanRow) => void;
-  show: (lines: string[], ms?: number) => void;
+  show: (lines: string[], pulse?: boolean) => void;
   undoFinish: () => void;
 };
 
@@ -87,12 +92,9 @@ export default function PlanScreen() {
   const model = useMemo(() => readPlan(), [version]);
   const { width } = useWindowDimensions();
   const [view, setView] = useState<ViewName>(savedView);
-  const [toast, setToast] = useState<string[] | null>(null);
   const [pendingSeason, setPendingSeason] = useState<"In-season" | "Off-season" | null>(null);
   const [pendingWeek, setPendingWeek] = useState(false);
   const [pendingFinish, setPendingFinish] = useState(false);
-  const [weekDone, setWeekDone] = useState<{ lifts: string; burn: string; weight: string } | null>(null);
-  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const weekScroll = useRef<ScrollViewInstance>(null);
   const progress = useSharedValue(view === "season" ? 1 : 0);
   const pageW = useSharedValue(width);
@@ -107,17 +109,9 @@ export default function PlanScreen() {
     if (migratePace()) engine.save();
   }, []);
 
-  useEffect(() => {
-    return () => {
-      if (toastTimer.current) clearTimeout(toastTimer.current);
-    };
-  }, []);
-
-  function show(lines: string[], ms = 4500) {
+  function show(lines: string[], pulse = true) {
     if (!lines.length) return;
-    setToast(lines);
-    if (toastTimer.current) clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToast(null), ms);
+    useNotice.getState().show(lines, { pulse, variant: "plan" });
   }
 
   function commit(mutate: () => void) {
@@ -178,7 +172,7 @@ export default function PlanScreen() {
       const on = current.includes(index);
       const next = on ? current.filter((day) => day !== index) : [...current, index].sort((a, b) => a - b);
       if (!on && engine.inSeason() && next.length > 3) {
-        show([copy.plan.inSeason, copy.plan.liftDayCap]);
+        show([copy.plan.inSeason, copy.plan.liftDayCap], false);
         return;
       }
       commitToast(() => {
@@ -209,7 +203,7 @@ export default function PlanScreen() {
         commit(() => {
           engine.wk.ramp = value;
         });
-        show([copy.plan.preSeasonRamp, copy.plan.zone2Added], 6000);
+        show([copy.plan.preSeasonRamp, copy.plan.zone2Added]);
         return;
       }
       commitToast(() => {
@@ -229,9 +223,10 @@ export default function PlanScreen() {
       });
     },
     setPace(value) {
-      if (String(engine.wk.ratePct) === value) return;
+      const next = paceFromDial(value);
+      if (next == null) return;
       commitToast(() => {
-        engine.wk.ratePct = value;
+        engine.wk.ratePct = next;
       });
     },
     setFocus(value) {
@@ -355,7 +350,6 @@ export default function PlanScreen() {
           </Animated.View>
         </View>
       )}
-      {toast ? <Notice lines={toast} onDismiss={() => setToast(null)} /> : null}
       {pendingSeason ? (
         <ConfirmCard
           title={fill(copy.plan.switchTo, [pendingSeason.toLowerCase()])}
@@ -391,33 +385,7 @@ export default function PlanScreen() {
           onConfirm={() => {
             setPendingFinish(false);
             const summary = engine.finishWeek();
-            const weeks = (engine.wk.weeks || []) as { w?: number }[];
-            const latest = weeks[weeks.length - 1];
-            const previous = weeks[weeks.length - 2];
-            const delta = latest?.w && previous?.w ? latest.w - previous.w : null;
-            const weight =
-              delta == null
-                ? latest?.w
-                  ? String(latest.w)
-                  : "–"
-                : `${delta > 0 ? "+" : delta < 0 ? "−" : ""}${Math.abs(delta).toFixed(1)}`;
-            setWeekDone({
-              lifts: `${summary.lifts}/${summary.planned}`,
-              burn: Number(summary.cardio).toLocaleString("en-US"),
-              weight,
-            });
-          }}
-        />
-      ) : null}
-      {weekDone ? (
-        <ConfirmCard
-          title={copy.plan.weekDone}
-          body={`${copy.you.lifts} ${weekDone.lifts}\n${copy.plan.extraBurn} ${weekDone.burn}\n${copy.you.weight} ${weekDone.weight}`}
-          confirm={copy.plan.seeThisWeek}
-          onCancel={() => setWeekDone(null)}
-          onConfirm={() => {
-            setWeekDone(null);
-            setView("week");
+            presentWeekReport(summary);
           }}
         />
       ) : null}
@@ -521,13 +489,7 @@ function WeekPane({
   onStartWeek: () => void;
   onFinishWeek: () => void;
 }) {
-  const [weight, setWeight] = useState(model.form.weight);
-  const focused = useRef(false);
   const saving = useRef(false);
-
-  useEffect(() => {
-    if (!focused.current) setWeight(model.form.weight);
-  }, [model.form.weight]);
 
   return (
     <ScrollView
@@ -613,22 +575,20 @@ function WeekPane({
           </Field>
           <View style={styles.field}>
             <Text style={fieldLabelStyle()}>{copy.plan.avgWeight}</Text>
-            <TextInput
-              value={weight}
-              onChangeText={setWeight}
-              onFocus={() => {
-                focused.current = true;
-              }}
-              onEndEditing={(event) => {
-                focused.current = false;
-                if (saving.current) return;
-                actions.commitWeight(event.nativeEvent.text);
-              }}
+            <DialValue
+              label={copy.plan.avgWeight}
+              value={model.form.weight}
               placeholder={copy.plan.optional}
-              placeholderTextColor={theme.muted}
-              keyboardType="decimal-pad"
-              inputMode="decimal"
-              accessibilityLabel={copy.plan.avgWeight}
+              spec={avgWeightDial(engine.wk.units === "kg")}
+              start={
+                model.form.weight.trim()
+                  ? undefined
+                  : Number(weightForInput(String(engine.wk.weight ?? ""))) || undefined
+              }
+              onChange={(text) => {
+                if (saving.current) return;
+                actions.commitWeight(text);
+              }}
               style={styles.input}
             />
           </View>
@@ -636,7 +596,7 @@ function WeekPane({
             accessibilityRole="button"
             onPress={() => {
               saving.current = true;
-              actions.saveCheckIn(weight);
+              actions.saveCheckIn(model.form.weight);
               saving.current = false;
             }}
             style={({ pressed }) => [styles.save, pressed && styles.pressed]}
@@ -694,10 +654,7 @@ function WeekPane({
             hitSlop={4}
             style={styles.pencil}
           >
-            <View style={styles.pencilIcon}>
-              <View style={styles.pencilBody} />
-              <View style={styles.pencilTip} />
-            </View>
+            <Edit size={18} color={theme.orange.accent} />
           </Pressable>
         </View>
       ) : null}
@@ -756,15 +713,9 @@ function SeasonPane({
   actions: Actions;
   reduceMotion: boolean;
 }) {
-  const [share, setShare] = useState(model.form.share);
   const [goalsOpen, setGoalsOpen] = useState(false);
-  const focused = useRef(false);
   const [hot, setHot] = useState<Record<string, boolean>>({});
   const previous = useRef<Record<string, string> | null>(null);
-
-  useEffect(() => {
-    if (!focused.current) setShare(model.form.share);
-  }, [model.form.share]);
 
   useEffect(() => {
     const now: Record<string, string> = {};
@@ -845,36 +796,39 @@ function SeasonPane({
               </Text>
             ))
           : null}
-        {model.lossGoal ? (
+        {model.pace ? (
           <Field label={copy.plan.pace}>
-            <ChoicePills
-              label={copy.plan.pace}
-              layout="wrap"
-              tone="peach"
-              numeric
-              value={model.form.ratePct}
-              onChange={actions.setPace}
-              options={model.paces}
-            />
+            <View style={styles.paceRow}>
+              <DialValue
+                label={copy.plan.pace}
+                accessibilityLabel={`${model.pace.shown} ${model.pace.unit}`}
+                value={model.pace.shown}
+                spec={{
+                  min: model.pace.min,
+                  max: model.pace.max,
+                  step: model.pace.step,
+                  unit: model.pace.unit,
+                }}
+                detail={(shown) => <PaceCaption percent={pacePercentLabel(shown)} center />}
+                onChange={actions.setPace}
+                style={[styles.input, styles.shareInput]}
+                textStyle={styles.shareText}
+              />
+              <Text style={styles.paceUnit}>{model.pace.unit}</Text>
+            </View>
+            <PaceCaption percent={model.pace.percent} />
           </Field>
         ) : null}
         {model.lossGoal ? (
           <View style={styles.field}>
             <Text style={fieldLabelStyle()}>{copy.plan.fromCardio}</Text>
-            <TextInput
-              value={share}
-              onChangeText={setShare}
-              onFocus={() => {
-                focused.current = true;
-              }}
-              onEndEditing={(event) => {
-                focused.current = false;
-                actions.commitShare(event.nativeEvent.text);
-              }}
-              keyboardType="number-pad"
-              inputMode="numeric"
-              accessibilityLabel={copy.plan.fromCardio}
+            <DialValue
+              label={copy.plan.fromCardio}
+              value={model.form.share}
+              spec={shareDial}
+              onChange={(text) => actions.commitShare(text)}
               style={[styles.input, styles.shareInput]}
+              textStyle={styles.shareText}
             />
           </View>
         ) : null}
@@ -1086,6 +1040,20 @@ function RowBody({ row }: { row: PlanRow }) {
   );
 }
 
+function PaceCaption({ percent, center }: { percent: string; center?: boolean }) {
+  const text = fill(copy.plan.paceOfWeight, [percent]);
+  const mark = `${percent}%`;
+  const at = text.indexOf(mark);
+  if (!percent || at < 0) return <Text style={[styles.paceNote, center && styles.paceCenter]}>{text}</Text>;
+  return (
+    <Text style={[styles.paceNote, center && styles.paceCenter]}>
+      {text.slice(0, at)}
+      <Text style={styles.paceNum}>{mark}</Text>
+      {text.slice(at + mark.length)}
+    </Text>
+  );
+}
+
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <View style={styles.field}>
@@ -1154,7 +1122,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     paddingHorizontal: 12,
   },
-  shareInput: { alignSelf: "flex-start", minWidth: 120, textAlign: "center" },
+  shareInput: { alignSelf: "flex-start", minWidth: 120 },
+  shareText: { textAlign: "center" },
+  paceRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  paceUnit: { color: theme.muted, fontFamily: theme.fonts.body, fontSize: 13 },
+  paceNote: { color: theme.muted, fontFamily: theme.fonts.body, fontSize: 12 },
+  paceNum: { color: theme.muted, fontFamily: theme.fonts.mono, fontSize: 12 },
+  paceCenter: { textAlign: "center" },
   save: {
     minHeight: 52,
     borderRadius: 14,
@@ -1282,30 +1256,6 @@ const styles = StyleSheet.create({
   checkText: { flex: 1, color: theme.muted, fontFamily: theme.fonts.body, fontSize: 13, lineHeight: 18 },
   checkStrong: { color: theme.text, fontFamily: theme.fonts.bodySemi },
   pencil: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
-  pencilIcon: { width: 16, height: 16, transform: [{ rotate: "-40deg" }] },
-  pencilBody: {
-    position: "absolute",
-    left: 3,
-    top: 1,
-    width: 8,
-    height: 11,
-    borderWidth: 1.6,
-    borderColor: theme.orange.accent,
-    borderRadius: 1,
-  },
-  pencilTip: {
-    position: "absolute",
-    left: 4.5,
-    bottom: 0,
-    width: 0,
-    height: 0,
-    borderLeftWidth: 3.5,
-    borderRightWidth: 3.5,
-    borderTopWidth: 4,
-    borderLeftColor: "transparent",
-    borderRightColor: "transparent",
-    borderTopColor: theme.orange.accent,
-  },
   sentence: { color: planColors.sentence, fontFamily: theme.fonts.body, fontSize: 17, lineHeight: 27 },
   planCard: { overflow: "hidden" },
   shineClip: { position: "absolute", top: 0, right: 0, bottom: 0, left: 0, overflow: "hidden" },

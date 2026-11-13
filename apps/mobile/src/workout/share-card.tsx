@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { captureRef } from "react-native-view-shot";
 
 import { copy, fill } from "@/copy";
+import { Share } from "@/icons";
 import { engine } from "@/store";
 import { theme } from "@/theme";
 import { toDisplay } from "@/units";
@@ -150,6 +151,7 @@ export function ShareWorkoutButton({
         onPress={() => void share()}
         style={[styles.button, wide ? styles.wide : null, busy ? styles.busy : null]}
       >
+        <Share size={16} color={theme.text} />
         <Text style={styles.buttonText}>{label}</Text>
       </Pressable>
     </>

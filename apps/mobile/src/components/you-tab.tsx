@@ -3,7 +3,6 @@ import { File, Paths } from "expo-file-system";
 import {
   AccessibilityInfo,
   KeyboardAvoidingView,
-  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -17,14 +16,17 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { applyBackup, parseBackup, type LiftBackup } from "@/backup";
-import { ageDial, bodyFatDial, DialValue, heightDial, stepsDial, weightDial } from "@/components/number-dial";
+import { playChime } from "@/chime";
+import { SheetFrame } from "@/components/motion";
+import { ageDial, bodyFatDial, DialValue, heightDial, stepsDial, weightDial, type DialSpec } from "@/components/number-dial";
 import { copy, fill } from "@/copy";
+import { haptic } from "@/haptic";
+import { Info } from "@/icons";
 import { storage } from "@/storage";
 import { engine, useEngineStore } from "@/store";
 import { rollWeekIfDue } from "@/week-roll";
 import { theme } from "@/theme";
 import { fromDisplay, toDisplay } from "@/units";
-import { useReduceMotion } from "@/use-reduce-motion";
 const SESSION_MINUTES = [30, 45, 60, 75] as const;
 const LEVELS = ["new", "some", "years"] as const;
 const FOCUS = ["Lower", "Balanced", "Upper"] as const;
@@ -222,136 +224,6 @@ function profileTiles(kgMode: boolean, summaryOnly = false): Tile[] {
   return tiles;
 }
 
-type ChimeContext = {
-  state?: string;
-  resume?: () => Promise<void>;
-  currentTime: number;
-  destination: unknown;
-  createOscillator: () => {
-    type: string;
-    frequency: { value: number };
-    connect: (node: unknown) => void;
-    start: (when: number) => void;
-    stop: (when: number) => void;
-  };
-  createGain: () => {
-    gain: {
-      setValueAtTime: (value: number, time: number) => void;
-      exponentialRampToValueAtTime: (value: number, time: number) => void;
-    };
-    connect: (node: unknown) => void;
-  };
-};
-
-type ChimePlayer = { play(): void; remove(): void };
-
-let chimePlayer: ChimePlayer | null = null;
-
-function chimeWav(): Uint8Array {
-  const rate = 22050;
-  const total = Math.ceil(rate * 0.97);
-  const pcm = new Int16Array(total);
-  (
-    [
-      [784, 0],
-      [1047, 0.16],
-      [1319, 0.32],
-    ] as const
-  ).forEach(([frequency, delay]) => {
-    const start = Math.floor(delay * rate);
-    const length = Math.floor(0.65 * rate);
-    for (let i = 0; i < length; i++) {
-      const t = i / rate;
-      const gain =
-        t < 0.02 ? 0.0001 * Math.pow(4000, t / 0.02) : t < 0.6 ? 0.4 * Math.pow(0.00025, (t - 0.02) / 0.58) : 0.0001;
-      const at = start + i;
-      if (at >= total) break;
-      const mixed = pcm[at] / 32767 + Math.sin(2 * Math.PI * frequency * t) * gain * 0.7;
-      pcm[at] = Math.max(-1, Math.min(1, mixed)) * 32767;
-    }
-  });
-  const bytes = new Uint8Array(44 + pcm.length * 2);
-  const view = new DataView(bytes.buffer);
-  const writeText = (offset: number, text: string) => {
-    for (let i = 0; i < text.length; i++) bytes[offset + i] = text.charCodeAt(i);
-  };
-  writeText(0, "RIFF");
-  view.setUint32(4, 36 + pcm.length * 2, true);
-  writeText(8, "WAVE");
-  writeText(12, "fmt ");
-  view.setUint32(16, 16, true);
-  view.setUint16(20, 1, true);
-  view.setUint16(22, 1, true);
-  view.setUint32(24, rate, true);
-  view.setUint32(28, rate * 2, true);
-  view.setUint16(32, 2, true);
-  view.setUint16(34, 16, true);
-  writeText(36, "data");
-  view.setUint32(40, pcm.length * 2, true);
-  for (let i = 0; i < pcm.length; i++) view.setInt16(44 + i * 2, pcm[i], true);
-  return bytes;
-}
-
-function playWebChime(Context: new () => ChimeContext) {
-  const host = globalThis as { navigator?: { audioSession?: { type: string } } };
-  try {
-    const session = host.navigator?.audioSession;
-    if (session && session.type !== "ambient") session.type = "ambient";
-  } catch {
-    // The playback session is an iOS web extra. The tones still play without it.
-  }
-  const audio = new Context();
-  void audio.resume?.();
-  const start = audio.currentTime;
-  (
-    [
-      [784, 0],
-      [1047, 0.16],
-      [1319, 0.32],
-    ] as const
-  ).forEach(([frequency, delay]) => {
-    const tone = audio.createOscillator();
-    const gain = audio.createGain();
-    tone.type = "sine";
-    tone.frequency.value = frequency;
-    gain.gain.setValueAtTime(0.0001, start + delay);
-    gain.gain.exponentialRampToValueAtTime(0.4, start + delay + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.0001, start + delay + 0.6);
-    tone.connect(gain);
-    gain.connect(audio.destination);
-    tone.start(start + delay);
-    tone.stop(start + delay + 0.65);
-  });
-}
-
-async function playNativeChime() {
-  const { createAudioPlayer, setAudioModeAsync } = await import("expo-audio");
-  await setAudioModeAsync({ playsInSilentMode: true, interruptionMode: "mixWithOthers" });
-  const file = new File(Paths.cache, "liftboard-chime.wav");
-  if (!file.exists) {
-    file.create();
-    await file.write(chimeWav());
-  }
-  chimePlayer?.remove();
-  chimePlayer = createAudioPlayer(file.uri);
-  chimePlayer.play();
-}
-
-function playTestChime() {
-  const host = globalThis as {
-    AudioContext?: new () => ChimeContext;
-    webkitAudioContext?: new () => ChimeContext;
-  };
-  const Context = host.AudioContext || host.webkitAudioContext;
-  if (Context) {
-    playWebChime(Context);
-    return;
-  }
-  void playNativeChime().catch(() => {
-    // A dev build from before expo-audio has no player. The next native build includes it.
-  });
-}
-
 type WebLink = { href: string; download: string; click(): void };
 
 /** Same three-key file the web backup writes, so a later import can read it. */
@@ -436,7 +308,6 @@ export function YouTab({ onReplay }: { onReplay: () => void }) {
   "use no memo";
   useEngineStore((state) => state.version);
   const call = useEngineStore((state) => state.call);
-  const reduceMotion = useReduceMotion();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [liftText, setLiftText] = useState<string | null>(null);
@@ -731,7 +602,7 @@ export function YouTab({ onReplay }: { onReplay: () => void }) {
               onPress={() => stage({ sound: form.sound === "Yes" ? "No" : "Yes" })}
             />
             {form.sound === "Yes" ? (
-              <Pressable accessibilityRole="button" onPress={playTestChime} style={styles.testSound}>
+              <Pressable accessibilityRole="button" onPress={playChime} style={styles.testSound}>
                 <Text style={styles.secondaryText}>{copy.you.playTestSound}</Text>
               </Pressable>
             ) : null}
@@ -872,27 +743,15 @@ export function YouTab({ onReplay }: { onReplay: () => void }) {
       ) : null}
       </KeyboardAvoidingView>
 
-      <Modal
+      <SheetFrame
         visible={info != null || confirm != null}
-        transparent
-        animationType={reduceMotion ? "none" : "fade"}
-        onRequestClose={() => {
+        label={copy.you.close}
+        onClose={() => {
           setInfo(null);
           setConfirm(null);
           setPending(null);
         }}
       >
-        <View style={styles.backdrop}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={copy.you.close}
-            onPress={() => {
-              setInfo(null);
-              setConfirm(null);
-              setPending(null);
-            }}
-            style={styles.backdropFill}
-          />
           <View style={styles.sheet}>
             {confirm ? (
               <>
@@ -922,7 +781,11 @@ export function YouTab({ onReplay }: { onReplay: () => void }) {
                   </Pressable>
                   <Pressable
                     accessibilityRole="button"
-                    onPress={confirm === "restore" ? restoreFromBackup : eraseOnThisPhone}
+                    onPress={() => {
+                      if (confirm !== "restore") haptic.warning();
+                      if (confirm === "restore") restoreFromBackup();
+                      else eraseOnThisPhone();
+                    }}
                     style={confirm === "restore" ? styles.restore : styles.danger}
                   >
                     <Text style={styles.dangerText}>
@@ -949,8 +812,7 @@ export function YouTab({ onReplay }: { onReplay: () => void }) {
               </>
             )}
           </View>
-        </View>
-      </Modal>
+      </SheetFrame>
     </SafeAreaView>
   );
 }
@@ -993,9 +855,7 @@ function Heading({ title, onInfo }: { title: string; onInfo: () => void }) {
         hitSlop={4}
         style={styles.infoButton}
       >
-        <View style={styles.infoDot}>
-          <Text style={styles.infoGlyph}>i</Text>
-        </View>
+        <Info size={16} color="#d4cfcc" />
       </Pressable>
     </View>
   );
@@ -1019,7 +879,10 @@ function ExperienceSlider({ value, onChange }: { value: string; onChange: (level
               accessibilityRole={"radio" as AccessibilityRole}
               accessibilityState={{ selected }}
               accessibilityLabel={label}
-              onPress={() => onChange(level)}
+              onPress={() => {
+                if (level !== value) haptic.selection();
+                onChange(level);
+              }}
               style={styles.stop}
             >
               <View style={styles.knobHit}>
@@ -1041,7 +904,10 @@ function Toggle({ label, on, onPress }: { label: string; on: boolean; onPress: (
       accessibilityLabel={label}
       accessibilityState={{ checked: on }}
       aria-checked={on}
-      onPress={onPress}
+      onPress={() => {
+        haptic.selection();
+        onPress();
+      }}
       style={styles.row}
     >
       <Text style={styles.rowLabel}>{label}</Text>
@@ -1080,7 +946,10 @@ function TwoWay({
               accessibilityRole={"radio" as AccessibilityRole}
               accessibilityState={{ selected }}
               accessibilityLabel={text}
-              onPress={() => onChange(option)}
+              onPress={() => {
+                if (option !== value) haptic.selection();
+                onChange(option);
+              }}
               style={[styles.segment, selected && styles.segmentOn]}
             >
               <Text style={[styles.segmentText, selected && styles.segmentTextOn]}>{text}</Text>
@@ -1223,12 +1092,18 @@ function ProfileForm({
             dial={bodyFatDial}
             onChange={(bf) => onStage({ bf })}
           />
-          <Field label={copy.you.stepsPerDay} value={form.steps} dial={stepsDial} onChange={(steps) => onStage({ steps })} />
+          <Field
+            label={copy.you.stepsPerDay}
+            value={form.steps}
+            dial={stepsDial}
+            start={form.steps.trim() ? undefined : Number(copy.onboarding.stepsExample.replace(/[^\d]/g, "")) || undefined}
+            onChange={(steps) => onStage({ steps })}
+          />
           <Field
             label={copy.you.dailyBurn}
             value={form.oura}
             placeholder={copy.onboarding.optional}
-            numeric
+            keyboard="number-pad"
             onChange={(oura) => onStage({ oura })}
           />
         </View>
@@ -1255,7 +1130,10 @@ function Pill({
       accessibilityRole="button"
       accessibilityState={{ selected }}
       accessibilityLabel={badge ? `${label}, ${badge}` : label}
-      onPress={onPress}
+      onPress={() => {
+        haptic.selection();
+        onPress();
+      }}
       style={[styles.pill, selected && (tone === "pink" ? styles.pillPink : styles.pillGreen)]}
     >
       <Text style={[styles.pillText, selected && (tone === "pink" ? styles.pillTextPink : styles.pillTextGreen)]}>
@@ -1271,19 +1149,23 @@ function Field({
   value,
   placeholder,
   dial,
+  start,
+  keyboard,
   onChange,
 }: {
   label: string;
   value: string;
   placeholder?: string;
   dial?: DialSpec;
+  start?: number;
+  keyboard?: "number-pad" | "decimal-pad";
   onChange: (value: string) => void;
 }) {
   return (
     <View style={styles.field}>
       <Text style={styles.fieldLabel}>{label}</Text>
       {dial ? (
-        <DialValue label={label} value={value} placeholder={placeholder} spec={dial} onChange={onChange} style={styles.input} textStyle={styles.inputMono} />
+        <DialValue label={label} value={value} placeholder={placeholder} spec={dial} start={start} onChange={onChange} style={styles.input} textStyle={styles.inputMono} />
       ) : (
         <TextInput
           accessibilityLabel={label}
@@ -1291,7 +1173,9 @@ function Field({
           placeholder={placeholder}
           placeholderTextColor={theme.muted}
           onChangeText={onChange}
-          style={styles.input}
+          keyboardType={keyboard}
+          inputMode={keyboard === "decimal-pad" ? "decimal" : keyboard === "number-pad" ? "numeric" : "text"}
+          style={[styles.input, keyboard ? styles.inputMono : null]}
         />
       )}
     </View>
@@ -1374,15 +1258,6 @@ const styles = StyleSheet.create({
   },
   heading: { flexDirection: "row", alignItems: "center" },
   infoButton: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
-  infoDot: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: "#393330",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  infoGlyph: { fontFamily: theme.fonts.monoMedium, fontSize: 11, color: "#d4cfcc" },
   secondary: {
     minHeight: 44,
     borderRadius: theme.radii.tile,

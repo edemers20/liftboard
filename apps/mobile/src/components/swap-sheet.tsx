@@ -1,9 +1,13 @@
 import { router } from "expo-router";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useNotice } from "@/activity-log";
+import { useEnterMotion } from "@/components/motion";
 import { copy, fill } from "@/copy";
+import { haptic } from "@/haptic";
+import { Close } from "@/icons";
 import { engine, useEngineStore } from "@/store";
 import { theme } from "@/theme";
 
@@ -53,6 +57,7 @@ export function SwapSheet({
   onWorkout?: (nextId: string) => void;
 }) {
   const insets = useSafeAreaInsets();
+  const { dimStyle, sheetStyle } = useEnterMotion(!!id);
   const { width: screenW, height: screenH } = useWindowDimensions();
   useEngineStore((state) => state.version);
   const choices = id ? swapChoices(id) : { family: [], others: [] };
@@ -72,12 +77,14 @@ export function SwapSheet({
     if (!id) return;
     onClose();
     if (!engine.swapDay(id, nextId)) return;
+    haptic.medium();
     if (onWorkout) onWorkout(nextId);
   }
 
   function pickPlanned(nextId: string) {
     if (!id) return;
     onClose();
+    haptic.medium();
     engine.moveLiftToToday(nextId);
     const title = (engine.DAYS as Day[]).find((day) => day.id === nextId)?.title || copy.workouts.lift;
     useNotice.getState().show([fill(copy.workouts.moved, title)]);
@@ -85,10 +92,11 @@ export function SwapSheet({
   }
 
   return (
-    <Modal visible={!!id} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
+    <Modal visible={!!id} transparent animationType="none" statusBarTranslucent onRequestClose={onClose}>
       <View style={styles.dim}>
+        <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.dimColor, dimStyle]} />
         <Pressable accessibilityRole="button" accessibilityLabel={copy.close} style={StyleSheet.absoluteFill} onPress={onClose} />
-        <View style={[styles.sheet, place]}>
+        <Animated.View style={[styles.sheet, place, sheetStyle]}>
           <ScrollView keyboardShouldPersistTaps="handled" bounces={false} contentContainerStyle={styles.sheetBody}>
             <View style={styles.top}>
               <Text accessibilityRole="header" style={styles.title}>
@@ -101,7 +109,7 @@ export function SwapSheet({
                 onPress={onClose}
                 style={styles.close}
               >
-                <Text style={styles.closeText}>×</Text>
+                <Close />
               </Pressable>
             </View>
             <Text style={styles.body}>{copy.workouts.swapBody}</Text>
@@ -128,7 +136,7 @@ export function SwapSheet({
               </View>
             ) : null}
           </ScrollView>
-        </View>
+        </Animated.View>
       </View>
     </Modal>
   );
@@ -140,7 +148,8 @@ export function openSwappedWorkout(nextId: string) {
 }
 
 const styles = StyleSheet.create({
-  dim: { flex: 1, backgroundColor: "rgba(0,0,0,0.75)" },
+  dim: { flex: 1 },
+  dimColor: { backgroundColor: "rgba(0,0,0,0.75)" },
   sheet: {
     position: "absolute",
     borderRadius: theme.radii.card,
@@ -150,8 +159,7 @@ const styles = StyleSheet.create({
   sheetBody: { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 14, gap: 6 },
   top: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
   title: { flex: 1, color: theme.text, fontFamily: theme.fonts.bodySemi, fontSize: 20, lineHeight: 24 },
-  close: { width: 28, height: 28, alignItems: "center", justifyContent: "center" },
-  closeText: { color: theme.text, fontSize: 22, lineHeight: 24 },
+  close: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   body: { color: theme.muted, fontFamily: theme.fonts.body, fontSize: 14, lineHeight: 18 },
   section: { gap: 6 },
   label: {

@@ -658,7 +658,7 @@ function review(d,s,i,P){
   const bw=isBW(exName(d,s,i)), st=get(d.id,i), log=(st.log||[]).map(x=>({w:num(x.w,0),r:num(x.r,0)})).filter(x=>(bw||x.w>0)&&x.r>0);
   if(!log.length) return null;
   const base=suggest(d,s,i,true,P); if(!base) return null;
-  if(bw){ const L0=log[log.length-1]; return {n:exName(d,s,i),w:base.w,why:base.why,tag:base.bwUp||base.w>L0.w?"up":"hold",bw:1}; }
+  if(bw){ const L0=log[log.length-1]; return {n:exName(d,s,i),w:base.w,r:base.r,why:base.why,tag:base.bwUp||base.w>L0.w?"up":"hold",bw:1}; }
   const n=exName(d,s,i), last=log[log.length-1], first=log[0], A=P.days[d.id].slots[i], D=P.days[d.id];
   const [lo,hi]=range(s.reps), top=isIso(s)?hi+3:hi;
   let {w,why}=base, tag="";
@@ -668,7 +668,7 @@ function review(d,s,i,P){
   else if(last.r<lo&&base.why.startsWith("hold")){ why="hold"; }
   if(log.length<(A.sets||0)) why+=` · ${log.length}/${A.sets} sets`;
   tag=tag||(w>last.w?"up":w<last.w?"down":"hold");
-  return {n,w,why,tag};
+  return {n,w,r:base.r,why,tag};
 }
 const TAGTXT={up:"Up",down:"Down",hold:"Held",collapse:"Fatigue"};
 function fx(P){
@@ -742,7 +742,7 @@ function daySummary(dayId){ const d=DAYS.find(x=>x.id===dayId); if(!d) return []
   return slotOrder(d).map(i=>{ const s=d.slots[i]; if(s.cardio){ const st=get(dayId,i); return st.cdone||num(st.act,0)>0?{n:exName(d,s,i),cardio:1,min:num(st.act,0)}:null; }
     const log=(get(dayId,i).log||[]).map(x=>({w:num(x.w,0),r:num(x.r,0),d:x.d})).filter(x=>x.d&&x.r>0); if(!log.length) return null;
     const top=log.reduce((a,x)=>x.w>a.w||(x.w===a.w&&x.r>a.r)?x:a); return {n:exName(d,s,i),w:top.w,r:top.r,sets:log.length,extra:!!s.extra}; }).filter(Boolean); }
-function stampNotes(items,t){ wk.next={...(wk.next||{})}; items.forEach(r=>{ wk.next[r.n]={w:r.w,why:r.why,tag:r.tag,t,...(r.bw?{bw:1}:{})}; }); }
+function stampNotes(items,t){ wk.next={...(wk.next||{})}; items.forEach(r=>{ wk.next[r.n]={w:r.w,why:r.why,tag:r.tag,t,...(r.r!=null?{r:r.r}:{}),...(r.bw?{bw:1}:{})}; }); }
 /** Mark a day done: logs history, detects fatigue, stores the next-time review. Returns toast lines. */
 function markDone(dayId){
   wk.done=wk.done||{};
@@ -798,8 +798,13 @@ function newWeek(start){
   const missed=DAYS.filter(d=>!done[d.id]);
   let sm=0; SPORTS.forEach(a=>{ if(ACT[a].noMin) return; for(let i=0;i<cnt(a);i++) sm+=num((wk[actKey(a)]||[])[i],plannedMin(a)); });
   const w=num(wk.wAvg,0)||null;
-  wk.weeks=(wk.weeks||[]).concat([{start:wk.weekStart||Date.now(),season:inSeason()?"In-season":"Off-season",focus:wk.focus,mode:wk.mode,ramp:hasSport()&&!inSeason()&&wk.ramp==="Yes",deload:wk.deload==="Yes",
-    lifts:DAYS.length-missed.length,planned:DAYS.length,fast:!!P.math.fast,sport:sm,cardio:r5(P.math.cardioTotal),w,intake:r5(P.math.intake),raw:r5(P.math.raw)}]).slice(-52);
+  const closed=wk.weekStart||Date.now();
+  const nextDay=missed.length&&missed.length<DAYS.length?missed[0]:(DAYS[0]||null);
+  const record={start:closed,season:inSeason()?"In-season":"Off-season",focus:wk.focus,mode:wk.mode,ramp:hasSport()&&!inSeason()&&wk.ramp==="Yes",deload:wk.deload==="Yes",
+    lifts:DAYS.length-missed.length,planned:DAYS.length,fast:!!P.math.fast,sport:sm,cardio:r5(P.math.cardioTotal),w,intake:r5(P.math.intake),raw:r5(P.math.raw),
+    miss:missed.map(d=>d.title),muscles:muscleReport(P.ledger),sets:setsLogged(),prs:prsForClose(weekStartOf(closed).getTime()),ups:goingUp(),
+    nextTitle:nextDay?nextDay.title:""};
+  wk.weeks=(wk.weeks||[]).concat([record]).slice(-52);
   if(missed.length&&missed.length<DAYS.length){
     const names=missed.map(d=>d.tab).join(" and ");
     wk.upNext=missed[0].id; wk.missedNote={why:`${names} didn't fit last week`,txt:`start with ${missed[0].tab}, then continue in order`};
@@ -810,6 +815,7 @@ function newWeek(start){
     const avgIn=ws.reduce((a,x)=>a+x.intake,0)/ws.length, avgRaw=ws.reduce((a,x)=>a+x.raw,0)/ws.length;
     wk.calib=Math.max(-400,Math.min(400,r5(avgIn-slope*500-avgRaw))); wk.calibN=ws.length; }
   const begin=start||Date.now();
+  record.nextStart=begin;
   const rule=chosenWeekRule();
   const kept=weekRules().filter(item=>item.t<begin);
   if(weekRuleAt(begin-1)!==rule) kept.push({t:DAY0(begin).getTime(),rule});
@@ -823,6 +829,7 @@ function newWeek(start){
   Object.keys(wk.extra||{}).forEach(id=>{ const b=tplLen(id), st=slots[id]; if(st) Object.keys(st).forEach(i=>{ if(+i>=b) delete st[i]; }); });
   wk.extra={}; syncDays();
   wk.doneT={};
+  wk.reportPending=record.start;
   save(); return ["New week started. Check-in reset to normal."];
 }
 
@@ -1031,6 +1038,140 @@ function offerNudge(dayId, i){
   if(r0<lo) return {dir:"down",reps:r0,weight:Math.max(0,w0-inc)};
   return null;
 }
+/** Est. 1RM from a top set. Epley, rounded. Bodyweight work has none; callers skip it. */
+function e1rm(w, r){ return Math.round(num(w, 0) * (1 + num(r, 0) / 30)); }
+/** One top set per calendar week, oldest first. A PR is a heavier top set, or more reps at that same weight. A higher estimate alone is not. */
+function weekTops(name){
+  const by=new Map();
+  (exHist[name]||[]).forEach(x=>{ if(!x||!x.t) return; const start=weekStartOf(x.t).getTime();
+    const row={w:num(x.w,0),r:num(x.r,0),t:x.t}, cur=by.get(start);
+    if(!cur||row.w>cur.w||(row.w===cur.w&&row.r>cur.r)) by.set(start, row); });
+  const bw=isBW(name); let bestW=-Infinity, bestR=-Infinity;
+  return [...by.entries()].sort((a,b)=>a[0]-b[0]).map(([start, row])=>{
+    let pr="", wasW=null, wasR=null;
+    if(!bw&&bestW!==-Infinity){
+      if(row.w>bestW) pr="top";
+      else if(row.w===bestW&&row.r>bestR) pr="reps";
+      if(pr){ wasW=bestW; wasR=bestR; }
+    }
+    if(bestW===-Infinity||row.w>bestW){ bestW=row.w; bestR=row.r; }
+    else if(row.w===bestW&&row.r>bestR) bestR=row.r;
+    return {start, w:row.w, r:row.r, t:row.t, e1:bw||!(row.w>0)?null:e1rm(row.w, row.r), pr:bw?"":pr, wasW, wasR};
+  });
+}
+/** Weighted lifts only, most recently trained first. Each row is the last 8 weeks. */
+function liftTrends(){
+  return Object.keys(exHist).filter(name=>!isBW(name)&&(exHist[name]||[]).some(x=>num(x.w,0)>0)).map(name=>{
+    const rows=weekTops(name).filter(row=>row.e1!=null).slice(-8);
+    const last=rows[rows.length-1];
+    return {name, rows, lastT:last?last.t:0};
+  }).filter(row=>row.rows.length).sort((a,b)=>b.lastT-a.lastT||a.name.localeCompare(b.name));
+}
+/** PRs across weighted lifts, newest first. */
+function recentPrs(){
+  const out=[];
+  Object.keys(exHist).forEach(name=>{ if(isBW(name)) return; weekTops(name).forEach(row=>{ if(row.pr) out.push({kind:row.pr, name, w:row.w, r:row.r, t:row.t, e1:row.e1}); }); });
+  return out.sort((a,b)=>b.t-a.t||a.name.localeCompare(b.name));
+}
+/** Every planned lift was done, or the week was counted by hand. */
+function weekCompleted(week){
+  if(!week) return false;
+  if(week.counted) return true;
+  const planned=num(week.planned,0);
+  return planned>0 && num(week.lifts,0)>=planned;
+}
+/** Completed or counted weeks in a row, ending at the last closed week. The open week is not included. */
+function weekStreak(){
+  const weeks=(wk.weeks||[]).slice().sort((a,b)=>num(a.start,0)-num(b.start,0));
+  let n=0;
+  for(let i=weeks.length-1;i>=0;i--){ if(weekCompleted(weeks[i])) n++; else break; }
+  return n;
+}
+/** Count an incomplete week toward the streak, or take that back. A week already finished is left alone. */
+function countWeek(start){
+  const week=(wk.weeks||[]).find(x=>x.start===start);
+  if(!week||(num(week.planned,0)>0&&num(week.lifts,0)>=num(week.planned,0))) return false;
+  week.counted=!week.counted;
+  if(!week.counted) delete week.counted;
+  save();
+  return !!week.counted;
+}
+/* The report's bars. Side and rear delts are Delts; biceps and triceps are Arms. */
+const REPORT_MUSCLES=[
+  ["Glutes",["Glutes"]],["Hamstrings",["Hamstrings"]],["Quads",["Quads"]],["Back",["Back"]],["Chest",["Chest"]],
+  ["Delts",["Side delts","Rear delts"]],["Arms",["Biceps","Triceps"]],
+  ["Adductors",["Adductors"]],["Calves",["Calves"]],["Core",["Core"]],["Rotator cuff",["Rotator cuff"]],
+];
+function muscleReport(ledger){
+  const by={};
+  (ledger||[]).forEach(x=>{ if(x&&x.name) by[x.name]=x; });
+  const used={};
+  const rows=REPORT_MUSCLES.map(([name,keys])=>{
+    let done=0, planned=0, any=false;
+    keys.forEach(k=>{ const x=by[k]; if(!x) return; any=true; used[k]=1; done+=num(x.done,0); planned+=num(x.target,0); });
+    return any&&(done>0||planned>0)?{name,done,planned}:null;
+  }).filter(Boolean);
+  (ledger||[]).forEach(x=>{ if(!x||!x.name||used[x.name]) return; const done=num(x.done,0), planned=num(x.target,0);
+    if(done>0||planned>0) rows.push({name:x.name,done,planned}); });
+  return rows;
+}
+function setsLogged(){
+  let n=0;
+  DAYS.forEach(d=>d.slots.forEach((s,i)=>{ if(s.cardio) return; n+=(get(d.id,i).log||[]).filter(x=>x.d).length; }));
+  return n;
+}
+/** PRs whose top set landed in this calendar week. A higher est. 1RM by itself is not one. */
+function prsForClose(bucket){
+  const out=[];
+  Object.keys(exHist).forEach(name=>{
+    const row=weekTops(name).find(x=>x.start===bucket&&x.pr);
+    if(!row) return;
+    out.push({n:name, kind:row.pr, w:row.w, r:row.r, wasW:row.wasW, wasR:row.wasR});
+  });
+  return out.sort((a,b)=>a.n.localeCompare(b.n));
+}
+/** Next-time targets that go up: a heavier weight, or more reps at the same weight. */
+function goingUp(){
+  const out=[];
+  DAYS.forEach(d=>{
+    const t=(wk.doneT||{})[d.id];
+    (((wk.review||{})[d.id]||{}).items||[]).forEach(item=>{
+      if(item.r==null||item.tag==="down"||item.tag==="collapse") return;
+      const hits=(exHist[item.n]||[]).filter(x=>t&&x.t===t);
+      const top=hits.length?hits[hits.length-1]:(exHist[item.n]||[]).slice(-1)[0];
+      if(!top) return;
+      const fromW=num(top.w,0), fromR=num(top.r,0);
+      if(!(item.w>fromW)&&!(item.w>=fromW&&item.r>fromR)) return;
+      out.push({n:item.n, fromW, fromR, toW:item.w, toR:item.r});
+    });
+  });
+  return out;
+}
+function weekActivities(start){
+  const end=start+7*864e5, map={};
+  (wk.sessions||[]).filter(x=>x.t>=start&&x.t<end&&x.k&&x.k!=="lift").forEach(x=>{
+    const row=map[x.k]||(map[x.k]={k:x.k, n:0, min:0});
+    row.n++; row.min+=num(x.min,0);
+  });
+  return Object.values(map);
+}
+function weekReport(start){
+  const w=(wk.weeks||[]).slice().reverse().find(x=>x.start===start);
+  if(!w) return null;
+  const actual=weekActuals(w.start);
+  return {start:w.start, lifts:num(w.lifts,0), planned:num(w.planned,0),
+    sets:Number.isFinite(w.sets)?w.sets:null, muscles:Array.isArray(w.muscles)?w.muscles:null,
+    prs:Array.isArray(w.prs)?w.prs:[], ups:Array.isArray(w.ups)?w.ups:[],
+    sport:actual.sport, burn:actual.burn, activities:weekActivities(w.start),
+    nextTitle:w.nextTitle||"", nextStart:w.nextStart||0, completed:weekCompleted(w), streak:weekStreak()};
+}
+function pendingWeekReport(){ return wk.reportPending?weekReport(wk.reportPending):null; }
+function dismissWeekReport(){
+  if(!wk.reportPending) return false;
+  delete wk.reportPending;
+  save();
+  return true;
+}
 function dayComplete(dayId){
   const d=DAYS.find(x=>x.id===dayId); if(!d) return false;
   const D=plan().days[dayId]; if(!D) return false;
@@ -1038,4 +1179,4 @@ function dayComplete(dayId){
     return (get(dayId,i).log||[]).filter(x=>x.d).length>=A.sets; });
 }
 
-export { sessionKcal, weekActuals, swapOptions, swapDay, earlyDone, planOff, finishWeek, undoFinish, hasFinishSnap, rateLb, isBW, yogaMet, pilMet, YOGA_EFF, PIL_EFF, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, MUSCLES, slotMuscles, musclePriority, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk, weekModel, dayBoard, moveLiftToToday, dayKey, weekStartOf, weekRuleAt, setWeekStart, restPlan, beginRest, adjustRest, clearRest, restView, startingGuess, startWeight, showsSide, sideDefault, lastSide, offerNudge, dayComplete };
+export { sessionKcal, weekActuals, swapOptions, swapDay, earlyDone, planOff, finishWeek, undoFinish, hasFinishSnap, rateLb, isBW, yogaMet, pilMet, YOGA_EFF, PIL_EFF, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, MUSCLES, slotMuscles, musclePriority, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk, weekModel, dayBoard, moveLiftToToday, dayKey, weekStartOf, weekRuleAt, setWeekStart, restPlan, beginRest, adjustRest, clearRest, restView, startingGuess, startWeight, showsSide, sideDefault, lastSide, offerNudge, dayComplete, e1rm, weekTops, liftTrends, recentPrs, weekCompleted, weekStreak, countWeek, weekActivities, weekReport, pendingWeekReport, dismissWeekReport };

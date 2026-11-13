@@ -14,12 +14,13 @@ import {
 } from "react-native";
 
 import { copy } from "@/copy";
+import { haptic } from "@/haptic";
+import { Info as InfoIcon, StatusDone, StatusNext, StatusOpen } from "@/icons";
 import { theme } from "@/theme";
 import { useReduceMotion } from "@/use-reduce-motion";
 
 export const planColors = {
   line: "#393330",
-  div: "#433d39",
   card: "#2f2a27",
   warn: "#3a3018",
   doneDot: "#5e5652",
@@ -29,7 +30,6 @@ export const planColors = {
   peachTint: "rgba(233,182,155,0.18)",
   greenTint: "rgba(111,208,180,0.16)",
   white: "#ffffff",
-  ink: "#231c18",
 };
 
 export type InfoBlock = { label: string; body: string };
@@ -80,9 +80,9 @@ export function InfoButton({ sections }: { sections: readonly InfoBlock[] }) {
         accessibilityState={{ expanded: open }}
         hitSlop={13}
         onPress={toggle}
-        style={[styles.info, open && styles.infoOn]}
+        style={styles.info}
       >
-        <Text style={[styles.infoGlyph, open && styles.infoGlyphOn]}>i</Text>
+        <InfoIcon size={16} color={open ? theme.orange.accent : planColors.sentence} />
       </Pressable>
       <Modal
         visible={open}
@@ -140,7 +140,10 @@ export function ChoicePills({
             accessibilityLabel={option.label}
             accessibilityState={{ selected }}
             aria-checked={selected}
-            onPress={() => onChange(option.value)}
+            onPress={() => {
+              if (option.value !== value) haptic.selection();
+              onChange(option.value);
+            }}
             style={({ pressed }) => [
               styles.pill,
               tone === "fill" ? styles.pillFill : styles.pillRound,
@@ -176,7 +179,10 @@ export function ToggleRow({ label, on, onChange }: { label: string; on: boolean;
       accessibilityLabel={label}
       accessibilityState={{ checked: on }}
       aria-checked={on}
-      onPress={() => onChange(!on)}
+      onPress={() => {
+        haptic.selection();
+        onChange(!on);
+      }}
       style={styles.toggleRow}
     >
       <Text style={styles.toggleLabel} importantForAccessibility="no" accessibilityElementsHidden>
@@ -209,7 +215,10 @@ export function DayPicker({
             accessibilityLabel={copy.plan.weekdays[index]}
             accessibilityState={{ selected: on }}
             aria-pressed={on}
-            onPress={() => onToggle(index)}
+            onPress={() => {
+              haptic.selection();
+              onToggle(index);
+            }}
             style={({ pressed }) => [
               styles.day,
               on && (tone === "lift" ? styles.dayLift : styles.dayAct),
@@ -227,21 +236,9 @@ export function DayPicker({
 }
 
 export function StatusMark({ status }: { status: "done" | "next" | "open" }) {
-  if (status === "next") {
-    return (
-      <View style={[styles.mark, styles.markNext]}>
-        <View style={styles.chevron} />
-      </View>
-    );
-  }
-  if (status === "done") {
-    return (
-      <View style={[styles.mark, styles.markDone]}>
-        <View style={styles.check} />
-      </View>
-    );
-  }
-  return <View style={[styles.mark, styles.markOpen]} />;
+  if (status === "next") return <StatusNext />;
+  if (status === "done") return <StatusDone />;
+  return <StatusOpen />;
 }
 
 export function Notice({ lines, onDismiss }: { lines: string[]; onDismiss: () => void }) {
@@ -324,20 +321,10 @@ const styles = StyleSheet.create({
   info: {
     width: 18,
     height: 18,
-    borderRadius: 9,
-    backgroundColor: planColors.line,
     alignItems: "center",
     justifyContent: "center",
     marginLeft: 4,
   },
-  infoOn: { backgroundColor: theme.orange.accent },
-  infoGlyph: {
-    color: planColors.sentence,
-    fontFamily: theme.fonts.monoMedium,
-    fontSize: 11,
-    lineHeight: 14,
-  },
-  infoGlyphOn: { color: planColors.ink },
   pop: {
     position: "absolute",
     backgroundColor: planColors.card,
@@ -416,28 +403,6 @@ const styles = StyleSheet.create({
   dayText: { color: theme.muted, fontFamily: theme.fonts.bodySemi, fontSize: 13 },
   dayLiftText: { color: theme.green.accent },
   dayActText: { color: theme.pink.accent },
-  mark: { width: 20, height: 20, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-  markNext: { backgroundColor: theme.green.accent },
-  markDone: { backgroundColor: planColors.line },
-  markOpen: { borderWidth: 1.5, borderColor: planColors.div },
-  chevron: {
-    width: 6,
-    height: 6,
-    marginLeft: -2,
-    borderTopWidth: 1.8,
-    borderRightWidth: 1.8,
-    borderColor: theme.orange.background,
-    transform: [{ rotate: "45deg" }],
-  },
-  check: {
-    width: 8,
-    height: 5,
-    marginTop: -2,
-    borderLeftWidth: 1.8,
-    borderBottomWidth: 1.8,
-    borderColor: theme.muted,
-    transform: [{ rotate: "-50deg" }],
-  },
   notice: {
     position: "absolute",
     left: 16,
