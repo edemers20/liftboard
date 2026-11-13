@@ -821,6 +821,16 @@ const STRETCH={
   upper:[["Doorway pec stretch","45s / side"],["Lat stretch on a bench","45s"],["Cross-body shoulder","30s / side"],["Thread the needle","6 / side"],["Child's pose","60s"]],
   full:[["Half-kneeling hip flexor","45s / side"],["Standing hamstring","45s / side"],["Doorway pec stretch","45s / side"],["Lat stretch on a bench","45s"],["Child's pose","60s"]]};
 const stretchesFor=d=>STRETCH[/^Lower/.test(d.title)?"lower":/^Upper/.test(d.title)?"upper":"full"];
+let pendNudge=null;
+/* "That looked easy / Tough set": a small popup offering the new weight for the rest of the sets */
+function askNudge(p){ const u=KG()?"kg":"lb";
+  showSheet(`<div class="swapsheet nudgesheet" role="dialog" aria-labelledby="nTitle"><div class="shtop"><h3 class="swapt" id="nTitle">${p.up?"That looked easy":"Tough set"}</h3>${XBTN}</div>
+    <p class="small">${p.r0} reps on ${esc(p.nm)}. ${p.up?"Go up":"Drop"} to <b>${toU(p.w)} ${u}</b> for the rest of the sets${p.up?"":" to stay in range"}?</p>
+    <div class="tbtns two"><button type="button" class="tb ghost" data-nk>Keep ${toU(p.w0)}</button><button type="button" class="tb" data-nu>Use ${toU(p.w)}</button></div></div>`,el=>{
+    el.querySelector("[data-nk]").onclick=closeSheet;
+    el.querySelector("[data-nu]").onclick=()=>{ const st=get(cur,p.i), log=(st.log||[]).slice(), w=String(p.w);
+      for(let k=0;k<log.length;k++) if(!log[k].d) log[k]={...log[k],w}; const A=plan().days[cur].slots[p.i]; while(log.length<A.sets) log.push({w});
+      set(cur,p.i,"log",log); closeSheet(); render(); }; },true); }
 function renderDayHTML(d,P){
   const D=P.days[d.id], act=activeIdx(d,D);
   const WT=(wk.wt||{})[d.id];
@@ -871,8 +881,9 @@ function renderDayHTML(d,P){
       const [lo,hi]=range(s.reps), top=(s.upperAcc||s.support||s.label==="Glute med")?hi+3:hi;
       const lastT=log.slice(0,ticks).reverse().find(x=>x.d&&+x.w>0&&+x.r>0);
       if(!D.done&&!fin&&lastT&&st.nudged!==ticks){ const w0=+lastT.w, r0=+lastT.r, inc=incFor(nm,s,w0);
-        if(r0>=top+2) html+=`<div class="nudge up"><span>That looked easy: ${r0} reps. Go up to <b>${w0+inc} lb</b> for the rest?</span><button type="button" class="btn mini" data-nudge="${w0+inc}" data-i="${i}">Use ${w0+inc}</button><button type="button" class="nx" data-nudge="" data-i="${i}" aria-label="Keep the weight">×</button></div>`;
-        else if(r0<lo) html+=`<div class="nudge dn"><span>Tough set: ${r0} reps. Drop to <b>${Math.max(0,w0-inc)} lb</b> to stay in range?</span><button type="button" class="btn mini" data-nudge="${Math.max(0,w0-inc)}" data-i="${i}">Use ${Math.max(0,w0-inc)}</button><button type="button" class="nx" data-nudge="" data-i="${i}" aria-label="Keep the weight">×</button></div>`; }
+        /* asked in a popup right after the set is ticked (see askNudge), not inline */
+        if(!pendNudge&&r0>=top+2) pendNudge={i,ticks,up:true,r0,w0,w:w0+inc,nm};
+        else if(!pendNudge&&r0<lo) pendNudge={i,ticks,up:false,r0,w0,w:Math.max(0,w0-inc),nm}; }
       if(UNI.test(nm)){ const sd=sideToday(d,s,i), ls=lastSide(nm);
         html+=`<div class="side"><span>Start on</span><button type="button" class="btn mini sidebtn" data-side="${sd==="Left"?"Right":"Left"}" data-i="${i}" aria-label="Starting side: ${sd}. Tap to switch">${sd}</button>${ls?`<small>last time: ${ls}</small>`:""}</div>`; }
       html+=`<div class="sets">`;
@@ -1402,6 +1413,7 @@ function bind(){
     let finished=false;
     if(!x.d){ fxOnce.chk=`${cur}-${i}-${k}`; const A=plan().days[cur].slots[i]; if((get(cur,i).log||[]).filter(z=>z.d).length===A.sets){ fxOnce.slot=`${cur}-${i}`; finished=true; } }
     render(); if(finished) nextSheet(cur,i); });
+  if(pendNudge){ const p=pendNudge; pendNudge=null; if(dayById(cur)){ set(cur,p.i,"nudged",p.ticks); setTimeout(()=>askNudge(p),250); } }
   v.querySelectorAll("[data-nudge]").forEach(b=>b.onclick=()=>{ const i=+b.dataset.i, st=get(cur,i), log=(st.log||[]).slice(), t=log.filter(x=>x.d).length, w=b.dataset.nudge;
     if(w!==""){ for(let k=0;k<log.length;k++) if(!log[k].d) log[k]={...log[k],w}; const A=plan().days[cur].slots[i]; while(log.length<A.sets) log.push({w}); set(cur,i,"log",log); }
     set(cur,i,"nudged",t); render(); });

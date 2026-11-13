@@ -137,3 +137,11 @@ Most of these were spotted in the native app; the web app has the same changes w
 **History → Calendar**
 - The weekly chart's average line goes **behind** the bars, not over them. Make it a neutral colour (the muted grey, about 40% opacity, dashed is fine) and label its value with a unit: "{n}h" when it's an hour or more, "{n}m" when under an hour (e.g. "1.5h", "45m").
 - When a past day is selected under the calendar, don't repeat the workout title as a line under the heading (the "Lower · Glute & Hamstring" row). The heading already names it; show the exercises directly. Activities keep their "Pickleball · 90 min" line.
+
+**Workout: weight suggestion as a popup**
+- When a ticked set is clearly too easy (2+ reps over the top of the range) or too hard (under the range), don't show the suggestion inline in the exercise card. Show a small bottom sheet over the dimmed screen about a quarter of a second after the tick (the rest timer keeps running underneath):
+  - Title: **That looked easy** or **Tough set** (DM Sans 600, 20px).
+  - Text: "{reps} reps on {exercise}. Go up to **{weight} lb** for the rest of the sets?" or "… Drop to **{weight} lb** for the rest of the sets to stay in range?"
+  - Buttons: **Keep {current}** (secondary) and **Use {new}** (primary). Use fills the new weight into every set not yet ticked. Keep, the close button or tapping the overlay just closes it.
+  - It's asked once per set: closing it never brings it back for that set.
+  - Haptic: light impact when it appears (same as the toast).
