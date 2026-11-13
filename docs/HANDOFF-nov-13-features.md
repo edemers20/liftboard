@@ -29,10 +29,10 @@ The three new features have reference designs in `docs/design/` (`Proto_WeekRepo
 A sheet that opens when the week is finished (Mark week as finished, or the automatic Monday rollover the first time the app opens in the new week). It replaces the current "Week done" summary. Reference: `Proto_WeekReport.dc.html`.
 
 Top to bottom:
-- "Week done", the week's date range in Ranchers, and a **Completed** pill when every planned lift was done. A line: "All {n} lifts done. {streak} weeks completed in a row." (or "{done} of {planned} lifts").
-- Four tiles: **Lifts** {done}/{planned}, **Sets** (sets logged), **Sport** (min, from `weekActuals`), **Extra burn** (kcal, from `weekActuals`). Numbers count up from 0 over 600ms.
+- The week's date range in Ranchers, with a **Completed** pill on the same line, aligned right, when every planned lift was done (or "{done} of {planned} lifts" when not). No eyebrow and no line of body text.
+- Four tiles: **Lifts** {done}/{planned}, **Sets** (sets logged), **Activity** (min of sport, from `weekActuals`), **Extra burn** (kcal, from `weekActuals`). Numbers count up from 0 over 600ms.
 - **Going up next week**: each exercise whose next-time target goes up, "{last top set} → {next target}" with the target in orange.
-- **PRs this week** (only if there are any): see the PR rule in section 3.
+- **Personal Records** (only if there are any): see the PR rule in section 3. Each row shows the exercise, the kind of record ("Heaviest top set", "Best est. 1RM", "More reps"), the new value and what it was before.
 - **Sets by muscle**: done vs planned per muscle group for the week, as bars; groups under plan in yellow, with one line under the bars naming the biggest gap ("Quads came in 2 sets under target.").
 - **Activities**: each logged activity with count and minutes.
 - **Next week**: "Starts {day, date} with {first workout}".

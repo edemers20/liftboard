@@ -28,13 +28,9 @@ button:active{transform:scale(.97)}
     <div aria-hidden="true" style="width: 40px; height: 5px; border-radius: 999px; background: #3a3431; margin: 8px auto 0"></div>
     <div class="wr-scroll" style="flex: 1; overflow-y: auto; scrollbar-width: none; padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 14px">
 
-      <header style="display: flex; flex-direction: column; gap: 6px">
-        <div style="display: flex; justify-content: space-between; align-items: center">
-          <span style="font-size: 13px; font-weight: 600; color: #a8a09c">Week done</span>
-          <span style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: #1f3029; color: #6fd0b4; font-size: 12px; font-weight: 600"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Completed</span>
-        </div>
+      <header style="display: flex; justify-content: space-between; align-items: center; gap: 12px">
         <h1 style="margin: 0; font-family: 'Ranchers', sans-serif; font-weight: 400; font-size: 40px; line-height: 1; text-transform: uppercase">Nov 2 – 8</h1>
-        <p style="margin: 0; color: #a8a09c; font-size: 14px">All 4 lifts done. 3 weeks completed in a row.</p>
+        <span style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: #1f3029; color: #6fd0b4; font-size: 12px; font-weight: 600; flex: none"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Completed</span>
       </header>
 
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px">
@@ -56,8 +52,8 @@ button:active{transform:scale(.97)}
         </sc-for>
       </section>
 
-      <section aria-label="PRs this week" style="background: #2a211c; border-radius: 16px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; animation: lbUp .4s .22s both">
-        <h2 style="margin: 0; font-size: 15px; font-weight: 600; color: #fea06a">2 PRs this week</h2>
+      <section aria-label="Personal Records" style="background: #2a211c; border-radius: 16px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; animation: lbUp .4s .22s both">
+        <h2 style="margin: 0; font-size: 15px; font-weight: 600; color: #fea06a">Personal Records</h2>
         <sc-for list="{{ prs }}" as="p" hint-placeholder-count="2">
           <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px">
             <div style="display: flex; flex-direction: column">
@@ -122,7 +118,7 @@ class Component extends DCLogic {
       tiles: [
         { label: 'Lifts', v: n(4), unit: ' / 4', c: '#6fd0b4' },
         { label: 'Sets', v: n(66), unit: '', c: '#edeae8' },
-        { label: 'Sport', v: n(175), unit: ' min', c: '#fc96bf' },
+        { label: 'Activity', v: n(175), unit: ' min', c: '#fc96bf' },
         { label: 'Extra burn', v: n(1840), unit: ' kcal', c: '#fea06a' }
       ],
       ups: [
@@ -131,7 +127,7 @@ class Component extends DCLogic {
         { n: 'Lateral Raise', from: '12.5 × 15', to: '15 × 10' }
       ],
       prs: [
-        { n: 'Hip Thrust (Barbell)', kind: 'Best est. 1RM · 155 × 8', v: '196 lb', was: 'was 195' },
+        { n: 'Hip Thrust (Barbell)', kind: 'Best est. 1RM', v: '196 lb', was: 'was 195' },
         { n: 'Hack Squat', kind: 'Heaviest top set', v: '140 × 8', was: 'was 135 × 9' }
       ],
       muscles: M.map(([nm, d, t]) => ({ n: nm, done: d, t, w: Math.min(100, d / t * 100 * e) + '%', c: d >= t ? '#6fd0b4' : '#e7b94a', tc: d >= t ? '#edeae8' : '#e7b94a' })),
