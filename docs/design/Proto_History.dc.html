@@ -95,22 +95,28 @@ button:active,a:active{transform:scale(.98)}
           </div>
         </section>
         <div style="display: flex; justify-content: space-between; align-items: baseline">
-          <h2 style="margin: 0; font-size: 15px; font-weight: 600">Main lifts</h2>
-          <span style="font-size: 12px; color: #a8a09c">est. 1RM · last 8 weeks</span>
+          <span style="display: flex; align-items: center; gap: 6px"><h2 style="margin: 0; font-size: 15px; font-weight: 600">Main lifts</h2><button type="button" aria-label="About 1RM and top sets" aria-expanded="{{ tipOpen }}" onClick="{{ toggleTip }}" style="width: 28px; height: 28px; margin: -6px 0; border: 0; border-radius: 999px; background: none; color: #a8a09c; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; padding: 0"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="9.75"/><path d="M12 10.8v6M12 7.2v.3"/></svg></button></span>
         </div>
+        <sc-if value="{{ tipOpen }}" hint-placeholder-val="{{ false }}">
+          <div role="note" style="background: #2f2a27; border-radius: 12px; padding: 12px 14px; font-size: 13px; color: #edeae8; display: flex; flex-direction: column; gap: 6px; animation: lbUp .2s both">
+            <span><b style="font-weight: 600">1RM</b> is an estimate of the most you could lift once, worked out from your top set (weight × (1 + reps ÷ 30)). It's for tracking trends; you never need to test it.</span>
+            <span style="display: flex; align-items: center; gap: 6px; color: #a8a09c"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex: none"><path d="M3 9v6M6 7v10M18 7v10M21 9v6M6 12h12"/></svg><span>Your top set: the heaviest set you did that week.</span></span>
+            <span style="color: #a8a09c">Shown for the last 8 weeks.</span>
+          </div>
+        </sc-if>
         <sc-for list="{{ lifts }}" as="l" hint-placeholder-count="5">
           <section style="background: #24201d; border-radius: 16px; overflow: hidden">
             <button type="button" aria-expanded="{{ l.open }}" onClick="{{ l.toggle }}" style="width: 100%; border: 0; background: none; color: inherit; font: inherit; text-align: left; padding: 14px 16px; display: grid; grid-template-columns: 1fr 96px; gap: 4px 12px; align-items: center; cursor: pointer">
               <div style="display: flex; flex-direction: column; min-width: 0">
                 <span style="font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ l.n }}</span>
-                <span style="display: flex; align-items: baseline; gap: 6px"><span style="font-family: 'DM Mono', monospace; font-size: 26px; font-weight: 500; line-height: 1.2">{{ l.e1 }}</span><span style="font-size: 12px; color: #a8a09c">lb est. 1RM</span></span>
-                <span style="font-size: 12px; color: #a8a09c">Top set <span style="font-family: 'DM Mono', monospace; color: #edeae8">{{ l.top }}</span> · <span style="color: {{ l.dc }}">{{ l.delta }}</span></span>
+                <span style="display: flex; align-items: baseline; gap: 6px"><span style="font-family: 'DM Mono', monospace; font-size: 26px; font-weight: 500; line-height: 1.2">{{ l.e1 }}</span><span style="font-size: 12px; color: #a8a09c">lb 1RM</span></span>
+                <span style="font-size: 12px; color: #a8a09c; display: flex; align-items: center; gap: 5px"><span role="img" aria-label="Top set" style="display: inline-flex"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex: none"><path d="M3 9v6M6 7v10M18 7v10M21 9v6M6 12h12"/></svg></span><span style="font-family: 'DM Mono', monospace; color: #edeae8">{{ l.top }}</span> · <span style="color: {{ l.dc }}">{{ l.delta }}</span></span>
               </div>
               <svg aria-hidden="true" width="96" height="44" viewBox="0 0 96 44"><polyline points="{{ l.pts }}" fill="none" stroke="{{ l.sc }}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="{{ l.lx }}" cy="{{ l.ly }}" r="3.5" fill="{{ l.sc }}"/></svg>
             </button>
             <sc-if value="{{ l.open }}" hint-placeholder-val="{{ false }}">
               <div style="padding: 0 16px 14px; display: flex; flex-direction: column; gap: 6px; animation: lbUp .25s both">
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; font-size: 12px; color: #a8a09c; border-top: 1px solid #2f2a27; padding-top: 10px"><span>Week of</span><span>Top set</span><span style="text-align: right">est. 1RM</span></div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; font-size: 12px; color: #a8a09c; border-top: 1px solid #2f2a27; padding-top: 10px"><span>Week of</span><span>Top set</span><span style="text-align: right">1RM</span></div>
                 <sc-for list="{{ l.rows }}" as="r" hint-placeholder-count="4">
                   <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; font-size: 13px; align-items: center">
                     <span style="color: #a8a09c">{{ r.wk }}</span>
@@ -122,7 +128,6 @@ button:active,a:active{transform:scale(.98)}
             </sc-if>
           </section>
         </sc-for>
-        <p style="margin: 0; font-size: 12px; color: #8f8783">Est. 1RM is worked out from your top set (weight × (1 + reps ÷ 30)). It's for tracking trends; you never need to test it.</p>
       </div>
     </sc-if>
   </div>
@@ -140,8 +145,8 @@ class Component extends DCLogic {
   renderVals() {
     /* History: Calendar (unchanged, opens the current board) · Weeks · Lifts.
        A week is Completed when every planned lift was done. A week can be counted as completed by hand (sick, travel).
-       Est. 1RM uses Epley from the week's top set; a PR is a new best est. 1RM or a heavier top set. */
-    const st = Object.assign({ view: 'weeks', from: '0px', openW: 0, openL: -1, marked: {} }, this.state || {});
+       1RM is estimated (Epley) from the week's top set; a PR is a heavier top set, or more reps at the same or heavier weight. */
+    const st = Object.assign({ view: 'weeks', from: '0px', openW: 0, openL: -1, marked: {}, tip: false }, this.state || {});
     const go = (v, i) => () => { if (v === 'cal') { location.href = 'Cur_HistoryCalendar.dc.html'; return; } this.setState({ view: v, from: i > (st.view === 'lifts' ? 2 : 1) ? '40px' : '-40px' }); };
     const tabs = [['cal', 'Calendar'], ['weeks', 'Weeks'], ['lifts', 'Lifts']].map(([k, label], i) => {
       const on = st.view === k;
@@ -191,8 +196,8 @@ class Component extends DCLogic {
       const v = s.map(([w, r]) => e1(w, r)), lo = Math.min(...v), hi = Math.max(...v), span = Math.max(1, hi - lo);
       const P = v.map((x, k) => [4 + k * (88 / 7), 40 - (x - lo) / span * 34]);
       const d = v[7] - v[0];
-      let best = 0;
-      const rows = s.map(([w, r], k) => { const x = v[k], pr = x > best && k > 0; best = Math.max(best, x); return { wk: WK[k], top: `${w} × ${r}`, e1: x, pr: pr ? ' PR' : '', c: pr ? '#fea06a' : '#edeae8' }; }).reverse().slice(0, 5);
+      let bw = 0, br = 0;
+      const rows = s.map(([w, r], k) => { const x = v[k], pr = k > 0 && (w > bw || (w === bw && r > br)); if (w > bw) { bw = w; br = r; } else if (w === bw) br = Math.max(br, r); return { wk: WK[k], top: `${w} × ${r}`, e1: x, pr: pr ? ' PR' : '', c: pr ? '#fea06a' : '#edeae8' }; }).reverse().slice(0, 5);
       return {
         n, e1: v[7], top: `${s[7][0]} × ${s[7][1]}`, delta: `${d >= 0 ? '+' : ''}${d} in 8 wk`, dc: d > 0 ? '#6fd0b4' : '#a8a09c',
         pts: P.map(p => p.map(z => z.toFixed(1)).join(',')).join(' '), lx: P[7][0].toFixed(1), ly: P[7][1].toFixed(1), sc: '#6fd0b4',
@@ -200,7 +205,7 @@ class Component extends DCLogic {
       };
     });
     const prs = [
-      { kind: 'Est. 1RM', n: 'Hip Thrust (Barbell)', v: '196', date: 'Nov 7 · 155 × 8' },
+      { kind: 'Top set', n: 'Hip Thrust (Barbell)', v: '155 × 8', date: 'Nov 7' },
       { kind: 'Top set', n: 'Hack Squat', v: '140 × 8', date: 'Nov 5' },
       { kind: 'Top set', n: 'Lat Pulldown', v: '75 × 10', date: 'Nov 4' },
       { kind: 'Reps', n: 'Overhead Press', v: '60 × 7', date: 'Nov 2' }
@@ -209,7 +214,7 @@ class Component extends DCLogic {
     return {
       tabs, from: st.from, isWeeks: st.view === 'weeks', isLifts: st.view === 'lifts',
       weeks, streak, streakText: run ? `${run} weeks completed in a row` : 'Start a new streak this week',
-      lifts, prs
+      lifts, prs, tipOpen: st.tip, toggleTip: () => this.setState({ tip: !st.tip })
     };
   }
 }

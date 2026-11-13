@@ -56,8 +56,8 @@ Keep the Calendar view as it is. Reference: `Proto_History.dc.html`.
 
 **Lifts**
 - **Recent PRs**: a horizontal row of cards (kind, exercise, value, date).
-- **Main lifts**: one row each with the **est. 1RM** in DM Mono, "Top set {w × r} · {+n} in 8 wk", and a sparkline of est. 1RM over the last 8 weeks. Tapping a row expands a table: week, top set, est. 1RM, with "PR" in orange on new bests.
-- Note under the list: "Est. 1RM is worked out from your top set (weight × (1 + reps ÷ 30)). It's for tracking trends; you never need to test it."
+- **Main lifts** with an (i) button next to the title. Tapping it opens a tip: "**1RM** is an estimate of the most you could lift once, worked out from your top set (weight × (1 + reps ÷ 30)). It's for tracking trends; you never need to test it." Then the dumbbell icon with "Your top set: the heaviest set you did that week." and "Shown for the last 8 weeks." No other explanatory text on the screen, and no "est." anywhere.
+- One row per main lift: the 1RM in DM Mono with "lb 1RM", then the dumbbell icon (`tab-workouts`, 14, accessibility label "Top set") followed by the top set and "{+n} in 8 wk", and a sparkline of the 1RM over the last 8 weeks. Tapping a row expands a table: Week of, Top set, 1RM, with "PR" in orange on weeks that set a PR.
 
 **Engine (add to `packages/engine` with tests):**
 - `e1rm(w, r)` = round(w × (1 + r / 30)). Bodyweight exercises have no est. 1RM.
