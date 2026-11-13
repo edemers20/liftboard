@@ -843,6 +843,8 @@ body[data-nav="history"] .cd.today[aria-pressed="true"]{box-shadow:inset 0 0 0 2
 .lv{display:grid}
 .lv i{grid-area:1/1;font:500 12px var(--mono);font-style:normal;padding:4px 9px;border-radius:999px;background:rgba(255,255,255,.07);color:var(--fg);white-space:nowrap;animation:lvA 7s ease-in-out var(--ld) infinite}
 .lv i+i{animation-name:lvB}
+/* the result pill changes a beat after the cause pill */
+.lv.out i{animation-delay:calc(var(--ld) + .45s)}
 .lv.out i{background:color-mix(in srgb,var(--lc) 22%,transparent);color:var(--lc)}
 @keyframes lvA{0%,40%{opacity:1}50%,90%{opacity:0}100%{opacity:1}}
 @keyframes lvB{0%,40%{opacity:0}50%,90%{opacity:1}100%{opacity:0}}
@@ -1040,3 +1042,15 @@ html[data-vt="back"]::view-transition-new(lbview),html[data-vt="dayback"]::view-
 .dshare{display:inline-flex;align-items:center;justify-content:center;gap:8px}
 .dshare[disabled]{opacity:.5}
 .btn.dshare{margin-top:8px}
+
+/* Pace picker: a scrolling wheel that snaps to each value */
+.wheelw{position:relative;border-radius:14px;background:var(--surface)}
+.wheelw::after{content:"";position:absolute;left:8px;right:8px;top:44px;height:44px;border-radius:10px;background:rgba(255,255,255,.07);pointer-events:none}
+.wheel{height:132px;overflow-y:auto;scroll-snap-type:y mandatory;scrollbar-width:none;overscroll-behavior:contain;padding-block:44px;box-sizing:border-box;
+  -webkit-mask-image:linear-gradient(transparent,#000 30%,#000 70%,transparent);mask-image:linear-gradient(transparent,#000 30%,#000 70%,transparent)}
+.wheel::-webkit-scrollbar{display:none}
+.wheel:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:14px}
+.wit{height:44px;scroll-snap-align:center;display:flex;align-items:baseline;justify-content:center;gap:6px;padding-top:10px;box-sizing:border-box;font:500 20px var(--mono);color:var(--muted);cursor:pointer;transition:color .15s ease}
+.wit small{font:400 13px var(--body);color:var(--muted)}
+.wit.on{color:var(--fg)}
+.wpct{color:var(--muted);font-size:12px}

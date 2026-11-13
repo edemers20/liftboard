@@ -13,9 +13,9 @@ Shown once, before the tabs. A progress bar of dots at the top; Back and Next at
 | Step | Shows | Picture |
 | --- | --- | --- |
 | Welcome | "Welcome!", a short note signed Emma, Get started | `01-onboarding-welcome` |
-| Plan your week | Title, one line, three cards that slide in from the right one after another (What to lift today · Fits around everything else · Fuel and recover). Each card has a small animated example ("Last: 135 × 8 ✓ → Today: 140 lb") | `02-onboarding-plan-your-week` |
-| Level demo | "As much help as you want": a three-stop slider that steps on its own; one sample workout card changes as it moves (tips and reasons for Beginner, bare targets and swaps for Advanced) | `03-onboarding-level-demo` |
-| 1. What do you play? | Sport pills (Pickleball, Tennis, Running, Biking, Soccer, Volleyball, Climbing, Golf, Hockey, Rugby, Yoga, Pilates, None); "In-season now" switch for seasonal sports | `04-onboarding-1-sport` |
+| Plan your week | Title, one line, three cards that slide in from the right one after another (What to lift today · Fits around everything else · Fuel and recover). Each card has a small animated example ("Last: 135 × 8 ✓ → Today: 140 lb"); in each, the cause pill fades first and the result pill follows a beat later | `02-onboarding-plan-your-week` |
+| Level demo | "As much help as you want": a three-stop slider that glides to each stop on its own (and when dragged, settles on the nearest stop); one sample workout card changes as it moves (tips and reasons for Beginner, bare targets and swaps for Advanced) | `03-onboarding-level-demo` |
+| 1. What do you do? | Sport pills (Pickleball, Tennis, Running, Biking, Soccer, Volleyball, Climbing, Golf, Hockey, Rugby, Yoga, Pilates, None); "In-season now" switch for seasonal sports | `04-onboarding-1-sport` |
 | 2. What are you training for? | Four goal cards with a one-line definition each; pace is set later | `05-onboarding-2-goal` |
 | 3. Which days do you usually lift? | Mon–Sun day toggles; other activities with − / + counts per week | `06-onboarding-3-days` |
 | 4. Where do you want extra focus? | Lower body · Balanced · Upper body pills | `07-onboarding-4-focus` |
@@ -23,7 +23,7 @@ Shown once, before the tabs. A progress bar of dots at the top; Back and Next at
 | 6. A bit about you | Sex pills; Age, Height, Weight, Body fat (optional), Daily steps inputs | `09-onboarding-6-about-you` |
 | 7. You're set | The first workout card plus the rest of the week fading in | `10-onboarding-7-first-workout` |
 
-From step 1 on, a "Your plan so far" card at the bottom updates live. Finishing writes every answer into settings and **replaces** the activity list with exactly what was picked.
+From step 1 on, a "Plan so far" card at the bottom updates live. Finishing writes every answer into settings and **replaces** the activity list with exactly what was picked.
 
 ---
 
@@ -77,7 +77,7 @@ Header: the week's date range as a page title ("NOV 2 – 8") or "SEASON"; a Wee
 ### Season [`32-plan-season`]
 - "Your plan" sentence with underlined values (sport, season, lift days, focus, goal, fuel, protein, cardio).
 - Season: In-season, Season starts in ≤6 weeks, Deload this week (switches).
-- Goal pills with "Goal definitions"; Pace pills (shown for fat-loss goals); Lifting focus pills.
+- Goal pills with "Goal definitions"; Pace as a scrolling number picker in lb (or kg) a week, up to 1% of body weight (0.7% for recomp), with the % of body weight under it (shown for fat-loss goals); Lifting focus pills.
 
 ---
 

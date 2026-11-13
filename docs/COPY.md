@@ -103,8 +103,8 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Up to 0.7% of your weight while you hold your lifts. | main.js:1466 |
 |  | Eat what you burn and train as normal. | main.js:1466 |
 |  | Eat a little over. Extra sets go to your focus. | main.js:1466 |
-|  | What do you play? | main.js:1467 |
-|  | Your main sport sets the season. In-season, lifting is deprioritized so you’re fresh to play. | main.js:1467 |
+|  | What do you do? | main.js:1467 |
+|  | Your main activity sets the season. In-season, lifting is deprioritized so you’re fresh. | main.js:1467 |
 |  | What are you training for? | main.js:1468 |
 |  | Your goal sets your fuel and how hard you train. You can change it anytime in Plan → Season. | main.js:1468 |
 |  | Which days do you usually lift? | main.js:1469 |
@@ -157,7 +157,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Log an activity | main.js:1545 |
 |  | First workout · {…} | main.js:1545 |
 |  | Starting weights are a guess. Log your first sets and the app adjusts from there. | main.js:1545 |
-|  | Your plan so far | main.js:1551 |
+|  | Plan so far | main.js:1551 |
 |  | Go to Workouts | main.js:1552 |
 |  | Build my plan | main.js:1552 |
 

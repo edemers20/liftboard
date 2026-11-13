@@ -436,7 +436,26 @@ function planWeek(P){
 /* pace choices are a share of body weight; the lb figure follows your current weight */
 const PACES={"Deficit only":[0.5,0.75,1],Recomp:[0.25,0.5,0.7]};
 const paceOpts=m=>(PACES[m]||[]).map(p=>{ const lb=Math.round(p/100*num(wk.weight,150)*10)/10; return [String(p),`${p}% · ${KG()?Math.round(lb/L2K*10)/10+" kg":lb+" lb"}`]; });
-function fitPace(){ const o=PACES[wk.mode]; if(!o) return; if(!o.map(String).includes(String(wk.ratePct))) wk.ratePct=String(o[1]); }
+function fitPace(){ const o=PACES[wk.mode]; if(!o) return; const p=+wk.ratePct, max=o[o.length-1]; if(!(p>0)) wk.ratePct=String(o[1]); else if(p>max) wk.ratePct=String(max); }
+/* Pace is a scrolling picker in lb (or kg) a week, up to the goal's cap (1% or 0.7% of your weight). Stored as % of body weight. */
+function paceWheel(){ const o=PACES[wk.mode], w=num(wk.weight,150), kg=KG(), step=kg?0.05:0.1, u=kg?"kg":"lb";
+  const maxU=o[o.length-1]/100*w/(kg?L2K:1), vals=[]; for(let x=step*2;x<=maxU+1e-9;x+=step) vals.push(Math.round(x*100)/100);
+  const curU=(+wk.ratePct||0.5)/100*w/(kg?L2K:1); let i=0; vals.forEach((x,k)=>{ if(Math.abs(x-curU)<Math.abs(vals[i]-curU)) i=k; });
+  const pct=v=>(v*(kg?L2K:1)/w*100).toFixed(2);
+  return `<div class="q"><span>Pace</span><div class="wheelw"><div class="wheel" tabindex="0" role="spinbutton" aria-label="Pace per week" aria-valuenow="${vals[i]}" aria-valuetext="${vals[i]} ${u} a week" data-wheel data-i="${i}" data-u="${u}" data-vals="${vals.join(",")}">
+    ${vals.map((x,k)=>`<div class="wit${k===i?" on":""}" data-k="${k}">${x.toFixed(kg?2:1)} <small>${u} / week</small></div>`).join("")}</div></div>
+    <small class="wpct" data-wpct>${pct(vals[i])}% of your weight a week</small></div>`; }
+function bindWheel(v){ const wh=v.querySelector("[data-wheel]"); if(!wh) return;
+  const its=[...wh.querySelectorAll(".wit")], vals=wh.dataset.vals.split(",").map(Number), u=wh.dataset.u, H=44, w=num(wk.weight,150), kg=u==="kg";
+  let idx=+wh.dataset.i, t=0; wh.scrollTop=idx*H;
+  const pctEl=v.querySelector("[data-wpct]"), clamp=i=>Math.max(0,Math.min(vals.length-1,i));
+  const paint=i=>{ its.forEach((x,k)=>x.classList.toggle("on",k===i)); if(pctEl) pctEl.textContent=`${(vals[i]*(kg?L2K:1)/w*100).toFixed(2)}% of your weight a week`;
+    wh.setAttribute("aria-valuenow",vals[i]); wh.setAttribute("aria-valuetext",`${vals[i]} ${u} a week`); };
+  const commit=i=>{ if(i===idx) return; idx=i; const lb=vals[i]*(kg?L2K:1); change(()=>{ wk.ratePct=String(+(lb/w*100).toFixed(4)); }); };
+  wh.onscroll=()=>{ const i=clamp(Math.round(wh.scrollTop/H)); paint(i); clearTimeout(t); t=setTimeout(()=>commit(i),220); };
+  const go=i=>wh.scrollTo({top:clamp(i)*H,behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});
+  wh.onkeydown=e=>{ const d={ArrowUp:-1,ArrowDown:1}[e.key]; if(d==null) return; e.preventDefault(); go(Math.round(wh.scrollTop/H)+d); };
+  its.forEach((x,k)=>x.onclick=()=>go(k)); }
 function planSeason(P){
   const inS=inSeason(), loss=!!PACES[wk.mode], dl=deloadInfo();
   return `${planHTML(P)}
@@ -446,7 +465,7 @@ function planSeason(P){
   <div class="panel">${hdr("Goal",["mode","rate","share"])}
     <div class="seg two" data-key="mode">${GOALS.map(([v,l])=>`<button type="button" data-v="${v}" aria-pressed="${wk.mode===v}">${l}</button>`).join("")}</div>
     <details class="fmath"><summary>Goal definitions</summary>${GOALS.map(([v,l])=>`<p class="small"><b>${l}.</b> ${GOAL_SUB[v]}</p>`).join("")}</details>
-    ${loss?`<div class="q"><span>Pace</span>${seg("ratePct","",paceOpts(wk.mode),String(wk.ratePct))}</div>
+    ${loss?`${paceWheel()}
     <div class="nums">${fld("share","From cardio %","numeric","","sm")}</div>`:""}
     ${enabled("lift")?`<div class="q"><span>Lifting focus</span>${seg("focus","",[["Lower","Lower body"],["Balanced","Balanced"],["Upper","Upper body"]])}</div>`:""}</div>`;
 }
@@ -1394,6 +1413,7 @@ function bind(){
   const fw=document.getElementById("finishWeek"); if(fw) fw.onclick=()=>askSure({title:"Finish this week?",text:"This week's numbers are saved to history and next week's plan starts now. Lifts you didn't get to come first next week. You can undo until next week begins.",ok:"Finish week",onOk:finishWeek});
   const uf=document.getElementById("undoFinish"); if(uf) uf.onclick=undoFinish;
   const nw=document.getElementById("newWeek"); if(nw) nw.onclick=()=>askSure({title:"Start a new week",text:"This closes out the week: it saves this week's numbers to history and resets the check-in and day logs.",ok:"Start new week",onOk:()=>{ const s={lifts:DAYS.filter(d=>(wk.done||{})[d.id]).length,planned:DAYS.length,cardio:weekActuals(weekStartOf(Date.now()).getTime()).burn}; newWeek(); render(); weekDone(s); }});
+  bindWheel(v);
   v.querySelectorAll(".seg[data-key]").forEach(g=>g.querySelectorAll("button").forEach(b=>b.onclick=()=>{
     const k=g.dataset.key, raw=b.dataset.v; fxOnce.seg=[k,raw];
     if(inProf(g)){ stage(k,raw); return; }
@@ -1565,15 +1585,20 @@ const LV={mode:["Guided","Standard","Flexible"],s1:["3 × 10 · 65 lb","4 × 8 �
 function paintLvl(el,v){ const r=el.querySelector(".lvlp"); if(!r) return; r.dataset.v=v;
   const set=(f,t)=>{ const x=r.querySelector(`[data-f="${f}"]`); if(x) x.textContent=t; };
   set("mode",LV.mode[v]); set("s1",LV.s1[v]); set("s2",LV.s2[v]); LV.p[v].forEach((t,i)=>set("p"+i,t));
-  const rg=r.querySelector(".olvl"); if(rg){ rg.value=v; rg.setAttribute("aria-valuetext",LV_NAME[v]); }
+  const rg=r.querySelector(".olvl"); if(rg){ if(!rg._drag) slideLvl(rg,v); rg.setAttribute("aria-valuetext",LV_NAME[v]); }
   r.querySelectorAll("[data-lvl]").forEach(b=>b.setAttribute("aria-pressed",String(+b.dataset.lvl===v))); }
+/* the level slider glides to a stop instead of jumping (instant with Reduce Motion) */
+function slideLvl(rg,to){ cancelAnimationFrame(rg._raf); const from=+rg.value; if(Math.abs(from-to)<0.001) return;
+  const D=matchMedia("(prefers-reduced-motion: reduce)").matches?0:450, t0=performance.now();
+  const f=now=>{ const k=D?Math.min(1,(now-t0)/D):1, e=1-Math.pow(1-k,3); rg.value=from+(to-from)*e; if(k<1) rg._raf=requestAnimationFrame(f); };
+  rg._raf=requestAnimationFrame(f); }
 /* weekly activities on the lift-days step: classes always, plus anything else already switched on (not the main sport) */
 const ONB_ACTS=()=>ACT_IDS.filter(a=>a!=="lift"&&(ACT[a].cls||enabled(a))&&a!==(onb?onb.sport:wk.mainSport));
 const ONB_SPORTS=[["pickle","Pickleball"],["tennis","Tennis"],["run","Running"],["bike","Biking"],["soccer","Soccer"],["volleyball","Volleyball"],["climb","Climbing"],["golf","Golf"],["hockey","Hockey"],["rugby","Rugby"],["yoga","Yoga"],["pilates","Pilates"],["","None"]];
 const LEVELS=[["new","Beginner","Tips on every screen"],["some","Some Experience","Tips the first time you see each screen."],["years","Advanced","No tips. Explanations only if you tap (i)."]];
 const guideFor=l=>l==="years"?"Less":"More";
 const ONB_GOALS=[["Deficit only","Lose weight fast","Up to 1% of your weight. Lifts may slip."],["Recomp","Lose fat, keep strength","Up to 0.7% of your weight while you hold your lifts."],["Maintain","Maintain","Eat what you burn and train as normal."],["Build","Build muscle","Eat a little over. Extra sets go to your focus."]];
-const ONB_Q=[["What do you play?","Your main sport sets the season. In-season, lifting is deprioritized so you’re fresh to play."],
+const ONB_Q=[["What do you do?","Your main activity sets the season. In-season, lifting is deprioritized so you’re fresh."],
   ["What are you training for?","Your goal sets your fuel and how hard you train. You can change it anytime in Plan → Season."],
   ["Which days do you usually lift?","Lifts get queued up according to your plan; you can skip days, move workouts around, and always change preferences later."],
   ["Where do you want extra focus?","Whenever you have the extra energy or time, you’ll see more exercises for your chosen focus."],
@@ -1622,7 +1647,7 @@ function renderOnb(focus){
     /* the demo card: everything is rendered once; changing level toggles parts in place so they animate */
     h=`<div class="onb lvlp" data-v="${v}"><div class="otop"><span class="plab">For any level</span>${skip}</div><h2 class="oh big" tabindex="-1">As much help as you want</h2>
     <p class="olead">Same workout for different experience levels.</p>
-    <div class="lvwrap"><input class="olvl" type="range" min="0" max="2" step="1" value="${v}" aria-label="Experience level" aria-valuetext="${LV_NAME[v]}">
+    <div class="lvwrap"><input class="olvl" type="range" min="0" max="2" step="0.01" value="${v}" aria-label="Experience level" aria-valuetext="${LV_NAME[v]}">
     <div class="olvls">${LV_NAME.map((n,k)=>`<button type="button" data-lvl="${k}" aria-pressed="${k===v}">${n}</button>`).join("")}</div></div>
     <section class="odemo" aria-live="polite">
       <div class="orow"><span class="weye">Day 1 · Lower</span><span class="omode" data-f="mode"></span></div>
@@ -1657,7 +1682,7 @@ function renderOnb(focus){
     const prev=[[o.sport&&!SEASONAL(o.sport)?"Main activity":"Season",o.sport?`${ACT[o.sport].name}${SEASONAL(o.sport)?` · ${o.inS?"in-season":"off-season"}`:""}`:"No sport"],...(n>=2?[["Goal",gName]]:[]),...(n>=3?[["Week",`${nd} lift${nd===1?"":"s"}${o.sport&&o.pb?` + ${o.pb}× ${ACT[o.sport].name.toLowerCase()}`:""}${Object.entries(o.ac||{}).filter(([a,c])=>c&&a!==o.sport).map(([a,c])=>` + ${c}× ${ACT[a].name.toLowerCase()}`).join("")}`]]:[]),...(n>=4?[["Focus",o.focus==="Balanced"?"Balanced":o.focus+" body"]]:[]),...(n>=5?[["Guidance",LEVELS.find(x=>x[0]===o.level)[1]]]:[]),...(n>=6?[["Fuel",`${pv.food.toLocaleString()} kcal a day`]]:[])];
     h=`<div class="onb"><div class="otop"><div class="odots" role="progressbar" aria-label="Setup progress" aria-valuemin="1" aria-valuemax="7" aria-valuenow="${n}">${[1,2,3,4,5,6,7].map(i=>`<i class="${i===n?"on":i<n?"past":""}"></i>`).join("")}</div>${skip}</div>
       <div class="ostepbody"><h2 class="oh" tabindex="-1">${Q[0]}</h2><p class="olead sm">${Q[1]}</p>${body}</div>
-      ${n<7?`<section class="oprev" aria-label="Your plan so far"><span class="weye">Your plan so far</span>${prev.map(([k,v])=>`<div><span>${k}</span><b>${esc(v)}</b></div>`).join("")}</section>`:""}
+      ${n<7?`<section class="oprev" aria-label="Plan so far"><span class="weye">Plan so far</span>${prev.map(([k,v])=>`<div><span>${k}</span><b>${esc(v)}</b></div>`).join("")}</section>`:""}
       ${btns(true,n===7?"done":"next",n===7?"Go to Workouts":n===6?"Build my plan":"Next",n===7)}</div>`; }
   el.innerHTML=`<div class="tscroll">${h}</div>`; el.hidden=false; document.body.classList.add("touring"); el.classList.toggle("step",!!focus);
   const go=d=>{ o.s=Math.max(0,o.s+d); renderOnb(true); el.querySelector(".tscroll").scrollTop=0; };
@@ -1666,7 +1691,13 @@ function renderOnb(focus){
     else if(a==="done"){ applyOnb(o,true); closeOnb(); nav="workouts"; cur="home"; selOff=0; keepNav(); render(); window.scrollTo(0,0); } });
   /* level demo: steps on its own (also with Reduce Motion: no sliding) until touched; never saved */
   const lv=n=>{ o.lvl=n; paintLvl(el,n); };
-  const r=el.querySelector(".olvl"); if(r) r.oninput=()=>{ o.touched=true; clearTimeout(onbDemo); lv(+r.value); };
+  const r=el.querySelector(".olvl"); if(r){ const stop=()=>{ o.touched=true; clearTimeout(onbDemo); };
+    r.onpointerdown=()=>{ stop(); r._drag=true; cancelAnimationFrame(r._raf); };
+    r.oninput=()=>{ stop(); const n=Math.round(+r.value); if(n!==o.lvl) lv(n); };
+    r.onchange=()=>{ r._drag=false; slideLvl(r,o.lvl); };
+    r.onpointerup=r.onpointercancel=()=>{ r._drag=false; slideLvl(r,o.lvl); };
+    r.onkeydown=e=>{ const d={ArrowRight:1,ArrowUp:1,ArrowLeft:-1,ArrowDown:-1}[e.key]; const to=e.key==="Home"?0:e.key==="End"?2:d!=null?Math.max(0,Math.min(2,o.lvl+d)):null;
+      if(to==null) return; e.preventDefault(); stop(); lv(to); }; }
   el.querySelectorAll("[data-lvl]").forEach(b=>b.onclick=()=>{ o.touched=true; clearTimeout(onbDemo); lv(+b.dataset.lvl); });
   clearTimeout(onbDemo);
   if(s===2){ paintLvl(el,o.lvl); const tick=()=>{ if(onb===o&&o.s===2&&!o.touched){ lv((o.lvl+1)%3); onbDemo=setTimeout(tick,2600); } }; if(!o.touched) onbDemo=setTimeout(tick,2600); }
