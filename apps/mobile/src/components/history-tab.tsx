@@ -35,7 +35,7 @@ import {
 } from "@/history-model";
 import { openPlan } from "@/links";
 import { storage } from "@/storage";
-import { useEngineStore } from "@/store";
+import { engine, useEngineStore } from "@/store";
 import { theme } from "@/theme";
 import { nativeDriver, useReduceMotion } from "@/use-reduce-motion";
 
@@ -800,7 +800,8 @@ function LiftsPage({ data }: { data: HistorySnapshot }) {
 }
 
 function PrCard({ pr, units }: { pr: HistoryPr; units: string }) {
-  const value = `${formatWeight(pr.weight)} ${copy.history.times} ${pr.reps}`;
+  const load = engine.isBW(pr.name) && !(pr.weight > 0) ? copy.history.bw : formatWeight(pr.weight);
+  const value = `${load} ${copy.history.times} ${pr.reps}`;
   const kind = pr.kind === "reps" ? copy.history.prReps : copy.history.prTop;
   return (
     <View accessibilityLabel={`${kind}, ${pr.name}, ${value}, ${shortDate(pr.t)}`} style={styles.prCard}>
