@@ -31,6 +31,9 @@ Three themes by context; each sets the background, surface and accent.
 - **Stat tiles**: small uppercase label on top, big value below.
 - Rest bar: the left and right halves are full-height tap zones for −15s and +15s, edge to edge.
 
+## Icons
+- Use the custom set in `assets/icons/` as described in `docs/ICONS.md`. For anything not in the set, use `lucide-react-native` (stroke 1.8 in the tab bar and cards, 2 inline). No other icon packages, no filled icons, no emoji.
+
 ## Motion
 - Switching tabs slides left or right in tab order. Plan Week/Season and History Calendar/Weeks/Lifts slide the same way.
 - Changing day (tap, arrows, swipe on the cards) slides the cards in that direction.
