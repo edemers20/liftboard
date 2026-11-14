@@ -578,7 +578,7 @@ function plan(){ buildDefaults(); const cut=cutting();
   if(food>500) P.notes.push(`A ${r5(food)} kcal/day food deficit is steep.`);
   if(!build&&!maintain&&food<0) P.notes.push(`Your activity covers the whole deficit. Eat ${r5(-food)} kcal/day above maintenance so it doesn't cost muscle.`);
   if(fins.length&&m>cap&&cap>0) P.notes.push(`Finishers run ${m} min, past a normal ${cap}-min finisher.`);
-  if(ramp&&((sp&&wk.spint==="Really hard")||hardLogged)) P.notes.push("Keep intense activity easy during the ramp.");
+  if(ramp&&((sp&&wk.spint==="Really hard")||hardLogged)) P.notes.push("Keep intense activity easy during ramp-up.");
   const nL=DAYS.length;
   if(nL===7) P.notes.push("7 lift days leaves no rest day. Days 6 and 7 run lighter; drop one if anything aches.");
   else if(nL===6) P.notes.push("6 lift days leaves one rest day. Day 6 runs lighter so recovery keeps up.");
