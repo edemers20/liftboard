@@ -352,3 +352,13 @@ Every button, pill, chip, card, row, link and tab gives visible feedback while p
 - **One-off activities:** deleting an activity that was added through "Other" must also remove it from Plan → This week's plan, usual activity days and the Workouts chips (section 8). In the web app this works through `wk.adhoc`: logging from "Other" sets `wk.adhoc[key] = true` and turns the activity on; deleting its last session turns it off again and clears the flag. Test: log Tennis from Other, check Plan shows it, delete it, check Plan no longer does.
 - **You → View preferences:** a text button (accent colour, no fill or outline, 44pt tall), not a filled or outlined button.
 - **Day and week arrows** (‹ › beside the date): pressed state inverts them (light fill, dark arrow) for at least 140ms, on top of the usual press scale.
+
+---
+
+## 18. Today button in Liquid Glass (native)
+
+- The Workouts "Today" button (top right, next to LIFT BOARD) becomes a small glass capsule: `GlassView` with `isInteractive`, label "Today" in DM Sans 600 15pt, at least 44pt tall.
+- When today is already selected it stays visible but dims to 40% and doesn't react (no tint, no press).
+- When another day is selected, tint the glass lightly with the Workouts green (#6fd0b4 at low opacity) so it reads as an action. Tapping it moves the day pager back to today (animated when nearby, instant when far).
+- It's part of the header, so it scrolls away with the title (section 9) and comes back on scroll up.
+- Fallbacks as in `docs/AUDIT-liquid-glass.md`: solid surface colour on older iOS and with Reduce Transparency.
