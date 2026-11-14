@@ -578,7 +578,7 @@ function plan(){ buildDefaults(); const cut=cutting();
   if(food>500) P.notes.push(`A ${r5(food)} kcal/day food deficit is steep.`);
   if(!build&&!maintain&&food<0) P.notes.push(`Your activity covers the whole deficit. Eat ${r5(-food)} kcal/day above maintenance so it doesn't cost muscle.`);
   if(fins.length&&m>cap&&cap>0) P.notes.push(`Finishers run ${m} min, past a normal ${cap}-min finisher.`);
-  if(ramp&&sp&&wk.spint==="Really hard") P.notes.push("Keep spin easy during the ramp; hard classes don't build base.");
+  if(ramp&&((sp&&wk.spint==="Really hard")||hardLogged)) P.notes.push("Keep intense activity easy during the ramp; hard sessions don't build base.");
   const nL=DAYS.length;
   if(nL===7) P.notes.push("7 lift days leaves no rest day. Days 6 and 7 run lighter; drop one if anything aches.");
   else if(nL===6) P.notes.push("6 lift days leaves one rest day. Day 6 runs lighter so recovery keeps up.");
@@ -824,14 +824,18 @@ function changeItems(G){ return Object.entries(G||{}).map(([c,l])=>{
   const parts=[]; if(add) parts.push(`${add} set${add>1?"s":""} added`); if(cut) parts.push(`${cut} set${cut>1?"s":""} cut`);
   if(other.length) parts.push(parts.length||other.length>1?`${other.length} other change${other.length>1?"s":""}`:other[0]);
   return {cause:capF1(c),summary:capF1(andList(parts)),items:l.map(capF1)}; }); }
-const WATCH=[[/^Eating ~/,"Eating too little",0,1],[/period is a sign/,"Watch your cycle",0,1],[/leaves no rest day/,"No rest day",0,1],
-  [/Reps are dropping/,"Reps are dropping",1],[/^Food raised to/,"Food raised for your training",1],[/aggressive; strength will stall/,"Aggressive pace",1],
-  [/food deficit is steep/,"Steep food deficit",1],[/covers the whole deficit/,"Eat a little more",1],[/weeks at a faster pace/,"Time for a break",1],
-  [/close to daily/,"Close to daily",2],[/sessions this week/,"A busy week",2],[/two a day on average/,"Two sessions a day",2],[/leaves one rest day/,"One rest day",2],
-  [/^Finishers run/,"Long finishers",2],[/caps loss at/,"Pace capped",2],[/caps cardio at 25%/,"Cardio capped",2],[/^Keep spin easy/,"Keep spin easy",2],
-  [/rather than build/,"Holding, not building",3],[/preserving strength is the goal/,"Strength first",3],[/^Protein /,"Protein",4]];
-function watchItems(notes){ return (notes||[]).map((t,i)=>{ const m=WATCH.find(([re])=>re.test(t))||[null,"Note",3,0];
-  return {h:m[1],t:m[1]==="Protein"?t.replace(/^Protein /,""):t,rank:m[2],safe:!!m[3],i}; }).sort((a,b)=>a.rank-b.rank||a.i-b.i); }
+/* headline, rank, safety; null drops the note from Watch. Notes that share a headline merge into one row. */
+const WATCH=[[/^Eating ~/,"Need more fuel",0,1],[/food deficit is steep/,"Need more fuel",1],[/covers the whole deficit/,"Need more fuel",1],
+  [/period is a sign/,"Watch your cycle",0,1],[/leaves no rest day/,"Need more recovery",0,1],[/leaves one rest day/,"Need more recovery",2],
+  [/Reps are dropping/,"Reps dropping",1],[/^Food raised to/,"Fuel raised",1],[/aggressive; strength will stall/,"Aggressive pace",1],
+  [/weeks at a faster pace/,"Time for a break",1],[/close to daily/,null],[/sessions this week/,null],[/two a day on average/,null],
+  [/^Finishers run/,"Long finishers",2],[/caps loss at/,"Pace capped",2],[/caps cardio at 25%/,"Cardio capped",2],[/^Keep intense activity easy/,"Keep intense activity easy",2],
+  [/rather than build/,"Strength first",3],[/preserving strength is the goal/,"Strength first",3],[/^Protein /,"Protein",4]];
+function watchItems(notes){ const by=new Map();
+  (notes||[]).forEach((t,i)=>{ const m=WATCH.find(([re])=>re.test(t))||[null,"Note",3,0]; if(m[1]===null) return;
+    const body=m[1]==="Protein"?t.replace(/^Protein /,""):t, x=by.get(m[1]);
+    if(x){ x.t+=" "+body; x.rank=Math.min(x.rank,m[2]); x.safe=x.safe||!!m[3]; } else by.set(m[1],{h:m[1],t:body,rank:m[2],safe:!!m[3],i}); });
+  return [...by.values()].sort((a,b)=>a.rank-b.rank||a.i-b.i); }
 /* ---------- Records, streaks and the weekly report ----------
    1RM is estimated from a top set (Epley). A personal record (PR) is a heavier top set than ever before,
    or more reps at the same or a heavier weight. A higher 1RM alone doesn't count. The first log of an exercise isn't a PR. */

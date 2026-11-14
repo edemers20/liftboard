@@ -316,5 +316,8 @@ The web app has this; the logic is in the engine (`changeItems()`, `watchItems()
 - No arrows, bullets or middle dots.
 
 **Watch**
-- Each note is a bold headline with its sentence under it in grey. Headlines come from `watchItems()` ("Eating too little", "Watch your cycle", "No rest day", "Aggressive pace", "Steep food deficit", "Eat a little more", "Protein" and so on).
-- Ranked: safety notes first ("Eating too little", "Watch your cycle", "No rest day"), shown in yellow and never hidden. Then the most useful others, up to 3 rows in total; the rest behind "{n} more" / "Show less".
+- Each note is a bold headline with its sentence under it in grey. Headlines come from `watchItems()`: Need more fuel, Watch your cycle, Need more recovery, Reps dropping, Fuel raised, Aggressive pace, Time for a break, Long finishers, Pace capped, Cardio capped, Keep intense activity easy, Strength first, Protein.
+- Notes that share a headline merge into one row (their sentences run together): Need more fuel covers eating too little, a steep food deficit and activity covering the whole deficit; Need more recovery covers 6 and 7 lift days; Strength first covers both cut notes.
+- Not shown in Watch: close to daily, a busy week, two sessions a day.
+- Keep intense activity easy shows during the pre-season ramp when spin is set to Really hard or any activity this week was logged as Hard.
+- Ranked: safety rows first (Need more fuel when you're under the floor, Watch your cycle, Need more recovery at 7 lift days), shown in yellow and never hidden. Then the most useful others, up to 3 rows in total; the rest behind "{n} more" / "Show less".
