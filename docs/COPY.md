@@ -246,7 +246,6 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | {…} of {…} | main.js:336 |
 |  | Other | main.js:336 |
 |  | Lift Board | main.js:339 |
-|  | Today · | main.js:341 |
 |  | · rounds of 30s hard, 90s easy | main.js:813 |
 |  | at a steady, talkable pace | main.js:813 |
 |  | · ~{…} kcal | main.js:813 |
