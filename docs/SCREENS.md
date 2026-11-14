@@ -91,15 +91,12 @@ Calendar · Weeks · Lifts switch (slides between them).
 
 ---
 
-## 7. You tab
+## 7. You tab (profile) and Settings
 
-[`50-you`, `51-you-edit-profile`]
-- Profile header: initial in a gradient circle, name, "Member since Aug 2026", a pill for each sport and activity (main sport first), stat tiles Lifts / Activities / Weeks active.
-- Profile grid in view mode shows only Goal, Experience, Lifting focus and Lift days. "View preferences" opens the rest, already editable: activities, sports in season, focus, bio data (including height, weight, body fat, steps, age and sex) and training preferences (experience slider, session length, supersets, stretching, rest timer sound with Play test sound; no lift kcal field, it is worked out weekly). "Save & close" sticks above the tab bar when something changed; otherwise the button says "Close".
-- App: Units (lb / kg), Tips (More / Fewer), Week starts on (Mon / Sun), Next-morning check (On / Off) as two-way switches. Stays under preferences.
-- FAQ: 15 expandable questions, no disclosure mark. Stays under App.
-- Your data: in the native app this becomes Export my data and Delete account (replacing Download / Restore backup).
-- Disclaimer line; Replay tour; Reset profile.
+[`docs/design/Proto_Profile.dc.html`, `Proto_ProfileNew.dc.html`, `Proto_Settings.dc.html`; full spec in `docs/HANDOFF-nov-13-features.md` section 19]
+- **You:** a profile of what you've done: avatar, name, activities; the streak card; Lifts, Activities and Hours moved; Strongest lift; Personal Records; Most played this season; Milestones. A gear at the top right opens Settings. No body stats.
+- **First week:** each empty spot says what fills it, plus "Finish setting up" for what setup skipped.
+- **Settings:** Body (with Edit metrics), Training, Activities, App, Help (FAQ), Your data. Goal, pace and focus live on Plan → Season; lift days and session length on Plan → Week.
 
 ---
 

@@ -365,13 +365,39 @@ Every button, pill, chip, card, row, link and tab gives visible feedback while p
 
 ---
 
-## 19. Profile and Settings split (design in progress)
+## 19. Profile and Settings split (native)
 
-Boards: `docs/design/Proto_Profile.dc.html`, `Proto_ProfileNew.dc.html` (first week), `Proto_Settings.dc.html`. Not ready to build yet; decisions so far:
-- You is a profile of what you've done; a gear at the top right opens Settings. Body stats live only in Settings, never on the profile.
-- Goal, pace and lifting focus live on Plan → Season (they change mid-season). Lift days and **session length** live on Plan → Week, not in Settings. In Settings, "Edit metrics" is a centred text button under the body stats.
-- The streak card: flame, then the number, then "weeks in a row" beside the number in Ranchers at a smaller size ("week" when it's 1). No "best streak" line. The card's pink-to-orange background gets stronger as the streak grows (faint at 1 week, full at 16+). The number is the same height as the flame beside it. A row of 12 small flames runs across the bottom, oldest on the left: orange for completed weeks, faint for weeks that weren't. The card has the same slow shine sweep as the Your plan card on Plan → Season.
-- Later: the weekly report shows the streak ("{n} weeks in a row") when a week is done.
-- Hours moved and Most played come from the engine: `hoursMoved()`, `timeByKind()`, `mostPlayed()` (lifts count their logged minutes or session length; activities their minutes). "This season" starts when In-season was last switched (`wk.seasonFrom`), else at your first log.
-- **Your year** (a 52-square grid of completed weeks, no subtitle) lives at the top of History → Weeks, not on the profile. Four rows of 13 weeks, labelled Jan, Apr, Jul, Oct on the left. Built in the web app.
-- **Session length** is a stepper under Lift days on Plan → Week. Built in the web app.
+Boards: `docs/design/Proto_Profile.dc.html`, `docs/design/Proto_ProfileNew.dc.html` (first week) and `docs/design/Proto_Settings.dc.html`. Copy is confirmed; use it exactly as written on the boards. The pink theme applies to both screens.
+
+**You becomes a profile** of what you've done. Top to bottom:
+- A gear button at the top right (40pt circle, glass on iOS 26) that opens Settings.
+- Avatar (initial on a pink-to-orange gradient), name in Ranchers, "Member since {month year}", a pill per activity and Lifting.
+- **Streak card:** flame (56pt), the number in Ranchers sized so the digit is the same height as the flame (about 55pt; a Ranchers digit is 0.84 of the font size), then "weeks in a row" beside the number in Ranchers at about 22pt ("week" when it's 1). Below them, a row of 12 small flames across the card, oldest on the left: orange for completed weeks, faint (text colour at about 22%) for weeks that weren't. The card's pink-to-orange background gets stronger as the streak grows (faint at 1 week, full at 16 or more), and it has the same slow shine sweep as the Your plan card on Plan → Season. Tapping it gives the flame a small wiggle. No "best streak" line.
+- Three tiles: **Lifts**, **Activities** and **Hours moved** (`hoursMoved()`), each with a small line under the number.
+- **Strongest lift:** the exercise with the biggest climb in top set, the dumbbell icon with the top set, "+{n} lb since you started", and an orange trend line.
+- **Personal Records:** the last 4 weeks' records as a sideways-scrolling row of cards (same rule as History).
+- **Most played** ("this season"): the top activity in Ranchers, "{hours} hours on court across {n} sessions" (use "on court" for court sports, otherwise drop it), and bars of hours per activity and lifting (`timeByKind(seasonFrom())`, `mostPlayed()`).
+- **Milestones:** only ones already earned, newest first, each with its date (100 hours moved, a 6-week streak, first PR, 50 lifts, and so on). Never "3 more to unlock".
+- No body stats anywhere on this screen.
+
+**First week** (`Proto_ProfileNew`): no zeros-only cards.
+- "+ Add your name" where the name goes, when there's no name.
+- The streak card reads "WEEK 1" beside a grey flame, "Finish this week's lifts to light your first flame." and a progress bar of this week's lifts ("1 of 4").
+- Tiles show the real small numbers with a hint under each.
+- **Finish setting up** lists only what setup skipped (body fat; a first activity), each opening the right place.
+- Strongest lift shows the first top set ("Your first top set. The line starts here."); Personal Records says "Your first PR shows up after your second workout of an exercise."; Milestones says they appear as you hit them.
+
+**Settings** (from the gear): a back link "‹ You", the title, then:
+- A note linking to Plan → Season: goal, pace and lifting focus live there because they change through a season.
+- **Body:** height, weight, body fat, age, sex, steps a day as a grid, with a centred "Edit metrics" text button.
+- **Training:** experience, supersets, stretching after lifts, rest timer sound with "Play test sound".
+- **Activities**, **App** (units, tips, week starts on, next-morning check), **Help** (FAQ rows), **Your data** (export, replay tour, reset profile, delete account).
+
+**Moved elsewhere**
+- **Lift days** and **session length:** Plan → Week (session length is a stepper under Lift days; built in the web app).
+- **Goal, pace, lifting focus:** Plan → Season.
+- **Your year:** top of History → Weeks, a 52-square grid in 4 rows of 13 labelled Jan, Apr, Jul, Oct, no subtitle; orange for completed weeks, dimmer for partly done, this week ringed (built in the web app).
+
+**Engine** (port into `packages/engine` with the "time moved" test): `timeByKind()`, `hoursMoved()`, `mostPlayed()`, `seasonFrom()`. A lift counts its logged minutes or your session length; activities count their minutes. "This season" starts when In-season was last switched (`wk.seasonFrom`, set in `plan()`), else at your first log.
+
+**Later:** the weekly report shows the streak ("{n} weeks in a row") when a week is done.
