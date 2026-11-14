@@ -592,7 +592,7 @@ function renderProfile(){
   if(sl){ const one=sl.rows.length<2, U=KG()?"kg":"lb", dw=KG()?Math.round(sl.dw/L2K*10)/10:sl.dw;
     const v=sl.rows.slice(-12).map(x=>x.w), lo=Math.min(...v), hi=Math.max(...v), n=v.length, pts=v.map((w,j)=>[n>1?4+j*112/(n-1):60,hi===lo?28:50-(w-lo)/(hi-lo)*42].map(z=>+z.toFixed(1)));
     slH=`<section class="ycard"><div class="yh"><h3>Strongest lift</h3>${one?"":`<span>since ${MON(sl.rows[0].k)}</span>`}</div><div class="ysl${one?" one":""}"><div><span class="ysln">${esc(sl.n)}</span><span class="yslt">${DUMBBELL}<span class="mono">${fmtSet(sl.n,sl.last.w,sl.last.r)}</span></span>
-      <span class="ysld">${one?"Your first top set. The line starts here.":dw>0?`+${dw} ${U} since you started`:"Same weight as when you started"}</span></div>
+      <span class="ysld">${one?"Your first top set. The line starts here.":dw>0?`+${dw} ${U} since you started`:"Same weight"}</span></div>
       ${one?"":`<svg aria-hidden="true" width="120" height="56" viewBox="0 0 120 56"><polyline points="${pts.map(p=>p.join(",")).join(" ")}" fill="none" stroke="#fea06a" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${pts[n-1][0]}" cy="${pts[n-1][1]}" r="4" fill="#fea06a"/></svg>`}</div></section>`; }
   /* personal records, same rule as History */
   const now=Date.now(), prs=prsBetween(now-28*864e5,now+864e5).slice(0,8);
