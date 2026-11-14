@@ -1185,3 +1185,16 @@ h3.lhead{display:flex;align-items:center;gap:4px;justify-content:flex-start}
 .wcard.act.open.grow{overflow:hidden;animation:lbGrow .32s cubic-bezier(.2,.8,.2,1) both}
 .wcard.act.open.grow .weff,.wcard.act.open.grow .wedit{animation:lbRise .26s ease .1s both}
 @media (prefers-reduced-motion:reduce){.wcard.act.open.grow,.wcard.act.open.grow .weff,.wcard.act.open.grow .wedit{animation:none}}
+/* This week's changes and Watch: headline, then detail */
+.chgs,.wtch{display:flex;flex-direction:column}
+.chg{border-top:1px solid var(--line)} .chg:first-child{border-top:0}
+.chgb{width:100%;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer;padding:10px 0;display:flex;flex-direction:column;gap:2px}
+.chgb:disabled{cursor:default;opacity:1}
+.chgb b{font-size:15px;font-weight:600} .chgb span{font-size:13px;color:var(--muted)}
+.chgi{display:flex;flex-wrap:wrap;gap:6px;padding:0 0 12px;animation:lbFade .2s ease both}
+.chgi span{font-size:12px;padding:4px 10px;border-radius:999px;background:var(--card);color:var(--tx2,#d4cfcc)}
+.chgi span.up{background:#1f3029;color:#6fd0b4} .chgi span.dn{color:var(--muted)}
+.wtr{display:flex;flex-direction:column;gap:2px;padding:10px 0;border-top:1px solid var(--line)} .wtr:first-child{border-top:0}
+.wtr b{font-size:15px;font-weight:600} .wtr span{font-size:13px;color:var(--muted)}
+.wtr.safe b{color:#e7b94a}
+.wtch .wlink{align-self:flex-start;margin-top:4px}

@@ -500,3 +500,19 @@ describe("records and streaks", () => {
     expect(E.weekStreak()).toBe(4);
   });
 });
+
+describe("changes and watch as headlines", () => {
+  it("summarises a cause's set changes", () => {
+    const C = E.changeItems({ "lower body focus": ["lower accessories +1 set", "unilateral +1 set", "side delts −1 set", "rear delts −1 set"] });
+    expect(C[0]).toMatchObject({ cause: "Lower body focus", summary: "2 sets added and 2 sets cut" });
+    expect(C[0].items).toHaveLength(4);
+  });
+  it("keeps a single non-set change as its own summary", () => {
+    expect(E.changeItems({ "pre-season ramp": ["one 45-min zone 2 session"] })[0].summary).toBe("One 45-min zone 2 session");
+  });
+  it("puts safety notes first", () => {
+    const W = E.watchItems(["Protein 110–140 g daily.", "Eating ~1300 kcal/day is too low. Slow the rate."]);
+    expect(W[0]).toMatchObject({ h: "Eating too little", safe: true });
+    expect(W[1]).toMatchObject({ h: "Protein", t: "110–140 g daily." });
+  });
+});

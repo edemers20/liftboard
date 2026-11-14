@@ -813,6 +813,25 @@ function resyncDone(dayId){
 }
 /** Close the week: snapshot history, plan missed days, calibrate maintenance, reset check-in. Returns toast lines. */
 
+
+/* ---------- This week's changes and Watch, as headline + detail ----------
+   Changes: one row per cause with a short summary; the set-by-set detail opens on tap.
+   Watch: a headline per note, ranked; safety notes always come first and never fold away. */
+const capF1=x=>x?x[0].toUpperCase()+x.slice(1):x;
+const andList=a=>a.length<2?(a[0]||""):`${a.slice(0,-1).join(", ")} and ${a[a.length-1]}`;
+function changeItems(G){ return Object.entries(G||{}).map(([c,l])=>{
+  const add=l.filter(x=>/\+1 set$/.test(x)).length, cut=l.filter(x=>/−1 set$/.test(x)).length, other=l.filter(x=>!/[+−]1 set$/.test(x));
+  const parts=[]; if(add) parts.push(`${add} set${add>1?"s":""} added`); if(cut) parts.push(`${cut} set${cut>1?"s":""} cut`);
+  if(other.length) parts.push(parts.length||other.length>1?`${other.length} other change${other.length>1?"s":""}`:other[0]);
+  return {cause:capF1(c),summary:capF1(andList(parts)),items:l.map(capF1)}; }); }
+const WATCH=[[/^Eating ~/,"Eating too little",0,1],[/period is a sign/,"Watch your cycle",0,1],[/leaves no rest day/,"No rest day",0,1],
+  [/Reps are dropping/,"Reps are dropping",1],[/^Food raised to/,"Food raised for your training",1],[/aggressive; strength will stall/,"Aggressive pace",1],
+  [/food deficit is steep/,"Steep food deficit",1],[/covers the whole deficit/,"Eat a little more",1],[/weeks at a faster pace/,"Time for a break",1],
+  [/close to daily/,"Close to daily",2],[/sessions this week/,"A busy week",2],[/two a day on average/,"Two sessions a day",2],[/leaves one rest day/,"One rest day",2],
+  [/^Finishers run/,"Long finishers",2],[/caps loss at/,"Pace capped",2],[/caps cardio at 25%/,"Cardio capped",2],[/^Keep spin easy/,"Keep spin easy",2],
+  [/rather than build/,"Holding, not building",3],[/preserving strength is the goal/,"Strength first",3],[/^Protein /,"Protein",4]];
+function watchItems(notes){ return (notes||[]).map((t,i)=>{ const m=WATCH.find(([re])=>re.test(t))||[null,"Note",3,0];
+  return {h:m[1],t:m[1]==="Protein"?t.replace(/^Protein /,""):t,rank:m[2],safe:!!m[3],i}; }).sort((a,b)=>a.rank-b.rank||a.i-b.i); }
 /* ---------- Records, streaks and the weekly report ----------
    1RM is estimated from a top set (Epley). A personal record (PR) is a heavier top set than ever before,
    or more reps at the same or a heavier weight. A higher 1RM alone doesn't count. The first log of an exercise isn't a PR. */
@@ -866,7 +885,7 @@ function newWeek(start){
   save(); return ["New week started. Check-in reset to normal."];
 }
 
-export { wTitle, e1rm, prsBetween, weekComplete, weekStreak, countWeek, EFF_MULT, OWN_EFF, sessionKcal, liftKcal, refreshLiftK, LIFT_MET, weekActuals, swapOptions, swapDay, rateLb, isBW, yogaMet, pilMet, YOGA_EFF, PIL_EFF, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, MUSCLES, slotMuscles, musclePriority, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk };
+export { changeItems, watchItems, wTitle, e1rm, prsBetween, weekComplete, weekStreak, countWeek, EFF_MULT, OWN_EFF, sessionKcal, liftKcal, refreshLiftK, LIFT_MET, weekActuals, swapOptions, swapDay, rateLb, isBW, yogaMet, pilMet, YOGA_EFF, PIL_EFF, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, MUSCLES, slotMuscles, musclePriority, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk };
 
 /* workout titles read "Lower (Glute & Hamstring)"; older saved titles used a middle dot */
 const wTitle=t=>String(t||"").replace(/^(Lower|Upper) · (.+)$/,"$1 ($2)");

@@ -303,3 +303,18 @@ The web app has all three (commit after `02da198`); port the engine parts into `
 - **Order on a Workouts day:** the day's cards, then the activity chips, then **Fuel/Recover last**. (The native app currently puts Fuel above the chips; the web app has the right order.) Fuel sums up the day, so it reacts to what's above it; the chips are an action and belong next to the cards they create.
 - **Logging an activity:** the new activity card appears in place, above the chips, and opens inline with an animation: height grows over about 320ms (ease-out), then the "How hard was it?" pills and the minutes row fade and rise in. Keep the scroll position; if the card would be off screen, scroll just enough to show it. Reduce Motion: no animation.
 - **The leg-day swap offer** ("You logged Pickleball today. Swap Lower (Hinge & Glute) for Upper (Press) so your legs can recover?") is no longer a banner that pushes the page down. About half a second after logging, it opens as a bottom sheet over a dimmed overlay: title "Swap today's workout?", that text, and **Keep plan** / **Swap**. Swap moves the upper day to today (toast "{title} moved to today"); Keep plan, the close button or the overlay closes it. It's asked once per day, and not at all if today's lift is already done.
+
+---
+
+## 15. This week's changes and Watch as headlines (native)
+
+The web app has this; the logic is in the engine (`changeItems()`, `watchItems()` in `src/engine.js`, with tests), so port those into `packages/engine` and build the screens on them. Use the headline copy exactly as written in the engine.
+
+**This week's changes**
+- One row per cause. Bold headline is the cause ("Lower body focus", "225 min pickleball", "Recovery load 4 (soreness, drinking, hard spin)"); under it, a grey one-line summary ("2 sets added and 2 sets cut", "1 set cut and 1 other change", or the single change itself when there's only one).
+- Tapping a row opens its detail as small pills: added sets in green ("Lower accessories +1 set"), cut sets muted, other changes plain. Tap again to close. Rows with a single change don't open.
+- No arrows, bullets or middle dots.
+
+**Watch**
+- Each note is a bold headline with its sentence under it in grey. Headlines come from `watchItems()` ("Eating too little", "Watch your cycle", "No rest day", "Aggressive pace", "Steep food deficit", "Eat a little more", "Protein" and so on).
+- Ranked: safety notes first ("Eating too little", "Watch your cycle", "No rest day"), shown in yellow and never hidden. Then the most useful others, up to 3 rows in total; the rest behind "{n} more" / "Show less".

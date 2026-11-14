@@ -1,6 +1,6 @@
 import "./styles.css";
 import { attachDials } from "./dial.js";
-import { wTitle, e1rm, prsBetween, weekComplete, weekStreak, countWeek, EFF_MULT, OWN_EFF, weekActuals, swapOptions, swapDay, isBW, yogaMet, pilMet, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk } from "./engine.js";
+import { changeItems, watchItems, wTitle, e1rm, prsBetween, weekComplete, weekStreak, countWeek, EFF_MULT, OWN_EFF, weekActuals, swapOptions, swapDay, isBW, yogaMet, pilMet, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk } from "./engine.js";
 
 const storage=(()=>{ try{ const k="__t"; localStorage.setItem(k,"1"); localStorage.removeItem(k); return localStorage; }catch(e){ const m=new Map(); return {getItem:k=>m.get(k)??null,setItem:(k,v)=>m.set(k,String(v))}; } })();
 init(storage);
@@ -333,6 +333,17 @@ function sessCard(s,today){
     <div class="wedit"><label for="sm-${s.t}"><span>Minutes</span><input id="sm-${s.t}" data-smin="${s.t}" inputmode="numeric" value="${s.min||""}"></label>
     <button type="button" class="btn wdel" data-sdel="${s.t}">Delete</button><button type="button" class="btn wsave" data-ssave="${s.t}">Save</button></div></section>`;
 }
+/* This week's changes: one row per cause with a summary; tap for the set-by-set detail */
+let openChg=null, watchMore=false;
+function changesHTML(P){ const C=changeItems(P.G); if(!C.length) return "";
+  return `<div class="panel">${hdr("This week's changes",["changes"])}<div class="chgs">${C.map((c,i)=>{ const open=openChg===c.cause, one=c.items.length===1&&c.summary===c.items[0];
+    return `<div class="chg${open?" open":""}"><button type="button" class="chgb" data-chg="${esc(c.cause)}"${one?" disabled":""} aria-expanded="${open}"><b>${esc(c.cause)}</b><span>${esc(c.summary)}</span></button>
+      ${open&&!one?`<div class="chgi">${c.items.map(x=>`<span class="${/\+1 set$/.test(x)?"up":/−1 set$/.test(x)?"dn":""}">${esc(x)}</span>`).join("")}</div>`:""}</div>`; }).join("")}</div></div>`; }
+/* Watch: safety notes first and always shown; then the top few, the rest behind More */
+function watchHTML(P){ const W=watchItems(P.notes); if(!W.length) return "";
+  const safe=W.filter(x=>x.safe), rest=W.filter(x=>!x.safe), show=watchMore?W:safe.concat(rest.slice(0,Math.max(0,3-safe.length))), hidden=W.length-show.length;
+  return `<div class="panel">${hdr("Watch",["watch"])}<div class="wtch">${show.map(x=>`<div class="wtr${x.safe?" safe":""}"><b>${esc(x.h)}</b><span>${x.t}</span></div>`).join("")}
+    ${hidden>0||watchMore?`<button type="button" class="wlink" data-wmore>${watchMore?"Show less":`${hidden} more`}</button>`:""}</div></div>`; }
 function renderWorkouts(P){
   const off=Math.floor(selOff/7+(monIdx(new Date())===0&&wk.wkStart!=="Sun"?0:0)), today=DAY0(Date.now());
   const sel=addD(today,selOff), W0=weekStartOf(today), wOff=Math.floor((weekStartOf(sel)-W0)/6048e5+0.01);
@@ -450,8 +461,7 @@ function planWeek(P){
   ${wk.ckDone?"":ck}
   <div class="panel plist"><h3>${E?"Next week's plan":"This week's plan"}</h3><div class="prows">${rowsH||`<p class="small">Nothing planned yet. Pick your usual lift days below.</p>`}</div>${daysH}${adH}</div>
   ${food}
-  ${P.rules.length?`<div class="panel">${hdr("This week's changes",["changes"])}<ul>${P.rules.map(n=>`<li>${n}</li>`).join("")}</ul></div>`:""}
-  ${P.notes.length?`<div class="panel">${hdr("Watch",["watch"])}<ul>${P.notes.map(n=>`<li>${n}</li>`).join("")}</ul></div>`:""}
+  ${changesHTML(P)}${watchHTML(P)}
   ${wk.ckDone?`<div class="ckline"><span><b>Check-in</b> · ${esc(ckSummary())}</span><button type="button" class="wlink ckedit" id="ckEdit" aria-label="Edit check-in"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4Z"/><path d="M13.5 6.5l4 4"/></svg></button></div>`:""}
   ${E?"":`<button type="button" class="btn" id="finishWeek">Mark week as finished</button>`}`;
 }
@@ -811,8 +821,7 @@ function renderWeek(P){
   </div>
   ${SHOW_MUSCLES&&(P.ledger||[]).some(x=>x.target>0)?`<div class="panel">${hdr("Muscles this week",["muscles"])}<div class="mlist">${P.ledger.filter(x=>x.target>0).map(x=>{ const f=v=>String(Math.round(v*2)/2), pd=Math.min(100,x.done/x.target*100), pp=Math.min(100,(x.done+x.left)/x.target*100);
     return `<div class="mrow ${x.status.replace(" ","")}"><span class="mn">${x.name}</span><span class="mbar" aria-hidden="true"><i class="pl" style="width:${pp}%"></i><i class="dn" style="width:${pd}%"></i></span><span class="mv">${f(x.done)}<small> / ${x.target}</small></span><span class="ms">${x.status}</span></div>`; }).join("")}</div></div>`:""}
-  ${P.rules.length?`<div class="panel">${hdr("This week's changes",["changes"])}<ul>${P.rules.map(n=>`<li>${n}</li>`).join("")}</ul></div>`:""}
-  ${P.notes.length?`<div class="panel">${hdr("Watch",["watch"])}<ul>${P.notes.map(n=>`<li>${n}</li>`).join("")}</ul></div>`:""}
+  ${changesHTML(P)}${watchHTML(P)}
   <button class="btn primary" id="newWeek" type="button">Start new week</button>`;
 }
 /* ---------- Day: one focused exercise at a time ---------- */
@@ -1482,6 +1491,8 @@ function bind(){
     const ac=v.querySelector("#addCustom"); if(ac) ac.oninput=()=>{ addCustom=ac.value; }; if(ac) ac.onchange=()=>render();
     const at=v.querySelector("#addCat"); if(at) at.onchange=()=>{ addCat=at.value; render(); }; }
   v.querySelectorAll("[data-xrm]").forEach(b=>b.onclick=()=>{ removeExtra(cur,+b.dataset.xrm); render(); });
+  v.querySelectorAll("[data-chg]").forEach(b=>b.onclick=()=>{ const c=b.dataset.chg; openChg=openChg===c?null:c; render(); });
+  v.querySelectorAll("[data-wmore]").forEach(b=>b.onclick=()=>{ watchMore=!watchMore; render(); });
   v.querySelectorAll("[data-wo]").forEach(b=>b.onclick=()=>{ const t=+b.dataset.wo; openWeek=openWeek===t?null:t; render(); });
   v.querySelectorAll("[data-wc]").forEach(b=>b.onclick=()=>{ const t=+b.dataset.wc, w=(wk.weeks||[]).find(x=>x.start===t); countWeek(t,!(w&&w.counted)); render(); });
   v.querySelectorAll("[data-lx]").forEach(b=>b.onclick=()=>{ const n=b.dataset.lx; openLift=openLift===n?null:n; render(); });
