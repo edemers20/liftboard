@@ -1,0 +1,24 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Splash preview</title><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{--bg:#181513}
+body{margin:0;background:var(--bg);display:grid;place-items:center;min-height:100vh;font:500 14px system-ui;color:#a8a09c}
+.phone{width:min(390px,100vw);aspect-ratio:390/844;background:#181513;position:relative;overflow:hidden;border-radius:36px;box-shadow:0 0 0 1px #2f2a27}
+svg{position:absolute;inset:0;margin:auto;width:78%;height:auto;top:0;bottom:0}
+.bar{transform-origin:512px 512px;animation:bar .45s cubic-bezier(.2,.8,.2,1) .1s both}
+.collar{animation:fade .2s ease .45s both}
+@keyframes bar{from{transform:scaleX(0);opacity:0}to{transform:none;opacity:1}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes inL{from{transform:translateX(-420px);opacity:0}to{transform:none;opacity:1}}
+@keyframes inR{from{transform:translateX(420px);opacity:0}to{transform:none;opacity:1}}
+.p0{animation:inL .42s cubic-bezier(.2,.9,.25,1.15) 0.55s both} .r.p0{animation-name:inR}
+.p1{animation:inL .42s cubic-bezier(.2,.9,.25,1.15) 0.7100000000000001s both} .r.p1{animation-name:inR}
+.p2{animation:inL .42s cubic-bezier(.2,.9,.25,1.15) 0.8700000000000001s both} .r.p2{animation-name:inR}
+
+.all{animation:settle .5s ease 1.25s both;transform-origin:512px 512px}
+@keyframes settle{0%{transform:none}35%{transform:translateY(10px)}100%{transform:none}}
+.word{position:absolute;left:0;right:0;bottom:30%;text-align:center;font:400 34px Ranchers, 'Arial Narrow', sans-serif;color:#edeae8;letter-spacing:.02em;animation:fade .4s ease 1.5s both}
+.out{position:absolute;inset:0;background:#131615;animation:fade .35s ease 2.3s both}
+button{margin-top:16px;border:0;border-radius:999px;padding:10px 18px;background:#2f2a27;color:#edeae8;font:600 14px system-ui;cursor:pointer}
+</style><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Ranchers&display=swap"></head>
+<body><div style="display:flex;flex-direction:column;align-items:center;padding:16px"><div class="phone" id="ph"><svg viewBox="0 0 1024 1024" aria-label="Lift Board"><g class="all"><rect class="bar" x="96" y="494" width="832" height="36" rx="18" fill="#e9b69b"/><rect class="collar" x="302" y="452" width="28" height="120" rx="12" fill="#edeae8"/><rect class="p l p0" x="224" y="292.0" width="70" height="440" rx="26" fill="#6fd0b4"/><rect class="p l p1" x="154" y="347.0" width="58" height="330" rx="26" fill="#fc96bf"/><rect class="p l p2" x="94" y="397.0" width="48" height="230" rx="24.0" fill="#fea06a"/><rect class="collar" x="694" y="452" width="28" height="120" rx="12" fill="#edeae8"/><rect class="p r p0" x="730" y="292.0" width="70" height="440" rx="26" fill="#6fd0b4"/><rect class="p r p1" x="812" y="347.0" width="58" height="330" rx="26" fill="#fc96bf"/><rect class="p r p2" x="882" y="397.0" width="48" height="230" rx="24.0" fill="#fea06a"/></g></svg><div class="word">LIFT BOARD</div><div class="out"></div></div>
+<button onclick="const p=document.getElementById('ph'),c=p.cloneNode(true);p.replaceWith(c)">Replay</button><p>About 2.6s: bar, plates load biggest first, a small settle, the name, then into the app.</p></div></body></html>

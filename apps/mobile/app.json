@@ -8,13 +8,17 @@
     "scheme": "liftboard",
     "userInterfaceStyle": "dark",
     "ios": {
-      "icon": "./assets/expo.icon",
+      "icon": {
+        "light": "./assets/images/icon.png",
+        "dark": "./assets/images/icon-dark.png",
+        "tinted": "./assets/images/icon-tinted.png"
+      },
       "bundleIdentifier": "app.liftboard",
       "supportsTablet": false
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#181513",
+        "backgroundColor": "#6fd0b4",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -31,15 +35,17 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#131615",
+          "backgroundColor": "#181513",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "imageWidth": 304
         }
       ],
       [
         "expo-notifications",
         {
-          "sounds": ["./assets/sounds/rest_chime.wav"]
+          "sounds": [
+            "./assets/sounds/rest_chime.wav"
+          ]
         }
       ],
       "expo-audio",

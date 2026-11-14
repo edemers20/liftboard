@@ -226,3 +226,27 @@ Today each tab's top area (title and switcher, or the Workouts title and week st
 
 - Exercise name: 16pt, DM Sans 600 (was 14pt regular).
 - Remove the " · " separator before the change ("+25 in 8 wk"). Put an 8pt gap between the top set and the change instead; keep the change orange when it's going up (section 7).
+
+---
+
+## 11. App icon and animated splash (native)
+
+**App icon (already done in the repo; just check it builds)**
+- New icon: a dark barbell on the green-to-peach gradient. Files in `apps/mobile/assets/images/`: `icon.png` (light), `icon-dark.png` (gradient barbell on dark, for iOS dark mode), `icon-tinted.png` (grayscale, for iOS tinted mode), and the Android adaptive set (`android-icon-foreground/background/monochrome.png`). Sources are SVGs in `apps/mobile/assets/brand/`.
+- `app.json` now points `ios.icon` at the light / dark / tinted PNGs instead of the old `assets/expo.icon`. Check that this form is supported by the installed SDK; if not, use `icon.png` alone and tell me. Delete `assets/expo.icon` once the new icon shows up.
+- Icons only change in a new build (development build or TestFlight), not in a reload.
+
+**Animated splash**
+Reference: `docs/design/splash-preview.html` (open it in a browser and tap Replay). Total about 2.6 seconds.
+1. The native launch screen (static, set in `app.json`): page colour #181513 with the empty bar and its two white collars (`splash-icon.png`, 304pt wide, centred).
+2. As soon as the app has loaded, an in-app splash view takes over, drawn with react-native-svg at exactly the same size and position, so nothing jumps. Hide the native splash only once it's on screen (`SplashScreen.preventAutoHideAsync()` / `hideAsync()`).
+3. Plates slide on from off-screen, mirrored on both sides, biggest first: green, then pink, then orange, each about 420ms with a slight overshoot as it lands, starting 160ms apart. A light haptic as each pair lands.
+4. The whole barbell dips about 3pt and comes back (500ms), as if it took the weight.
+5. "LIFT BOARD" in Ranchers fades in below it.
+6. At about 2.3s it fades out (350ms) into the app.
+
+Rules:
+- Only on a cold start, not when coming back to the app from the background.
+- Tapping anywhere skips to the app.
+- Don't wait for the animation to load data: load in parallel, and if loading takes longer, hold on the loaded barbell until it's ready.
+- Reduce Motion: no sliding or dip; the plates and name fade in together, then it fades into the app (about 1s total).
