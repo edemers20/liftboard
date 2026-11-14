@@ -192,3 +192,30 @@ After onboarding, the first time each tab is opened, show a small popover above 
 | Plan | Your plan | Week shows your week at a glance; update your check-in to see the plan adjust. Season shows your overall plan and goals. |
 | History | Your history | Past activities, weeks completed and personal bests. |
 | You | Your settings | Change tips, experience level and other preferences, and read how the app works things out in the FAQ. |
+
+---
+
+## 9. Headers hide on scroll, come back on scroll up (native)
+
+Today each tab's top area (title and switcher, or the Workouts title and week strip) stays fixed while the content scrolls under it. Change it so the header gets out of the way while reading and comes straight back when you scroll up, like Safari's toolbar.
+
+**Which headers**
+- **Workouts:** the LIFT BOARD title row and the M–Sun week strip hide together. The date line ("‹ Today · Friday, Nov 13 ›") stays pinned at the top while they're hidden, so you always know which day you're on.
+- **Plan:** the date-range title and the Week / Season switch.
+- **History:** the HISTORY title and the Calendar / Weeks / Lifts switch.
+- **You:** the YOU title.
+- **Workout screen:** the big workout title and timer scroll away like content; the back and Swap buttons stay (they become the glass toolbar in the Liquid Glass audit, item 6).
+
+**Behaviour**
+- Scrolling down more than about 8pt hides the header by sliding it up out of view; it moves with the scroll rather than on a timer.
+- Any scroll up of more than about 8pt slides it back in, wherever you are on the page.
+- It's always shown at the very top of the page, after switching tabs or views, and when tapping the status bar (which also scrolls to the top).
+- When scrolling stops halfway, it settles fully shown or fully hidden (whichever is closer) with a short spring, about 200ms, no bounce.
+- Horizontal swipes (the day carousel, the week strip) never show or hide it.
+- The page content keeps its place: reserve the header's height as top padding so nothing jumps as it hides.
+- A solid strip the colour of the page background always covers the status bar area, so content never shows under the clock.
+- The tab bar does its own thing (`minimizeBehavior` in the audit, item 5); they don't need to move together.
+
+**How:** one shared hook (for example `useHideOnScroll()`) using Reanimated's scroll handler and a clamped scroll delta, applied to every tab's ScrollView or FlatList. Don't build it separately per screen.
+
+**Reduce Motion:** the header fades out and in instead of sliding.
