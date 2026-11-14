@@ -362,3 +362,13 @@ Every button, pill, chip, card, row, link and tab gives visible feedback while p
 - When another day is selected, tint the glass lightly with the Workouts green (#6fd0b4 at low opacity) so it reads as an action. Tapping it moves the day pager back to today (animated when nearby, instant when far).
 - It's part of the header, so it scrolls away with the title (section 9) and comes back on scroll up.
 - Fallbacks as in `docs/AUDIT-liquid-glass.md`: solid surface colour on older iOS and with Reduce Transparency.
+
+---
+
+## 19. Profile and Settings split (design in progress)
+
+Boards: `docs/design/Proto_Profile.dc.html`, `Proto_ProfileNew.dc.html` (first week), `Proto_Settings.dc.html`. Not ready to build yet; decisions so far:
+- You is a profile of what you've done; a gear at the top right opens Settings. Body stats live only in Settings, never on the profile.
+- Goal, pace and lifting focus live on Plan → Season (they change mid-season). Lift days and **session length** live on Plan → Week, not in Settings.
+- The streak card: the flame sits right next to the number, with "weeks in a row" under both. No "best streak" line.
+- **Your year** (a 52-square grid of completed weeks, no subtitle) lives at the top of History → Weeks, not on the profile.

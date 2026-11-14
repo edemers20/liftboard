@@ -39,6 +39,8 @@ button:active,a:active{transform:scale(.98)}
           </div>
           <span style="font-size: 13px; color: #fea06a">{{ streakText }}</span>
         </div>
+        <section style="background: #24201d; border-radius: 16px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px"><h2 style="margin: 0; font-size: 15px; font-weight: 600">Your year</h2><div style="display: grid; grid-template-columns: repeat(13, 1fr); gap: 4px"><sc-for list="{{ year }}" as="y" hint-placeholder-count="52"><span style="aspect-ratio: 1; border-radius: 4px; background: {{ y.bg }}; box-shadow: {{ y.ring }}"></span></sc-for></div>
+          <div style="display: flex; justify-content: space-between; font-size: 11px; color: #8f8783"><span>Jan</span><span>Apr</span><span>Jul</span><span>Oct</span><span>Dec</span></div></section>
         <sc-for list="{{ weeks }}" as="w" hint-placeholder-count="4">
           <section style="background: #24201d; border-radius: 16px; overflow: hidden">
             <button type="button" aria-expanded="{{ w.open }}" onClick="{{ w.toggle }}" style="width: 100%; border: 0; background: none; color: inherit; text-align: left; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; cursor: pointer; font: inherit">
@@ -212,6 +214,7 @@ class Component extends DCLogic {
     ];
 
     return {
+      year: Array.from({ length: 52 }, (_, i) => { const now = 45, past = i < now, full = past && i > 30 && ![34, 41].includes(i), part = past && i > 30 && !full; return { bg: full ? '#fea06a' : part ? '#4a3a33' : past ? '#2f2a27' : 'transparent', ring: i === now ? 'inset 0 0 0 1.5px #fea06a' : past ? 'none' : 'inset 0 0 0 1px #2f2a27' }; }),
       tabs, from: st.from, isWeeks: st.view === 'weeks', isLifts: st.view === 'lifts',
       weeks, streak, streakText: run ? `${run} weeks completed in a row` : 'Start a new streak this week',
       lifts, prs, tipOpen: st.tip, toggleTip: () => this.setState({ tip: !st.tip })
