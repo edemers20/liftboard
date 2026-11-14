@@ -33,7 +33,7 @@ A workout in progress shows on the Lock Screen and in the Dynamic Island, like a
 **Library:** Expo's widgets library (`expo-widgets`) supports Live Activities on iOS and needs a development build (not Expo Go). If it doesn't fit, use Software Mansion's `expo-live-activity`. **No push notifications or server are needed**: the app starts and updates the activity itself, and the countdown ticks on its own.
 
 **What it shows**
-- **Lock Screen / expanded:** workout title (e.g. "Lower · Hinge & Glute"), current exercise and "Set 3 of 4", and either the rest countdown ("Rest 1:42") or "Go" when rest is over. A thin progress bar of sets done out of total.
+- **Lock Screen / expanded:** workout title (e.g. "Lower (Hinge & Glute)"), current exercise and "Set 3 of 4", and either the rest countdown ("Rest 1:42") or "Go" when rest is over. A thin progress bar of sets done out of total.
 - **Dynamic Island, compact:** a small dumbbell icon on the left; the rest countdown (or "Go") on the right, in DM Mono if custom fonts are supported, else the system monospaced digits.
 - **Dynamic Island, minimal:** the countdown only.
 - Colours: dark background, green accent (#6fd0b4), orange (#fea06a) for "Go".

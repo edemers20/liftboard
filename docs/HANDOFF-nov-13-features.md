@@ -51,7 +51,7 @@ Keep the Calendar view as it is. Reference: `Proto_History.dc.html`.
 - At the top, a strip of small squares for recent weeks (orange #fea06a = completed, dark = not) and "{n} weeks completed in a row" in the same orange.
 - Each week card: date range in Ranchers, a status pill (**✓ Completed**, or "{done} of {planned} lifts"), and three numbers: Lifts, Sets, Exercise kcal.
 - Tapping a card expands it to show **Sets by muscle** (same bars as the report).
-- An incomplete week shows what was missed ("Missed Upper · Pull") and a **Count as completed** button, for sick or travel weeks; it then reads **✓ Counted** and counts toward the streak. **Undo** reverses it.
+- An incomplete week shows what was missed ("Missed Upper (Pull)") and a **Count as completed** button, for sick or travel weeks; it then reads **✓ Counted** and counts toward the streak. **Undo** reverses it.
 - A week is completed when every planned lift was done.
 
 **Lifts**
@@ -137,7 +137,7 @@ Most of these were spotted in the native app; the web app has the same changes w
 
 **History → Calendar**
 - The weekly chart's average line goes **behind** the bars, not over them. Make it a neutral colour (the muted grey, about 40% opacity, dashed is fine) and label its value with a unit: "{n}h" when it's an hour or more, "{n}m" when under an hour (e.g. "1.5h", "45m").
-- When a past day is selected under the calendar, don't repeat the workout title as a line under the heading (the "Lower · Glute & Hamstring" row). The heading already names it; show the exercises directly. Activities keep their "Pickleball · 90 min" line.
+- When a past day is selected under the calendar, don't repeat the workout title as a line under the heading (the "Lower (Glute & Hamstring)" row). The heading already names it; show the exercises directly. Activities keep their "Pickleball · 90 min" line.
 
 **Workout: weight suggestion as a popup**
 - When a ticked set is clearly too easy (2+ reps over the top of the range) or too hard (under the range), don't show the suggestion inline in the exercise card. Show a small bottom sheet over the dimmed screen about a quarter of a second after the tick (the rest timer keeps running underneath):
@@ -262,3 +262,28 @@ The web app now has working versions of most of these, useful as a behaviour ref
 - Section 8: workout polish, activity effort (`EFF_MULT`, Hard adds 1 to recovery load) and one-off activity delete (`wk.adhoc`), Play test sound states, even profile dividers, first-visit tab tips (`TAB_TIPS`).
 - Section 9: headers hide on scroll (`.thead`, `hideOnScroll()`).
 - Section 11: the new icon and the plate-loading splash (`#splash` in `index.html`).
+
+---
+
+## 12. Titles, next-time lines and the share card (native)
+
+The web app has all three (commit after `02da198`); port the engine parts into `packages/engine` with the tests.
+
+**Workout titles: parentheses instead of a middle dot**
+- Lower (Hinge & Glute), Upper (Press), Lower (Quad & Glute), Upper (Pull), Lower (Glute & Hamstring), Upper (Delts & Arms). Full Body A/B/C and Lower stay as they are.
+- Change them in the engine's day list, so every screen, the share image, notifications and the Live Activity pick them up.
+- Saved sessions keep their title, so convert old ones once on load: "Lower · X" / "Upper · X" → "Lower (X)" / "Upper (X)" (`wTitle()` in `src/engine.js`), and the missed-lift names stored on past weeks.
+- Where only the second part is shown (the calendar day heading), take the text inside the parentheses.
+
+**Next-time lines**
+- Format: **Overhead Press (Barbell): 30lb x 8**. The exercise name, a colon, the weight with its unit and no space, " x ", the rep target. Bodyweight: "Pull-up: BW x 9" or "Pull-up: BW+5lb x 8".
+- No "=" or other icon in front, no " · " separators, no word "reps" and no word "hold".
+- Keep a short grey note after it only when it changes what you do ("too light, bigger jump", "reps fell off across sets; rest longer, same weight", "3 misses · ease 5%").
+- The engine's `review()` now returns `r` (the rep target) alongside `w`.
+- In the Day done list, the ↑ / ↓ marks stay for going up or easing off; holding shows nothing.
+- The "Day done" toast says "Next time: 2 moving up" (no "holding" count).
+
+**Share card**
+- The third tile is **PRs**: the number of personal records set in that workout (`prsBetween()` for that day), orange when above 0. It replaces "going up".
+- **Save to Photos** is the main option: on Day done, a full-width "Save to Photos" button (download icon) with a square Share icon button beside it, then "Finish & close" under them. The completed workout screen shows the same pair.
+- Native: Save to Photos writes the image straight to the photo library with `expo-media-library` (ask for add-only permission the first time) and shows a toast "Saved to Photos". The Share icon opens the share sheet as before.

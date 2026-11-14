@@ -62,14 +62,14 @@ const minKey=a=>({pickle:"pmin",climb:"cmin",yoga:"ymin"})[a]||a+"min";
 /* ---------- Day templates (slot order is storage order; append only) ---------- */
 const SUP={calves:["pickle","run","soccer","volleyball","tennis","hockey","rugby"],adductor:["pickle","soccer","tennis","hockey","rugby"],cuff:["pickle","volleyball","climb","tennis","golf"]};
 const ALL=[
- {id:"d1",title:"Lower · Hinge & Glute",slots:[
+ {id:"d1",title:"Lower (Hinge & Glute)",slots:[
   {label:"Main glute",main:1,opts:L.mainGlute,sets:4,reps:"6–10"},
   {label:"Hinge",lower:1,opts:L.hinge,sets:3,reps:"8"},
   {label:"Unilateral",uni:1,lower:1,opts:L.uni,sets:3,reps:"8–10 / leg"},
   {label:"Glute med",trim:1,lower:1,opts:L.gluteMed,sets:3,reps:"15–20"},
   {label:"Calves",support:1,sp:SUP.calves,opts:L.calves,sets:2,reps:"12–15"},
   {label:"Cardio finisher",cardio:1,opts:STEADY}]},
- {id:"d2",title:"Upper · Press",slots:[
+ {id:"d2",title:"Upper (Press)",slots:[
   {label:"Main press",main:1,upperMain:1,opts:L.press,sets:3,reps:"5–8"},
   {label:"Vertical pull",ss:"A1",vpull:1,opts:L.vpull,sets:3,reps:"8–12"},
   {label:"Chest",ss:"A2",opts:L.chest,sets:3,reps:"8–12"},
@@ -79,7 +79,7 @@ const ALL=[
   {label:"Arms",ss:"C2",trim:1,arms:1,upperAcc:1,opts:L.arms,sets:2,reps:"12–15"},
   {label:"Rotator cuff",support:1,sp:SUP.cuff,opts:L.cuff,sets:2,reps:"15"},
   {label:"Cardio finisher",cardio:1,opts:[...INTERVAL,...STEADY]}]},
- {id:"d3",title:"Lower · Quad & Glute",slots:[
+ {id:"d3",title:"Lower (Quad & Glute)",slots:[
   {label:"Main quad",main:1,quad:1,opts:L.quad,sets:4,reps:"6–10"},
   {label:"Glute (light)",lower:1,opts:L.lightGlute,sets:3,reps:"10–12"},
   {label:"Hamstrings",lower:1,opts:L.ham,sets:3,reps:"10–12"},
@@ -87,7 +87,7 @@ const ALL=[
   {label:"Side delts",ss:"A2",trim:1,upperAcc:1,opts:L.side,sets:2,reps:"15"},
   {label:"Adductors",support:1,sp:SUP.adductor,opts:L.adductor,sets:2,reps:"10–12"},
   {label:"Cardio finisher",cardio:1,opts:STEADY}]},
- {id:"x",title:"Upper · Pull",slots:[
+ {id:"x",title:"Upper (Pull)",slots:[
   {label:"Main row",main:1,upperMain:1,opts:L.mainRow,sets:4,reps:"6–10"},
   {label:"Vertical pull",vpull:1,opts:L.vpull,sets:3,reps:"6–10"},
   {label:"Press",ss:"A1",opts:L.press,sets:3,reps:"8–12"},
@@ -129,14 +129,14 @@ const ALL=[
   {label:"Cardio finisher",cardio:1,opts:STEADY}]},
  /* Third lower day for a lower focus. Day 1 is a heavy thrust + RDL; this one covers what the week is missing:
     a different hinge, a lunge in place of the split squat, lying leg curls and back extensions. */
- {id:"g2",title:"Lower · Glute & Hamstring",slots:[
+ {id:"g2",title:"Lower (Glute & Hamstring)",slots:[
   {label:"Main hinge",main:1,opts:L.hinge,def:"Sumo Deadlift",sets:3,reps:"6–8"},
   {label:"Unilateral",uni:1,lower:1,opts:L.uni,def:"Deficit Reverse Lunge (Dumbbell)",sets:3,reps:"10–12 / leg"},
   {label:"Hamstrings",lower:1,opts:L.ham,def:"Leg Curl (Lying)",sets:3,reps:"10–12"},
   {label:"Glute (light)",trim:1,lower:1,opts:L.lightGlute,def:"45° Back Extension (glute bias)",sets:3,reps:"12–15"},
   {label:"Glute med",trim:1,lower:1,opts:L.gluteMed,def:"Cable Hip Abduction",sets:2,reps:"15–20"},
   {label:"Cardio finisher",cardio:1,opts:STEADY}]},
- {id:"u3",title:"Upper · Delts & Arms",slots:[
+ {id:"u3",title:"Upper (Delts & Arms)",slots:[
   {label:"Main press",main:1,upperMain:1,opts:L.press,sets:3,reps:"8–10"},
   {label:"Side delts",ss:"A1",upperAcc:1,opts:L.side,sets:3,reps:"12–20"},
   {label:"Rear delts",ss:"A2",upperAcc:1,opts:L.rear,sets:3,reps:"12–15"},
@@ -209,6 +209,8 @@ function init(storage){
   try{ slots=JSON.parse(store.getItem(KEY)||"{}")||{}; }catch(e){}
   try{ const raw=store.getItem(KEY2); hadStore=!!raw; wk={...JSON.parse(JSON.stringify(DEF)),...(JSON.parse(raw||"{}")||{})}; }catch(e){}
   try{ exHist=JSON.parse(store.getItem(KEY3)||"{}")||{}; }catch(e){}
+  if(Array.isArray(wk.sessions)) wk.sessions=wk.sessions.map(x=>x&&x.title&&/ · /.test(x.title)?{...x,title:wTitle(x.title)}:x);
+  if(Array.isArray(wk.weeks)) wk.weeks=wk.weeks.map(w=>w&&w.missed?{...w,missed:w.missed.map(wTitle)}:w);
 
 if(!wk.mig1){ [["d1",4],["d2",7],["d3",5]].forEach(([d,i])=>{ if(slots[d]&&slots[d][i]){ slots[d][i+1]=slots[d][i]; delete slots[d][i]; } }); wk.mig1=1; }
 /* Day 5 (lower focus) was rebuilt: drop saved picks and logs that no longer fit their slot */
@@ -662,17 +664,17 @@ function review(d,s,i,P){
   const bw=isBW(exName(d,s,i)), st=get(d.id,i), log=(st.log||[]).map(x=>({w:num(x.w,0),r:num(x.r,0)})).filter(x=>(bw||x.w>0)&&x.r>0);
   if(!log.length) return null;
   const base=suggest(d,s,i,true,P); if(!base) return null;
-  if(bw){ const L0=log[log.length-1]; return {n:exName(d,s,i),w:base.w,why:base.why,tag:base.bwUp||base.w>L0.w?"up":"hold",bw:1}; }
+  if(bw){ const L0=log[log.length-1]; return {n:exName(d,s,i),w:base.w,r:base.r,why:base.why,tag:base.bwUp||base.w>L0.w?"up":"hold",bw:1}; }
   const n=exName(d,s,i), last=log[log.length-1], first=log[0], A=P.days[d.id].slots[i], D=P.days[d.id];
   const [lo,hi]=range(s.reps), top=isIso(s)?hi+3:hi;
-  let {w,why}=base, tag="";
+  let {w,why,r}=base, tag="";
   const canUp=!inSeason()&&wk.deload!=="Yes"&&!D.cutD;
-  if(canUp&&last.r>=top+3){ w=last.w+2*incFor(n,s,last.w); why="too light, bigger jump"; }
+  if(canUp&&last.r>=top+3){ w=last.w+2*incFor(n,s,last.w); r=lo; why="too light, bigger jump"; }
   else if(log.length>=2&&first.w===last.w&&first.r-last.r>=4){ w=last.w; why="reps fell off across sets; rest longer, same weight"; tag="collapse"; }
   else if(last.r<lo&&base.why.startsWith("hold")){ why="hold"; }
   if(log.length<(A.sets||0)) why+=` · ${log.length}/${A.sets} sets`;
   tag=tag||(w>last.w?"up":w<last.w?"down":"hold");
-  return {n,w,why,tag};
+  return {n,w,r,why,tag};
 }
 const TAGTXT={up:"Up",down:"Down",hold:"Held",collapse:"Fatigue"};
 function fx(P){
@@ -680,7 +682,7 @@ function fx(P){
   Object.entries(P.G).forEach(([c,l])=>{ o["r:"+c.replace(/ \d+ \(.*\)$/,"").replace(/^\d+ min /,"")]=`${c[0].toUpperCase()+c.slice(1)} → ${l.join(", ")}`; });
   o.intake=r5(P.math.intake); o.tdee=r5(P.math.tdee); o.target=r5(P.math.target);
   o.fin=P.math.nLift?(P.math.nFin?`Finishers now ${P.math.m} min × ${P.math.nFin}`:"No finishers needed"):"";
-  o.days=DAYS.length?`Days now: ${DAYS.map(d=>d.title.split(" · ")[0]).join(" · ")}`:"No lifting days";
+  o.days=DAYS.length?`Days now: ${DAYS.map(d=>d.title.split(" (")[0]).join(" · ")}`:"No lifting days";
   return o;
 }
 function diffFx(a,b){
@@ -793,7 +795,7 @@ function markDone(dayId){
   const note=drops>=2?`Reps dropped on ${drops} lifts, so ${nxt?nxt.tab:"your next session"} is shortened.`:"";
   wk.review={...(wk.review||{}),[dayId]:{items,note}};
   save();
-  const parts=[c("up")&&`${c("up")} moving up`,c("hold")&&`${c("hold")} holding`,(c("down")+c("collapse"))&&`${c("down")+c("collapse")} easing off`].filter(Boolean);
+  const parts=[c("up")&&`${c("up")} moving up`,(c("down")+c("collapse"))&&`${c("down")+c("collapse")} easing off`].filter(Boolean);
   return [`${d.tab} done`,...(parts.length?[`Next time: ${parts.join(", ")}.`]:[]),...(note?[note]:[]),...(items.some(x=>x.why.startsWith("too light"))?["Some lifts were too light; they get a bigger jump."]:[])];
 }
 /** After editing sets on a finished day, rewrite that day's history entries and next-time review. */
@@ -864,4 +866,7 @@ function newWeek(start){
   save(); return ["New week started. Check-in reset to normal."];
 }
 
-export { e1rm, prsBetween, weekComplete, weekStreak, countWeek, EFF_MULT, OWN_EFF, sessionKcal, liftKcal, refreshLiftK, LIFT_MET, weekActuals, swapOptions, swapDay, rateLb, isBW, yogaMet, pilMet, YOGA_EFF, PIL_EFF, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, MUSCLES, slotMuscles, musclePriority, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk };
+export { wTitle, e1rm, prsBetween, weekComplete, weekStreak, countWeek, EFF_MULT, OWN_EFF, sessionKcal, liftKcal, refreshLiftK, LIFT_MET, weekActuals, swapOptions, swapDay, rateLb, isBW, yogaMet, pilMet, YOGA_EFF, PIL_EFF, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, MUSCLES, slotMuscles, musclePriority, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk };
+
+/* workout titles read "Lower (Glute & Hamstring)"; older saved titles used a middle dot */
+const wTitle=t=>String(t||"").replace(/^(Lower|Upper) · (.+)$/,"$1 ($2)");

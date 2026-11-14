@@ -1171,3 +1171,11 @@ h3.lhead{display:flex;align-items:center;gap:4px;justify-content:flex-start}
 .phead.thead{flex-direction:row;justify-content:space-between;align-items:center}
 /* Recent PRs sit on the page, not inside a panel */
 .panel.prsec{background:none;padding:0;border:0;box-shadow:none}
+/* Day done: Save to Photos first, share as an icon, then Finish & close */
+.dbtns.three{grid-template-columns:1fr auto}
+.dbtns.three .dcta{grid-column:1/-1}
+.dicon{width:52px;padding:0}
+.dsharerow{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:8px}
+.dsharerow .btn.dshare{margin-top:0}
+.dsharerow .dicon{width:48px}
+.rev small,.shline small{color:var(--muted);font-size:12px}

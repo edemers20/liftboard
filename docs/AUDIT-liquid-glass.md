@@ -9,7 +9,7 @@ Where Lift Board can use iOS 26's Liquid Glass materials and the motion that com
 ## Do these
 
 ### 1. A live workout above the tab bar (`NativeTabs.BottomAccessory`)
-While a workout is in progress and you leave its screen, a glass pill floats above the tab bar, like the Music mini-player: "Lower · Hinge & Glute · Rest 1:42" (or "Set 3 of 4" when not resting). Tapping it returns to the workout. When the tab bar minimizes it shrinks to the inline layout (`usePlacement()` returns `'inline'`): just the countdown.
+While a workout is in progress and you leave its screen, a glass pill floats above the tab bar, like the Music mini-player: "Lower (Hinge & Glute) · Rest 1:42" (or "Set 3 of 4" when not resting). Tapping it returns to the workout. When the tab bar minimizes it shrinks to the inline layout (`usePlacement()` returns `'inline'`): just the countdown.
 - Why: today you lose sight of the rest timer as soon as you check Plan or log an activity mid-workout. This keeps it one tap away, and it pairs with the Lock Screen Live Activity.
 - Ends when the workout ends ("Day done ✓" for a moment, then gone).
 

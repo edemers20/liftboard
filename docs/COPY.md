@@ -739,7 +739,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 
 | Where | Copy | Ref |
 | --- | --- | --- |
-| Title | Lower · Hinge & Glute | engine.js:65 |
+| Title | Lower (Hinge & Glute) | engine.js:65 |
 | Slot label | Main glute | engine.js:66 |
 | Slot label | Hinge | engine.js:67 |
 | Slot label | Unilateral | engine.js:68 |
@@ -755,14 +755,14 @@ To change wording: edit it here first, then update `copy.ts` to match.
 | Slot label | Rear delts | engine.js:78 |
 | Slot label | Arms | engine.js:79 |
 | Slot label | Rotator cuff | engine.js:80 |
-| Title | Upper · Press | engine.js:72 |
-| Title | Lower · Quad & Glute | engine.js:82 |
+| Title | Upper (Press) | engine.js:72 |
+| Title | Lower (Quad & Glute) | engine.js:82 |
 | Slot label | Main quad | engine.js:83 |
 | Slot label | Glute (light) | engine.js:84 |
 | Slot label | Hamstrings | engine.js:85 |
 | Slot label | Lats | engine.js:86 |
 | Slot label | Adductors | engine.js:88 |
-| Title | Upper · Pull | engine.js:90 |
+| Title | Upper (Pull) | engine.js:90 |
 | Slot label | Main row | engine.js:91 |
 | Slot label | Press | engine.js:93 |
 | Slot label | Core | engine.js:97 |
@@ -771,9 +771,9 @@ To change wording: edit it here first, then update `copy.ts` to match.
 | Slot label | Row | engine.js:111 |
 | Title | Full Body C | engine.js:115 |
 | Slot label | Main hinge | engine.js:116 |
-| Title | Lower · Glute & Hamstring | engine.js:132 |
+| Title | Lower (Glute & Hamstring) | engine.js:132 |
 | Rep range | 10–12 / leg | engine.js:134 |
-| Title | Upper · Delts & Arms | engine.js:139 |
+| Title | Upper (Delts & Arms) | engine.js:139 |
 | Slot label | Biceps | engine.js:143 |
 | Slot label | Triceps | engine.js:144 |
 |  | Glutes & hamstrings | engine.js:269 |

@@ -1,6 +1,6 @@
 import "./styles.css";
 import { attachDials } from "./dial.js";
-import { e1rm, prsBetween, weekComplete, weekStreak, countWeek, EFF_MULT, OWN_EFF, weekActuals, swapOptions, swapDay, isBW, yogaMet, pilMet, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk } from "./engine.js";
+import { wTitle, e1rm, prsBetween, weekComplete, weekStreak, countWeek, EFF_MULT, OWN_EFF, weekActuals, swapOptions, swapDay, isBW, yogaMet, pilMet, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk } from "./engine.js";
 
 const storage=(()=>{ try{ const k="__t"; localStorage.setItem(k,"1"); localStorage.removeItem(k); return localStorage; }catch(e){ const m=new Map(); return {getItem:k=>m.get(k)??null,setItem:(k,v)=>m.set(k,String(v))}; } })();
 init(storage);
@@ -140,7 +140,10 @@ function planHTML(P,o={}){
   return `<div class="plan${o.pin?" pin":""}" aria-live="polite"><div class="plab">Your plan</div><p class="psent">${sentenceHTML(S,prev)}</p></div>`;
 }
 
-const TAGICON={up:"↑",hold:"=",down:"↓",collapse:"!"};
+const TAGICON={up:"↑",hold:"",down:"↓",collapse:"!"};
+/* "Overhead Press (Barbell): 30lb x 8": the weight and rep target for next time; only notes that change what you do are kept */
+const nextLine=r=>{ const U=KG()?"kg":"lb", w=r.bw?(+r.w>0?`BW+${toU(r.w)}${U}`:"BW"):`${toU(r.w)}${U}`, note=/^(hold|~?\d+ reps|\+5 lb|add a rep|same weight)/.test(r.why||"")?"":String(r.why||"").replace(/ · \d+\/\d+ sets$/,"");
+  return `<b>${esc(r.n)}</b>: <span class="mono">${w}${r.r?` x ${r.r}`:""}</span>${note?` <small>${esc(note)}</small>`:""}`; };
 const tagH=t=>`<span class="tag ${t}" role="img" aria-label="${TAGTXT[t]}">${TAGICON[t]}</span>`;
 /* ---------- Number wheels: which inputs get one, and their ranges ---------- */
 const DIAL={
@@ -697,7 +700,7 @@ function calHTML(){
     cells+=`<button type="button" class="cd${k===todayK?" today":""}${L.length?" has":""}${kind}" data-cd="${k}" aria-pressed="${calSel===k}" aria-label="${lab}${L.length?": "+L.map(sessName).join(", "):""}"${L.length?"":" disabled"}><span>${d}</span></button>`; }
   const sel=calSel&&by[calSel]?by[calSel]:null;
   const selD=sel?new Date(sel[0].t).toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric"}):"";
-  const selT=sel?[...new Set(sel.map(x=>x.k==="lift"?(x.title&&x.title!=="Lift"?x.title.split(" · ").pop():"Lift"):sessName(x)))].join(" + "):"";
+  const selT=sel?[...new Set(sel.map(x=>x.k==="lift"?(x.title&&x.title!=="Lift"?(wTitle(x.title).match(/\((.+)\)$/)||[0,wTitle(x.title)])[1]:"Lift"):sessName(x)))].join(" + "):"";
   return `${S.length?freqHTML(S):""}
   <div class="panel">
     <div class="calhead"><button type="button" class="btn sm calnav" data-cal="-1" aria-label="Previous month">‹</button><h3>${m0.toLocaleDateString(undefined,{month:"long",year:"numeric"})}</h3><button type="button" class="btn sm calnav" data-cal="1" aria-label="Next month"${calOff>=0?" disabled":""}>›</button></div>
@@ -883,7 +886,7 @@ function renderDayHTML(d,P){
     ${d.id===P.nextId&&wk.upNext===d.id&&wk.missedNote?`<p class="adj"><b>Up next</b> · ${esc(wk.missedNote.why)}</p>`:""}
     </div>`;
   const rv=D.done&&(wk.review||{})[d.id];
-  if(rv&&rv.items.length) html+=`<div class="panel"><h3>Next time</h3><div class="rev">${rv.items.map(r=>`<p>${tagH(r.tag)}<b>${esc(r.n)}</b> · ${r.w} lb · ${esc(r.why)}</p>`).join("")}</div>${rv.note?`<p class="adj">${esc(rv.note)}</p>`:""}</div>`;
+  if(rv&&rv.items.length) html+=`<div class="panel"><h3>Next time</h3><div class="rev">${rv.items.map(r=>`<p>${nextLine(r)}</p>`).join("")}</div>${rv.note?`<p class="adj">${esc(rv.note)}</p>`:""}</div>`;
   html+=`<div class="list">`;
   /* required lifts, then what you added, then optional ones (trimmed/covered), then the cardio finisher */
   const ord0=slotOrder(d), isOpt=i=>!d.slots[i].cardio&&D.slots[i]&&D.slots[i].skip&&D.slots[i].skip!=="hidden";
@@ -944,7 +947,7 @@ function renderDayHTML(d,P){
       ${so?`<ul class="slist">${list.map(([n,t])=>`<li><span>${n}</span><small>${t}</small></li>`).join("")}</ul>
       <button type="button" class="btn ${sd?"":"primary "}wide" id="stretchBtn">${sd?"✓ Stretched":"Done stretching"}</button>`:""}</section>`; }
   html+=addExHTML(d);
-  return html+`<button class="btn primary" id="doneBtn" type="button"${D.done?' disabled aria-disabled="true"':""}>${D.done?"✓ Day done":"Mark day done"}</button>`+(D.done?`<button type="button" class="btn dshare wide" data-share="${d.id}">${SHARE_ICON}Share workout</button>`:"");
+  return html+`<button class="btn primary" id="doneBtn" type="button"${D.done?' disabled aria-disabled="true"':""}>${D.done?"✓ Day done":"Mark day done"}</button>`+(D.done?`<div class="dsharerow"><button type="button" class="btn dshare dsave" data-share="${d.id}" data-mode="save">${SAVE_ICON}Save to Photos</button><button type="button" class="btn dshare dicon" data-share="${d.id}" aria-label="Share workout">${SHARE_ICON}</button></div>`:"");
 }
 /* ---------- Add an exercise to the end of a day ---------- */
 let addOpen=null, addPick="", addCustom="", addCat="";
@@ -1001,7 +1004,7 @@ function nextSheet(id,i){
   const d=DAYS.find(x=>x.id===id); if(!d) return;
   const P=plan(), D=P.days[id], s=d.slots[i], g=review(d,s,i,P), n=nextIdx(d,D,i);
   showSheet(`<div class="shtop"><span class="plab">${esc(exName(d,s,i))} · done</span>${XBTN}</div>
-    ${g?`<p class="shline">${tagH(g.tag)}<span>Next time <b>${g.w} lb</b> · ${esc(g.why)}</span></p>`:""}
+    ${g?`<p class="shline"><span>Next time · ${nextLine(g)}</span></p>`:""}
     ${n!=null?`<button type="button" class="shbtn wide" id="upNext">Up next: ${esc(exName(d,d.slots[n],n))}</button>`:""}`,
     el=>{ const b=el.querySelector("#upNext"); if(b) b.onclick=()=>{ closeSheet(); wk.active={...(wk.active||{}),[id]:n}; save(); render(); const c=document.querySelector(".slot.cur"); if(c) c.scrollIntoView({block:"start",behavior:"smooth"}); }; });
 }
@@ -1313,13 +1316,15 @@ const CHECK=`<span class="dcheck" aria-hidden="true"><svg width="28" height="28"
    The PNG is drawn on a canvas as soon as the button appears, so the tap can hand it straight to the share
    sheet (iPhone only allows sharing right after a tap). Share sheet → Save Image / Copy / Messages / Instagram;
    no share sheet → copy to clipboard; no clipboard → download. */
+const SAVE_ICON=`<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 19h14"/></svg>`;
 const SHARE_ICON=`<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>`;
 function shareData(id){
   const d=DAYS.find(x=>x.id===id); if(!d) return null;
   const from=wk.weekStart||0, sess=(wk.sessions||[]).filter(x=>x.k==="lift"&&x.id===id&&x.t>=from).pop();
   const T=(wk.wt||{})[id], mins=T&&T.start&&T.end?Math.max(1,Math.round((T.end-T.start)/60000)):(sess&&sess.min)||0;
   const S=(sess&&sess.ex&&sess.ex.length?sess.ex:daySummary(id)), rv=(wk.review||{})[id]||{items:[]};
-  return {title:d.title, when:new Date(sess?sess.t:Date.now()), mins, sets:setsLogged(id)||S.filter(x=>!x.cardio).length, S, items:rv.items, ups:rv.items.filter(x=>x.tag==="up").length};
+  const t0=DAY0(sess?sess.t:Date.now()).getTime();
+  return {title:d.title, when:new Date(sess?sess.t:Date.now()), mins, sets:setsLogged(id)||S.filter(x=>!x.cardio).length, S, items:rv.items, prs:prsBetween(t0,t0+864e5).length};
 }
 async function shareCardBlob(id){
   const D=shareData(id); if(!D) return null;
@@ -1336,10 +1341,10 @@ async function shareCardBlob(id){
   words.forEach(w=>{ const t=(lines[lines.length-1]+" "+w).trim(); if(g.measureText(t).width>W-2*P&&lines[lines.length-1]) lines.push(w); else lines[lines.length-1]=t; });
   let y=P+200; lines.slice(0,2).forEach(l=>{ g.fillText(l,P,y); y+=108; });
   /* stat tiles */
-  y+=20; const stats=[[D.mins?`${D.mins}`:"–","min"],[String(D.sets),"sets"],[String(D.ups),"going up"]], tw=(W-2*P-2*24)/3;
+  y+=20; const stats=[[D.mins?`${D.mins}`:"–","min"],[String(D.sets),"sets"],[String(D.prs),D.prs===1?"PR":"PRs"]], tw=(W-2*P-2*24)/3;
   stats.forEach(([v,l],i)=>{ const x=P+i*(tw+24); g.fillStyle="rgba(255,255,255,.06)"; rr(g,x,y,tw,170,28); g.fill();
     g.fillStyle=mute; g.font="600 26px 'DM Sans', sans-serif"; g.fillText(l.toUpperCase(),x+32,y+56);
-    g.fillStyle=i===2&&D.ups?up:ink; g.font="500 72px 'DM Mono', monospace"; g.fillText(v,x+32,y+138); });
+    g.fillStyle=i===2&&D.prs?up:ink; g.font="500 72px 'DM Mono', monospace"; g.fillText(v,x+32,y+138); });
   y+=230;
   /* exercises with top set */
   g.fillStyle=mute; g.font="600 26px 'DM Sans', sans-serif"; g.fillText("TOP SETS",P,y); y+=30;
@@ -1358,6 +1363,8 @@ function bindShare(btn){
   const id=btn.dataset.share; let file=null; btn.disabled=true;
   shareCardBlob(id).then(b=>{ if(b){ file=new File([b],`lift-board-${dayKey(Date.now())}.png`,{type:"image/png"}); btn.disabled=false; } }).catch(()=>{});
   btn.onclick=async()=>{ if(!file) return;
+    /* the web can't write to Photos directly: on phones the share sheet's "Save Image" does it; on a computer it downloads */
+    if(btn.dataset.mode==="save"&&!(navigator.canShare&&navigator.canShare({files:[file]})&&/iPhone|iPad|Android/.test(navigator.userAgent))){ const a=document.createElement("a"); a.href=URL.createObjectURL(file); a.download=file.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),4000); toast(["Image saved"]); return; }
     try{
       if(navigator.canShare&&navigator.canShare({files:[file]})){ await navigator.share({files:[file]}); return; }
       if(navigator.clipboard&&window.ClipboardItem){ await navigator.clipboard.write([new ClipboardItem({"image/png":file})]); toast(["Image copied"]); return; }
@@ -1370,7 +1377,7 @@ function showDone({eyebrow,title,body,cta,onCta,shareId}){
     <div class="dtop"><span class="plab">${esc(eyebrow)}</span><button type="button" class="dx" data-close aria-label="Close"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M2 2l10 10M12 2L2 12"/></svg></button></div>
     <div class="dhead">${CHECK}<h2 id="dTitle" tabindex="-1">${esc(title)}</h2></div>
     ${body}
-    <div class="dbtns">${shareId?`<button type="button" class="tb ghost dshare" data-share="${shareId}">${SHARE_ICON}Share</button>`:""}<button type="button" class="tb dcta" id="dCta">${esc(cta)}</button></div></section>`;
+    <div class="dbtns${shareId?" three":""}">${shareId?`<button type="button" class="tb ghost dshare dsave" data-share="${shareId}" data-mode="save">${SAVE_ICON}Save to Photos</button><button type="button" class="tb ghost dshare dicon" data-share="${shareId}" aria-label="Share">${SHARE_ICON}</button>`:""}<button type="button" class="tb dcta" id="dCta">${esc(cta)}</button></div></section>`;
   el.querySelectorAll(".dsheet > *").forEach((c,i)=>c.style.setProperty("--d",(i*60)+"ms"));
   el.hidden=false; el.classList.remove("out"); document.body.classList.add("touring");
   el.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>closeDone());
@@ -1397,7 +1404,7 @@ const fmtSet=(n,w,r)=>`${isBW(n)?(+w>0?`BW+${toU(w)}`:"BW"):toU(w)} × ${r}`;
 function workoutRows(S,items){
   if(!S.length) return `<p class="dnote">No sets logged.</p>`;
   return `<div class="drows wo">${S.map(x=>{ const r=(items||[]).find(y=>y.n===x.n);
-    return `<div class="prow"><span>${esc(x.n)}${x.extra?` <small>added</small>`:""}</span><b class="${r&&r.tag==="up"?"a":""}">${x.cardio?`${x.min?x.min+" min":"done"}`:fmtSet(x.n,x.w,x.r)}${r?` <i aria-label="Next time: ${TAGTXT[r.tag]}">${TAGICON[r.tag]}</i>`:""}</b></div>`; }).join("")}</div>`;
+    return `<div class="prow"><span>${esc(x.n)}${x.extra?` <small>added</small>`:""}</span><b class="${r&&r.tag==="up"?"a":""}">${x.cardio?`${x.min?x.min+" min":"done"}`:fmtSet(x.n,x.w,x.r)}${r&&TAGICON[r.tag]?` <i aria-label="Next time: ${TAGTXT[r.tag]}">${TAGICON[r.tag]}</i>`:""}</b></div>`; }).join("")}</div>`;
 }
 function dayDone(id,sets){
   const d=DAYS.find(x=>x.id===id), rv=(wk.review||{})[id]||{items:[]}, c=t=>rv.items.filter(x=>x.tag===t).length;

@@ -260,7 +260,7 @@ describe("days 5–7 don't copy earlier days", () => {
   });
   it("lower focus day 5 is the glute & hamstring day", () => {
     fresh({ mig1: 1, mig2: 1, mig3: 1, focus: "Lower", days: 5 });
-    expect(E.DAYS[4].title).toBe("Lower · Glute & Hamstring");
+    expect(E.DAYS[4].title).toBe("Lower (Glute & Hamstring)");
     expect(exs(E.DAYS[4])[0]).toBe("Sumo Deadlift");
   });
   it("days 1–4 keep their usual defaults", () => {
