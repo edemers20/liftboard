@@ -31,7 +31,7 @@ The rest bar becomes a glass capsule floating above the content: **−15s · Res
 ### 5. Tab bar that gets out of the way (`minimizeBehavior: 'onScrollDown'`)
 On History and You (long scrolling pages) the tab bar shrinks while scrolling down and returns on scroll up. Keep it `'never'` on Workouts, where the bar is used constantly. The workout screen hides the tab bar already.
 
-### 6. Workout screen toolbar (`Stack.Toolbar`)
+### 6. Workout screen toolbar (dropped Nov 14: the workout header scrolls away instead; see handoff section 9)
 The workout screen's top controls (back, Swap workout, Share once done) become a native toolbar with glass buttons, and the title scrolls under it with the system's scroll edge effect. This replaces the hand-built header and gets the glass treatment for free.
 
 ---
