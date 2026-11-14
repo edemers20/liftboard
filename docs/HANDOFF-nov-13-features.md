@@ -295,3 +295,11 @@ The web app has all three (commit after `02da198`); port the engine parts into `
 ## 13. Date line without "Today" (native)
 
 - The Workouts date line shows only the date: "‹ Friday, Nov 13 ›", never "Today · Friday, Nov 13". The ringed day in the week strip and the disabled Today button already say it's today.
+
+---
+
+## 14. Logging an activity without the page jumping (native)
+
+- **Order on a Workouts day:** the day's cards, then the activity chips, then **Fuel/Recover last**. (The native app currently puts Fuel above the chips; the web app has the right order.) Fuel sums up the day, so it reacts to what's above it; the chips are an action and belong next to the cards they create.
+- **Logging an activity:** the new activity card appears in place, above the chips, and opens inline with an animation: height grows over about 320ms (ease-out), then the "How hard was it?" pills and the minutes row fade and rise in. Keep the scroll position; if the card would be off screen, scroll just enough to show it. Reduce Motion: no animation.
+- **The leg-day swap offer** ("You logged Pickleball today. Swap Lower (Hinge & Glute) for Upper (Press) so your legs can recover?") is no longer a banner that pushes the page down. About half a second after logging, it opens as a bottom sheet over a dimmed overlay: title "Swap today's workout?", that text, and **Keep plan** / **Swap**. Swap moves the upper day to today (toast "{title} moved to today"); Keep plan, the close button or the overlay closes it. It's asked once per day, and not at all if today's lift is already done.

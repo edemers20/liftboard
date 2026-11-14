@@ -306,6 +306,20 @@ function exPreview(id){ const d=dayById(id); if(!d) return ""; const P=plan(), D
 function liftCard(eyebrow,id,body,kind){ const d=dayById(id); if(!d) return "";
   const canSwap=canSwapDay(id);
   return `<section class="wcard lift ${kind||""}"><div class="wtop"><span class="weye">${eyebrow}</span>${canSwap?`<button type="button" class="swapbtn sm" data-swap="${id}" aria-label="Swap ${esc(d.title)} for another workout"><svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13l-3-3M20 16H7l3 3"/></svg>Swap</button>`:""}</div><h3>${esc(d.title)}</h3>${exPreview(id)}${body||""}</section>`; }
+/* played a leg-heavy sport today with a lower day queued: offer an upper day instead, once a day, as a sheet */
+let justOpened=null;
+function afterLog(){ const c=document.querySelector(".wpage:not([inert]) .wcard.act.open"); if(c){ c.classList.add("grow"); c.scrollIntoView({block:"nearest",behavior:reduceMotion()?"auto":"smooth"}); } justOpened=null; setTimeout(offerLegSwap,450); }
+function offerLegSwap(){
+  const today=DAY0(Date.now()), M=weekModel(0), i=Math.round((today-M.W)/864e5), tk=dayKey(today.getTime());
+  const ss=M.byDay[i]||[], pid=M.plan[i], pd=dayById(pid), legs=ss.find(s=>ACT[s.k]&&ACT[s.k].leg>=1), up=M.todo.find(id=>/^Upper/.test((dayById(id)||{}).title||""));
+  if(!(pd&&/^Lower/.test(pd.title)&&legs&&up&&!(wk.swapKeep||{})[tk])||ss.some(s=>s.k==="lift")) return;
+  const keep=()=>{ wk.swapKeep={...(wk.swapKeep||{}),[tk]:1}; save(); };
+  showSheet(`<div class="swapsheet" role="dialog" aria-labelledby="lsTitle"><div class="shtop"><h3 class="swapt" id="lsTitle">Swap today's workout?</h3>${XBTN}</div>
+    <p class="small">You logged ${esc(actName(legs.k))} today. Swap ${esc(pd.title)} for ${esc(dayById(up).title)} so your legs can recover?</p>
+    <div class="tbtns two"><button type="button" class="tb ghost" data-lk>Keep plan</button><button type="button" class="tb" data-ls>Swap</button></div></div>`,el=>{
+    keep();
+    el.querySelector("[data-lk]").onclick=closeSheet;
+    el.querySelector("[data-ls]").onclick=()=>{ wk.pinToday={d:tk,id:up}; save(); closeSheet(); render(); toast([`${dayById(up).title} moved to today`]); }; },true); }
 function sessCard(s,today){
   if(s.k==="lift"){ const all=sessEx(s), ex=all.slice(0,6), d=dayById(s.id), open=d&&(wk.doneT||{})[s.id]===s.t;
     return `<section class="wcard lift done${open?" tap":""}"${open?` data-open="${s.id}" role="button" tabindex="0" aria-label="${esc(s.title||"Lift")}, open workout"`:""}><span class="weye">Completed</span><h3>${esc(s.title||"Lift")}</h3>
@@ -346,10 +360,7 @@ function dayBody(P,o){
     const y=i-1, yk=dayKey(addD(today,-1).getTime()), open=actList().filter(a=>loggedOf(a)<plannedOf(a));
     if((wk.remind||"On")==="On"&&y>=0&&!M.byDay[y].length&&open.length&&wk.remindSeen!==yk)
       banners.push(`<div class="wban"><p>Did you play or train yesterday?</p><div class="chips">${open.map(a=>`<button type="button" class="chip" data-yday="${a}">${esc(actName(a))}</button>`).join("")}<button type="button" class="chip ghost" data-yday="">No</button></div></div>`);
-    /* played a leg-heavy sport today with a lower day queued: offer an upper day instead */
-    const tk=dayKey(today.getTime()), pd=dayById(pid), legs=ss.find(s=>ACT[s.k]&&ACT[s.k].leg>=1), up=M.todo.find(id=>/^Upper/.test((dayById(id)||{}).title||""));
-    if(pd&&/^Lower/.test(pd.title)&&legs&&up&&!(wk.swapKeep||{})[tk])
-      banners.push(`<div class="wban"><p>You logged ${esc(actName(legs.k))} today. Swap ${esc(pd.title)} for ${esc(dayById(up).title)} so your legs can recover?</p><div class="chips"><button type="button" class="chip on" data-open="${up}">Swap</button><button type="button" class="chip ghost" data-keep="${tk}">Keep plan</button></div></div>`);
+    /* the "swap for an upper day" offer is a sheet shown right after logging (offerLegSwap), not a banner that pushes the page down */
   }
   ss.filter(s=>s.k==="lift").forEach(s=>cards.push(sessCard(s)));
   if(pid&&!liftDone){
@@ -566,12 +577,12 @@ function bindShell(v){
     if(h&&document.startViewTransition&&!matchMedia("(prefers-reduced-motion: reduce)").matches){ h.style.viewTransitionName="lbopen"; document.documentElement.dataset.vt="close";
       const t=document.startViewTransition(run); t.finished.finally(()=>{ delete document.documentElement.dataset.vt; document.querySelectorAll(".wcard").forEach(x=>x.style.viewTransitionName=""); }); }
     else run(); });
-  v.querySelectorAll("[data-log]").forEach(b=>b.onclick=()=>{ const a=b.dataset.log, sel=addD(DAY0(Date.now()),selOff), t=selOff===0?Date.now():sel.getTime()+12*36e5; openSess=t; logActOn(a,t); });
+  v.querySelectorAll("[data-log]").forEach(b=>b.onclick=()=>{ const a=b.dataset.log, sel=addD(DAY0(Date.now()),selOff), t=selOff===0?Date.now():sel.getTime()+12*36e5; openSess=t; justOpened=t; logActOn(a,t); afterLog(); });
   const lm=v.querySelector("[data-logmore]"); if(lm) lm.onclick=()=>{ logMore=!logMore; render(); };
   /* logging something new turns it on as an activity, so it shows up in Plan and here next time */
   v.querySelectorAll("[data-logx]").forEach(b=>b.onclick=()=>{ const a=b.dataset.logx, sel=addD(DAY0(Date.now()),selOff), t=selOff===0?Date.now():sel.getTime()+12*36e5;
     /* a one-off: remembered so deleting its only log removes the activity again */
-    logMore=false; wk.acts={...(wk.acts||{}),[a]:true}; wk.adhoc={...(wk.adhoc||{}),[a]:true}; wk[a]=0; openSess=t; logActOn(a,t); toast([`${ACT[a].name} logged`]); });
+    logMore=false; wk.acts={...(wk.acts||{}),[a]:true}; wk.adhoc={...(wk.adhoc||{}),[a]:true}; wk[a]=0; openSess=t; justOpened=t; logActOn(a,t); toast([`${ACT[a].name} logged`]); afterLog(); });
   v.querySelectorAll("[data-move]").forEach(b=>b.onclick=()=>{ const id=b.dataset.move; wk.pinToday={d:dayKey(Date.now()),id}; save(); selOff=0; render(); window.scrollTo({top:0,behavior:"smooth"}); toast([`${(dayById(id)||{}).title||"Lift"} moved to today`]); });
   v.querySelectorAll("[data-yday]").forEach(b=>b.onclick=()=>{ const a=b.dataset.yday, y=addD(DAY0(Date.now()),-1); wk.remindSeen=dayKey(y.getTime()); if(a) logActOn(a,y.getTime()+12*36e5); else { save(); render(); } });
   v.querySelectorAll("[data-keep]").forEach(b=>b.onclick=()=>{ wk.swapKeep={...(wk.swapKeep||{}),[b.dataset.keep]:1}; save(); render(); });

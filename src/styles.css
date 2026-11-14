@@ -1179,3 +1179,9 @@ h3.lhead{display:flex;align-items:center;gap:4px;justify-content:flex-start}
 .dsharerow .btn.dshare{margin-top:0}
 .dsharerow .dicon{width:48px}
 .rev small,.shline small{color:var(--muted);font-size:12px}
+/* a just-logged activity card opens in place */
+@keyframes lbGrow{from{max-height:64px}to{max-height:420px}}
+@keyframes lbRise{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.wcard.act.open.grow{overflow:hidden;animation:lbGrow .32s cubic-bezier(.2,.8,.2,1) both}
+.wcard.act.open.grow .weff,.wcard.act.open.grow .wedit{animation:lbRise .26s ease .1s both}
+@media (prefers-reduced-motion:reduce){.wcard.act.open.grow,.wcard.act.open.grow .weff,.wcard.act.open.grow .wedit{animation:none}}
