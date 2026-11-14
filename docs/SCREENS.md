@@ -33,7 +33,7 @@ From step 1 on, a "Plan so far" card at the bottom updates live. Finishing write
 
 - Header: LIFT BOARD title; a Today button (disabled when today is selected).
 - Week strip: seven day cells with a dot per item (green lift, pink activity); arrows to the previous/next week; today ringed; selected day filled.
-- Day line: ‹ "Today · Saturday, Nov 7" ›.
+- Day line: ‹ "Saturday, Nov 7" ›.
 - Swiping: anywhere below the week strip, swipe left/right to change day (the cards slide). On the M–Sun strip itself, swipe left/right to change week.
 - Day cards:
   - **Today, lift planned**: workout title, exercise list with targets, Start workout; "Switch to …" link when relevant.

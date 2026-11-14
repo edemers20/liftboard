@@ -45,7 +45,7 @@ The workout screen's top controls (back, Swap workout, Share once done) become a
 Long-pressing a lift card opens a native context menu: Swap, Move to today, Skip this week. Native menus get glass automatically, and Expo Router's link previews (`Link.Preview`, `Link.Menu`) can show a peek of the workout above the menu. Useful for people who know the app well; everything stays reachable by tap too.
 
 ### 9. A floating date line on Workouts
-With the day carousel (section 6), the "‹ Today · Friday, Nov 13 ›" line could be a small glass capsule pinned under the week strip while the day's content scrolls beneath it.
+With the day carousel (section 6), the "‹ Friday, Nov 13 ›" line could be a small glass capsule pinned under the week strip while the day's content scrolls beneath it.
 
 ---
 

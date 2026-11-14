@@ -96,7 +96,7 @@ A second way to run the workout screen: one exercise and one set at a time. Buil
 Swiping today only jumps to the next day once you let go. Instead, the day should follow your finger, so you can drag partway and see the next or previous day before deciding, like flipping pages in Photos.
 
 **Days**
-- The day line ("‹ Today · Friday, Nov 13 ›") stays fixed in place; only its date text changes. Everything below it (the day's cards, the activity chips, Fuel/Recover) is one page per day, in a horizontal pager. Use a horizontal `FlatList` with `pagingEnabled` (or `react-native-pager-view`), with `getItemLayout`, the selected day as `initialScrollIndex`, and a small render window (the current page and one either side).
+- The day line ("‹ Friday, Nov 13 ›") stays fixed in place; only its date text changes. Everything below it (the day's cards, the activity chips, Fuel/Recover) is one page per day, in a horizontal pager. Use a horizontal `FlatList` with `pagingEnabled` (or `react-native-pager-view`), with `getItemLayout`, the selected day as `initialScrollIndex`, and a small render window (the current page and one either side).
 - Range: the same days you can reach now (8 weeks back to the end of next week).
 - While dragging, the neighbouring day slides in alongside. On release it snaps to the nearest page; a quick flick moves one page. At either end of the range it rubber-bands.
 - Each page scrolls vertically on its own. A drag only becomes horizontal when it's clearly sideways, so vertical scrolling never turns into a page change.
@@ -202,7 +202,7 @@ Use this copy exactly as written; don't edit it.
 Today each tab's top area (title and switcher, or the Workouts title and week strip) stays fixed while the content scrolls under it. Change it so the header gets out of the way while reading and comes straight back when you scroll up, like Safari's toolbar.
 
 **Which headers**
-- **Workouts:** the LIFT BOARD title row and the M–Sun week strip hide together. The date line ("‹ Today · Friday, Nov 13 ›") stays pinned at the top while they're hidden, so you always know which day you're on.
+- **Workouts:** the LIFT BOARD title row and the M–Sun week strip hide together. The date line ("‹ Friday, Nov 13 ›") stays pinned at the top while they're hidden, so you always know which day you're on.
 - **Plan:** the date-range title and the Week / Season switch.
 - **History:** the HISTORY title and the Calendar / Weeks / Lifts switch.
 - **You:** the YOU title.
@@ -289,3 +289,9 @@ The web app has all three (commit after `02da198`); port the engine parts into `
 - The third tile is **PRs**: the number of personal records set in that workout (`prsBetween()` for that day), orange when above 0. It replaces "going up".
 - **Save to Photos** is the main option: on Day done, a full-width "Save to Photos" button (download icon) with a square Share icon button beside it, then "Finish & close" under them. The completed workout screen shows the same pair.
 - Native: Save to Photos writes the image straight to the photo library with `expo-media-library` (ask for add-only permission the first time) and shows a toast "Saved to Photos". The Share icon opens the share sheet as before.
+
+---
+
+## 13. Date line without "Today" (native)
+
+- The Workouts date line shows only the date: "‹ Friday, Nov 13 ›", never "Today · Friday, Nov 13". The ringed day in the week strip and the disabled Today button already say it's today.

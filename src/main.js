@@ -329,7 +329,7 @@ function renderWorkouts(P){
   const lo=pagerMin(), hi=pagerMax(), pg=o=>o<lo||o>hi?`<div class="wpage" aria-hidden="true" inert></div>`:`<div class="wpage"${o===selOff?"":` aria-hidden="true" inert`}>${dayBody(P,o)}</div>`;
   return `<div class="thead wt"><div class="whead"><h1>Lift Board</h1><button type="button" class="todayb" data-sel="0"${isToday?" disabled":""}>Today</button></div>
   <div class="wstrip"><div class="wcells">${cells}</div></div>
-  <div class="wday"><button type="button" class="wdstep" data-sel="${selOff-1}" aria-label="Previous day"${wOff<=-8&&i===0?" disabled":""}>‹</button><span>${isToday?"Today · ":""}${fmtDate(sel)}</span><button type="button" class="wdstep" data-sel="${selOff+1}" aria-label="Next day"${wOff>=1&&i===6?" disabled":""}>›</button></div></div>
+  <div class="wday"><button type="button" class="wdstep" data-sel="${selOff-1}" aria-label="Previous day"${wOff<=-8&&i===0?" disabled":""}>‹</button><span>${fmtDate(sel)}</span><button type="button" class="wdstep" data-sel="${selOff+1}" aria-label="Next day"${wOff>=1&&i===6?" disabled":""}>›</button></div></div>
   <div class="wpager"><div class="wtrack">${pg(selOff-1)}${pg(selOff)}${pg(selOff+1)}</div></div>`;
 }
 /* how far the day pager reaches: 8 weeks back to the end of next week */
