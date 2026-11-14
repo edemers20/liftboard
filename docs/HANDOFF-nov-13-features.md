@@ -188,10 +188,12 @@ After onboarding, the first time each tab is opened, show a small popover above 
 
 | Tab | Title | Text |
 | --- | --- | --- |
-| Workouts | Your week of workouts | Every day of the week, with what's planned. Move workouts around, swap them for different lifts and log activities. |
-| Plan | Your plan | Week shows your week at a glance; update your check-in to see the plan adjust. Season shows your overall plan and goals. |
-| History | Your history | Past activities, weeks completed and personal bests. |
-| You | Your settings | Change tips, experience level and other preferences, and read how the app works things out in the FAQ. |
+| Workouts | Workout Tab | where your workouts for every day of the week are shown. You can move them around, swap them for different lifts and log activities. |
+| Plan | Plan Tab | Week shows your week overview - update your check-in to see your plan adjust. Season shows your overall plan and goals. |
+| History | History | view your past activities, weeks completed and personal bests. |
+| You | You | change your preferences for tips, experience level, and FAQs about app calculations. |
+
+Use this copy exactly as written; don't edit it.
 
 ---
 

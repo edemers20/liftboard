@@ -1842,10 +1842,10 @@ document.addEventListener("visibilitychange",()=>{ if(document.visibilityState!=
 if(!wk.onbDone) openOnb();
 
 /* ---------- First visit to each tab: a small tip pointing at it (once per tab; Replay tour shows them again) ---------- */
-const TAB_TIPS={workouts:["Your week of workouts","Every day of the week, with what's planned. Move workouts around, swap them for different lifts and log activities."],
-  plan:["Your plan","Week shows your week at a glance; update your check-in to see the plan adjust. Season shows your overall plan and goals."],
-  history:["Your history","Past activities, weeks completed and personal bests."],
-  you:["Your settings","Change tips, experience level and other preferences, and read how the app works things out in the FAQ."]};
+const TAB_TIPS={workouts:["Workout Tab","where your workouts for every day of the week are shown. You can move them around, swap them for different lifts and log activities."],
+  plan:["Plan Tab","Week shows your week overview - update your check-in to see your plan adjust. Season shows your overall plan and goals."],
+  history:["History","view your past activities, weeks completed and personal bests."],
+  you:["You","change your preferences for tips, experience level, and FAQs about app calculations."]};
 function tabTip(){ const old=document.getElementById("tabtip"); if(old) old.remove();
   if(!wk.setupDone||!wk.onbDone||!(nav in TAB_TIPS)||(nav==="workouts"&&cur!=="home")||(wk.tabTips||{})[nav]) return;
   if(!document.getElementById("tour")?.hidden&&document.getElementById("tour")) return;
