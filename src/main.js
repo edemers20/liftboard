@@ -1894,3 +1894,12 @@ function tabTip(){ const old=document.getElementById("tabtip"); if(old) old.remo
     if(y<60){ acc=0; hide(false); return; }
     acc=(Math.sign(dy)===Math.sign(acc))?acc+dy:dy;
     if(acc>8) hide(true); else if(acc<-8) hide(false); },{passive:true}); })();
+
+/* ---------- Pressed states: show .pressing on touch/press and keep it at least 140ms so even a quick tap is seen ---------- */
+(function pressFeedback(){ const SEL='button,a,[role="button"],summary', MIN=140; let el=null, t0=0;
+  const off=()=>{ if(!el) return; const e=el; el=null; setTimeout(()=>e.classList.remove("pressing"),Math.max(0,MIN-(Date.now()-t0))); };
+  addEventListener("pointerdown",e=>{ const b=e.target.closest&&e.target.closest(SEL); if(!b||b.disabled||b.getAttribute("aria-disabled")==="true") return; off(); el=b; t0=Date.now(); b.classList.add("pressing"); },{passive:true,capture:true});
+  ["pointerup","pointercancel","dragstart"].forEach(n=>addEventListener(n,off,{passive:true,capture:true}));
+  /* a scroll that starts on a button isn't a press */
+  addEventListener("scroll",()=>{ if(el&&Date.now()-t0>60){ el.classList.remove("pressing"); el=null; } },{passive:true,capture:true});
+  addEventListener("keydown",e=>{ if((e.key==="Enter"||e.key===" ")&&document.activeElement&&document.activeElement.matches(SEL)){ const b=document.activeElement; b.classList.add("pressing"); setTimeout(()=>b.classList.remove("pressing"),MIN); } }); })();

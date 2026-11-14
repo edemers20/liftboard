@@ -1198,3 +1198,16 @@ h3.lhead{display:flex;align-items:center;gap:4px;justify-content:flex-start}
 .wtr b{font-size:15px;font-weight:600} .wtr span{font-size:13px;color:var(--muted)}
 .wtr.safe b{color:#e7b94a}
 .wtch .wlink{align-self:flex-start;margin-top:4px}
+/* ---------- Pressed states: every tappable thing reacts, and a quick tap stays visible for at least 140ms (.pressing, set in main.js) ---------- */
+html{-webkit-tap-highlight-color:transparent}
+button,a,[role="button"],summary,label.sw,.wcbtn,.chip,.seg button{transition:transform .12s ease,filter .12s ease,background-color .15s ease,opacity .12s ease}
+:is(button,a,[role="button"],summary):not(:disabled).pressing{transform:scale(.96);filter:brightness(.85)}
+/* big surfaces press more gently */
+:is(.wcbtn,.wcard>button,.lbtn,.wtop2,.chgb,.exrow,.liftrow,.tb.dcta,.btn.primary,.btn.wide,#doneBtn).pressing{transform:scale(.985);filter:brightness(.9)}
+/* ghost and text buttons darken their fill instead of shrinking much */
+:is(.wlink,.addex,.todayb,.wback,.nx,.dx,.ib,[data-pop]).pressing{transform:scale(.94);opacity:.6;filter:none}
+/* selected pills and switches flash as they change */
+.seg button:not(:disabled).pressing{transform:scale(.95);filter:brightness(1.15)}
+/* tab bar: the icon dips */
+#bnav button.pressing{transform:none;filter:none} #bnav button.pressing svg{transform:scale(.88);transition:transform .1s ease}
+@media (prefers-reduced-motion:reduce){:is(button,a,[role="button"],summary).pressing{transform:none !important;filter:brightness(.8)}}

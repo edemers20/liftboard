@@ -321,3 +321,22 @@ The web app has this; the logic is in the engine (`changeItems()`, `watchItems()
 - Not shown in Watch: close to daily, a busy week, two sessions a day.
 - Keep intense activity easy (text: "Keep intense activity easy during ramp-up.") shows during the pre-season ramp when spin is set to Really hard or any activity this week was logged as Hard.
 - Ranked: safety rows first (Need more fuel when you're under the floor, Watch your cycle, Need more recovery at 7 lift days), shown in yellow and never hidden. Then the most useful others, up to 3 rows in total; the rest behind "{n} more" / "Show less".
+
+---
+
+## 16. Pressed states on everything tappable (native)
+
+Every button, pill, chip, card, row, link and tab gives visible feedback while pressed, even on a quick tap.
+
+- Build one shared component (for example `PressableScale`, wrapping `Pressable` with Reanimated) and use it for every tappable element instead of plain `Pressable` / `TouchableOpacity`.
+- Press in: animate to the pressed look in about 80ms. Press out: animate back over about 140ms, so a quick tap is still seen.
+- Looks, by kind:
+  - Buttons, pills and chips: scale to 0.96 and darken slightly (about 15%).
+  - Large surfaces (day cards, workout cards, History rows, "Start workout", "Finish & close"): scale to 0.985 and darken about 10%.
+  - Text buttons and icon buttons ((i), close, "+ Add exercise", "2 more"): fade to 60% opacity.
+  - Selected pills and switches: brighten briefly as they change.
+  - Tab bar: the icon dips to 0.88.
+- Disabled elements don't react.
+- A drag that turns into a scroll cancels the pressed look (Pressable handles this when it's inside a ScrollView).
+- Reduce Motion: no scaling; darken only.
+- Pair with the haptics from `docs/HANDOFF-alerts-haptics.md` Part 3: the haptic fires on press, the visual on press-in.
