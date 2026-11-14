@@ -475,3 +475,28 @@ describe("lift calories", () => {
     expect(E.wk.liftKAuto).toBeLessThan(before);
   });
 });
+
+describe("records and streaks", () => {
+  const D = 864e5, wk0 = Date.UTC(2026, 10, 2);
+  it("estimates 1RM from a top set", () => { expect(E.e1rm(155, 8)).toBe(196); });
+  it("counts a heavier top set or more reps at the same weight, not a higher 1RM alone", () => {
+    fresh();
+    E.exHist["Hip Thrust (Barbell)"] = [{ w: 150, r: 9, t: wk0 - 7 * D }, { w: 155, r: 6, t: wk0 + D }];
+    E.exHist["Hack Squat"] = [{ w: 135, r: 8, t: wk0 - 7 * D }, { w: 135, r: 10, t: wk0 + 2 * D }];
+    E.exHist["Romanian Deadlift"] = [{ w: 105, r: 10, t: wk0 - 7 * D }, { w: 100, r: 14, t: wk0 + 3 * D }];
+    E.exHist["Lat Pulldown"] = [{ w: 70, r: 10, t: wk0 + D }];
+    const P = E.prsBetween(wk0, wk0 + 7 * D);
+    const kinds = Object.fromEntries(P.map((x) => [x.n, x.kind]));
+    expect(kinds["Hip Thrust (Barbell)"]).toBe("Heaviest top set");
+    expect(kinds["Hack Squat"]).toBe("More reps");
+    expect(kinds["Romanian Deadlift"]).toBeUndefined(); // lighter, even though 1RM went up
+    expect(kinds["Lat Pulldown"]).toBeUndefined(); // first log
+  });
+  it("streaks count completed or counted weeks back from the latest", () => {
+    fresh();
+    E.wk.weeks = [{ start: 1, lifts: 4, planned: 4 }, { start: 2, lifts: 3, planned: 4 }, { start: 3, lifts: 4, planned: 4 }, { start: 4, lifts: 4, planned: 4 }];
+    expect(E.weekStreak()).toBe(2);
+    E.countWeek(2, true);
+    expect(E.weekStreak()).toBe(4);
+  });
+});

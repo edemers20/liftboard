@@ -912,7 +912,7 @@ body[data-nav="history"] .cd.today[aria-pressed="true"]{box-shadow:inset 0 0 0 2
 #rest .rt{flex:0 0 auto;pointer-events:none;white-space:nowrap}
 .wcard.tap{cursor:pointer}
 .wcard.tap:active{transform:scale(.99)}
-::view-transition-group(lbopen){animation-duration:.45s;animation-timing-function:cubic-bezier(.2,.8,.2,1)}
+::view-transition-group(lbopen){animation-duration:.24s;animation-timing-function:cubic-bezier(.3,.7,.1,1)}
 ::view-transition-old(root),::view-transition-new(root){animation-duration:.3s}
 /* You: profile header */
 .phero{display:grid;grid-template-columns:64px 1fr;gap:12px 14px;align-items:center;padding:4px 0 6px}
@@ -1054,3 +1054,116 @@ html[data-vt="back"]::view-transition-new(lbview),html[data-vt="dayback"]::view-
 .wit small{font:400 13px var(--body);color:var(--muted)}
 .wit.on{color:var(--fg)}
 .wpct{color:var(--muted);font-size:12px}
+
+/* opening a workout: the card grows into the page fast, its content fades only at the end; closing reverses into the card */
+@keyframes lbFadeOut{from{opacity:1}to{opacity:0}}
+::view-transition-old(lbopen){animation:lbFadeOut .1s ease both}
+::view-transition-new(lbopen){animation:lbFade .12s ease .12s both}
+html[data-vt="open"]::view-transition-old(lbview){animation:lbFadeOut .12s ease both}
+html[data-vt="open"]::view-transition-new(lbview){animation:lbFade .14s ease .12s both}
+html[data-vt="close"]::view-transition-group(lbopen){animation-duration:.2s}
+html[data-vt="close"]::view-transition-old(lbview){animation:lbFadeOut .1s ease both}
+html[data-vt="close"]::view-transition-new(lbview){animation:lbFade .14s ease .06s both}
+/* workout polish */
+.optlab{margin:16px 0 10px}
+.addex{margin-top:6px;background:none;border:0;color:var(--accent);font-weight:600;min-height:44px;width:auto;padding:0 4px;align-self:flex-start}
+.addex:active{opacity:.6}
+/* logged activity: how hard was it */
+.weff{display:grid;gap:6px;margin-top:4px}
+.weff > span{font-size:13px;color:var(--muted)}
+.weff .seg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+/* Workouts day pager: three pages side by side, the middle one is the selected day */
+.wpager{overflow:hidden;margin:0 -16px;touch-action:pan-y}
+.wtrack{display:flex;width:300%;transform:translateX(-33.3333%);will-change:transform}
+.wpage{width:33.3333%;box-sizing:border-box;padding:0 16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.wstrip{grid-template-columns:1fr !important}
+html[data-vt^="day"] .wcards{view-transition-name:none}
+html[data-vt^="day"] .wpager{view-transition-name:lbcards}
+.wtrack{align-items:flex-start}
+.wpage[aria-hidden="true"]{height:0;overflow:visible}
+/* History → Weeks */
+.streak{display:flex;align-items:center;gap:10px;padding:2px 2px 4px;color:#fea06a;font-size:13px;font-weight:600}
+.flames{display:flex;gap:2px}
+.flame{color:var(--div,#3a3431);display:inline-flex} .flame.on{color:#fea06a}
+.wrow2{border-top:1px solid var(--line)} .wrow2:first-child{border-top:0}
+.wtop2{width:100%;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer;padding:12px 0;display:grid;grid-template-columns:1fr auto;gap:10px 8px;align-items:center}
+.wrng{font:400 22px/1 var(--display);text-transform:uppercase}
+.wpill{font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px;background:var(--card);color:var(--muted);white-space:nowrap}
+.wpill.ok{background:#1f3029;color:#6fd0b4}
+.wn3{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.wn3 span{display:flex;flex-direction:column} .wn3 small{font-size:12px;color:var(--muted)} .wn3 b{font:500 18px var(--mono)}
+.wmore{display:flex;flex-direction:column;gap:8px;padding:0 0 12px;animation:lbFade .2s ease both}
+.wmiss{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--bg);border-radius:12px;padding:8px 10px;font-size:13px;color:var(--muted)}
+.mbars2{display:flex;flex-direction:column;gap:7px}
+.mbar2{display:grid;grid-template-columns:96px 1fr 44px;gap:10px;align-items:center;font-size:13px}
+.mbar2 i{height:6px;border-radius:999px;background:var(--card);overflow:hidden;display:block}
+.mbar2 i b{display:block;height:100%;border-radius:999px;background:#6fd0b4} .mbar2 i b.low{background:#e7b94a}
+.mbar2 em{font:500 12px var(--mono);font-style:normal;text-align:right} .mbar2 em.low{color:#e7b94a}
+/* History → Lifts */
+.prcards{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:0 16px}
+.prcards::-webkit-scrollbar{display:none}
+.prc{flex:0 0 auto;width:140px;background:#2a211c;border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:2px}
+.prk{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#fea06a}
+.prn{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prc b{font:500 20px var(--mono)} .prc small{font-size:12px;color:var(--muted)}
+h3.lhead{display:flex;align-items:center;gap:4px;justify-content:flex-start}
+.lrow{border-top:1px solid var(--line)} .lrow:first-of-type{border-top:0}
+.lbtn{width:100%;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer;padding:12px 0;display:grid;grid-template-columns:minmax(0,1fr) 96px;gap:12px;align-items:center}
+.lcopy{display:flex;flex-direction:column;gap:4px;min-width:0}
+.ln2{font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ltop{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.ltop [role=img]{display:inline-flex} .ltop .mono{color:var(--fg)} .ltop .up{color:#fea06a}
+.lrow .spark polyline{stroke:#fea06a} .lrow .spark circle{fill:#fea06a}
+.ltab{display:flex;flex-direction:column;gap:6px;padding:0 0 12px}
+.lth,.ltr{display:grid;grid-template-columns:1fr 1fr 1fr;font-size:13px} .lth{font-size:12px;color:var(--muted)}
+.lth span:last-child,.ltr span:last-child{text-align:right} .ltr span:first-child{color:var(--muted)}
+.ltr .pr{color:#fea06a}
+.mono{font-family:var(--mono)}
+.tipdb{display:inline-flex;vertical-align:-2px}
+/* Weekly report sheet */
+.wrep{max-height:88vh;overflow-y:auto;gap:14px}
+.rhead{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:10px}
+.rhead h2{margin:0;font:400 36px/1 var(--display);text-transform:uppercase}
+.rtiles{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.rtiles div{background:var(--surface);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column}
+.rtiles span{font-size:12px;color:var(--muted)} .rtiles b{font:500 28px/1.15 var(--mono)} .rtiles small{font-size:12px;color:var(--muted)}
+.rtiles .lift b{color:#6fd0b4} .rtiles .act b{color:#fc96bf} .rtiles .fuel b{color:#fea06a}
+.rsec{background:var(--surface);border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:9px}
+.rsec h3{margin:0;font:600 15px var(--body);text-transform:none;letter-spacing:0;color:var(--fg)}
+.rsec.rpr{background:#2a211c} .rsec.rpr h3{color:#fea06a}
+.rrow{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:14px}
+.rrow > span{display:flex;flex-direction:column} .rrow > span:last-child{text-align:right;align-items:flex-end}
+.rrow small{font-size:12px;color:var(--muted);font-family:var(--body)} .rrow em{font-style:normal;color:#fea06a}
+.rsec.ract{background:#241f21}
+/* Splash: the empty bar, then plates slide on biggest first, a small dip, the name, then into the app */
+#splash{position:fixed;inset:0;z-index:100;background:#181513;display:grid;place-items:center;cursor:pointer}
+#splash svg{width:min(78vw,304px);height:auto}
+#splash .sword{position:absolute;left:0;right:0;top:calc(50% + min(26vw,100px));text-align:center;font:400 34px var(--display,'Ranchers');color:#edeae8;letter-spacing:.02em;animation:lbFade .4s ease 1.5s both}
+#splash .sp{animation:spL .42s cubic-bezier(.2,.9,.25,1.15) both} #splash .sp.r{animation-name:spR}
+#splash .sp0{animation-delay:.25s} #splash .sp1{animation-delay:.41s} #splash .sp2{animation-delay:.57s}
+#splash .sall{transform-origin:512px 512px;animation:spDip .5s ease 1s both}
+#splash.out{animation:lbFadeOut .35s ease both}
+@keyframes spL{from{transform:translateX(-420px);opacity:0}to{transform:none;opacity:1}}
+@keyframes spR{from{transform:translateX(420px);opacity:0}to{transform:none;opacity:1}}
+@keyframes spDip{0%,100%{transform:none}35%{transform:translateY(10px)}}
+@media (prefers-reduced-motion:reduce){#splash .sp,#splash .sall{animation:lbFade .4s ease both}#splash .sword{animation:lbFade .4s ease both}}
+/* first-visit tab tip */
+#tabtip{position:fixed;left:16px;right:16px;z-index:40;background:#2f2a27;color:var(--fg);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;font-size:13px;line-height:1.4;box-shadow:0 10px 30px rgba(0,0,0,.45);animation:lbUp .25s ease both;max-width:420px;margin:0 auto}
+#tabtip b{font-size:15px}
+#tabtip .tarrow{position:absolute;bottom:-8px;width:0;height:0;border-left:10px solid transparent;border-right:10px solid transparent;border-top:8px solid #2f2a27;margin-left:-10px}
+#tabtip.out{animation:lbFadeOut .2s ease both}
+@keyframes lbUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+/* headers that hide on scroll down and return on scroll up */
+.thead{position:sticky;top:env(safe-area-inset-top,0px);z-index:6;background:var(--bg);margin:-6px -16px 0;padding:6px 16px 6px;display:flex;flex-direction:column;gap:10px;transition:transform .22s cubic-bezier(.2,.8,.2,1)}
+.thead.hid{transform:translateY(-110%)}
+.thead.wt.hid{transform:translateY(calc(-1 * var(--hideH,0px) + 0px))}
+@media (prefers-reduced-motion:reduce){.thead{transition:opacity .2s}.thead.hid{transform:none;opacity:0;pointer-events:none}.thead.wt.hid{opacity:1;transform:translateY(calc(-1 * var(--hideH,0px)))}}
+/* profile editor groups: one even divider between groups */
+.pgroup{padding:16px 0 !important}
+.pgroup:first-child{padding-top:0 !important}
+.pgroup:last-child{padding-bottom:0 !important}
+.pgroup > *{margin-top:0;margin-bottom:0}
+/* Play test sound: pressed and playing states */
+[data-testsound]{transition:transform .12s ease,opacity .12s ease}
+[data-testsound]:active{transform:scale(.97);opacity:.7}
+[data-testsound].playing{opacity:.7}

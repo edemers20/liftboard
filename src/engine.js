@@ -411,6 +411,9 @@ function plan(){ buildDefaults(); const cut=cutting();
   if(fem()) addF(wk.cycle==="Period"||wk.cycle==="Luteal"?1:0,wk.cycle==="Period"?"period":"luteal phase");
   addF(legMin>=240?1:0,"heavy sport week");
   addF(hardSpin?(sp>=4?2:1):0,sp>=4?`${sp}× spin`:"hard spin");
+  /* an activity logged as Hard this week adds 1 (once), like a really hard spin class */
+  const hardLogged=(wk.sessions||[]).some(x=>x.eff==="Hard"&&x.t>=(wk.weekStart||0)&&x.k!=="lift");
+  addF(hardLogged?1:0,"a hard session");
   addF(sessions>=13?2:sessions>=10?1:0,`${sessions} sessions this week`);
   const S=F.reduce((a,x)=>a+x[0],0);
   P.score=S; P.factors=F.map(x=>x[1]);
@@ -729,6 +732,8 @@ function logAct(key,n,val,t){
 /* Lifting burn: weight training at MET 5 for the lifting part of the session (finisher minutes are counted on their own).
    Net of resting burn, like activities. A session without a saved duration counts as your session length. */
 const LIFT_MET=5;
+/* how hard a logged activity was: Easy / Moderate / Hard scale its calorie rate (spin, yoga and Pilates use their own effort settings) */
+const EFF_MULT={Easy:0.85,Moderate:1,Hard:1.15}, OWN_EFF=["spin","yoga","pilates"];
 const finMin=x=>(x.ex||[]).filter(e=>e.cardio&&e.min>0).reduce((a,e)=>a+e.min,0);
 const liftMin=x=>Math.max(0,(num(x.min,0)>0?num(x.min,0):num(wk.time,60))-finMin(x));
 /* Per-session lift kcal for the fuel math: average of your last 12 timed lifts (3+ needed, else session length).
@@ -741,7 +746,7 @@ function sessionKcal(x){
   if(x.k==="lift") return liftMin(x)*perMin(LIFT_MET)+(x.ex||[]).filter(e=>e.cardio&&e.min>0).reduce((a,e)=>a+e.min*perMin((CARDIO[e.n]||CARDIO["Incline Walk"]).met),0);
   const A=ACT[x.k]; if(!A||!(x.min>0)) return 0;
   const met=x.k==="yoga"?yogaMet():x.k==="pilates"?pilMet():x.k==="spin"?(SPIN_MET[wk.spint]||8.5):A.met;
-  return met?x.min*perMin(met):0;
+  return met?x.min*perMin(met)*(EFF_MULT[x.eff]||1):0;
 }
 /* A calendar week's actuals from the log, so edits made after the week closed still count */
 function weekActuals(start){
@@ -805,13 +810,39 @@ function resyncDone(dayId){
   save();
 }
 /** Close the week: snapshot history, plan missed days, calibrate maintenance, reset check-in. Returns toast lines. */
+
+/* ---------- Records, streaks and the weekly report ----------
+   1RM is estimated from a top set (Epley). A personal record (PR) is a heavier top set than ever before,
+   or more reps at the same or a heavier weight. A higher 1RM alone doesn't count. The first log of an exercise isn't a PR. */
+const e1rm=(w,r)=>Math.round(num(w,0)*(1+num(r,0)/30));
+function prsBetween(from,to){ const out=[];
+  Object.keys(exHist).forEach(n=>{ const h=(exHist[n]||[]).filter(x=>x&&x.t); let maxW=-1, prev=[];
+    h.slice().sort((a,b)=>a.t-b.t).forEach(x=>{ const w=num(x.w,0), r=num(x.r,0);
+      if(x.t>=from&&x.t<to&&prev.length){
+        const heavier=w>maxW, moreReps=!heavier&&prev.some(p=>num(p.w,0)<=w)&&r>Math.max(0,...prev.filter(p=>num(p.w,0)>=w).map(p=>num(p.r,0)));
+        const best=prev.slice().sort((a,b)=>num(b.w,0)-num(a.w,0)||num(b.r,0)-num(a.r,0))[0];
+        if(heavier||moreReps) out.push({n,t:x.t,w,r,kind:heavier?"Heaviest top set":"More reps",was:best?{w:num(best.w,0),r:num(best.r,0)}:null});
+      }
+      prev.push(x); maxW=Math.max(maxW,w); }); });
+  /* one record per exercise per week: the latest */
+  const by={}; out.forEach(x=>{ if(!by[x.n]||by[x.n].t<x.t) by[x.n]=x; }); return Object.values(by).sort((a,b)=>b.t-a.t); }
+/* a closed week counts as completed when every planned lift was done, or you counted it yourself */
+const weekComplete=w=>!!w&&(w.counted||(w.planned>0&&w.lifts>=w.planned));
+function weekStreak(){ const W=wk.weeks||[]; let n=0; for(let k=W.length-1;k>=0&&weekComplete(W[k]);k--) n++; return n; }
+function countWeek(start,on){ wk.weeks=(wk.weeks||[]).map(w=>w.start===start?{...w,counted:!!on}:w); save(); }
 function newWeek(start){
   const P=plan(), done=wk.done||{};
   const missed=DAYS.filter(d=>!done[d.id]);
   let sm=0; SPORTS.forEach(a=>{ if(ACT[a].noMin) return; for(let i=0;i<cnt(a);i++) sm+=num((wk[actKey(a)]||[])[i],plannedMin(a)); });
   const w=num(wk.wAvg,0)||null;
   wk.weeks=(wk.weeks||[]).concat([{start:wk.weekStart||Date.now(),season:inSeason()?"In-season":"Off-season",focus:wk.focus,mode:wk.mode,ramp:hasSport()&&!inSeason()&&wk.ramp==="Yes",deload:wk.deload==="Yes",
-    lifts:DAYS.length-missed.length,planned:DAYS.length,fast:!!P.math.fast,sport:sm,cardio:r5(P.math.cardioTotal),w,intake:r5(P.math.intake),raw:r5(P.math.raw)}]).slice(-52);
+    lifts:DAYS.length-missed.length,planned:DAYS.length,fast:!!P.math.fast,sport:sm,cardio:r5(P.math.cardioTotal),w,intake:r5(P.math.intake),raw:r5(P.math.raw),
+    /* for the weekly report and History: sets logged, sets per muscle (done vs target), records, what goes up next, which lifts were missed */
+    sets:DAYS.reduce((t,d)=>t+d.slots.reduce((u,s,i)=>u+(s.cardio?0:((get(d.id,i).log)||[]).filter(x=>x.d).length),0),0),
+    muscles:(P.ledger||[]).filter(x=>x.target>0).map(x=>[x.name,Math.round(x.done),x.target]),
+    prs:prsBetween(wk.weekStart||0,start||Date.now()).map(x=>({n:x.n,kind:x.kind,w:x.w,r:x.r,was:x.was})),
+    ups:Object.entries(wk.next||{}).filter(([n,x])=>x.tag==="up").map(([n,x])=>{ const h=exHist[n]||[], z=h[h.length-1]; return {n,from:z?{w:num(z.w,0),r:num(z.r,0)}:null,to:x.w,bw:!!x.bw}; }).slice(0,6),
+    missed:missed.map(d=>d.title)}]).slice(-52);
   if(missed.length&&missed.length<DAYS.length){
     const names=missed.map(d=>d.tab).join(" and ");
     wk.upNext=missed[0].id; wk.missedNote={why:`${names} didn't fit last week`,txt:`start with ${missed[0].tab}, then continue in order`};
@@ -833,4 +864,4 @@ function newWeek(start){
   save(); return ["New week started. Check-in reset to normal."];
 }
 
-export { sessionKcal, liftKcal, refreshLiftK, LIFT_MET, weekActuals, swapOptions, swapDay, rateLb, isBW, yogaMet, pilMet, YOGA_EFF, PIL_EFF, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, MUSCLES, slotMuscles, musclePriority, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk };
+export { e1rm, prsBetween, weekComplete, weekStreak, countWeek, EFF_MULT, OWN_EFF, sessionKcal, liftKcal, refreshLiftK, LIFT_MET, weekActuals, swapOptions, swapDay, rateLb, isBW, yogaMet, pilMet, YOGA_EFF, PIL_EFF, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, MUSCLES, slotMuscles, musclePriority, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk };

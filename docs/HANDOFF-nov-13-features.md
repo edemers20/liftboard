@@ -250,3 +250,15 @@ Rules:
 - Tapping anywhere skips to the app.
 - Don't wait for the animation to load data: load in parallel, and if loading takes longer, hold on the loaded barbell until it's ready.
 - Reduce Motion: no sliding or dip; the plates and name fade in together, then it fades into the app (about 1s total).
+
+---
+
+## Web app parity (Nov 13 night)
+
+The web app now has working versions of most of these, useful as a behaviour reference (`src/main.js`, `src/engine.js`):
+- Section 2: weekly report sheet (`weekDone()`), with the week record saving sets, sets by muscle, PRs, what goes up and missed lifts (`newWeek()` in the engine).
+- Section 3: History Weeks (flame streak, Completed / Counted, Count as completed) and Lifts (Recent PRs, rows with the dumbbell top set, expandable 1RM table, (i) tip). Engine: `e1rm`, `prsBetween`, `weekComplete`, `weekStreak`, `countWeek`, with tests.
+- Section 6: the day pager (`bindPager()`, `pagerTo()`), the week strip without arrows that swipes a week at a time.
+- Section 8: workout polish, activity effort (`EFF_MULT`, Hard adds 1 to recovery load) and one-off activity delete (`wk.adhoc`), Play test sound states, even profile dividers, first-visit tab tips (`TAB_TIPS`).
+- Section 9: headers hide on scroll (`.thead`, `hideOnScroll()`).
+- Section 11: the new icon and the plate-loading splash (`#splash` in `index.html`).
