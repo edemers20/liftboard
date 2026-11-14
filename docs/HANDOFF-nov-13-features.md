@@ -96,7 +96,7 @@ A second way to run the workout screen: one exercise and one set at a time. Buil
 Swiping today only jumps to the next day once you let go. Instead, the day should follow your finger, so you can drag partway and see the next or previous day before deciding, like flipping pages in Photos.
 
 **Days**
-- Everything below the week strip (the day line, the day's cards, the activity chips, Fuel & recovery) is one page per day, in a horizontal pager. Use a horizontal `FlatList` with `pagingEnabled` (or `react-native-pager-view`), with `getItemLayout`, the selected day as `initialScrollIndex`, and a small render window (the current page and one either side).
+- The day line ("‹ Today · Friday, Nov 13 ›") stays fixed in place; only its date text changes. Everything below it (the day's cards, the activity chips, Fuel/Recover) is one page per day, in a horizontal pager. Use a horizontal `FlatList` with `pagingEnabled` (or `react-native-pager-view`), with `getItemLayout`, the selected day as `initialScrollIndex`, and a small render window (the current page and one either side).
 - Range: the same days you can reach now (8 weeks back to the end of next week).
 - While dragging, the neighbouring day slides in alongside. On release it snaps to the nearest page; a quick flick moves one page. At either end of the range it rubber-bands.
 - Each page scrolls vertically on its own. A drag only becomes horizontal when it's clearly sideways, so vertical scrolling never turns into a page change.
@@ -104,7 +104,8 @@ Swiping today only jumps to the next day once you let go. Instead, the day shoul
 - Tapping a day in the strip, the ‹ › arrows, "Today" and "View next lift" move the pager there: animated for nearby days, instant when it's more than 3 days away.
 
 **Week strip**
-- The M–Sun strip is also a horizontal pager, one week per page, that follows your finger the same way. Settling on a week keeps the same weekday selected (or today, when it's this week) and moves the day pager to match.
+- Remove the ‹ › buttons on either side of the M–Sun strip. The strip itself scrolls sideways a week at a time and follows your finger the same way. Settling on a week keeps the same weekday selected (or today, when it's this week) and moves the day pager to match.
+- The ‹ › buttons beside the date stay; tapping them changes the date in place and slides the content below like the carousel, exactly as a swipe would.
 
 **Reduce Motion:** dragging still works (you're moving it directly), but taps jump without animation.
 
@@ -145,3 +146,49 @@ Most of these were spotted in the native app; the web app has the same changes w
   - Buttons: **Keep {current}** (secondary) and **Use {new}** (primary). Use fills the new weight into every set not yet ticked. Keep, the close button or tapping the overlay just closes it.
   - It's asked once per set: closing it never brings it back for that set.
   - Haptic: light impact when it appears (same as the toast).
+
+---
+
+## 8. Polish pass 2 (native app)
+
+Native only. Do it in two or three chats (Workout screen; Workouts tab; History, nav, You and first-run tips), committing after each.
+
+### Workout screen
+- **Optional section:** more space under the "Optional" heading (about 12px before the first exercise).
+- Exercises inside the Optional section don't repeat "optional" in their own label.
+- An exercise that's being skipped (not started, or skipped) shows no ✓ tick buttons on its set rows.
+- **Add exercise** is a plain text button ("+ Add exercise", accent colour, no fill or outline), still at least 44pt tall to tap.
+- Collapsed exercise cards have no › chevron.
+- The next-time line under an exercise is text only: "Go up to 45 lb", "Ease to 35 lb", "Stay at 40 lb". No "=", arrow or other icon in front.
+- **Stretch:** label is just "Stretch" (no "optional"), no "8 min" pill, and it sits above "+ Add exercise".
+- **Opening and closing a workout:** make the transition crisp. The card expands into the page in about 240ms (no overshoot, ease-out), and its content fades in only once the page has reached full size. Closing reverses it into the card in about 200ms. No blur or long cross-fade. Reduce Motion: a quick fade.
+
+### Tips everywhere (workout, Plan, You, History)
+- Tapping an (i) never opens a bottom sheet with a dimmed overlay. It opens a small popover on the page, anchored to the (i) with a pointer, about 280pt wide, dark card (#2f2a27), 13pt text. Tapping outside, the (i) again or scrolling closes it. Only one open at a time. Short tips (one line) can show inline under the row instead.
+- The weight suggestion after a set ("That looked easy" / "Tough set") stays a popup, since it asks you to decide something.
+
+### Workouts tab
+- **Logging an activity** (tapping its chip or picking it from "Other"): the logged activity card expands inline right there, showing minutes and **How hard was it?** with **Easy / Moderate / Hard** pills (default Moderate). Spin, yoga and Pilates keep their existing effort options instead. Store the choice on the session.
+  - Proposed effect (tell me if you want it different): Easy ×0.85 and Hard ×1.15 on the activity's calorie rate; Hard also adds 1 to recovery load, like a really hard spin class.
+- **Deleting a logged activity** that isn't one of your regular activities (it was logged once through "Other") removes it everywhere: the session, and the activity itself, so it doesn't show up on Plan, in "This week's plan" or as a chip. Track this with an "added just for this log" flag when "Other" turns an activity on. Regular activities just lose that session.
+- **Day pager:** see section 6 (updated): no ‹ › buttons beside the week strip; the date line stays put and the content below slides like a carousel.
+
+### History
+- Weeks: the streak strip uses a **flame** icon per week (Lucide `Flame`, outline, 14pt) instead of squares: orange (#fea06a) for completed weeks, the muted grey for weeks that weren't.
+
+### Tab bar
+- Use the native iOS tab bar so it gets **Liquid Glass** on iOS 26: Expo Router's native tabs (`expo-router/unstable-native-tabs`, check the docs for the installed SDK). Keep our four icons (pass them as template images) and labels; tint the selected tab with the tab's theme colour (green, orange, orange, pink). On older iOS it falls back to the standard translucent tab bar. If native tabs can't take our icons, use `expo-glass-effect`'s `GlassView` behind the existing custom tab bar instead and tell me.
+
+### You
+- **Dividers** between the Activities, Season and Lifting groups in the profile editor are uneven. Use exactly one 1px line between groups, with the same space above and below it (16px), and no line above the first group or below the last.
+- **Play test sound** needs a pressed state (dims and scales to 97% while pressed) and reads "Playing…" while the chime plays.
+
+### First-run tab tips
+After onboarding, the first time each tab is opened, show a small popover above that tab's icon in the tab bar (pointing at it) with a title and one or two lines. Tapping anywhere dismisses it; each shows once (store a flag per tab); "Replay tour" on You resets them.
+
+| Tab | Title | Text |
+| --- | --- | --- |
+| Workouts | Your week of workouts | Every day of the week, with what's planned. Move workouts around, swap them for different lifts and log activities. |
+| Plan | Your plan | Week shows your week at a glance; update your check-in to see the plan adjust. Season shows your overall plan and goals. |
+| History | Your history | Past activities, weeks completed and personal bests. |
+| You | Your settings | Change tips, experience level and other preferences, and read how the app works things out in the FAQ. |
