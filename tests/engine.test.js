@@ -513,7 +513,7 @@ describe("changes and watch as headlines", () => {
   it("merges notes that share a headline and drops removed ones", () => {
     const W = E.watchItems(["On a cut, preserving strength is the goal.", "At this pace, expect to hold muscle and strength rather than build.", "12 sessions this week. Stack activities.", "A 600 kcal/day food deficit is steep."]);
     expect(W.map((x) => x.h)).toEqual(["Need more fuel", "Strength first"]);
-    expect(W[1].t).toContain("rather than build");
+    expect(W[1].t).toBe("At this pace, expect to hold muscle and strength rather than build.");
   });
   it("puts safety notes first", () => {
     const W = E.watchItems(["Protein 110–140 g daily.", "Eating ~1300 kcal/day is too low. Slow the rate."]);

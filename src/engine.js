@@ -578,7 +578,7 @@ function plan(){ buildDefaults(); const cut=cutting();
   if(food>500) P.notes.push(`A ${r5(food)} kcal/day food deficit is steep.`);
   if(!build&&!maintain&&food<0) P.notes.push(`Your activity covers the whole deficit. Eat ${r5(-food)} kcal/day above maintenance so it doesn't cost muscle.`);
   if(fins.length&&m>cap&&cap>0) P.notes.push(`Finishers run ${m} min, past a normal ${cap}-min finisher.`);
-  if(ramp&&((sp&&wk.spint==="Really hard")||hardLogged)) P.notes.push("Keep intense activity easy during the ramp; hard sessions don't build base.");
+  if(ramp&&((sp&&wk.spint==="Really hard")||hardLogged)) P.notes.push("Keep intense activity easy during the ramp.");
   const nL=DAYS.length;
   if(nL===7) P.notes.push("7 lift days leaves no rest day. Days 6 and 7 run lighter; drop one if anything aches.");
   else if(nL===6) P.notes.push("6 lift days leaves one rest day. Day 6 runs lighter so recovery keeps up.");
@@ -832,6 +832,8 @@ const WATCH=[[/^Eating ~/,"Need more fuel",0,1],[/food deficit is steep/,"Need m
   [/^Finishers run/,"Long finishers",2],[/caps loss at/,"Pace capped",2],[/caps cardio at 25%/,"Cardio capped",2],[/^Keep intense activity easy/,"Keep intense activity easy",2],
   [/rather than build/,"Strength first",3],[/preserving strength is the goal/,"Strength first",3],[/^Protein /,"Protein",4]];
 function watchItems(notes){ const by=new Map();
+  /* Strength first: when both notes apply, only the "rather than build" one shows */
+  if((notes||[]).some(t=>/rather than build/.test(t))) notes=notes.filter(t=>!/preserving strength is the goal/.test(t));
   (notes||[]).forEach((t,i)=>{ const m=WATCH.find(([re])=>re.test(t))||[null,"Note",3,0]; if(m[1]===null) return;
     const body=m[1]==="Protein"?t.replace(/^Protein /,""):t, x=by.get(m[1]);
     if(x){ x.t+=" "+body; x.rank=Math.min(x.rank,m[2]); x.safe=x.safe||!!m[3]; } else by.set(m[1],{h:m[1],t:body,rank:m[2],safe:!!m[3],i}); });
