@@ -1167,3 +1167,7 @@ h3.lhead{display:flex;align-items:center;gap:4px;justify-content:flex-start}
 [data-testsound]{transition:transform .12s ease,opacity .12s ease}
 [data-testsound]:active{transform:scale(.97);opacity:.7}
 [data-testsound].playing{opacity:.7}
+/* Plan header: date range and Week/Season on one line */
+.phead.thead{flex-direction:row;justify-content:space-between;align-items:center}
+/* Recent PRs sit on the page, not inside a panel */
+.panel.prsec{background:none;padding:0;border:0;box-shadow:none}

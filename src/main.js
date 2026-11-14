@@ -720,7 +720,7 @@ function liftsHTML(){
   const names=Object.keys(exHist).filter(n=>(exHist[n]||[]).some(x=>x&&x.t)), now=Date.now();
   const prs=prsBetween(now-28*864e5,now+864e5).slice(0,8), U=KG()?"kg":"lb";
   INFO.liftsTip=`<b>1RM</b> is an estimate of the most you could lift once, worked out from your top set (weight × (1 + reps ÷ 30)). It's for tracking trends; you never need to test it.<br><br><span class="tipdb">${DUMBBELL}</span> Your top set: the heaviest set you did that week.<br>Shown for the last 8 weeks.`;
-  return `${prs.length?`<div class="panel"><h3>Recent PRs</h3><div class="prcards">${prs.map(x=>`<div class="prc"><span class="prk">${esc(x.kind==="Heaviest top set"?"Top set":"Reps")}</span><span class="prn">${esc(x.n)}</span><b>${fmtSet(x.n,x.w,x.r)}</b><small>${new Date(x.t).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</small></div>`).join("")}</div></div>`:""}
+  return `${prs.length?`<div class="panel prsec"><h3>Recent PRs</h3><div class="prcards">${prs.map(x=>`<div class="prc"><span class="prk">${esc(x.kind==="Heaviest top set"?"Top set":"Reps")}</span><span class="prn">${esc(x.n)}</span><b>${fmtSet(x.n,x.w,x.r)}</b><small>${new Date(x.t).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</small></div>`).join("")}</div></div>`:""}
   <div class="panel"><h3 class="lhead">Main lifts${ib("liftsTip")}</h3>
    ${names.length?names.map(n=>{ const rows=liftWeeks(n), last=rows[rows.length-1], back=rows.filter(x=>x.k>=now-56*864e5)[0]||rows[0], dw=last.w-back.w, open=openLift===n;
      return `<div class="lrow${open?" open":""}"><button type="button" class="lbtn" data-lx="${esc(n)}" aria-expanded="${open}"><span class="lcopy"><span class="ln2">${esc(n)}</span>
