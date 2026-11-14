@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Lift Board · Prototype · You (profile)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Ranchers&amp;family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&amp;family=DM+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;font-synthesis-weight:none}
+@keyframes lbUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes lbFlame{0%,100%{transform:scale(1) rotate(0)}30%{transform:scale(1.18) rotate(-6deg)}60%{transform:scale(.96) rotate(4deg)}}
+@keyframes lbPop{0%{transform:scale(.6);opacity:0}70%{transform:scale(1.08);opacity:1}100%{transform:scale(1)}}
+button,a{transition:transform .12s ease,filter .12s ease,background-color .15s ease}
+button:active,a:active{transform:scale(.96);filter:brightness(.85)}
+.sc::-webkit-scrollbar{display:none}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</helmet>
+<div style="position: relative; width: 390px; height: 844px; overflow: hidden; box-sizing: border-box; background: #181513; color: #edeae8; font-family: 'DM Sans', system-ui, sans-serif; font-size: 15px; line-height: 1.45; display: flex; flex-direction: column">
+  <div class="sc" style="flex: 1; overflow-y: auto; scrollbar-width: none; padding: 16px 16px 24px; display: flex; flex-direction: column; gap: 12px">
+    <div style="display: flex; justify-content: flex-end; height: 40px">
+      <a href="Proto_Settings.dc.html" aria-label="Settings" style="width: 40px; height: 40px; border-radius: 999px; background: rgba(255,255,255,.08); box-shadow: inset 0 0 0 1px rgba(255,255,255,.12); color: #edeae8; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></a>
+    </div>    <header style="display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: -20px; animation: lbUp .4s both">
+      <div style="width: 84px; height: 84px; border-radius: 999px; background: linear-gradient(135deg,#fc96bf,#fea06a); display: flex; align-items: center; justify-content: center; font-family: 'Ranchers', sans-serif; font-size: 40px; color: #2a1520; box-shadow: 0 8px 30px rgba(252,150,191,.25)">E</div>
+      <h1 style="margin: 0; font-family: Ranchers, sans-serif; font-weight: 400; font-size: 34px; line-height: 1; text-transform: uppercase">Emma</h1>
+      <span style="font-size: 13px; color: #a8a09c">Member since Aug 2026</span>
+      <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 2px"><span style="padding: 5px 12px; border-radius: 999px; font-size: 13px; font-weight: 600; background: #3a2430; color: #fc96bf">Pickleball</span><span style="padding: 5px 12px; border-radius: 999px; font-size: 13px; font-weight: 600; background: #2a2329; color: #e9b1c5">Pilates</span><span style="padding: 5px 12px; border-radius: 999px; font-size: 13px; font-weight: 600; background: #2a2329; color: #e9b1c5">Spin</span><span style="padding: 5px 12px; border-radius: 999px; font-size: 13px; font-weight: 600; background: #1f3029; color: #6fd0b4">Lifting</span></div>
+    </header>
+<section style="background: linear-gradient(135deg,#3a2430 0%,#2a211c 100%); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 10px; animation: lbUp .4s both;"><button type="button" onClick="{{ wiggle }}" aria-label="Weekly streak" style="all: unset; cursor: pointer; display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: center">
+  <span style="color: #fea06a; display: inline-flex; animation: {{ flameAnim }}"><svg aria-hidden="true" width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg></span>
+  <span style="display: flex; flex-direction: column"><span style="font-family: Ranchers, sans-serif; font-size: 56px; line-height: .95; color: #fea06a">6</span><span style="font-size: 14px; color: #edeae8">weeks in a row</span></span></button>
+  <div style="display: flex; gap: 3px; justify-content: space-between"><sc-for list="{{ flames }}" as="f" hint-placeholder-count="12"><span style="color: {{ f.c }}; display: inline-flex"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg></span></sc-for></div>
+  <span style="font-size: 12px; color: #a8a09c">Best streak 9 weeks, in September.</span></section>
+<div style="display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; animation: lbUp .4s .05s both">
+  <sc-for list="{{ stats }}" as="s" hint-placeholder-count="3"><div style="background: #24201d; border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 12px; color: #a8a09c">{{ s.l }}</span><span style="font-family: 'DM Mono', monospace; font-size: 26px; font-weight: 500; line-height: 1.1; color: {{ s.c }}">{{ s.v }}</span><span style="font-size: 11px; color: #8f8783">{{ s.sub }}</span></div></sc-for></div>
+<section style="background: #24201d; border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 10px; animation: lbUp .4s both;"><div style="display: flex; justify-content: space-between; align-items: baseline"><h2 style="margin: 0; font-size: 15px; font-weight: 600">Strongest lift</h2><span style='font-size: 12px; color: #a8a09c'>since Sep</span></div><div style="display: grid; grid-template-columns: 1fr 120px; gap: 10px; align-items: center">
+  <div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 16px; font-weight: 600">Hip Thrust (Barbell)</span><span style="display: flex; align-items: center; gap: 6px; color: #a8a09c"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9v6M6 7v10M18 7v10M21 9v6M6 12h12"/></svg><span style="font-family: 'DM Mono', monospace; font-size: 22px; color: #edeae8">155 × 8</span></span><span style="font-size: 13px; color: #fea06a">+20 lb since you started</span></div>
+  <svg aria-hidden="true" width="120" height="56" viewBox="0 0 120 56"><polyline points="4,50 20,46 36,44 52,36 68,32 84,24 100,18 116,8" fill="none" stroke="#fea06a" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/><circle cx="116" cy="8" r="4" fill="#fea06a"/></svg></div></section>
+<section style="display: flex; flex-direction: column; gap: 8px; animation: lbUp .4s .1s both"><div style="display: flex; justify-content: space-between; align-items: baseline"><h2 style="margin: 0; font-size: 15px; font-weight: 600">Personal Records</h2><span style='font-size: 12px; color: #a8a09c'>last 4 weeks</span></div>
+  <div class="sc" style="display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding: 0 16px">
+  <sc-for list="{{ prs }}" as="p" hint-placeholder-count="4"><div style="flex: 0 0 auto; width: 136px; background: #2a211c; border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: #fea06a">{{ p.k }}</span><span style="font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ p.n }}</span><span style="font-family: 'DM Mono', monospace; font-size: 20px; font-weight: 500">{{ p.v }}</span><span style="font-size: 12px; color: #a8a09c">{{ p.d }}</span></div></sc-for></div></section>
+<section style="background: #24201d; border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 10px; animation: lbUp .4s both;"><div style="display: flex; justify-content: space-between; align-items: baseline"><h2 style="margin: 0; font-size: 15px; font-weight: 600">Most played</h2><span style='font-size: 12px; color: #a8a09c'>this season</span></div><div style="display: flex; align-items: baseline; gap: 8px"><span style="font-family: Ranchers, sans-serif; font-size: 30px; color: #fc96bf; text-transform: uppercase">Pickleball</span></div>
+  <span style="font-size: 14px">20 hours on court across 16 sessions</span>
+  <div style="display: flex; flex-direction: column; gap: 6px"><sc-for list="{{ mix }}" as="m" hint-placeholder-count="4"><div style="display: grid; grid-template-columns: 72px 1fr 52px; gap: 8px; align-items: center; font-size: 12px"><span style="color: #a8a09c">{{ m.n }}</span><i style="display: block; height: 8px; border-radius: 999px; background: #34302c; overflow: hidden"><b style="display: block; height: 100%; width: {{ m.w }}; border-radius: 999px; background: {{ m.c }}"></b></i><span style="font-family: DM Mono, monospace; text-align: right">{{ m.h }}</span></div></sc-for></div></section>
+<section style="background: #24201d; border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 10px; animation: lbUp .4s both;"><div style="display: flex; justify-content: space-between; align-items: baseline"><h2 style="margin: 0; font-size: 15px; font-weight: 600">Your year</h2><span style='font-size: 12px; color: #a8a09c'>weeks completed</span></div><div style="display: grid; grid-template-columns: repeat(13, 1fr); gap: 4px"><sc-for list="{{ weeks }}" as="w" hint-placeholder-count="52"><span title="{{ w.t }}" style="aspect-ratio: 1; border-radius: 4px; background: {{ w.bg }}; box-shadow: {{ w.ring }}"></span></sc-for></div>
+  <div style="display: flex; justify-content: space-between; font-size: 11px; color: #8f8783"><span>Jan</span><span>Apr</span><span>Jul</span><span>Oct</span><span>Dec</span></div>
+  <div style="display: flex; gap: 12px; font-size: 12px; color: #a8a09c"><span style="display: inline-flex; align-items: center; gap: 5px"><i style="width: 10px; height: 10px; border-radius: 3px; background: #fea06a"></i>Completed</span><span style="display: inline-flex; align-items: center; gap: 5px"><i style="width: 10px; height: 10px; border-radius: 3px; background: #4a3a33"></i>Partly</span></div></section>
+<section style="display: flex; flex-direction: column; gap: 8px; animation: lbUp .4s .15s both"><div style="display: flex; justify-content: space-between; align-items: baseline"><h2 style="margin: 0; font-size: 15px; font-weight: 600">Milestones</h2></div>
+  <div style="display: grid; grid-template-columns: repeat(2,1fr); gap: 8px"><sc-for list="{{ miles }}" as="m" hint-placeholder-count="4"><div style="background: #24201d; border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 6px; animation: lbPop .45s both"><span style="width: 40px; height: 40px; border-radius: 999px; background: {{ m.bg }}; color: {{ m.c }}; display: flex; align-items: center; justify-content: center; font-family: Ranchers, sans-serif; font-size: 18px">{{ m.i }}</span><span style="font-size: 14px; font-weight: 600">{{ m.t }}</span><span style="font-size: 12px; color: #a8a09c">{{ m.d }}</span></div></sc-for></div></section>
+  </div>
+  <nav aria-label="Main" style="display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid #2f2a27; background: #1c1916; padding: 6px 8px 22px">
+    <a href="Proto_Today.dc.html" style="min-height: 48px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; text-decoration: none; color: #a8a09c; font-size: 11px; font-weight: 600"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9v6M6 7v10M18 7v10M21 9v6M6 12h12"/></svg>Workouts</a>
+    <a href="Proto_Week.dc.html" style="min-height: 48px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; text-decoration: none; color: #a8a09c; font-size: 11px; font-weight: 600"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></svg>Plan</a>
+    <a href="Proto_History.dc.html" style="min-height: 48px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; text-decoration: none; color: #a8a09c; font-size: 11px; font-weight: 600"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V11M10 19V5M16 19v-6M22 19H2"/></svg>History</a>
+    <a href="Proto_Profile.dc.html" aria-current="page" style="min-height: 48px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; text-decoration: none; color: #fc96bf; font-size: 11px; font-weight: 600"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20c1.2-3.6 4-5.5 7.5-5.5s6.3 1.9 7.5 5.5"/></svg>You</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    /* Profile: what you've done, not what's next. Body stats live in Settings (gear). Goal, pace and focus live on Plan → Season. */
+    const st = Object.assign({ w: 0 }, this.state || {});
+    const done = [0,0,1,1,1,0,1,1,1,1,1,1];
+    return {
+      wiggle: () => this.setState({ w: st.w + 1 }), flameAnim: st.w % 2 ? 'lbFlame .6s ease' : 'lbFlame .6s ease .001s',
+      flames: done.map(d => ({ c: d ? '#fea06a' : '#4a3a33' })),
+      stats: [{ l: 'Lifts', v: '84', c: '#6fd0b4', sub: 'since Aug' }, { l: 'Activities', v: '41', c: '#fc96bf', sub: 'since Aug' }, { l: 'Hours moved', v: '96', c: '#fea06a', sub: 'lifting and play' }],
+      prs: [{ k: 'Top set', n: 'Hip Thrust (Barbell)', v: '155 × 8', d: 'Nov 7' }, { k: 'Top set', n: 'Hack Squat', v: '140 × 8', d: 'Nov 5' }, { k: 'Reps', n: 'Lat Pulldown', v: '75 × 10', d: 'Nov 4' }, { k: 'Reps', n: 'Overhead Press', v: '60 × 7', d: 'Nov 2' }],
+      mix: [['Pickleball', 20, '#fc96bf'], ['Lifting', 52, '#6fd0b4'], ['Pilates', 9, '#e9b1c5'], ['Spin', 6, '#e9b1c5']].map(([n,h,c]) => ({ n, h: h + 'h', c, w: Math.round(h / 52 * 100) + '%' })),
+      weeks: Array.from({ length: 52 }, (_, i) => { const now = 45, past = i < now, full = past && i > 30 && ![34,38].includes(i), part = past && i > 30 && !full; return { t: 'Week ' + (i + 1), bg: full ? '#fea06a' : part ? '#4a3a33' : past ? '#2f2a27' : 'transparent', ring: i === now ? 'inset 0 0 0 1.5px #fc96bf' : past ? 'none' : 'inset 0 0 0 1px #2f2a27' }; }),
+      miles: [{ i: '100', t: '100 hours moved', d: 'Nov 10', bg: '#2a211c', c: '#fea06a' }, { i: '6', t: '6-week streak', d: 'Nov 8', bg: '#3a2430', c: '#fc96bf' }, { i: 'PR', t: 'First PR', d: 'Sep 3', bg: '#2a211c', c: '#fea06a' }, { i: '50', t: '50 lifts', d: 'Oct 12', bg: '#1f3029', c: '#6fd0b4' }]
+    };
+  }
+}
+</script>
+</body>
+</html>
