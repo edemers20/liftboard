@@ -521,3 +521,14 @@ describe("changes and watch as headlines", () => {
     expect(W[1]).toMatchObject({ h: "Protein", t: "110–140 g daily." });
   });
 });
+
+describe("time moved", () => {
+  const D = 864e5;
+  it("adds lift and activity minutes, using session length for untimed lifts", () => {
+    fresh({ time: 60 });
+    E.wk.sessions = [{ t: D, k: "lift", id: "d1", min: 75 }, { t: 2 * D, k: "lift", id: "d2" }, { t: 3 * D, k: "pickle", min: 90 }, { t: 4 * D, k: "pickle", min: 75 }, { t: 5 * D, k: "pilates", min: 50 }];
+    expect(E.hoursMoved()).toBe(6); // 75+60+90+75+50 = 350 min
+    const top = E.mostPlayed(0);
+    expect(top).toMatchObject({ k: "pickle", n: 2, hours: 3 }); // 165 min
+  });
+});

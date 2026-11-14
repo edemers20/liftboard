@@ -538,6 +538,8 @@ function plan(){ buildDefaults(); const cut=cutting();
   const stepsK=num(wk.steps,8000)*0.04*num(wk.weight,150)/150;
   const baseM=bmr*1.1;
   if(!(num(wk.liftKAuto,0)>0)) refreshLiftK();
+  /* remember when the season last switched, for "this season" on the profile */
+  if(wk._seasonSeen===undefined) wk._seasonSeen=wk.season; else if(wk._seasonSeen!==wk.season){ wk._seasonSeen=wk.season; wk.seasonFrom=Date.now(); }
   const nLift=DAYS.length, liftDay=nLift*num(wk.liftKAuto,0)/7;
   const ouraV=num(wk.oura,0), useOura=ouraV>0;
   const act=baseM+stepsK+liftDay+cardioTotal/7, tef=act/9;
@@ -838,6 +840,17 @@ function watchItems(notes){ const by=new Map();
     const body=m[1]==="Protein"?t.replace(/^Protein /,""):t, x=by.get(m[1]);
     if(x){ x.t+=" "+body; x.rank=Math.min(x.rank,m[2]); x.safe=x.safe||!!m[3]; } else by.set(m[1],{h:m[1],t:body,rank:m[2],safe:!!m[3],i}); });
   return [...by.values()].sort((a,b)=>a.rank-b.rank||a.i-b.i); }
+
+/* ---------- Time moved: hours across lifts and activities (profile) ----------
+   A lift counts its logged minutes (or your session length if none was saved); activities count their minutes. */
+const sessMin=x=>x.k==="lift"?(num(x.min,0)>0?num(x.min,0):num(wk.time,60)):num(x.min,0);
+function timeByKind(from=0,to=Infinity){ const by={};
+  (wk.sessions||[]).filter(x=>x&&x.t>=from&&x.t<to).forEach(x=>{ const c=by[x.k]||(by[x.k]={k:x.k,min:0,n:0}); c.min+=sessMin(x); c.n++; });
+  return Object.values(by).map(c=>({...c,hours:Math.round(c.min/60*10)/10})).sort((a,b)=>b.min-a.min); }
+const hoursMoved=(from=0,to=Infinity)=>Math.round(timeByKind(from,to).reduce((a,c)=>a+c.min,0)/60);
+/* the activity (not lifting) with the most time; the season starts when In-season was last switched, else at your first log */
+const seasonFrom=()=>num(wk.seasonFrom,0)||Math.min(Date.now(),...(wk.sessions||[]).map(x=>x.t||Infinity));
+function mostPlayed(from=seasonFrom()){ const a=timeByKind(from).filter(c=>c.k!=="lift")[0]; return a?{...a,hours:Math.round(a.min/60)}:null; }
 /* ---------- Records, streaks and the weekly report ----------
    1RM is estimated from a top set (Epley). A personal record (PR) is a heavier top set than ever before,
    or more reps at the same or a heavier weight. A higher 1RM alone doesn't count. The first log of an exercise isn't a PR. */
@@ -891,7 +904,7 @@ function newWeek(start){
   save(); return ["New week started. Check-in reset to normal."];
 }
 
-export { changeItems, watchItems, wTitle, e1rm, prsBetween, weekComplete, weekStreak, countWeek, EFF_MULT, OWN_EFF, sessionKcal, liftKcal, refreshLiftK, LIFT_MET, weekActuals, swapOptions, swapDay, rateLb, isBW, yogaMet, pilMet, YOGA_EFF, PIL_EFF, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, MUSCLES, slotMuscles, musclePriority, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk };
+export { timeByKind, hoursMoved, mostPlayed, seasonFrom, changeItems, watchItems, wTitle, e1rm, prsBetween, weekComplete, weekStreak, countWeek, EFF_MULT, OWN_EFF, sessionKcal, liftKcal, refreshLiftK, LIFT_MET, weekActuals, swapOptions, swapDay, rateLb, isBW, yogaMet, pilMet, YOGA_EFF, PIL_EFF, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, MUSCLES, slotMuscles, musclePriority, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk };
 
 /* workout titles read "Lower (Glute & Hamstring)"; older saved titles used a middle dot */
 const wTitle=t=>String(t||"").replace(/^(Lower|Upper) · (.+)$/,"$1 ($2)");

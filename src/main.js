@@ -447,7 +447,7 @@ function planWeek(P){
     <button type="button" class="btn primary" id="ckSave">Save check-in</button></div>`;
   const rowsH=planRows().map(r=>`<button type="button" class="prow2" data-open="${r.id}"><i class="pdot ${r.k}${r.st==="done"?" d":""}"></i><span><b${r.st==="done"?' class="pdone"':""}>${esc(r.title)}</b><small>${esc(r.sub)}</small></span>${ICON[r.st]}</button>`).join("");
   const L=ldays(), inS=inSeason();
-  const daysH=enabled("lift")?`<div class="ldays"><span class="plab">Lift days</span><div class="ldgrid" role="group" aria-label="Lift days">${"MTWTFSS".split("").map((c,k)=>`<button type="button" data-ld="${k}" aria-pressed="${L.includes(k)}" aria-label="${WD[k]}">${c}</button>`).join("")}</div>${inS?`<p class="small">In-season: up to 3.</p>`:""}</div>`:"";
+  const daysH=enabled("lift")?`<div class="ldays"><span class="plab">Lift days</span><div class="ldgrid" role="group" aria-label="Lift days">${"MTWTFSS".split("").map((c,k)=>`<button type="button" data-ld="${k}" aria-pressed="${L.includes(k)}" aria-label="${WD[k]}">${c}</button>`).join("")}</div>${inS?`<p class="small">In-season: up to 3.</p>`:""}<div class="sessl">${stepper("time","Session length",[30,45,60,75],"min")}</div></div>`:"";
   const AD=adays(), adH=`<div class="ldays ad"><span class="plab">Activity days</span><div class="ldgrid" role="group" aria-label="Activity days">${"MTWTFSS".split("").map((c,k)=>`<button type="button" data-ad="${k}" aria-pressed="${AD.includes(k)}" aria-label="${WD[k]}">${c}</button>`).join("")}</div></div>`;
   const vs=Mt.vsLast;
   INFO.fuelHow=`${INFO.maint}${build?"":`<br><br>Weekly deficit: ${r5(Mt.target).toLocaleString()} kcal.`}${Mt.nLift&&Mt.nFin?`<br>Remaining finishers: ${Mt.m} min × ${Mt.nFin}.`:""}`;
@@ -765,7 +765,12 @@ let openWeek=null;
 function weeksHTML(){
   const W=wk.weeks||[], H=W.slice().reverse(), run=weekStreak();
   const strip=W.slice(-8).map(w=>`<span class="flame${weekComplete(w)?" on":""}">${FLAME}</span>`).join("");
-  return `${W.length?`<div class="streak"><div class="flames" aria-hidden="true">${strip}</div><span>${run?`${run} week${run===1?"":"s"} completed in a row`:"Start a new streak this week"}</span></div>`:""}
+  /* Your year: one square per week of this calendar year; orange when completed, dim when partly done */
+  const ky=d=>{ const x=weekStartOf(new Date(d)); return x.getFullYear()+"-"+x.getMonth()+"-"+x.getDate(); };
+  const y0=weekStartOf(new Date(new Date().getFullYear(),0,1)), nowK=ky(Date.now()), byW=new Map(W.map(w=>[ky(w.start),w])), today=Date.now();
+  const yr=Array.from({length:52},(_,k)=>{ const d=addD(y0,k*7), key=ky(d), w=byW.get(key); return `<span class="ysq${w?(weekComplete(w)?" on":w.lifts>0?" part":" past"):d.getTime()<today?" past":""}${key===nowK?" now":""}"></span>`; }).join("");
+  return `<div class="panel yearp"><h3>Your year</h3><div class="ywrap"><div class="ymon" aria-hidden="true"><span>Jan</span><span>Apr</span><span>Jul</span><span>Oct</span></div><div class="ygrid" aria-label="Weeks completed this year">${yr}</div></div></div>
+  ${W.length?`<div class="streak"><div class="flames" aria-hidden="true">${strip}</div><span>${run?`${run} week${run===1?"":"s"} completed in a row`:"Start a new streak this week"}</span></div>`:""}
   <div class="panel">${hdr("Previous weeks",["weeks"])}
    ${H.length?`<div class="wlist">${H.map(w=>{ const A=weekActuals(w.start), bn=A.n>0?A.burn:w.cardio, ok=weekComplete(w), open=openWeek===w.start, byHand=w.counted&&!(w.planned>0&&w.lifts>=w.planned);
      return `<div class="wrow2${open?" open":""}"><button type="button" class="wtop2" data-wo="${w.start}" aria-expanded="${open}"><span class="wrng">${wkRange(w.start)}</span><span class="wpill${ok?" ok":""}">${ok?`✓ ${byHand?"Counted":"Completed"}`:`${w.lifts} of ${w.planned} lifts`}</span>
