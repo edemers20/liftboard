@@ -219,3 +219,10 @@ Today each tab's top area (title and switcher, or the Workouts title and week st
 **How:** one shared hook (for example `useHideOnScroll()`) using Reanimated's scroll handler and a clamped scroll delta, applied to every tab's ScrollView or FlatList. Don't build it separately per screen.
 
 **Reduce Motion:** the header fades out and in instead of sliding.
+
+---
+
+## 10. History → Lifts rows (native)
+
+- Exercise name: 16pt, DM Sans 600 (was 14pt regular).
+- Remove the " · " separator before the change ("+25 in 8 wk"). Put an 8pt gap between the top set and the change instead; keep the change orange when it's going up (section 7).

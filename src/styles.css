@@ -280,7 +280,7 @@ body.resting #sheet{bottom:calc(66px + env(safe-area-inset-bottom,0px))}
 #sheet .dx path{stroke:#fff;stroke-width:2;stroke-linecap:round}
 /* Season: main lift sparklines */
 .liftrow{display:grid;grid-template-columns:minmax(0,1fr) 112px 64px;gap:10px;align-items:center}
-.liftrow .ln{font-weight:600;font-size:14px;min-width:0}
+.liftrow .ln{font-weight:600;font-size:16px;min-width:0}
 .spark line{stroke:var(--line);stroke-width:1}
 .spark polyline{fill:none;stroke:var(--accent);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
 .spark circle{fill:var(--accent)}
