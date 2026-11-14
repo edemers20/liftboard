@@ -1211,3 +1211,5 @@ button,a,[role="button"],summary,label.sw,.wcbtn,.chip,.seg button{transition:tr
 /* tab bar: the icon dips */
 #bnav button.pressing{transform:none;filter:none} #bnav button.pressing svg{transform:scale(.88);transition:transform .1s ease}
 @media (prefers-reduced-motion:reduce){:is(button,a,[role="button"],summary).pressing{transform:none !important;filter:brightness(.8)}}
+/* day and week arrows invert while pressed */
+.wdstep.pressing,.wstep.pressing{background:var(--fg) !important;color:var(--bg) !important;transform:scale(.94);filter:none}

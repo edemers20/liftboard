@@ -588,7 +588,7 @@ function bindShell(v){
       const t=document.startViewTransition(run); t.finished.finally(()=>{ delete document.documentElement.dataset.vt; document.querySelectorAll(".wcard").forEach(x=>x.style.viewTransitionName=""); }); }
     else run(); });
   v.querySelectorAll("[data-log]").forEach(b=>b.onclick=()=>{ const a=b.dataset.log, sel=addD(DAY0(Date.now()),selOff), t=selOff===0?Date.now():sel.getTime()+12*36e5; openSess=t; justOpened=t; logActOn(a,t); afterLog(); });
-  const lm=v.querySelector("[data-logmore]"); if(lm) lm.onclick=()=>{ logMore=!logMore; render(); };
+  v.querySelectorAll("[data-logmore]").forEach(lm=>lm.onclick=()=>{ logMore=!logMore; render(); });
   /* logging something new turns it on as an activity, so it shows up in Plan and here next time */
   v.querySelectorAll("[data-logx]").forEach(b=>b.onclick=()=>{ const a=b.dataset.logx, sel=addD(DAY0(Date.now()),selOff), t=selOff===0?Date.now():sel.getTime()+12*36e5;
     /* a one-off: remembered so deleting its only log removes the activity again */
@@ -939,7 +939,7 @@ function renderDayHTML(d,P){
       ${D.done||st.cdone?"":`<button type="button" class="btn primary cdone wide" data-i="${i}">Finish cardio</button>`}`;
     }else{
       const today=suggest(d,s,i,false,P), nm=exName(d,s,i), est=today?null:estW(nm);
-      if(est&&!D.done) html+=`<p class="carry"><span>New exercise · starting guess <b>${est.w} lb</b> from ${esc(est.from)} at ${est.fromW}</span></p>`;
+      if(est&&!D.done) html+=`<p class="carry"><span>New exercise: starting guess <b>${est.w} lb</b> from ${esc(est.from)} at ${est.fromW}</span></p>`;
       const carry=(wk.next||{})[nm];
       if(carry&&carry.t!==(wk.doneT||{})[d.id]) html+=`<p class="carry"><span>${isBW(nm)?(carry.w>0?`${{up:"Go up to",down:"Ease to"}[carry.tag]||"Stay at"} <b>BW+${carry.w} lb</b> · `:carry.tag==="up"?"<b>Up</b> · ":"<b>Same</b> · "):`${{up:"Go up to",down:"Ease to"}[carry.tag]||"Stay at"} <b>${carry.w} lb</b> · `}${esc(carry.why)}</span></p>`;
       const [lo,hi]=range(s.reps), top=(s.upperAcc||s.support||s.label==="Glute med")?hi+3:hi;

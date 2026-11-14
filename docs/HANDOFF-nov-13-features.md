@@ -206,7 +206,7 @@ Today each tab's top area (title and switcher, or the Workouts title and week st
 - **Plan:** the date-range title and the Week / Season switch.
 - **History:** the HISTORY title and the Calendar / Weeks / Lifts switch.
 - **You:** the YOU title.
-- **Workout screen:** the big workout title and timer scroll away like content; the back and Swap buttons stay (they become the glass toolbar in the Liquid Glass audit, item 6).
+- **Workout screen:** the whole top area scrolls away, including the back link and the Swap workout button, and comes back on scroll up like the tab headers. Swiping from the left edge still goes back while it's hidden.
 
 **Behaviour**
 - Scrolling down more than about 8pt hides the header by sliding it up out of view; it moves with the scroll rather than on a timer.
@@ -340,3 +340,15 @@ Every button, pill, chip, card, row, link and tab gives visible feedback while p
 - A drag that turns into a scroll cancels the pressed look (Pressable handles this when it's inside a ScrollView).
 - Reduce Motion: no scaling; darken only.
 - Pair with the haptics from `docs/HANDOFF-alerts-haptics.md` Part 3: the haptic fires on press, the visual on press-in.
+
+---
+
+## 17. Workout screen and small fixes (native)
+
+- **Rest timer in Liquid Glass:** build the floating glass rest bar from `docs/AUDIT-liquid-glass.md` item 4 now (GlassView in a GlassContainer, −15s / Rest m:ss with Skip / +15s, orange at Go, solid fallback for older iOS and Reduce Transparency).
+- **Stretch row:** same height as the other collapsed exercise rows (same padding and one line of text); it was taller.
+- **Workout screen header:** back and Swap workout scroll away with the title and come back on scroll up (section 9, updated). The Liquid Glass audit's item 6 (a fixed glass toolbar) is dropped.
+- **New exercise note:** "New exercise: starting guess {w} lb from {exercise} at {weight}" (a colon, not " · ").
+- **One-off activities:** deleting an activity that was added through "Other" must also remove it from Plan → This week's plan, usual activity days and the Workouts chips (section 8). In the web app this works through `wk.adhoc`: logging from "Other" sets `wk.adhoc[key] = true` and turns the activity on; deleting its last session turns it off again and clears the flag. Test: log Tennis from Other, check Plan shows it, delete it, check Plan no longer does.
+- **You → View preferences:** a text button (accent colour, no fill or outline, 44pt tall), not a filled or outlined button.
+- **Day and week arrows** (‹ › beside the date): pressed state inverts them (light fill, dark arrow) for at least 140ms, on top of the usual press scale.
