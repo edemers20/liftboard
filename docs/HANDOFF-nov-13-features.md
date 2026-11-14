@@ -369,7 +369,7 @@ Every button, pill, chip, card, row, link and tab gives visible feedback while p
 
 Boards: `docs/design/Proto_Profile.dc.html`, `Proto_ProfileNew.dc.html` (first week), `Proto_Settings.dc.html`. Not ready to build yet; decisions so far:
 - You is a profile of what you've done; a gear at the top right opens Settings. Body stats live only in Settings, never on the profile.
-- Goal, pace and lifting focus live on Plan → Season (they change mid-season). Lift days and **session length** live on Plan → Week, not in Settings.
+- Goal, pace and lifting focus live on Plan → Season (they change mid-season). Lift days and **session length** live on Plan → Week, not in Settings. In Settings, "Edit metrics" is a centred text button under the body stats.
 - The streak card: flame, then the number, then "weeks in a row" beside the number in Ranchers at a smaller size ("week" when it's 1). No "best streak" line. The card's pink-to-orange background gets stronger as the streak grows (faint at 1 week, full at 16+).
 - Later: the weekly report shows the streak ("{n} weeks in a row") when a week is done.
 - Hours moved and Most played come from the engine: `hoursMoved()`, `timeByKind()`, `mostPlayed()` (lifts count their logged minutes or session length; activities their minutes). "This season" starts when In-season was last switched (`wk.seasonFrom`), else at your first log.
