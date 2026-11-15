@@ -401,3 +401,75 @@ Boards: `docs/design/Proto_Profile.dc.html`, `docs/design/Proto_ProfileNew.dc.ht
 **Engine** (port into `packages/engine` with the "time moved" test): `timeByKind()`, `hoursMoved()`, `mostPlayed()`, `seasonFrom()`. A lift counts its logged minutes or your session length; activities count their minutes. "This season" starts when In-season was last switched (`wk.seasonFrom`, set in `plan()`), else at your first log.
 
 **Later:** the weekly report shows the streak ("{n} weeks in a row") when a week is done.
+
+---
+
+## 20. Fixes from using the dev app (Nov 15)
+
+Everything here was found on a real phone. Fix it in the native app first, then make the same change in the web app (`src/main.js`, `src/styles.css`, `src/engine.js`) unless the item says native only. Engine logic that both use belongs in `packages/engine` with a test, then gets mirrored in `src/engine.js`.
+
+### A. During a workout
+
+**A1. Optional items show as done before you've done them.** The cardio finisher and other optional exercises (trimmed or covered accessories) showed a checkmark although nothing was logged. An item is done only when it has logged sets (or, for the finisher, logged minutes). Skipped or trimmed is not done. Check every place that decides "done" for a row: the row check, the day's progress count, the "Day done" check, and the live pill's "Set x of y". Optional items that were never started don't count toward progress and never show a check. Test: open a day with a finisher, finish only the required lifts; the finisher row has no check. Web too.
+
+**A2. Rest timer at zero.** When rest runs out, the button reads **Done** (not "Skip") and the timer stops at 0:00. It doesn't count up past zero. Tapping Done closes the rest bar. Keep the orange "Go" tint from the Liquid Glass spec. Web too.
+
+**A3. Push notifications use the old icon.** iOS uses the app icon for notifications, so the old icon means the installed build or a notification-specific asset is stale. Check `app.json` for any `notification.icon` or `expo-notifications` plugin `icon` setting and point it at the new artwork in `apps/mobile/assets/images` (Android needs a white-on-transparent monochrome version; generate it from `assets/brand`). After changing icons, a fresh dev build (`npx expo prebuild --clean` then rebuild) is needed; a reload won't pick it up. Native only.
+
+**A4. "Added" label.** Exercises you added show as **Added (Main Glute)**, with parentheses, no bullet. Web too (it's `Added · …` in `src/main.js` today, in the row label and the open card header).
+
+**A5. Delete a set and delete an exercise.**
+- Set: swipe left on a logged set row to reveal a red Delete; tapping it removes that set and the remaining sets move up. A set you delete doesn't count toward progress, PRs or next-time weights. If the exercise has fewer sets than planned after the delete, the empty set comes back as an unlogged row.
+- Exercise: swipe left on an exercise row (on the day list and in the workout) to reveal Delete. For an exercise you added, it removes it from this day. For a planned exercise, it removes it from today only (the plan keeps it next time) and its logged sets for today. Ask once before deleting an exercise that has logged sets ("Delete Hip Thrust (Barbell) and its 3 sets?").
+- Use the native swipeable row (`react-native-gesture-handler` `ReanimatedSwipeable`) with a haptic when the button is revealed. Undo: show a short "Deleted · Undo" toast for 4 seconds.
+- Web: the same swipe on touch, plus a small trash button on each set row and in the exercise's ⋯ area for mouse users.
+
+**A6. Weight format.** Anywhere the app says "at 115 lb", write **@ 115lb**: the @ sign, no space between the number and unit. Same for kg ("@ 52.5kg"). Search copy for `at {…}` and ` lb` next to a weight (for example `fromAt` in `apps/mobile/src/copy.ts`, and the "starting guess … at …" line in `src/main.js`). Web too.
+
+**A7. Marking Rough mid-workout must not touch finished work.** Rough shortens the day (−1 set on everything, optional accessories cut, no weight increases). Today, choosing it during a workout looks like it can drop finished exercises. Rough only changes what's still ahead:
+- Exercises with logged sets stay, with all their logged sets, even if Rough would trim or cut them.
+- A set count never drops below the number of sets already logged.
+- Cut accessories that you've already started stay in the list as normal rows.
+- Add a test: log 3 sets on an accessory, switch to Rough, and the accessory and its 3 sets are still there and still count.
+Web too.
+
+**A8. Opening another workout leaves a stuck live pill.** Opening a different day's workout from Plan made that workout "live" and showed it in the bottom pill, and the pill wouldn't go away until the app was quit.
+- Opening a workout only views it. A workout becomes live when you log its first set (or tap Start), not when you open it.
+- If another workout is already live and you start a second one, ask: "Finish Lower (Glute & Hamstring) first?" with **Keep going** (back to the live one) and **Switch** (ends the live one as it stands).
+- The pill goes away when the live workout is finished, ended or has no logged sets left; it also needs a way out: long-press (or swipe it down) offers **End workout**.
+- Whatever state the pill reads from must be cleared when the workout ends, not only when the app restarts.
+Native only (the web has no pill), but check the web doesn't mark a day started just by opening it.
+
+**A9. Rest bar stutter.** The rest bar appearing and disappearing stutters, and the text doesn't line up with its Liquid Glass shape. Animate the glass with its own `glassEffectStyle` animation (not opacity or a size change on the container), lay the text out inside the glass view so it moves with it, and centre the label vertically in the capsule. Check with Reduce Motion on (a plain fade). Native only.
+
+**A10. Content cut off at the top when scrolling.** On the workout screen the scrolling content stops below the top instead of running under the status bar area. Let the scroll view fill the whole screen (no top inset on the container), put the top inset on the content instead (`contentInsetAdjustmentBehavior="automatic"` or top padding equal to the safe-area inset), so content scrolls up underneath. Check the other tabs for the same problem. Native only.
+
+**A11. "Keep" on the weight suggestion isn't remembered.** After choosing Keep on "Tough set" (don't go down), the weight field still pre-fills the lower weight. Keep means: the remaining sets pre-fill the weight you were using, and the app doesn't ask again for that exercise in this workout. Store the choice with today's log for that exercise (for example `keepW`) so it survives leaving and reopening the workout. Same for Keep on "That looked easy". Web too.
+
+**A12. Sets picker colour.** The number-of-sets picker uses the green palette (#6fd0b4 family, like the rest of lifting), not orange. Native only (check the web stepper too).
+
+**A13. Day labels.** "Day 4 · Push" becomes **Day 4: Push**, no bullet. This covers the workout header, the Day done eyebrow, the share card and anywhere else `tab · title` is joined (for example `${day.tab} · ${day.title}` in `apps/mobile/src/workout/screen.tsx`). Web too.
+
+### B. Elsewhere
+
+**B1. Workouts doesn't refresh after a workout.** After finishing a workout, Plan's recovery updated but the Workouts tab still showed the old recovery. Both tabs must read from the same store and re-render when it changes; don't keep a copy of recovery in a screen's local state or compute it only on mount. Recompute recovery on every store change (and when the app returns to the foreground, since recovery counts down over time). Web too, if the same thing happens there.
+
+**B2. Week tab doesn't update after marking the week done.** Same cause as B1 likely: Plan → Week kept the old week after Mark week done. After a week rolls over, every tab shows the new week straight away. Native and web.
+
+**B3. Supersets and lower-body focus stuck in "Changes this week".** These keep showing in the week's changes after they've already been applied. A change shows the week it happens, then moves into the plan and stops showing. The changes list should compare this week's plan with last week's plan, not with the defaults. Fix in `changeItems` (engine) with a test: turn on supersets, roll the week, and the next week's changes don't list supersets again. Web too.
+
+**B4. Can't pick a sport in You → Settings.** The sport buttons under Activities in Settings don't respond. Tapping a sport turns it on as a sport in season (up to two); tapping a picked one again makes it primary; None clears them. It should save straight away, like the activity toggles. Web: check the same buttons in the new Settings page work.
+
+**B5. Swap the first lift of a new week.** After marking a week done, the first lift of the new week should be swappable with any other planned lift that week, so you can start the week with whichever workout you want.
+- On Workouts, the next lift's card (and the workout screen before it starts) has **Swap** that lists the other lifts planned this week that haven't started, with their day ("Day 3: Upper (Push)").
+- Picking one swaps the two in this week's order; the rest of the week stays as it was, and next week goes back to the usual order.
+- Swap isn't offered once a workout has a logged set.
+- Use the native form sheet from the Liquid Glass spec.
+Web too (the web's existing day swap only offers similar workouts; add the "other lifts this week" list to it).
+
+### Order
+1. A7, A1, A11 and B3 (logic bugs that change your data or what the app tells you), each with a test.
+2. B1, B2, B4 (state not refreshing; buttons not working).
+3. A8, A2, A5, B5.
+4. Copy and styling: A4, A6, A12, A13, then A9, A10, A3.
+5. Web app: every item marked "Web too", then run the web tests (`npx vitest run`) and build (`npx vite build`).
