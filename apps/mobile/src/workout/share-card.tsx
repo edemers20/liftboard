@@ -1,11 +1,13 @@
 import { LinearGradient } from "expo-linear-gradient";
+import { PressableScale } from "@/components/pressable-scale";
 import * as Sharing from "expo-sharing";
 import { useRef, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { captureRef } from "react-native-view-shot";
 
+import { startOfDay, useNotice } from "@/activity-log";
 import { copy, fill } from "@/copy";
-import { Share } from "@/icons";
+import { Download, Share } from "@/icons";
 import { engine } from "@/store";
 import { theme } from "@/theme";
 import { toDisplay } from "@/units";
@@ -18,7 +20,7 @@ export type ShareCardData = {
   date: string;
   minutes: string;
   sets: string;
-  ups: number;
+  prs: number;
   rows: { name: string; value: string; up: boolean; cardio: boolean }[];
   more: number;
 };
@@ -63,13 +65,18 @@ export function readShareCard(id: string): ShareCardData | null {
     }),
     minutes: minutes ? String(minutes) : "–",
     sets: String(setsFromLog || logged.filter((row) => !row.cardio).length),
-    ups: review.filter((item) => item.tag === "up").length,
+    prs: prsOnDay(session ? session.t : Date.now()),
     rows: shown.map((row) => {
       const match = review.find((item) => item.n === row.n);
       return { name: row.n, value: setLine(row), up: match?.tag === "up", cardio: !!row.cardio };
     }),
     more: Math.max(0, logged.length - shown.length),
   };
+}
+
+function prsOnDay(when: number): number {
+  const from = startOfDay(when).getTime();
+  return (engine.recentPrs() as { t: number }[]).filter((row) => row.t >= from && row.t < from + 864e5).length;
 }
 
 export function ShareCardView({ data }: { data: ShareCardData }) {
@@ -83,14 +90,16 @@ export function ShareCardView({ data }: { data: ShareCardData }) {
         {data.title}
       </Text>
       <View style={styles.tiles}>
-        {[
-          [data.minutes, copy.workout.shareMin],
-          [data.sets, copy.workout.shareSets],
-          [String(data.ups), copy.workout.shareGoingUp],
-        ].map(([value, label], index) => (
-          <View key={label} style={styles.tile}>
-            <Text style={styles.tileLabel}>{label.toUpperCase()}</Text>
-            <Text style={[styles.tileValue, index === 2 && data.ups > 0 ? styles.up : null]}>{value}</Text>
+        {(
+          [
+            { value: data.minutes, label: copy.workout.shareMin, hot: false },
+            { value: data.sets, label: copy.workout.shareSets, hot: false },
+            { value: String(data.prs), label: data.prs === 1 ? copy.workout.sharePr : copy.workout.sharePrs, hot: data.prs > 0 },
+          ] as const
+        ).map((tile) => (
+          <View key={tile.label} style={styles.tile}>
+            <Text style={styles.tileLabel}>{tile.label.toUpperCase()}</Text>
+            <Text style={[styles.tileValue, tile.hot ? styles.up : null]}>{tile.value}</Text>
           </View>
         ))}
       </View>
@@ -111,29 +120,50 @@ export function ShareCardView({ data }: { data: ShareCardData }) {
   );
 }
 
-export function ShareWorkoutButton({
-  id,
-  label,
-  wide,
-}: {
-  id: string;
-  label: string;
-  wide?: boolean;
-}) {
+/** The default import asks for ExpoMediaLibraryNext, which Expo Go does not ship. Load the legacy module only when saving. */
+async function saveToPhotos(uri: string) {
+  const MediaLibrary = await import("expo-media-library/legacy");
+  const current = await MediaLibrary.getPermissionsAsync(true);
+  const access = current.granted ? current : current.canAskAgain ? await MediaLibrary.requestPermissionsAsync(true) : current;
+  if (!access.granted) return false;
+  await MediaLibrary.createAssetAsync(uri);
+  return true;
+}
+
+export function ShareWorkoutActions({ id }: { id: string }) {
   const ref = useRef<any>(null);
   const [busy, setBusy] = useState(false);
   const data = readShareCard(id);
 
+  async function capture() {
+    if (!ref.current) return null;
+    return captureRef(ref, { format: "png", quality: 1, result: "tmpfile" });
+  }
+
   async function share() {
-    if (!ref.current || busy || !data) return;
+    if (busy || !data) return;
     setBusy(true);
     try {
-      const uri = await captureRef(ref, { format: "png", quality: 1, result: "tmpfile" });
-      if (await Sharing.isAvailableAsync()) {
+      const uri = await capture();
+      if (uri && (await Sharing.isAvailableAsync())) {
         await Sharing.shareAsync(uri, { mimeType: "image/png", UTI: "public.png" });
       }
     } catch {
       // The sheet stays closed if capture or sharing is unavailable.
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function save() {
+    if (busy || !data) return;
+    setBusy(true);
+    try {
+      const uri = await capture();
+      if (!uri || !(await saveToPhotos(uri))) return;
+      useNotice.getState().show([copy.workout.savedToPhotos], { pulse: false, variant: "plain" });
+    } catch {
+      // Leave the card on screen when Photos can't be written.
     } finally {
       setBusy(false);
     }
@@ -145,15 +175,26 @@ export function ShareWorkoutButton({
       <View ref={ref} collapsable={false} style={styles.offscreen}>
         <ShareCardView data={data} />
       </View>
-      <Pressable
-        accessibilityRole="button"
-        disabled={busy}
-        onPress={() => void share()}
-        style={[styles.button, wide ? styles.wide : null, busy ? styles.busy : null]}
-      >
-        <Share size={16} color={theme.text} />
-        <Text style={styles.buttonText}>{label}</Text>
-      </Pressable>
+      <View style={styles.actions}>
+        <PressableScale
+          accessibilityRole="button"
+          disabled={busy}
+          onPress={() => void save()}
+          style={[styles.button, styles.save, busy ? styles.busy : null]}
+        >
+          <Download size={16} color={theme.text} />
+          <Text style={styles.buttonText}>{copy.workout.saveToPhotos}</Text>
+        </PressableScale>
+        <PressableScale
+          accessibilityRole="button"
+          accessibilityLabel={copy.workout.share}
+          disabled={busy}
+          onPress={() => void share()}
+          style={[styles.button, styles.iconButton, busy ? styles.busy : null]}
+        >
+          <Share size={16} color={theme.text} />
+        </PressableScale>
+      </View>
     </>
   );
 }
@@ -199,6 +240,7 @@ const styles = StyleSheet.create({
   exerciseName: { flex: 1, color: theme.text, fontFamily: theme.fonts.bodyMedium, fontSize: 36 },
   exerciseValue: { color: theme.text, fontFamily: theme.fonts.monoMedium, fontSize: 40 },
   more: { color: theme.muted, fontFamily: theme.fonts.body, fontSize: 30, marginTop: 16 },
+  actions: { flexDirection: "row", gap: 8, alignItems: "center" },
   button: {
     minHeight: 48,
     borderRadius: theme.radii.tile,
@@ -209,7 +251,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 8,
   },
-  wide: { alignSelf: "stretch" },
+  save: { flex: 1 },
+  iconButton: { width: 52, paddingHorizontal: 0 },
   busy: { opacity: 0.5 },
   buttonText: { color: theme.text, fontFamily: theme.fonts.bodySemi, fontSize: 16 },
 });

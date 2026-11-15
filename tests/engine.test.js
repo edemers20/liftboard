@@ -522,6 +522,61 @@ describe("changes and watch as headlines", () => {
   });
 });
 
+describe("section 20 logic", () => {
+  it("a finisher and an optional row are not done when only the required lifts are logged", () => {
+    const P0 = fresh({ focus: "Lower", mode: "Build", time: 45 });
+    const d = E.DAYS[0];
+    d.slots.forEach((s, i) => {
+      const A = P0.days[d.id].slots[i];
+      if (s.cardio || !A || A.skip) return;
+      E.set(d.id, i, "log", Array.from({ length: A.sets }, () => ({ w: 100, r: 8, d: true })));
+    });
+    const P = E.plan();
+    const fin = d.slots.findIndex((s) => s.cardio);
+    expect(fin).toBeGreaterThan(-1);
+    expect(E.rowDone(d.id, fin, P)).toBe(false);
+    const opt = d.slots.findIndex((s, i) => !s.cardio && P.days[d.id].slots[i].skip && P.days[d.id].slots[i].skip !== "hidden");
+    expect(opt).toBeGreaterThan(-1);
+    expect(E.rowDone(d.id, opt, P)).toBe(false);
+    expect(E.countsInDay(d.id, opt, P)).toBe(false);
+  });
+  it("Rough keeps an accessory and the sets already logged", () => {
+    fresh({ focus: "Lower", time: 60 });
+    const d = E.DAYS[0];
+    const i = d.slots.findIndex((s) => s.trim && !s.cardio && !s.main);
+    expect(i).toBeGreaterThan(-1);
+    E.set(d.id, i, "log", [{ w: 40, r: 15, d: true }, { w: 40, r: 15, d: true }, { w: 40, r: 15, d: true }]);
+    E.wk.today = { d1: "Rough" };
+    E.wk.wt = { d1: { start: Date.now() } };
+    const A = E.plan().days.d1.slots[i];
+    expect(A.skip || "").toBe("");
+    expect(A.sets).toBeGreaterThanOrEqual(3);
+    expect((E.get("d1", i).log || []).filter((row) => row.d)).toHaveLength(3);
+  });
+  it("Keep holds the weight you were using", () => {
+    fresh({ focus: "Lower", mode: "Maintain" });
+    const d = E.DAYS[0];
+    const slot = d.slots[1];
+    const name = E.exName(d, slot, 1);
+    E.exHist[name] = [{ w: 100, r: 5 }, { w: 100, r: 5 }];
+    E.set(d.id, 1, "log", [{ w: "100", r: "5", d: true }]);
+    const dropped = E.suggest(d, slot, 1, true, E.plan());
+    expect(dropped.w).toBeLessThan(100);
+    E.keepWeight(d.id, 1, 100);
+    expect(E.suggest(d, slot, 1, true, E.plan()).w).toBe(100);
+  });
+  it("supersets and lower-body focus leave the changes list after the week rolls", () => {
+    fresh({ focus: "Lower", ss: "No", time: 60 });
+    const first = E.changeItems(E.plan().G, E.wk.lastChanges || null);
+    expect(first.some((row) => /superset/i.test(row.cause))).toBe(true);
+    expect(first.some((row) => /lower body focus/i.test(row.cause))).toBe(true);
+    E.newWeek();
+    const next = E.changeItems(E.plan().G, E.wk.lastChanges || null);
+    expect(next.some((row) => /superset/i.test(row.cause))).toBe(false);
+    expect(next.some((row) => /lower body focus/i.test(row.cause))).toBe(false);
+  });
+});
+
 describe("time moved", () => {
   const D = 864e5;
   it("adds lift and activity minutes, using session length for untimed lifts", () => {

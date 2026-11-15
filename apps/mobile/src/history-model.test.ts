@@ -4,6 +4,7 @@ import {
   buildWeekMix,
   displayWeight,
   dueWeekStart,
+  formatAverage,
   formatHours,
   linePoints,
   monthGrid,
@@ -25,6 +26,9 @@ assert.equal(june.lead, 0);
 assert.equal(june.days, 30);
 
 assert.equal(formatHours(30), "½h");
+assert.equal(formatAverage(45), "45m");
+assert.equal(formatAverage(90), "1.5h");
+assert.equal(formatAverage(120), "2h");
 assert.equal(formatHours(90), "1½h");
 assert.equal(formatHours(420), "7h");
 assert.equal(formatHours(600), "10h");

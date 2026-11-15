@@ -1,6 +1,7 @@
 import { usePathname } from "expo-router";
+import { PressableScale } from "@/components/pressable-scale";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Modal, PanResponder, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
+import { Modal, PanResponder, StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, {
   Easing,
@@ -61,7 +62,8 @@ export function SheetFrame({
     <Modal visible={shown} transparent animationType="none" statusBarTranslucent onRequestClose={onClose}>
       <View style={styles.fill}>
         <Animated.View pointerEvents="none" style={[styles.dim, dimStyle]} />
-        <Pressable
+        <PressableScale
+          kind="plain"
           accessibilityRole="button"
           accessibilityLabel={label ?? copy.close}
           onPress={onClose}
@@ -243,14 +245,14 @@ export function BottomToast({
       style={[styles.toast, plan ? styles.toastPlan : styles.toastPlain, { bottom }, anim]}
       {...pan.panHandlers}
     >
-      <Pressable accessibilityRole="alert" onPress={() => dismissRef.current()}>
+      <PressableScale accessibilityRole="alert" onPress={() => dismissRef.current()}>
         <Text style={plan ? styles.planTitle : styles.plainTitle}>{lines[0]}</Text>
         {lines.slice(1).map((line, index) => (
           <Text key={`${index}-${line}`} style={plan && index === 0 ? styles.planStrong : styles.toastBody}>
             {line}
           </Text>
         ))}
-      </Pressable>
+      </PressableScale>
     </Animated.View>
   );
 }

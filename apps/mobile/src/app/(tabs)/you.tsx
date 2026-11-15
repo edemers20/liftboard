@@ -1,8 +1,5 @@
-import { useRouter } from "expo-router";
-
-import { YouTab } from "@/components/you-tab";
+import { ProfileScreen } from "@/components/profile-screen";
 
 export default function YouScreen() {
-  const router = useRouter();
-  return <YouTab onReplay={() => router.push("/onboarding")} />;
+  return <ProfileScreen />;
 }

@@ -1,6 +1,25 @@
+import { useEffect, useState } from "react";
+import { AppState } from "react-native";
 import * as engine from "@liftboard/engine";
 
 import { copy, fill } from "./copy";
+
+/** Recovery and the week change while the app is open, and again when it returns. */
+export function usePlanClock(): number {
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const bump = () => setTick((n) => n + 1);
+    const id = setInterval(bump, 60000);
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") bump();
+    });
+    return () => {
+      clearInterval(id);
+      sub.remove();
+    };
+  }, []);
+  return tick;
+}
 
 /**
  * Week placement and the "Your plan" sentence follow the web app.
@@ -73,8 +92,8 @@ export type PlanRead = {
   finishedNote: string | null;
   canUndoFinish: boolean;
   planHeading: string;
-  changes: { cause: string; detail: string }[];
-  watch: string[];
+  changes: { cause: string; summary: string; items: string[] }[];
+  watch: { h: string; t: string; safe: boolean }[];
   recovery: { lower: number | null; upper: number | null };
   fuel: {
     today: string;
@@ -573,14 +592,6 @@ function explain(math: {
   ]);
 }
 
-function ruleLines(rules: string[]) {
-  return rules.map((html) => {
-    const match = /^<b>([\s\S]*?)<\/b> → ([\s\S]*)$/.exec(html);
-    if (!match) return { cause: "", detail: html.replace(/<[^>]+>/g, "") };
-    return { cause: match[1], detail: match[2] };
-  });
-}
-
 function goalLabel(mode: string) {
   return copy.plan.goals.find((goal) => goal.value === mode)?.label ?? mode;
 }
@@ -639,8 +650,8 @@ export function readPlan(): PlanRead {
     showFocus: !!engine.enabled("lift"),
     pace: paceField(),
     restFlag: next?.restSuggest && nextDay ? fill(copy.plan.restBefore, [nextDay.title]) : null,
-    changes: ruleLines(planned.rules || []),
-    watch: planned.notes || [],
+    changes: engine.changeItems(planned.G, engine.wk.lastChanges || null) || [],
+    watch: engine.watchItems(planned.notes) || [],
     recovery: recoveryHours(),
     fuel: {
       today: grouped(engine.r5(math.intake)),

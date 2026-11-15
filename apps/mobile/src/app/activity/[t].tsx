@@ -1,20 +1,24 @@
 import { router, useLocalSearchParams } from "expo-router";
+import { PressableScale } from "@/components/pressable-scale";
 import { useEffect, useRef, useState } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
   activityName,
   effortDescription,
   effortFor,
+  deleteSession,
   getSession,
   heatedOn,
   saveSession,
   spinIntensity,
   useNotice,
-  writeSession,
+  usesSessionEffort,
 } from "@/activity-log";
+import { useShownLiveWorkout } from "@/components/live-workout";
 import { SheetFrame } from "@/components/motion";
+import { useSolidGlass } from "@/glass";
 import { copy } from "@/copy";
 import { haptic } from "@/haptic";
 import { useEngineStore } from "@/store";
@@ -28,12 +32,17 @@ export default function ActivityScreen() {
   const session = getSession(time);
   const closing = useRef(false);
 
+  const generic = !!session && usesSessionEffort(session.k);
   const [minutes, setMinutes] = useState(session?.min ? String(session.min) : "");
   const [intensity, setIntensity] = useState(spinIntensity);
-  const [effort, setEffort] = useState(session ? effortFor(session.k) : copy.activities.moderate);
+  const [effort, setEffort] = useState(
+    session ? (generic ? session.eff || copy.activities.moderate : effortFor(session.k)) : copy.activities.moderate,
+  );
   const [heated, setHeated] = useState(heatedOn);
   const [askDelete, setAskDelete] = useState(false);
   const insets = useSafeAreaInsets();
+  const solid = useSolidGlass();
+  const live = useShownLiveWorkout();
 
   function leave() {
     if (closing.current) return;
@@ -57,7 +66,7 @@ export default function ActivityScreen() {
     saveSession(time, {
       minutes,
       intensity: showIntensity ? intensity : undefined,
-      effort: showEffort ? effort : undefined,
+      effort: showEffort || generic ? effort : undefined,
       heated: showHeated ? heated : undefined,
     });
     leave();
@@ -66,18 +75,18 @@ export default function ActivityScreen() {
   function confirmDelete() {
     haptic.warning();
     setAskDelete(false);
-    writeSession(time, "");
+    deleteSession(time);
     useNotice.getState().show([copy.workouts.deletedToast(name)], { pulse: false });
     leave();
   }
 
   return (
-    <SafeAreaView style={styles.screen} edges={["top"]}>
+    <SafeAreaView style={[styles.screen, !solid && styles.screenGlass]} edges={["top"]}>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <Pressable style={styles.back} onPress={leave} accessibilityRole="button">
+        <ScrollView contentContainerStyle={[styles.content, live ? styles.contentLive : null]} keyboardShouldPersistTaps="handled">
+          <PressableScale kind="text" style={styles.back} onPress={leave} accessibilityRole="button">
             <Text style={styles.backText}>{copy.workouts.back}</Text>
-          </Pressable>
+          </PressableScale>
           <Text accessibilityRole="header" style={styles.title}>
             {name}
           </Text>
@@ -106,6 +115,18 @@ export default function ActivityScreen() {
               />
             ) : null}
 
+            {generic ? (
+              <PillField
+                label={copy.workouts.difficulty}
+                value={effort}
+                options={["Easy", "Moderate", "Hard"]}
+                labelFor={(option) =>
+                  option === "Easy" ? copy.workouts.easy : option === "Hard" ? copy.activities.hard : copy.activities.moderate
+                }
+                onChange={setEffort}
+              />
+            ) : null}
+
             {showEffort ? (
               <View style={styles.field}>
                 <PillField
@@ -126,7 +147,7 @@ export default function ActivityScreen() {
                   accessibilityRole="radiogroup"
                   accessibilityLabel={copy.activities.heated}
                 >
-                  <Pressable
+                  <PressableScale
                     style={[styles.segment, !heated && styles.segmentOn]}
                     onPress={() => {
                       if (heated) haptic.selection();
@@ -136,8 +157,8 @@ export default function ActivityScreen() {
                     accessibilityState={{ selected: !heated }}
                   >
                     <Text style={[styles.segmentText, !heated && styles.segmentTextOn]}>{copy.activities.notHeated}</Text>
-                  </Pressable>
-                  <Pressable
+                  </PressableScale>
+                  <PressableScale
                     style={[styles.segment, heated && styles.segmentOn]}
                     onPress={() => {
                       if (!heated) haptic.selection();
@@ -147,42 +168,40 @@ export default function ActivityScreen() {
                     accessibilityState={{ selected: heated }}
                   >
                     <Text style={[styles.segmentText, heated && styles.segmentTextOn]}>{copy.activities.heated}</Text>
-                  </Pressable>
+                  </PressableScale>
                 </View>
               </View>
             ) : null}
           </View>
 
           <View style={styles.actions}>
-            <Pressable
-              style={({ pressed }) => [styles.delete, pressed && styles.pressed]}
+            <PressableScale
+              style={styles.delete}
               onPress={() => setAskDelete(true)}
               accessibilityRole="button"
             >
               <Text style={styles.deleteText}>{copy.workouts.delete}</Text>
-            </Pressable>
-            <Pressable
-              style={({ pressed }) => [styles.save, pressed && styles.pressed]}
+            </PressableScale>
+            <PressableScale
+              kind="surface"
+              style={styles.save}
               onPress={onSave}
               accessibilityRole="button"
             >
               <Text style={styles.saveText}>{copy.workouts.save}</Text>
-            </Pressable>
+            </PressableScale>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
       <SheetFrame visible={askDelete} onClose={() => setAskDelete(false)} label={copy.you.cancel}>
         <View style={[styles.sheet, { marginBottom: insets.bottom + 12 }]}>
-          <Text accessibilityRole="header" style={styles.sheetTitle}>
-            {copy.you.areYouSure}
-          </Text>
           <View style={styles.sheetButtons}>
-            <Pressable accessibilityRole="button" onPress={() => setAskDelete(false)} style={styles.sheetCancel}>
+            <PressableScale accessibilityRole="button" onPress={() => setAskDelete(false)} style={styles.sheetCancel}>
               <Text style={styles.sheetCancelText}>{copy.you.cancel}</Text>
-            </Pressable>
-            <Pressable accessibilityRole="button" onPress={confirmDelete} style={styles.sheetDelete}>
+            </PressableScale>
+            <PressableScale accessibilityRole="button" onPress={confirmDelete} style={styles.sheetDelete}>
               <Text style={styles.sheetDeleteText}>{copy.workouts.delete}</Text>
-            </Pressable>
+            </PressableScale>
           </View>
         </View>
       </SheetFrame>
@@ -195,11 +214,13 @@ function PillField({
   value,
   options,
   onChange,
+  labelFor,
 }: {
   label: string;
   value: string;
   options: readonly string[];
   onChange: (value: string) => void;
+  labelFor?: (option: string) => string;
 }) {
   return (
     <View style={styles.field} accessibilityRole="radiogroup" accessibilityLabel={label}>
@@ -208,7 +229,7 @@ function PillField({
         {options.map((option) => {
           const selected = option === value;
           return (
-            <Pressable
+            <PressableScale
               key={option}
               style={[styles.pill, selected && styles.pillOn]}
               onPress={() => {
@@ -218,8 +239,8 @@ function PillField({
               accessibilityRole="radio"
               accessibilityState={{ selected }}
             >
-              <Text style={[styles.pillText, selected && styles.pillTextOn]}>{option}</Text>
-            </Pressable>
+              <Text style={[styles.pillText, selected && styles.pillTextOn]}>{labelFor ? labelFor(option) : option}</Text>
+            </PressableScale>
           );
         })}
       </View>
@@ -232,6 +253,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.pink.background,
   },
+  screenGlass: { backgroundColor: "transparent" },
   flex: {
     flex: 1,
   },
@@ -240,6 +262,9 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 24,
     gap: 16,
+  },
+  contentLive: {
+    paddingBottom: 96,
   },
   back: {
     minHeight: 44,

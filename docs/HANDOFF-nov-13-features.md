@@ -32,7 +32,7 @@ Top to bottom:
 - The week's date range in Ranchers, with a **Completed** pill on the same line, aligned right, when every planned lift was done (or "{done} of {planned} lifts" when not). No eyebrow and no line of body text.
 - Four tiles: **Lifts** {done}/{planned}, **Sets** (sets logged), **Activity minutes** (min of sport, from `weekActuals`), **Exercise calories** (kcal from lifts, activities and cardio, above resting burn; from `weekActuals().burn`). Numbers count up from 0 over 600ms.
 - **Going up next week**: each exercise whose next-time target goes up, "{last top set} → {next target}" with the target in orange.
-- **Personal Records** (only if there are any): see the PR rule in section 3. Each row shows the exercise, the kind of record ("Heaviest top set", "More reps"), the new value and what it was before.
+- **Personal Records** (only if there are any): see the PR rule in section 3. Each row shows the exercise, the kind of record ("Top set", "Reps"), the new value and what it was before.
 - **Sets by muscle**: done vs planned per muscle group for the week, as bars; groups under plan in yellow. No sentence under the bars and no "done / target" label.
 - **Activities**: each logged activity with count and minutes.
 - Buttons: **Share** (secondary; same share flow as the workout share card) and **See next week** (closes the sheet and opens Plan → Week).
@@ -48,7 +48,7 @@ Haptics and motion are in `docs/HANDOFF-alerts-haptics.md` Part 3 ("Week finishe
 Keep the Calendar view as it is. Reference: `Proto_History.dc.html`.
 
 **Weeks**
-- At the top, a strip of small squares for recent weeks (orange #fea06a = completed, dark = not) and "{n} weeks completed in a row" in the same orange.
+- At the top, a strip of small squares for recent weeks (orange #fea06a = completed, dark = not) and "{n} weeks in a row" in the same orange. One week uses the singular. Zero uses the same line. |
 - Each week card: date range in Ranchers, a status pill (**✓ Completed**, or "{done} of {planned} lifts"), and three numbers: Lifts, Sets, Exercise kcal.
 - Tapping a card expands it to show **Sets by muscle** (same bars as the report).
 - An incomplete week shows what was missed ("Missed Upper (Pull)") and a **Count as completed** button, for sick or travel weeks; it then reads **✓ Counted** and counts toward the streak. **Undo** reverses it.
@@ -159,7 +159,7 @@ Native only. Do it in two or three chats (Workout screen; Workouts tab; History,
 - An exercise that's being skipped (not started, or skipped) shows no ✓ tick buttons on its set rows.
 - **Add exercise** is a plain text button ("+ Add exercise", accent colour, no fill or outline), still at least 44pt tall to tap.
 - Collapsed exercise cards have no › chevron.
-- The next-time line under an exercise is text only: "Go up to 45 lb", "Ease to 35 lb", "Stay at 40 lb". No "=", arrow or other icon in front.
+- The next-time line under an exercise is text only: "Go up to: 45 lb", "Ease to: 35 lb", "Stay at: 40 lb". A colon before the weight. No reason after it, and no "=", arrow or other icon in front.
 - **Stretch:** label is just "Stretch" (no "optional"), no "8 min" pill, and it sits above "+ Add exercise".
 - **Opening and closing a workout:** make the transition crisp. The card expands into the page in about 240ms (no overshoot, ease-out), and its content fades in only once the page has reached full size. Closing reverses it into the card in about 200ms. No blur or long cross-fade. Reduce Motion: a quick fade.
 

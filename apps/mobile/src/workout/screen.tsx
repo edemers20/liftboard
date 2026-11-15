@@ -1,19 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import {
-  AppState,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  type ScrollViewInstance,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
-import { router } from "expo-router";
+import { PressableScale } from "@/components/pressable-scale";
+import { AppState, Platform, ScrollView, StyleSheet, type ScrollViewInstance, Text, TextInput, View } from "react-native";
+import { router, useNavigation, Link } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withTiming } from "react-native-reanimated";
 
 import { useNotice } from "@/activity-log";
+import { openFitSheet } from "@/form-sheet";
 import { Rise, SetBounce, SheetFrame } from "@/components/motion";
+import { InfoTip } from "@/components/tip-popover";
 import { DialValue, liftWeightDial, repsDial } from "@/components/number-dial";
 import { copy, fill } from "@/copy";
 import { haptic } from "@/haptic";
@@ -22,15 +17,27 @@ import { theme } from "@/theme";
 import { clock, fromDisplay, toDisplay, unitWord, usingKg, weightText } from "@/units";
 import { useEngineStore } from "@/store";
 import { useReduceMotion } from "@/use-reduce-motion";
+import { useHideOnScroll } from "@/use-hide-on-scroll";
 
-import { canSwapDay, openSwappedWorkout, SwapSheet, type SwapAnchor } from "@/components/swap-sheet";
-import { Check, Close, Info, Swap } from "@/icons";
+import { canSwapDay, openSwappedWorkout } from "@/components/swap-sheet";
+import { Check, Close, Swap } from "@/icons";
+import { RestBar } from "@/workout/rest-bar";
 
+import { endLiveWorkout, liveWorkoutHeld, quietLiveWorkout, releaseEmptyLive, releaseLiveWorkout } from "@/components/live-workout";
+import { SwipeDelete } from "@/components/swipe-delete";
 import { armRest, cancelRestChime, claimRestChime } from "./notify";
-import { ShareBox } from "./share-box";
-import { ShareWorkoutButton } from "./share-card";
+import { markWorkoutClose, openWorkout, ShareBox, WORKOUT_OPEN_MS, workoutEnter } from "./share-box";
+import { ShareWorkoutActions } from "./share-card";
 
 type Feel = "Good" | "Normal" | "Rough";
+type NudgeAsk = {
+  index: number;
+  dir: "up" | "down";
+  reps: number;
+  next: number;
+  current: number;
+  name: string;
+};
 type Rest = { over: boolean; seconds: number; why: string; end: number };
 
 const FEEL: { value: Feel; label: string; knob: string }[] = [
@@ -39,13 +46,46 @@ const FEEL: { value: Feel; label: string; knob: string }[] = [
   { value: "Rough", label: copy.workout.rough, knob: "#e07a55" },
 ];
 
-const TAG_ICON: Record<string, string> = { up: "↑", hold: "=", down: "↓", collapse: "!" };
+const TAG_ICON: Record<string, string> = { up: "↑", hold: "", down: "↓", collapse: "!" };
 const TAG_NAME: Record<string, string> = {
   up: copy.workout.tagUp,
   down: copy.workout.tagDown,
   hold: copy.workout.tagHeld,
   collapse: copy.workout.tagFatigue,
 };
+
+function nextNote(why: string): string {
+  const text = String(why || "");
+  if (/^(hold|~?\d+ reps|\+5 lb|add a rep|same weight)/.test(text)) return "";
+  return text.replace(/ · \d+\/\d+ sets$/, "");
+}
+
+function nextTarget(item: { n: string; w?: number; r?: number; bw?: number }): string {
+  const unit = usingKg() ? "kg" : "lb";
+  const weight = Number(item.w) || 0;
+  const body = !!item.bw || engine.isBW(item.n);
+  const load = body ? (weight > 0 ? `BW+${toDisplay(weight)}${unit}` : "BW") : `${toDisplay(weight)}${unit}`;
+  return item.r ? `${load} x ${item.r}` : load;
+}
+
+function NextLine({
+  item,
+  lead,
+}: {
+  item: { n: string; w?: number; r?: number; bw?: number; why?: string };
+  lead?: string;
+}) {
+  const note = nextNote(item.why || "");
+  return (
+    <Text style={styles.reviewLine}>
+      {lead ? `${lead} ` : null}
+      <Text style={styles.reviewName}>{item.n}</Text>
+      {": "}
+      <Text style={styles.mono}>{nextTarget(item)}</Text>
+      {note ? <Text style={styles.reviewNote}>{` ${note}`}</Text> : null}
+    </Text>
+  );
+}
 
 const STRETCH: Record<string, [string, string][]> = {
   lower: [
@@ -82,22 +122,20 @@ function skipNote(slot: { skip?: string; flag?: string }): string {
   return k;
 }
 
-function exDone(dayId: string, day: any, planned: any, index: number): boolean {
-  const slot = day.slots[index];
-  const planSlot = planned.slots[index];
-  if (!planSlot || planSlot.skip) return true;
-  if (engine.wk.done?.[dayId]) return true;
-  const state = engine.get(dayId, index);
-  if (slot.cardio) return !!state.cdone;
-  return (state.log || []).filter((row: any) => row.d).length >= planSlot.sets;
+function planBag(dayId: string, planned: any) {
+  return { days: { [dayId]: planned } };
 }
 
-function candidates(day: any, planned: any): number[] {
-  return engine.slotOrder(day).filter((index: number) => !planned.slots[index].skip);
+function exDone(dayId: string, _day: any, planned: any, index: number): boolean {
+  return engine.rowDone(dayId, index, planBag(dayId, planned));
+}
+
+function candidates(day: any, planned: any, dayId: string): number[] {
+  return (engine.slotOrder(day) as number[]).filter((index) => engine.countsInDay(dayId, index, planBag(dayId, planned)));
 }
 
 function activeIndex(dayId: string, day: any, planned: any): number {
-  const open = candidates(day, planned);
+  const open = candidates(day, planned, dayId);
   const saved = (engine.wk.active || {})[dayId];
   if (saved === -1) return -1;
   if (saved != null && day.slots[saved] && planned.slots[saved] && planned.slots[saved].skip !== "hidden") return saved;
@@ -118,7 +156,7 @@ function displayOrder(day: any, planned: any): number[] {
 }
 
 function nextOpen(dayId: string, day: any, planned: any, index: number): number | undefined {
-  const open = candidates(day, planned);
+  const open = candidates(day, planned, dayId);
   const at = open.indexOf(index);
   return (
     open.slice(at + 1).find((item) => !exDone(dayId, day, planned, item)) ??
@@ -156,7 +194,12 @@ function loggedLine(name: string, weight: number, reps: number): string {
 export function WorkoutScreen({ id }: { id: string }) {
   const version = useEngineStore((state) => state.version);
   const reduceMotion = useReduceMotion();
+  const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const hide = useHideOnScroll();
+  const expand = useRef(workoutEnter() === "expand").current;
+  const bodyOpacity = useSharedValue(reduceMotion || !expand ? 1 : 0);
+  const bodyStyle = useAnimatedStyle(() => ({ opacity: bodyOpacity.value }));
   const scroll = useRef<ScrollViewInstance>(null);
   const offsets = useRef<Record<number, number>>({});
   const listY = useRef(0);
@@ -164,7 +207,6 @@ export function WorkoutScreen({ id }: { id: string }) {
   const [now, setNow] = useState(() => Date.now());
   const restOver = useRef<boolean | null>(null);
   const leftWhileCounting = useRef(false);
-  const [info, setInfo] = useState(false);
   const [sheet, setSheet] = useState<null | "done" | number>(null);
   const [adding, setAdding] = useState(false);
   const [pick, setPick] = useState("");
@@ -172,14 +214,148 @@ export function WorkoutScreen({ id }: { id: string }) {
   const [cat, setCat] = useState("");
   const [picker, setPicker] = useState<null | { index: number } | "add" | "cat">(null);
   const [resetAsk, setResetAsk] = useState(false);
-  const [swapOpen, setSwapOpen] = useState(false);
-  const [swapAnchor, setSwapAnchor] = useState<SwapAnchor | null>(null);
-  const swapRef = useRef<any>(null);
+  const [switchAsk, setSwitchAsk] = useState<string | null>(null);
+  const [deleteAsk, setDeleteAsk] = useState<null | { index: number; name: string; sets: number }>(null);
+  const [undo, setUndo] = useState<null | { run: () => void }>(null);
+  const pendingLive = useRef<null | (() => void)>(null);
+  const nudgeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (nudgeTimer.current) clearTimeout(nudgeTimer.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (reduceMotion || !expand) {
+      bodyOpacity.value = 1;
+      return;
+    }
+    bodyOpacity.value = 0;
+    bodyOpacity.value = withDelay(
+      WORKOUT_OPEN_MS,
+      withTiming(1, { duration: 120, easing: Easing.out(Easing.cubic) }),
+    );
+  }, [bodyOpacity, expand, reduceMotion]);
+
+  useEffect(() => {
+    const nav = navigation as { addListener: (event: "beforeRemove", cb: () => void) => () => void };
+    return nav.addListener("beforeRemove", () => {
+      markWorkoutClose();
+    });
+  }, [navigation]);
+
+  function otherLive(): string | null {
+    const timers = engine.wk.wt || {};
+    return (
+      Object.keys(timers).find((key) => key !== id && timers[key]?.start && !timers[key]?.end && !engine.wk.done?.[key]) ||
+      null
+    );
+  }
+
+  function alreadyLive(): boolean {
+    const current = (engine.wk.wt || {})[id];
+    return !!(current?.start && !current.end);
+  }
+
+  function stampStart() {
+    const timers = { ...(engine.wk.wt || {}) };
+    const current = timers[id];
+    if (current?.start && !current.end) return;
+    timers[id] = { start: Date.now() };
+    engine.wk.wt = timers;
+    engine.save();
+  }
+
+  function guardLive(run: () => void) {
+    if (alreadyLive()) {
+      run();
+      return;
+    }
+    const other = otherLive();
+    if (!other) {
+      run();
+      return;
+    }
+    pendingLive.current = run;
+    setSwitchAsk(other);
+  }
+
+  function rememberUndo(run: () => void) {
+    setUndo({ run });
+  }
+
+  function loggedSets(index: number): number {
+    return (engine.get(id, index).log || []).filter((row: { d?: boolean }) => row?.d).length;
+  }
+
+  function daySnap() {
+    return {
+      extra: JSON.parse(JSON.stringify((engine.wk.extra || {})[id] || [])),
+      slots: JSON.parse(JSON.stringify((engine.slots || {})[id] || {})),
+    };
+  }
+
+  function restoreDay(snap: { extra: unknown; slots: unknown }) {
+    engine.wk.extra = { ...(engine.wk.extra || {}), [id]: snap.extra };
+    (engine.slots as Record<string, unknown>)[id] = snap.slots;
+    engine.syncDays();
+    engine.save();
+    if (engine.wk.done?.[id]) engine.resyncDone(id);
+  }
+
+  function deleteSet(index: number, setIndex: number) {
+    const snap = daySnap();
+    const log = (engine.get(id, index).log || []).slice();
+    log.splice(setIndex, 1);
+    engine.set(id, index, "log", log);
+    if (engine.wk.done?.[id]) engine.resyncDone(id);
+    releaseEmptyLive(id);
+    rememberUndo(() => restoreDay(snap));
+  }
+
+  function removeExercise(index: number) {
+    const slot = day?.slots[index];
+    if (!slot) return;
+    const snap = daySnap();
+    const extras = ((engine.wk.extra || {})[id] || []) as unknown[];
+    if (slot.extra) engine.removeExtra(id, index - ((day?.slots.length || 0) - extras.length));
+    else {
+      engine.set(id, index, "cut", true);
+      engine.set(id, index, "log", []);
+      engine.set(id, index, "cdone", false);
+    }
+    if (engine.wk.done?.[id]) engine.resyncDone(id);
+    releaseEmptyLive(id);
+    rememberUndo(() => restoreDay(snap));
+  }
+
+  function askDeleteExercise(index: number) {
+    const slot = day?.slots[index];
+    if (!slot) return;
+    const name = engine.exName(day, slot, index);
+    const sets = slot.cardio ? (engine.get(id, index).cdone ? 1 : 0) : loggedSets(index);
+    if (sets > 0) setDeleteAsk({ index, name, sets });
+    else removeExercise(index);
+  }
 
   function leave() {
+    markWorkoutClose();
+    if (!reduceMotion && expand) bodyOpacity.value = 0;
     if (router.canGoBack()) router.back();
     else router.navigate("/");
   }
+
+  useEffect(() => {
+    if (!id || !liveWorkoutHeld(id)) return;
+    releaseLiveWorkout(id);
+  }, [id]);
+
+  useEffect(() => {
+    if (!undo) return;
+    const timer = setTimeout(() => setUndo(null), 4000);
+    return () => clearTimeout(timer);
+  }, [undo]);
 
   useEffect(() => {
     const tick = () => {
@@ -224,9 +400,9 @@ export function WorkoutScreen({ id }: { id: string }) {
   if (!day || !plan.days[id]) {
     return (
       <View style={[styles.screen, { paddingTop: insets.top }]}>
-        <Pressable accessibilityRole="button" onPress={leave} style={styles.back}>
+        <PressableScale accessibilityRole="button" onPress={leave} style={styles.back}>
           <Text style={styles.backText}>{copy.workouts.back}</Text>
-        </Pressable>
+        </PressableScale>
       </View>
     );
   }
@@ -281,20 +457,24 @@ export function WorkoutScreen({ id }: { id: string }) {
 
   function finishDay() {
     if (engine.wk.done?.[id]) return;
-    engine.markDone(id);
+    const lines = engine.markDone(id) as string[];
     haptic.success();
+    showLines(lines, false);
     setSheet("done");
   }
 
   function resetDay() {
     haptic.warning();
+    quietLiveWorkout(id);
     if (engine.wk.done?.[id]) engine.markDone(id);
     delete engine.slots[id];
     if (engine.wk.wt) delete engine.wk.wt[id];
+    if (engine.wk.active) delete engine.wk.active[id];
     if (engine.wk.lockSets) delete engine.wk.lockSets[id];
     void cancelRestChime();
     engine.clearRest();
     engine.save();
+    setRest(null);
     setResetAsk(false);
     showLines([copy.workout.dayReset, copy.workout.logsCleared], false);
   }
@@ -303,9 +483,19 @@ export function WorkoutScreen({ id }: { id: string }) {
     index: number,
     setIndex: number,
     draft: { weight: string | null; reps: string | null; placeholderLb: number; placeholderReps: string },
+    skipGuard = false,
   ) {
     if (readOnly) return;
     const state = engine.get(id, index);
+    const existing = (state.log || [])[setIndex] || {};
+    if (!skipGuard && !existing.d && !alreadyLive()) {
+      const other = otherLive();
+      if (other) {
+        pendingLive.current = () => commitSet(index, setIndex, draft, true);
+        setSwitchAsk(other);
+        return;
+      }
+    }
     const log = (state.log || []).slice();
     while (log.length <= setIndex) log.push({});
     const row = { ...(log[setIndex] || {}) };
@@ -319,6 +509,7 @@ export function WorkoutScreen({ id }: { id: string }) {
     log[setIndex] = { ...row, w: weight, r: reps, d: !was };
     if (!was) haptic.tap();
     if (!was) {
+      releaseLiveWorkout(id);
       const timers = { ...(engine.wk.wt || {}) };
       if (!timers[id]?.start) timers[id] = { start: Date.now() };
       engine.wk.wt = timers;
@@ -335,6 +526,33 @@ export function WorkoutScreen({ id }: { id: string }) {
     if (!was && !wasDone && engine.dayComplete(id)) {
       finishDay();
       return;
+    }
+    if (!was && day) {
+      const offer = engine.offerNudge(id, index);
+      if (offer) {
+        const ticks = (engine.get(id, index).log || []).filter((row: any) => row.d).length;
+        engine.set(id, index, "nudged", ticks);
+        const ask: NudgeAsk = {
+          index,
+          dir: offer.dir,
+          reps: offer.reps,
+          next: offer.weight,
+          current: Number(weight) || 0,
+          name: engine.exName(day, day.slots[index], index),
+        };
+        if (nudgeTimer.current) clearTimeout(nudgeTimer.current);
+        nudgeTimer.current = setTimeout(() => {
+          const ticksNow = (engine.get(id, index).log || []).filter((row: any) => row.d).length;
+          if (ticksNow !== ticks) return;
+          haptic.tap();
+          openFitSheet({
+            kind: "nudge",
+            ask,
+            onUse: () => applyNudge(ask.index, ask.next),
+            onKeep: () => engine.keepWeight(id, ask.index, ask.current),
+          });
+        }, 250);
+      }
     }
     if (!was) {
       const sets = engine.plan().days[id].slots[index].sets;
@@ -427,58 +645,34 @@ export function WorkoutScreen({ id }: { id: string }) {
   const guessCat = pick === engine.CUSTOM ? cat || engine.catOf(customName) || "" : engine.catOf(pick);
   const canAdd = pick === engine.CUSTOM ? !!(customName.trim() && guessCat) : !!pick;
 
-  return (
-    <View style={styles.screen}>
-      <ScrollView
+  const screenTree = (
+    <ShareBox tag={expand ? `lift-${id}` : undefined} style={styles.screen}>
+      <Animated.View style={[styles.reveal, bodyStyle]}>
+      <Animated.ScrollView
         ref={scroll}
+        style={styles.reveal}
         keyboardShouldPersistTaps="handled"
+        onScroll={hide.onScroll}
+        scrollEventThrottle={16}
+        scrollsToTop
+        contentInsetAdjustmentBehavior="never"
         contentContainerStyle={{
-          paddingTop: insets.top + 8,
+          paddingTop: hide.space + 8,
           paddingBottom: (rest ? 96 : 32) + insets.bottom,
           paddingHorizontal: 16,
           gap: 14,
         }}
       >
-        <View style={styles.header}>
-          <Pressable accessibilityRole="button" onPress={leave} style={styles.back}>
-            <Text style={styles.backText}>{copy.workouts.back}</Text>
-          </Pressable>
-          <ShareBox tag={`lift-${id}`} style={styles.dayHead}>
-            <Text accessibilityRole="header" style={styles.title}>
-              {day.title}
-            </Text>
-            {timerLabel ? <Text style={styles.timer}>{timerLabel}</Text> : null}
-            {canSwapDay(id) ? (
-              <Pressable
-                ref={swapRef}
-                accessibilityRole="button"
-                onPress={() => {
-                  swapRef.current?.measureInWindow((x: number, y: number, width: number, height: number) => {
-                    setSwapAnchor({ x, y, width, height });
-                    setSwapOpen(true);
-                  });
-                }}
-                style={styles.swapPill}
-              >
-                <Swap size={16} color={theme.text} />
-                <Text style={styles.swapPillText}>{copy.workouts.swapWorkout}</Text>
-              </Pressable>
-            ) : null}
-          </ShareBox>
-        </View>
-
         <View style={styles.panel}>
           <View style={styles.feelHead}>
             <Text style={styles.question}>{feelQuestion}</Text>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={copy.whatThisDoes}
-              hitSlop={13}
-              onPress={() => setInfo(true)}
+            <InfoTip
+              sections={[{ body: copy.workout.feelInfo }]}
+              label={copy.whatThisDoes}
+              color="#c9d3cf"
+              activeColor={theme.green.accent}
               style={styles.info}
-            >
-              <Info size={16} color="#c9d3cf" />
-            </Pressable>
+            />
           </View>
           <View
             accessibilityRole="radiogroup"
@@ -489,7 +683,7 @@ export function WorkoutScreen({ id }: { id: string }) {
             {FEEL.map((option) => {
               const on = planned.today === option.value;
               return (
-                <Pressable
+                <PressableScale
                   key={option.value}
                   accessibilityRole="radio"
                   accessibilityState={{ selected: on, disabled: readOnly }}
@@ -502,7 +696,7 @@ export function WorkoutScreen({ id }: { id: string }) {
                     <View style={[styles.knob, on ? styles.knobOn : null, { backgroundColor: on ? option.knob : "#3a4743" }]} />
                   </View>
                   <Text style={[styles.feelLabel, on ? styles.feelLabelOn : null]}>{option.label}</Text>
-                </Pressable>
+                </PressableScale>
               );
             })}
           </View>
@@ -525,15 +719,16 @@ export function WorkoutScreen({ id }: { id: string }) {
           <View style={styles.panel}>
             <Text style={styles.section}>{copy.workout.nextTime}</Text>
             {review.items.map((item: any) => (
-              <Text key={item.n} style={styles.reviewLine}>
-                <Text accessibilityLabel={TAG_NAME[item.tag] || item.tag}>{TAG_ICON[item.tag] || ""}</Text>
-                {` ${item.n} · `}
-                <Text style={styles.mono}>{weightText(copy.workout.pounds, item.w)}</Text>
-                {` · ${item.why}`}
-              </Text>
+              <NextLine key={item.n} item={item} />
             ))}
             {review.note ? <Text style={styles.note}>{review.note}</Text> : null}
           </View>
+        ) : null}
+
+        {!readOnly && !(timer?.start && !timer?.end) ? (
+          <PressableScale accessibilityRole="button" onPress={() => guardLive(stampStart)} style={styles.primary}>
+            <Text style={styles.primaryText}>{copy.workout.start}</Text>
+          </PressableScale>
         ) : null}
 
         <View
@@ -548,6 +743,11 @@ export function WorkoutScreen({ id }: { id: string }) {
           const optional = !slot.cardio && planSlot.skip && planSlot.skip !== "hidden";
           const name = engine.exName(day, slot, index);
           const done = exDone(id, day, planned, index);
+          const label = slot.extra
+            ? fill(copy.workout.added, slot.label)
+            : slot.ss && engine.wk.ss !== "No"
+              ? `${slot.label} · ${slot.ss}`
+              : slot.label;
           if (index === firstOptional) {
             return (
               <View
@@ -556,7 +756,7 @@ export function WorkoutScreen({ id }: { id: string }) {
                   offsets.current[index] = event.nativeEvent.layout.y;
                 }}
               >
-                <Text style={styles.optionalLabel}>{copy.workout.optional}</Text>
+                <Text style={[styles.optionalLabel, styles.optionalHeading]}>{copy.workout.optional}</Text>
                 {current === index ? (
                   <ExerciseCard
                     id={id}
@@ -569,7 +769,6 @@ export function WorkoutScreen({ id }: { id: string }) {
                     onCommit={commitSet}
                     onField={writeField}
                     onAddSet={() => addSet(index)}
-                    onNudge={(weight) => applyNudge(index, weight)}
                     onChoose={(choice) => {
                       engine.set(id, index, "choice", choice);
                     }}
@@ -578,14 +777,12 @@ export function WorkoutScreen({ id }: { id: string }) {
                     onSide={(side) => engine.set(id, index, "side", side)}
                     onFinishCardio={() => finishCardio(index)}
                     onMinutesBlur={(before) => showLines(engine.diffFx(before, engine.fx(engine.plan())))}
-                    onRemove={() => {
-                      const extras = (engine.wk.extra || {})[id] || [];
-                      engine.removeExtra(id, index - (day.slots.length - extras.length));
-                    }}
+                    onRemove={() => askDeleteExercise(index)}
+                    onDeleteSet={(setIndex) => deleteSet(index, setIndex)}
                   />
                 ) : (
                   <CollapsedRow
-                    label={fill(copy.workout.optionalLabel, slot.label)}
+                    label={label}
                     name={name}
                     done={done}
                     optional
@@ -599,15 +796,9 @@ export function WorkoutScreen({ id }: { id: string }) {
             );
           }
           if (current !== index) {
-            const label = slot.extra
-              ? fill(copy.workout.added, slot.label)
-              : slot.ss && engine.wk.ss !== "No"
-                ? `${slot.label} · ${slot.ss}`
-                : slot.label;
-            return (
+            const row = (
               <CollapsedRow
-                key={index}
-                label={optional ? fill(copy.workout.optionalLabel, slot.label) : label}
+                label={label}
                 name={name}
                 done={done}
                 optional={!!optional}
@@ -617,8 +808,15 @@ export function WorkoutScreen({ id }: { id: string }) {
                 }}
               />
             );
+            return readOnly ? (
+              <View key={index}>{row}</View>
+            ) : (
+              <SwipeDelete key={index} label={copy.workout.delete} onDelete={() => askDeleteExercise(index)}>
+                {row}
+              </SwipeDelete>
+            );
           }
-          return (
+          const card = (
             <ExerciseCard
               key={index}
               id={id}
@@ -633,89 +831,41 @@ export function WorkoutScreen({ id }: { id: string }) {
               onCommit={commitSet}
               onField={writeField}
               onAddSet={() => addSet(index)}
-              onNudge={(weight) => applyNudge(index, weight)}
               onChoose={(choice) => engine.set(id, index, "choice", choice)}
               onCustom={(value) => engine.set(id, index, "custom", value)}
               onOpenPicker={() => setPicker({ index })}
               onSide={(side) => engine.set(id, index, "side", side)}
               onFinishCardio={() => finishCardio(index)}
               onMinutesBlur={(before) => showLines(engine.diffFx(before, engine.fx(engine.plan())))}
-              onRemove={() => {
-                const extras = (engine.wk.extra || {})[id] || [];
-                engine.removeExtra(id, index - (day.slots.length - extras.length));
-              }}
+              onRemove={() => askDeleteExercise(index)}
+              onDeleteSet={(setIndex) => deleteSet(index, setIndex)}
             />
+          );
+          return readOnly ? (
+            card
+          ) : (
+            <SwipeDelete key={index} label={copy.workout.delete} onDelete={() => askDeleteExercise(index)}>
+              {card}
+            </SwipeDelete>
           );
         })}
         </View>
 
-        {readOnly ? null : adding ? (
-          <View style={styles.card}>
-            <View style={styles.cardHead}>
-              <Text style={styles.slotLabel}>{copy.workout.addExercise}</Text>
-              <Pressable accessibilityRole="button" accessibilityLabel={copy.close} onPress={() => setAdding(false)} style={styles.iconHit}>
-                <Close />
-              </Pressable>
-            </View>
-            <Pressable accessibilityRole="button" onPress={() => setPicker("add")} style={styles.picker}>
-              <Text style={styles.pickerText} numberOfLines={1}>
-                {pick || copy.workout.chooseExercise}
-              </Text>
-              <Text style={styles.pickerChevron}>▾</Text>
-            </Pressable>
-            {pick === engine.CUSTOM ? (
-              <>
-                <TextInput
-                  value={customName}
-                  onChangeText={setCustomName}
-                  placeholder={copy.workout.exerciseName}
-                  placeholderTextColor={theme.muted}
-                  style={styles.input}
-                />
-                <Text style={styles.fieldLabel}>{copy.workout.countsAs}</Text>
-                <Pressable accessibilityRole="button" onPress={() => setPicker("cat")} style={styles.picker}>
-                  <Text style={styles.pickerText} numberOfLines={1}>
-                    {guessCat ? engine.XCAT[guessCat][0] : copy.workout.choose}
-                  </Text>
-                  <Text style={styles.pickerChevron}>▾</Text>
-                </Pressable>
-              </>
-            ) : null}
-            {guessCat ? (
-              <Text style={styles.hint}>
-                {fill(copy.workout.countsLine, String(engine.XCAT[guessCat][0]).toLowerCase(), engine.XCAT[guessCat][1])}
-              </Text>
-            ) : null}
-            <Pressable
-              accessibilityRole="button"
-              accessibilityState={{ disabled: !canAdd }}
-              disabled={!canAdd}
-              onPress={addExercise}
-              style={[styles.primary, !canAdd ? styles.disabled : null]}
-            >
-              <Text style={styles.primaryText}>{fill(copy.workout.addTo, day.tab)}</Text>
-            </Pressable>
-          </View>
-        ) : (
-          <Pressable accessibilityRole="button" onPress={() => setAdding(true)} style={styles.secondary}>
-            <Text style={styles.secondaryText}>{copy.workout.addExerciseBtn}</Text>
-          </Pressable>
-        )}
-
         {stretchOn ? (
-          <View style={styles.stretch}>
-            <Pressable
+          <View style={stretchOpen ? styles.stretchOpen : undefined}>
+            <PressableScale
               accessibilityRole="button"
-              accessibilityLabel={`${stretchOpen ? copy.workout.collapse : copy.workout.expand}`}
+              accessibilityLabel={`${stretchOpen ? copy.workout.collapse : copy.workout.expand} ${copy.workout.stretch}`}
               onPress={() => {
                 engine.wk.stretchOpen = { ...(engine.wk.stretchOpen || {}), [id]: !stretchOpen };
                 engine.save();
               }}
-              style={styles.cardHead}
+              style={[styles.stretchFolded, stretchOpen ? styles.stretchHeadOpen : null]}
             >
-              <Text style={styles.slotLabel}>{copy.workout.stretch}</Text>
-              <Text style={styles.pill}>{stretchDone ? copy.workout.done : copy.workout.stretchMin}</Text>
-            </Pressable>
+              <Text style={styles.exercise} numberOfLines={1}>
+                {copy.workout.stretch}
+              </Text>
+            </PressableScale>
             {stretchOpen ? (
               <>
                 {stretches.map(([name, time]) => (
@@ -724,7 +874,7 @@ export function WorkoutScreen({ id }: { id: string }) {
                     <Text style={styles.monoMuted}>{time}</Text>
                   </View>
                 ))}
-                <Pressable
+                <PressableScale
                   accessibilityRole="button"
                   onPress={() => {
                     engine.wk.stretchDone = { ...(engine.wk.stretchDone || {}), [id]: !stretchDone };
@@ -735,15 +885,73 @@ export function WorkoutScreen({ id }: { id: string }) {
                   <Text style={stretchDone ? styles.secondaryText : styles.primaryText}>
                     {stretchDone ? copy.workout.stretched : copy.workout.doneStretching}
                   </Text>
-                </Pressable>
+                </PressableScale>
               </>
             ) : null}
           </View>
         ) : null}
 
-        <Pressable
+        {readOnly ? null : adding ? (
+          <View style={styles.card}>
+            <View style={styles.cardHead}>
+              <Text style={styles.slotLabel}>{copy.workout.addExercise}</Text>
+              <PressableScale accessibilityRole="button" accessibilityLabel={copy.close} onPress={() => setAdding(false)} style={styles.iconHit}>
+                <Close />
+              </PressableScale>
+            </View>
+            <PressableScale accessibilityRole="button" onPress={() => setPicker("add")} style={styles.picker}>
+              <Text style={styles.pickerText} numberOfLines={1}>
+                {pick || copy.workout.chooseExercise}
+              </Text>
+              <Text style={styles.pickerChevron}>▾</Text>
+            </PressableScale>
+            {pick === engine.CUSTOM ? (
+              <>
+                <TextInput
+                  value={customName}
+                  onChangeText={setCustomName}
+                  placeholder={copy.workout.exerciseName}
+                  placeholderTextColor={theme.muted}
+                  style={styles.input}
+                />
+                <Text style={styles.fieldLabel}>{copy.workout.countsAs}</Text>
+                <PressableScale accessibilityRole="button" onPress={() => setPicker("cat")} style={styles.picker}>
+                  <Text style={styles.pickerText} numberOfLines={1}>
+                    {guessCat ? engine.XCAT[guessCat][0] : copy.workout.choose}
+                  </Text>
+                  <Text style={styles.pickerChevron}>▾</Text>
+                </PressableScale>
+              </>
+            ) : null}
+            {guessCat ? (
+              <Text style={styles.hint}>
+                {fill(copy.workout.countsLine, String(engine.XCAT[guessCat][0]).toLowerCase(), engine.XCAT[guessCat][1])}
+              </Text>
+            ) : null}
+            <PressableScale
+              accessibilityRole="button"
+              accessibilityState={{ disabled: !canAdd }}
+              disabled={!canAdd}
+              onPress={addExercise}
+              style={[styles.primary, !canAdd ? styles.disabled : null]}
+            >
+              <Text style={styles.primaryText}>{fill(copy.workout.addTo, day.tab)}</Text>
+            </PressableScale>
+          </View>
+        ) : (
+          <PressableScale
+            kind="text"
+            accessibilityRole="button"
+            onPress={() => setAdding(true)}
+            style={styles.addExercise}
+          >
+            <Text style={styles.addExerciseText}>{copy.workout.addExerciseBtn}</Text>
+          </PressableScale>
+        )}
+
+        <PressableScale
+          kind="surface"
           accessibilityRole="button"
-          accessibilityState={{ disabled: readOnly }}
           disabled={readOnly}
           onPress={finishDay}
           style={[styles.primary, readOnly ? styles.doneButton : null]}
@@ -751,85 +959,145 @@ export function WorkoutScreen({ id }: { id: string }) {
           <Text style={[styles.primaryText, readOnly ? styles.doneButtonText : null]}>
             {readOnly ? copy.workout.dayDone : copy.workout.markDone}
           </Text>
-        </Pressable>
-        {readOnly ? <ShareWorkoutButton id={id} label={copy.workout.shareWorkout} wide /> : null}
+        </PressableScale>
+        {readOnly ? <ShareWorkoutActions id={id} /> : null}
 
         <View style={styles.footer}>
-          <Pressable accessibilityRole="button" onPress={() => setResetAsk(true)} style={styles.resetBtn}>
+          <PressableScale accessibilityRole="button" onPress={() => setResetAsk(true)} style={styles.resetBtn}>
             <Text style={styles.resetBtnText}>{copy.workout.resetDay}</Text>
-          </Pressable>
+          </PressableScale>
           <Text style={styles.footerSaved}>{copy.workout.saved}</Text>
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
 
-      {rest ? (
-        <View style={[styles.rest, rest.over ? styles.restOver : null, { paddingBottom: insets.bottom }]}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={copy.workout.minus15}
-            onPress={() => void nudgeRest(-15)}
-            style={styles.restZone}
-          >
-            <Text style={[styles.restZoneText, rest.over ? styles.restClockOver : null]}>{copy.workout.minus15}</Text>
-          </Pressable>
-          <View style={styles.restMid}>
-            <Text style={[styles.restClock, rest.over ? styles.restClockOver : null]}>
-              {rest.over ? fill(copy.workout.goOver, clock(rest.seconds)) : fill(copy.workout.rest, clock(rest.seconds))}
-            </Text>
-            <Pressable accessibilityRole="button" onPress={() => void skipRest()} style={styles.skip}>
-              <Text style={[styles.skipText, rest.over ? styles.restClockOver : null]}>{copy.workout.skip}</Text>
-            </Pressable>
-          </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={copy.workout.plus15}
-            onPress={() => void nudgeRest(15)}
-            style={[styles.restZone, styles.restZoneEnd]}
-          >
-            <Text style={[styles.restZoneText, rest.over ? styles.restClockOver : null]}>{copy.workout.plus15}</Text>
-          </Pressable>
+      <Animated.View
+        accessibilityElementsHidden={!hide.blocks}
+        importantForAccessibility={hide.blocks ? "auto" : "no-hide-descendants"}
+        pointerEvents={hide.blocks ? "box-none" : "none"}
+        onLayout={hide.onHeaderLayout}
+        style={[styles.chrome, { paddingTop: insets.top }, hide.chromeStyle, hide.headerStyle]}
+      >
+        <View style={styles.toolbar}>
+          <PressableScale kind="text" accessibilityRole="button" onPress={leave} style={styles.back}>
+            <Text style={styles.backText}>{copy.workouts.back}</Text>
+          </PressableScale>
+          {canSwapDay(id) ? (
+            <PressableScale
+              kind="button"
+              accessibilityRole="button"
+              onPress={() => openFitSheet({ kind: "swap", id, onWorkout: openSwappedWorkout })}
+              style={styles.swapPill}
+            >
+              <Swap size={16} color={theme.text} />
+              <Text style={styles.swapPillText}>{copy.workouts.swapWorkout}</Text>
+            </PressableScale>
+          ) : null}
         </View>
+        <View style={styles.dayHead}>
+          <Text accessibilityRole="header" style={styles.title}>
+            {day.tab ? `${day.tab}: ${day.title}` : day.title}
+          </Text>
+          {timerLabel ? <Text style={styles.timer}>{timerLabel}</Text> : null}
+        </View>
+      </Animated.View>
+
+      <RestBar
+        rest={rest}
+        bottom={insets.bottom + 8}
+        onMinus={() => void nudgeRest(-15)}
+        onPlus={() => void nudgeRest(15)}
+        onSkip={() => void skipRest()}
+      />
+
+      {undo ? (
+        <PressableScale
+          accessibilityRole="button"
+          onPress={() => {
+            undo.run();
+            setUndo(null);
+          }}
+          style={[styles.undo, { bottom: insets.bottom + 16 }]}
+        >
+          <Text style={styles.undoText}>{copy.workout.deletedUndo}</Text>
+        </PressableScale>
       ) : null}
 
       <SheetFrame visible={resetAsk} onClose={() => setResetAsk(false)} label={copy.you.cancel}>
           <View style={[styles.sheet, { marginBottom: insets.bottom + 12 }]}>
-            <Text style={styles.section}>{copy.you.areYouSure}</Text>
             <Text accessibilityRole="header" style={styles.confirmTitle}>
               {fill(copy.workout.resetTitle, day.tab || copy.workout.thisDay)}
             </Text>
             <Text style={styles.body}>{copy.workout.resetBody}</Text>
             <View style={styles.confirmRow}>
-              <Pressable accessibilityRole="button" onPress={() => setResetAsk(false)} style={[styles.secondary, styles.confirmBtn]}>
+              <PressableScale accessibilityRole="button" onPress={() => setResetAsk(false)} style={[styles.secondary, styles.confirmBtn]}>
                 <Text style={styles.secondaryText}>{copy.you.cancel}</Text>
-              </Pressable>
-              <Pressable accessibilityRole="button" onPress={resetDay} style={[styles.primary, styles.confirmBtn]}>
+              </PressableScale>
+              <PressableScale accessibilityRole="button" onPress={resetDay} style={[styles.primary, styles.confirmBtn]}>
                 <Text style={styles.primaryText}>{copy.workout.resetDay}</Text>
-              </Pressable>
+              </PressableScale>
             </View>
           </View>
       </SheetFrame>
 
-      <SheetFrame visible={info} onClose={() => setInfo(false)}>
-          <View style={[styles.sheet, { marginBottom: insets.bottom + 12 }]}>
-            <Text style={styles.body}>{copy.workout.feelInfo}</Text>
-            <Pressable accessibilityRole="button" onPress={() => setInfo(false)} style={styles.primary}>
-              <Text style={styles.primaryText}>{copy.close}</Text>
-            </Pressable>
+      <SheetFrame visible={!!switchAsk} onClose={() => { pendingLive.current = null; setSwitchAsk(null); }} label={copy.you.cancel}>
+        <View style={[styles.sheet, { marginBottom: insets.bottom + 12 }]}>
+          <Text accessibilityRole="header" style={styles.confirmTitle}>
+            {fill(copy.workout.finishFirst, (engine.DAYS as { id: string; title: string }[]).find((item) => item.id === switchAsk)?.title || "")}
+          </Text>
+          <View style={styles.confirmRow}>
+            <PressableScale
+              accessibilityRole="button"
+              onPress={() => {
+                const other = switchAsk;
+                pendingLive.current = null;
+                setSwitchAsk(null);
+                if (other) openWorkout(other, "plain");
+              }}
+              style={[styles.secondary, styles.confirmBtn]}
+            >
+              <Text style={styles.secondaryText}>{copy.workout.keepGoing}</Text>
+            </PressableScale>
+            <PressableScale
+              accessibilityRole="button"
+              onPress={() => {
+                const other = switchAsk;
+                const next = pendingLive.current;
+                pendingLive.current = null;
+                setSwitchAsk(null);
+                if (other) endLiveWorkout(other);
+                next?.();
+              }}
+              style={[styles.primary, styles.confirmBtn]}
+            >
+              <Text style={styles.primaryText}>{copy.workout.switchWorkout}</Text>
+            </PressableScale>
           </View>
+        </View>
       </SheetFrame>
 
-      <SwapSheet
-        id={swapOpen ? id : null}
-        anchor={swapAnchor}
-        onClose={() => {
-          setSwapOpen(false);
-          setSwapAnchor(null);
-        }}
-        onWorkout={(nextId) => {
-          setSwapOpen(false);
-          openSwappedWorkout(nextId);
-        }}
-      />
+      <SheetFrame visible={!!deleteAsk} onClose={() => setDeleteAsk(null)} label={copy.you.cancel}>
+        <View style={[styles.sheet, { marginBottom: insets.bottom + 12 }]}>
+          <Text accessibilityRole="header" style={styles.confirmTitle}>
+            {deleteAsk ? fill(copy.workout.deleteSets, deleteAsk.name, deleteAsk.sets) : ""}
+          </Text>
+          <View style={styles.confirmRow}>
+            <PressableScale accessibilityRole="button" onPress={() => setDeleteAsk(null)} style={[styles.secondary, styles.confirmBtn]}>
+              <Text style={styles.secondaryText}>{copy.you.cancel}</Text>
+            </PressableScale>
+            <PressableScale
+              accessibilityRole="button"
+              onPress={() => {
+                const ask = deleteAsk;
+                setDeleteAsk(null);
+                if (ask) removeExercise(ask.index);
+              }}
+              style={[styles.primary, styles.confirmBtn]}
+            >
+              <Text style={styles.primaryText}>{copy.workout.delete}</Text>
+            </PressableScale>
+          </View>
+        </View>
+      </SheetFrame>
 
       <SheetFrame visible={sheet != null} onClose={() => setSheet(null)}>
           <View style={[styles.sheet, { marginBottom: insets.bottom + 12 }]}>
@@ -837,11 +1105,11 @@ export function WorkoutScreen({ id }: { id: string }) {
               <>
                 <View style={styles.sheetTop}>
                   <Text style={styles.section}>
-                    {`${day.tab} · ${day.title}${timer?.start && timer.end ? ` ${fill(copy.workout.minDot, Math.max(1, Math.round((timer.end - timer.start) / 60000)))}` : ""}`}
+                    {`${day.tab}: ${day.title}${timer?.start && timer.end ? ` ${fill(copy.workout.minDot, Math.max(1, Math.round((timer.end - timer.start) / 60000)))}` : ""}`}
                   </Text>
-                  <Pressable accessibilityRole="button" accessibilityLabel={copy.close} onPress={() => setSheet(null)} style={styles.iconHit}>
+                  <PressableScale accessibilityRole="button" accessibilityLabel={copy.close} onPress={() => setSheet(null)} style={styles.iconHit}>
                     <Close />
-                  </Pressable>
+                  </PressableScale>
                 </View>
                 <View style={styles.doneHead}>
                   <View style={styles.checkCircle}>
@@ -867,8 +1135,8 @@ export function WorkoutScreen({ id }: { id: string }) {
                           <Text style={[styles.body, styles.summaryName]}>{row.n}</Text>
                           <Text style={[styles.mono, item?.tag === "up" ? styles.up : null]}>
                             {value}
-                            {item ? (
-                              <Text accessibilityLabel={TAG_NAME[item.tag] || item.tag}>{` ${TAG_ICON[item.tag] || ""}`}</Text>
+                            {item && TAG_ICON[item.tag] ? (
+                              <Text accessibilityLabel={TAG_NAME[item.tag] || item.tag}>{` ${TAG_ICON[item.tag]}`}</Text>
                             ) : null}
                           </Text>
                         </View>
@@ -887,10 +1155,10 @@ export function WorkoutScreen({ id }: { id: string }) {
                 ) : null}
                 <Rise delay={180 + summary.length * 60}>
                 <View style={styles.doneActions}>
-                  <ShareWorkoutButton id={id} label={copy.workout.share} />
-                  <Pressable accessibilityRole="button" onPress={leave} style={[styles.primary, styles.doneClose]}>
+                  <ShareWorkoutActions id={id} />
+                  <PressableScale accessibilityRole="button" onPress={leave} style={styles.primary}>
                     <Text style={styles.primaryText}>{copy.workout.backWorkouts}</Text>
-                  </Pressable>
+                  </PressableScale>
                 </View>
                 </Rise>
               </>
@@ -898,20 +1166,13 @@ export function WorkoutScreen({ id }: { id: string }) {
               <>
                 <View style={styles.sheetTop}>
                   <Text style={styles.section}>{fill(copy.workout.exDone, upName)}</Text>
-                  <Pressable accessibilityRole="button" accessibilityLabel={copy.close} onPress={() => setSheet(null)} style={styles.iconHit}>
+                  <PressableScale accessibilityRole="button" accessibilityLabel={copy.close} onPress={() => setSheet(null)} style={styles.iconHit}>
                     <Close />
-                  </Pressable>
+                  </PressableScale>
                 </View>
-                {upReview ? (
-                  <Text style={styles.body}>
-                    <Text accessibilityLabel={TAG_NAME[upReview.tag] || ""}>{TAG_ICON[upReview.tag] || ""}</Text>
-                    {` ${copy.workout.nextTime} `}
-                    <Text style={styles.mono}>{weightText(copy.workout.pounds, upReview.w)}</Text>
-                    {` · ${upReview.why}`}
-                  </Text>
-                ) : null}
+                {upReview ? <NextLine item={upReview} lead={`${copy.workout.nextTime} ·`} /> : null}
                 {upFollowing != null ? (
-                  <Pressable
+                  <PressableScale
                     accessibilityRole="button"
                     onPress={() => {
                       focusSlot(id, upFollowing);
@@ -923,7 +1184,7 @@ export function WorkoutScreen({ id }: { id: string }) {
                     <Text style={styles.primaryText}>
                       {fill(copy.workout.upNextBtn, engine.exName(day, day.slots[upFollowing], upFollowing))}
                     </Text>
-                  </Pressable>
+                  </PressableScale>
                 ) : null}
               </>
             )}
@@ -956,8 +1217,11 @@ export function WorkoutScreen({ id }: { id: string }) {
           setPicker(null);
         }}
       />
-    </View>
+      </Animated.View>
+    </ShareBox>
   );
+  if (Platform.OS !== "ios" || reduceMotion) return screenTree;
+  return <Link.AppleZoomTarget>{screenTree}</Link.AppleZoomTarget>;
 }
 
 function exerciseGroups(): { label: string; options: { value: string; label: string }[] }[] {
@@ -991,7 +1255,7 @@ function CollapsedRow({
   onPress: () => void;
 }) {
   return (
-    <Pressable
+    <PressableScale
       accessibilityRole="button"
       accessibilityLabel={`${done ? copy.workout.done : copy.workout.start} ${name}`}
       onPress={onPress}
@@ -1001,8 +1265,8 @@ function CollapsedRow({
         <Text style={styles.slotLabel}>{label}</Text>
         <Text style={[styles.exercise, done ? styles.doneName : null, optional && !done ? styles.optionalName : null]}>{name}</Text>
       </View>
-      <Text style={[styles.mark, done ? styles.markOn : null]}>{done ? "✓" : "›"}</Text>
-    </Pressable>
+      {done ? <Text style={[styles.mark, styles.markOn]}>✓</Text> : null}
+    </PressableScale>
   );
 }
 
@@ -1017,7 +1281,6 @@ function ExerciseCard(props: {
   onCommit: (index: number, setIndex: number, draft: { weight: string | null; reps: string | null; placeholderLb: number; placeholderReps: string }) => void;
   onField: (index: number, setIndex: number, field: "w" | "r", value: string) => void;
   onAddSet: () => void;
-  onNudge: (weight: number | null) => void;
   onChoose: (choice: string) => void;
   onCustom: (value: string) => void;
   onOpenPicker: () => void;
@@ -1025,6 +1288,7 @@ function ExerciseCard(props: {
   onFinishCardio: () => void;
   onMinutesBlur: (before: any) => void;
   onRemove: () => void;
+  onDeleteSet: (setIndex: number) => void;
 }) {
   const { id, index, day, plan, readOnly } = props;
   const slot = day.slots[index];
@@ -1040,7 +1304,6 @@ function ExerciseCard(props: {
   const guess = suggestion ? null : engine.startingGuess(name);
   const carry = (engine.wk.next || {})[name];
   const showCarry = carry && carry.t !== (engine.wk.doneT || {})[id];
-  const nudge = readOnly || slot.cardio ? null : engine.offerNudge(id, index);
   const bodyweight = engine.isBW(name);
   const side = state.side || engine.sideDefault(name);
   const previousSide = engine.lastSide(name);
@@ -1070,7 +1333,7 @@ function ExerciseCard(props: {
       onLayout={(event) => props.onLayout(event.nativeEvent.layout.y)}
       style={[styles.card, styles.current]}
     >
-      <Pressable
+      <PressableScale
         accessibilityRole="button"
         accessibilityLabel={`${copy.workout.collapse} ${name}`}
         onPress={props.onCollapse}
@@ -1078,7 +1341,7 @@ function ExerciseCard(props: {
       >
         <Text style={[styles.slotLabel, styles.slotLabelOn]}>{label}</Text>
         <Text style={styles.pill}>{pill}</Text>
-      </Pressable>
+      </PressableScale>
       {slot.cardio ? null : (
         <View style={styles.bars} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
           {Array.from({ length: rows }, (_, setIndex) => (
@@ -1097,14 +1360,14 @@ function ExerciseCard(props: {
         <View style={styles.cardHead}>
           <Text style={styles.exercise}>{name}</Text>
           {!readOnly && !anyTicked ? (
-            <Pressable accessibilityRole="button" onPress={props.onRemove} style={styles.secondaryInline}>
+            <PressableScale accessibilityRole="button" onPress={props.onRemove} style={styles.secondaryInline}>
               <Text style={styles.secondaryText}>{copy.workout.remove}</Text>
-            </Pressable>
+            </PressableScale>
           ) : null}
         </View>
       ) : (
         <>
-          <Pressable
+          <PressableScale
             accessibilityRole="button"
             accessibilityLabel={slot.label}
             disabled={readOnly}
@@ -1115,7 +1378,7 @@ function ExerciseCard(props: {
               {choice === engine.CUSTOM ? copy.workout.custom : choice}
             </Text>
             <Text style={styles.pickerChevron}>▾</Text>
-          </Pressable>
+          </PressableScale>
           {choice === engine.CUSTOM ? (
             <TextInput
               editable={!readOnly}
@@ -1185,9 +1448,9 @@ function ExerciseCard(props: {
             ) : null}
           </View>
           {readOnly || state.cdone ? null : (
-            <Pressable accessibilityRole="button" onPress={props.onFinishCardio} style={styles.primary}>
+            <PressableScale accessibilityRole="button" onPress={props.onFinishCardio} style={styles.primary}>
               <Text style={styles.primaryText}>{copy.workout.finishCardio}</Text>
-            </Pressable>
+            </PressableScale>
           )}
         </>
       ) : (
@@ -1197,36 +1460,14 @@ function ExerciseCard(props: {
             <Text style={styles.carry}>
               {`${copy.workout.guess} `}
               <Text style={styles.carryStrong}>{weightText(copy.workout.pounds, guess.w)}</Text>
-              {` ${fill(copy.workout.fromAt, guess.from, guess.fromW)}`}
+              {` ${fill(copy.workout.fromAt, guess.from, weightText(copy.workout.atWeight, guess.fromW))}`}
             </Text>
           ) : null}
           {showCarry ? <Carry name={name} carry={carry} /> : null}
-          {nudge ? (
-            <View style={styles.nudge}>
-              <Text style={styles.body}>
-                {nudge.dir === "up"
-                  ? fill(copy.workout.easySet, nudge.reps)
-                  : fill(copy.workout.toughSet, nudge.reps)}{" "}
-                <Text style={styles.carryStrong}>{weightText(copy.workout.pounds, nudge.weight)}</Text>{" "}
-                {nudge.dir === "up" ? copy.workout.forRest : copy.workout.stayRange}
-              </Text>
-              <Pressable accessibilityRole="button" onPress={() => props.onNudge(nudge.weight)} style={styles.secondaryInline}>
-                <Text style={styles.secondaryText}>{fill(copy.workout.use, toDisplay(nudge.weight))}</Text>
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={copy.workout.keepWeight}
-                onPress={() => props.onNudge(null)}
-                style={styles.iconHit}
-              >
-                <Close />
-              </Pressable>
-            </View>
-          ) : null}
           {engine.showsSide(name) ? (
             <View style={styles.sideRow}>
               <Text style={styles.body}>{copy.workout.startOn}</Text>
-              <Pressable
+              <PressableScale
                 accessibilityRole="button"
                 accessibilityLabel={`${copy.workout.startOn} ${side}`}
                 disabled={readOnly}
@@ -1234,11 +1475,12 @@ function ExerciseCard(props: {
                 style={styles.secondaryInline}
               >
                 <Text style={styles.secondaryText}>{side}</Text>
-              </Pressable>
+              </PressableScale>
               {previousSide ? <Text style={styles.hint}>{fill(copy.workout.lastTime, previousSide)}</Text> : null}
             </View>
           ) : null}
-          {Array.from({ length: rows }, (_, setIndex) => (
+          {Array.from({ length: rows }, (_, setIndex) => {
+            const setRow = (
             <SetRow
               key={setIndex}
               index={index}
@@ -1251,16 +1493,25 @@ function ExerciseCard(props: {
               current={setIndex === ticks && !finished}
               done={finished}
               readOnly={readOnly}
+              showCheck={!planSlot.skip || anyTicked}
               total={rows}
               fallbackReps={String(engine.range(slot.reps)[0])}
               onCommit={(draft) => props.onCommit(index, setIndex, draft)}
               onField={(fieldName, value) => props.onField(index, setIndex, fieldName, value)}
             />
-          ))}
+            );
+            return readOnly ? (
+              setRow
+            ) : (
+              <SwipeDelete key={setIndex} label={copy.workout.delete} onDelete={() => props.onDeleteSet(setIndex)}>
+                {setRow}
+              </SwipeDelete>
+            );
+          })}
           {readOnly ? null : (
-            <Pressable accessibilityRole="button" onPress={props.onAddSet} style={styles.addSet}>
+            <PressableScale accessibilityRole="button" onPress={props.onAddSet} style={styles.addSet}>
               <Text style={styles.secondaryText}>{copy.workout.plusSet}</Text>
-            </Pressable>
+            </PressableScale>
           )}
         </>
       )}
@@ -1273,20 +1524,15 @@ function Carry({ name, carry }: { name: string; carry: any }) {
   if (engine.isBW(name) && !(carry.w > 0)) {
     return (
       <Text style={styles.carry}>
-        <Text accessibilityLabel={TAG_NAME[carry.tag] || ""}>{TAG_ICON[carry.tag] || ""}</Text>
-        {` `}
         <Text style={styles.carryStrong}>{carry.tag === "up" ? copy.workout.up : copy.workout.same}</Text>
-        {` · ${carry.why}`}
       </Text>
     );
   }
   const weight = engine.isBW(name) ? weightText(copy.workout.bwPlus, carry.w) : weightText(copy.workout.pounds, carry.w);
   return (
     <Text style={styles.carry}>
-      <Text accessibilityLabel={TAG_NAME[carry.tag] || ""}>{TAG_ICON[carry.tag] || ""}</Text>
-      {` ${verb} `}
+      {`${verb}: `}
       <Text style={styles.carryStrong}>{weight}</Text>
-      {` · ${carry.why}`}
     </Text>
   );
 }
@@ -1302,6 +1548,7 @@ function SetRow({
   current,
   done,
   readOnly,
+  showCheck,
   total,
   fallbackReps,
   onCommit,
@@ -1317,6 +1564,7 @@ function SetRow({
   current: boolean;
   done: boolean;
   readOnly: boolean;
+  showCheck: boolean;
   total: number;
   fallbackReps: string;
   onCommit: (draft: { weight: string | null; reps: string | null; placeholderLb: number; placeholderReps: string }) => void;
@@ -1354,7 +1602,7 @@ function SetRow({
           placeholder={placeholderWeight}
           spec={liftWeightDial(usingKg())}
           start={shownWeight ? undefined : placeholderLb > 0 ? toDisplay(placeholderLb) : undefined}
-          accent={theme.green.accentFill}
+          accent={theme.green.accent}
           onChange={(value) => onField("w", value)}
           style={[styles.setInput, row.d ? styles.setInputDone : null, current ? styles.setInputNow : null]}
         />
@@ -1370,30 +1618,32 @@ function SetRow({
           placeholder={placeholderReps}
           spec={repsDial}
           start={shownReps ? undefined : Number(placeholderReps) || undefined}
-          accent={theme.green.accentFill}
+          accent={theme.green.accent}
           onChange={(value) => onField("r", value)}
           style={[styles.setInput, row.d ? styles.setInputDone : null, current ? styles.setInputNow : null]}
         />
       )}
-      <SetBounce on={!!row.d}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={setLabel}
-          accessibilityState={{ selected: !!row.d, disabled: readOnly }}
-          disabled={readOnly}
-          onPress={() =>
-            onCommit({
-              weight: null,
-              reps: null,
-              placeholderLb: done ? 0 : placeholderLb,
-              placeholderReps,
-            })
-          }
-          style={[styles.check, row.d ? styles.checkOn : null]}
-        >
-          <Text style={[styles.checkText, row.d ? styles.checkTextOn : null]}>✓</Text>
-        </Pressable>
-      </SetBounce>
+      {showCheck ? (
+        <SetBounce on={!!row.d}>
+          <PressableScale
+            accessibilityRole="button"
+            accessibilityLabel={setLabel}
+            accessibilityState={{ selected: !!row.d, disabled: readOnly }}
+            disabled={readOnly}
+            onPress={() =>
+              onCommit({
+                weight: null,
+                reps: null,
+                placeholderLb: done ? 0 : placeholderLb,
+                placeholderReps,
+              })
+            }
+            style={[styles.check, row.d ? styles.checkOn : null]}
+          >
+            <Text style={[styles.checkText, row.d ? styles.checkTextOn : null]}>✓</Text>
+          </PressableScale>
+        </SetBounce>
+      ) : null}
     </View>
   );
 }
@@ -1422,7 +1672,7 @@ function PickerModal({
               <View key={group.label || "all"}>
                 {group.label ? <Text style={styles.optionalLabel}>{group.label}</Text> : null}
                 {group.options.map((option) => (
-                  <Pressable
+                  <PressableScale
                     key={option.value}
                     accessibilityRole="button"
                     accessibilityState={{ selected: option.value === selected }}
@@ -1430,7 +1680,7 @@ function PickerModal({
                     style={styles.pickerOption}
                   >
                     <Text style={[styles.body, option.value === selected ? styles.pickerOn : null]}>{option.label}</Text>
-                  </Pressable>
+                  </PressableScale>
                 ))}
               </View>
             ))}
@@ -1441,11 +1691,51 @@ function PickerModal({
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: theme.green.background },
+  screen: { flex: 1, backgroundColor: theme.green.background, borderRadius: 0, overflow: "hidden" },
+  reveal: { flex: 1 },
+  undo: {
+    position: "absolute",
+    left: 16,
+    right: 16,
+    zIndex: 40,
+    minHeight: 48,
+    borderRadius: theme.radii.pill,
+    backgroundColor: "#2f2a27",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 16,
+  },
+  undoText: { color: theme.text, fontFamily: theme.fonts.bodySemi, fontSize: 15 },
+  statusStrip: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 30,
+    backgroundColor: theme.green.background,
+  },
+  chrome: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 20,
+    backgroundColor: theme.green.background,
+  },
+  toolbar: {
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
   header: { gap: 0 },
   back: { minHeight: 40, paddingVertical: 6, justifyContent: "center", alignSelf: "flex-start" },
   backText: { color: theme.green.accent, fontFamily: theme.fonts.bodySemi, fontSize: 14 },
-  dayHead: { alignSelf: "stretch", gap: 4 },
+  dayHead: {
+    gap: 4,
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+  },
   title: {
     color: theme.text,
     fontFamily: theme.fonts.display,
@@ -1499,6 +1789,8 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   reviewLine: { color: theme.text, fontFamily: theme.fonts.body, fontSize: 14 },
+  reviewName: { fontFamily: theme.fonts.bodySemi },
+  reviewNote: { color: theme.muted, fontFamily: theme.fonts.body, fontSize: 12 },
   optionalLabel: {
     color: theme.muted,
     fontFamily: theme.fonts.bodySemi,
@@ -1507,6 +1799,7 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     marginTop: 6,
   },
+  optionalHeading: { marginBottom: 12 },
   list: { gap: 10 },
   collapsed: {
     backgroundColor: theme.green.surface,
@@ -1599,7 +1892,9 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   carryStrong: { color: theme.text, fontFamily: theme.fonts.bodySemi },
-  nudge: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8 },
+  nudgeTitle: { flex: 1, color: theme.text, fontFamily: theme.fonts.bodySemi, fontSize: 20, lineHeight: 26 },
+  nudgeBody: { color: theme.text, fontFamily: theme.fonts.body, fontSize: 15, lineHeight: 22 },
+  nudgeStrong: { color: theme.text, fontFamily: theme.fonts.bodySemi },
   sideRow: { flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" },
   setRow: { flexDirection: "row", alignItems: "center", gap: 6, borderRadius: 10, paddingVertical: 4, paddingHorizontal: 4 },
   setNow: { backgroundColor: "#1d3530" },
@@ -1659,6 +1954,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   secondaryText: { color: theme.text, fontFamily: theme.fonts.bodySemi, fontSize: 14 },
+  addExercise: { minHeight: 44, alignItems: "center", justifyContent: "center" },
+  addExercisePressed: { opacity: 0.7 },
+  addExerciseText: { color: theme.green.accent, fontFamily: theme.fonts.bodySemi, fontSize: 15 },
   addSet: {
     alignSelf: "flex-start",
     borderRadius: theme.radii.small,
@@ -1681,41 +1979,35 @@ const styles = StyleSheet.create({
   disabled: { opacity: 0.4 },
   doneButton: { backgroundColor: theme.green.surface },
   doneButtonText: { color: theme.muted },
-  stretch: { borderRadius: theme.radii.card, borderWidth: 1, borderColor: "rgba(168,160,156,0.35)", padding: 12, gap: 8 },
+  stretchFolded: {
+    minHeight: 64,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderRadius: theme.radii.tile,
+    borderWidth: 1,
+    borderColor: "rgba(168,160,156,0.35)",
+    justifyContent: "center",
+  },
+  stretchHeadOpen: {
+    minHeight: 0,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+    borderWidth: 0,
+  },
+  stretchOpen: {
+    borderRadius: theme.radii.card,
+    borderWidth: 1,
+    borderColor: "rgba(168,160,156,0.35)",
+    padding: 12,
+    gap: 8,
+  },
   stretchRow: { flexDirection: "row", justifyContent: "space-between", gap: 12 },
   body: { color: theme.text, fontFamily: theme.fonts.body, fontSize: 15, flexShrink: 1 },
   mono: { color: theme.text, fontFamily: theme.fonts.mono, fontSize: 14 },
   monoMuted: { color: theme.muted, fontFamily: theme.fonts.mono, fontSize: 13 },
   up: { color: theme.fuel },
-  rest: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    minHeight: 64,
-    backgroundColor: theme.green.surface,
-    flexDirection: "row",
-    alignItems: "stretch",
-  },
-  restOver: { backgroundColor: theme.green.accentFill },
-  restZone: { flex: 1, minWidth: 72, justifyContent: "center", paddingLeft: 16 },
-  restZoneEnd: { alignItems: "flex-end", paddingLeft: 0, paddingRight: 16 },
-  restMid: { alignItems: "center", justifyContent: "center", paddingVertical: 6 },
-  restZoneText: { color: theme.text, fontFamily: theme.fonts.bodySemi, fontSize: 12, opacity: 0.7 },
-  restClock: { color: theme.text, fontFamily: theme.fonts.monoMedium, fontSize: 17, lineHeight: 20 },
-  restClockOver: { color: "#fff" },
-  skip: { minHeight: 32, minWidth: 64, alignItems: "center", justifyContent: "center", paddingHorizontal: 10 },
-  skipText: {
-    color: theme.muted,
-    fontFamily: theme.fonts.bodySemi,
-    fontSize: 13,
-    textDecorationLine: "underline",
-    textDecorationColor: theme.muted,
-  },
   swapPill: {
-    alignSelf: "flex-start",
     minHeight: 36,
-    marginTop: 8,
     borderRadius: theme.radii.pill,
     backgroundColor: "rgba(0,0,0,0.3)",
     paddingHorizontal: 14,
@@ -1725,8 +2017,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   swapPillText: { color: theme.text, fontFamily: theme.fonts.bodySemi, fontSize: 13 },
-  doneActions: { flexDirection: "row", gap: 10, alignItems: "center" },
-  doneClose: { flex: 1 },
+  doneActions: { gap: 10 },
   toast: {
     position: "absolute",
     left: 16,

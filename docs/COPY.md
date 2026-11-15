@@ -191,6 +191,14 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Plan | main.js:176 |
 |  | History | main.js:176 |
 |  | You | main.js:176 |
+| Title | Workout Tab | First-run tip, Workouts tab |
+|  | where your workouts for every day of the week are shown. You can move them around, swap them for different lifts and log activities. | First-run tip, Workouts tab |
+| Title | Plan Tab | First-run tip, Plan tab |
+|  | Week shows your week overview - update your check-in to see your plan adjust. Season shows your overall plan and goals. | First-run tip, Plan tab |
+| Title | History | First-run tip, History tab |
+|  | view your past activities, weeks completed and personal bests. | First-run tip, History tab |
+| Title | You | First-run tip, You tab |
+|  | change your preferences for tips, experience level, and FAQs about app calculations. | First-run tip, You tab |
 | Tab | Day {…} | engine.js:290 |
 |  | {…} logged | main.js:516 |
 |  | Added to your activities. | main.js:516 |
@@ -219,6 +227,8 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | No sets were saved for this one. | main.js:287 |
 |  | , {…} minutes | main.js:291 |
 |  | Minutes | main.js:292 |
+|  | Difficulty | Workouts activity card. Easy, Moderate or Hard. |
+|  | Easy | Workouts activity card |
 |  | Delete | main.js:292 |
 |  | Save | main.js:292 |
 |  | On | main.js:309 |
@@ -295,7 +305,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Optional | main.js:794 |
 |  | {…} · optional | main.js:798 |
 |  | Start | main.js:800 |
-|  | Added · {…} | main.js:800 |
+|  | Added ({…}) | main.js:800 |
 |  | ~{…} kcal | main.js:805 |
 |  | Set {…} of {…} | main.js:805 |
 |  | · Superset {…} | main.js:807 |
@@ -304,21 +314,30 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Easy pace, no intervals | main.js:814 |
 |  | Minutes done | main.js:814 |
 |  | Finish cardio | main.js:817 |
-|  | New exercise · starting guess | main.js:820 |
+|  | New exercise: starting guess | main.js:949 |
 |  | {…} lb | main.js:820 |
-|  | from {…} at {…} | main.js:820 |
+|  | from {…} @ {…} | main.js:820 |
+|  | Delete | workout set and exercise |
+|  | Deleted · Undo | workout |
+|  | Delete {…} and its {…} sets? | workout |
+|  | Finish {…} first? | workout |
+|  | Keep going | workout |
+|  | Switch | workout |
+|  | End workout | live pill |
 |  | Go up to | main.js:822 |
 |  | Ease to | main.js:822 |
 |  | Stay at | main.js:822 |
 |  | BW+{…} lb | main.js:822 |
 |  | <b>Up</b> · | main.js:822 |
 |  | <b>Same</b> · | main.js:822 |
-|  | That looked easy: {…} reps. Go up to | main.js:826 |
-|  | for the rest? | main.js:826 |
-|  | Use {…} | main.js:826 |
-|  | Keep this weight | screen reader name for the × on a weight nudge |
-|  | Tough set: {…} reps. Drop to | main.js:827 |
-|  | to stay in range? | main.js:827 |
+|  | That looked easy | Weight suggestion title |
+|  | {…} reps on {…}. Go up to | main.js:827 |
+|  | for the rest of the sets? | main.js:827 |
+|  | Use {…} | main.js:827 |
+|  | Keep {…} | main.js:827 |
+|  | Tough set | Weight suggestion title |
+|  | {…} reps on {…}. Drop to | main.js:827 |
+|  | for the rest of the sets to stay in range? | main.js:827 |
 |  | last time: {…} | main.js:829 |
 |  | Start on | main.js:829 |
 |  | added weight (blank for bodyweight) | main.js:833 |
@@ -327,7 +346,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Collapse | main.js:843 |
 |  | Expand | main.js:843 |
 |  | ~8 min | main.js:843 |
-|  | Stretch · optional | main.js:843 |
+|  | Stretch | Handoff Nov 13, section 8 |
 |  | ✓ Stretched | main.js:845 |
 |  | Done stretching | main.js:845 |
 |  | ✓ Day done | main.js:846 |
@@ -461,6 +480,11 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | This week's plan | main.js:403 |
 |  | Nothing planned yet. Pick your usual lift days below. | main.js:405 |
 |  | This week's changes | main.js:407 |
+|  | Show less | Watch, when the extra notes are open |
+|  | {…} more | Watch, the notes still folded |
+|  | Swap today's workout? | Workouts, after logging a leg-heavy activity |
+|  | How hard was it? | Workouts activity card |
+|  | Profile | You, when no name is set |
 |  | Check-in | main.js:409 |
 |  | Goal definitions | main.js:417 |
 |  | {…} doesn't have a season, so lifting stays the same all year. | main.js:419 |
@@ -564,6 +588,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Reset profile | main.js:463 |
 |  | Training preferences | main.js:466 |
 |  | Play test sound | main.js:471 |
+|  | Playing… | You, while the test chime plays |
 |  | Units | main.js:474 |
 |  | Tips | main.js:475 |
 |  | More | main.js:475 |
@@ -898,16 +923,18 @@ To change wording: edit it here first, then update `copy.ts` to match.
 | Where | Copy | Ref |
 | --- | --- | --- |
 |  | {…} moving up | engine.js:751 |
-|  | {…} holding | engine.js:751 |
 |  | {…} easing off | engine.js:751 |
 | Title | Day done | main.js:1197 |
 | Button | Finish & close | Finished lift. Returns to the page that opened it. |
-| Button | Share | Day done sheet. |
-| Button | Share workout | Completed workout. |
+| Button | Share | Day done sheet and completed workout. Icon only. |
+| Button | Save to Photos | Day done sheet and completed workout. |
+|  | Saved to Photos | Toast after the card is added to the photo library. |
+|  | Lift Board adds workout cards to your photo library. | iOS add-only photo permission. |
 |  | LIFT BOARD | Share image. |
 |  | min | Share image. |
 |  | sets | Share image. |
-|  | going up | Share image. |
+|  | PR | Share image, one record. |
+|  | PRs | Share image. |
 |  | TOP SETS | Share image. |
 |  | + {…} more | Share image. |
 | Button | Swap | Lift card. |
@@ -931,8 +958,8 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Personal Records | Week done sheet. |
 |  | Activity minutes | Week done sheet. |
 |  | Exercise calories | Week done sheet. |
-|  | More reps | Week done sheet. |
-|  | Heaviest top set | Week done sheet. |
+|  | Top set | Week done sheet. Same words as History, Lifts. |
+|  | Reps | Week done sheet. Same words as History, Lifts. |
 |  | was {…} | Week done sheet. |
 |  | {…} × {…} | Week done sheet, an activity and how many times it was logged. |
 | Button | See next week | Week done sheet. Closes it and opens Plan, Week. |
@@ -967,7 +994,6 @@ To change wording: edit it here first, then update `copy.ts` to match.
 
 | Where | Copy | Ref |
 | --- | --- | --- |
-|  | Are you sure? | main.js:1145 |
 |  | Cancel | main.js:1145 |
 | Title | Restore backup? | main.js:1226 |
 | Body text | Replaces everything on this phone with the backup from {…}. | main.js:1226 |
@@ -1015,8 +1041,8 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Upper body | main.js:378 |
 |  | Week | main.js:380 |
 |  | In-season: up to 3. | main.js:396 |
-|  | Lift days{…} a week | main.js:396 |
-|  | Activity days{…} a week | main.js:397 |
+|  | Lift days | Plan and onboarding day picker |
+|  | Activity days | Plan week day picker |
 |  | This week | main.js:435 |
 |  | w txt | main.js:455 |
 |  | Experience | main.js:455 |
@@ -1031,14 +1057,13 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | · {…} min | main.js:647 |
 |  | Sessions show up here when you finish a lift day or enter minutes for an activity. | main.js:648 |
 |  | Appears after you finish a lift day. | main.js:654 |
-|  | {…} weeks completed in a row | History, Weeks |
+|  | {…} weeks in a row | History, Weeks. One week uses the singular. |
 |  | ✓ Completed | History, Weeks |
 |  | ✓ Counted | History, Weeks |
 |  | {…} of {…} lifts | History, Weeks |
 |  | Sets | History, Weeks |
 |  | Exercise kcal | History, Weeks |
 |  | Sets by muscle | History, Weeks |
-|  | done / planned | History, Weeks |
 |  | Count as completed | History, Weeks |
 | Button | Undo | History, Weeks |
 |  | Missed {…} | History, Weeks |
@@ -1084,7 +1109,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | ac: | main.js:1534 |
 | Title | this day | main.js:1584 |
 | Title | Reset {…} | main.js:1584 |
-| Body text | Clears every set you've logged today and reopens the day if it was marked done. | main.js:1584 |
+| Body text | This will clear every set you've logged today and will be marked not done. | main.js:1584 |
 | Confirm button | Reset day | main.js:1584 |
 |  | Day reset | main.js:1586 |
 |  | Logs cleared and the day is open again. | main.js:1586 |

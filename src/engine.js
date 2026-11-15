@@ -371,6 +371,22 @@ function balanceWeek(P,MP,inS,deload){
     status:x.done>=x.target?"done":(x.missed>0&&proj(m)<x.target)?"behind":"on track"})).sort((a,b)=>b.p-a.p||a.name.localeCompare(b.name));
   P.balance=changes;
 }
+function loggedCount(dayId,i,cardio){
+  const st=get(dayId,i);
+  if(cardio) return (st.cdone||num(st.act,0)>0)?1:0;
+  return (st.log||[]).filter(x=>x&&x.d).length;
+}
+function holdLogged(P){
+  DAYS.forEach(d=>{
+    const D=P.days[d.id]; if(!D) return;
+    d.slots.forEach((s,i)=>{
+      const n=loggedCount(d.id,i,!!s.cardio); if(!n) return;
+      const A=D.slots[i]; if(!A) return;
+      if(A.skip&&A.skip!=="hidden") A.skip="";
+      if(!s.cardio) A.sets=Math.max(num(A.sets,0), n);
+    });
+  });
+}
 function musclePriority(){
   const P={glutes:3,quads:3,hams:3,back:3,chest:3,adductors:2,calves:1,sdelts:2,rdelts:2,core:2,cuff:1,biceps:1,triceps:1}, why={};
   const bump=(m,d,w)=>{ P[m]=Math.max(0,P[m]+d); if(w) (why[m]=why[m]||[]).push(w); };
@@ -444,6 +460,7 @@ function plan(){ buildDefaults(); const cut=cutting();
     const D={slots:[],today,dayS,shortD,cutD,dayCause,autoRough,restSuggest:d.id===P.nextId&&twoHard};
     d.slots.forEach((s,i)=>{
       const A={delta:0,why:[],skip:"",steady:false};
+      if(get(d.id,i).cut){ A.skip="hidden"; D.slots.push(A); return; }
       if(s.extra){ A.sets=s.sets; A.why.push("added by you"); D.slots.push(A); return; }
       const base=s.sets+(d.full&&!inS&&!s.cardio&&!s.support?1:0);
       if(s.support&&!(inS&&seasonSports().some(a=>s.sp.includes(a)))){A.skip="hidden"; D.slots.push(A); return;}
@@ -488,14 +505,26 @@ function plan(){ buildDefaults(); const cut=cutting();
     });
     P.days[d.id]=D;
   });
+  holdLogged(P);
   balanceWeek(P,MP,inS,deload);
+  holdLogged(P);
   let lockNew=false;
   /* A workout in progress keeps the set counts it started with. Logging sets mid-session updates the weekly
-     ledger, which used to add or drop a catch-up set (5 sets became 4 after the 4th, and the exercise ended early). */
-  DAYS.forEach(d=>{ const D=P.days[d.id]; if(!D||done[d.id]||!((wk.wt||{})[d.id]||{}).start) return;
+     ledger, which used to add or drop a catch-up set (5 sets became 4 after the 4th, and the exercise ended early).
+     Switching how the day feels (Rough) retakes that snapshot so what is still ahead can shorten. */
+  DAYS.forEach(d=>{ const D=P.days[d.id]; if(!D||done[d.id]) return;
+    const started=((wk.wt||{})[d.id]||{}).start||d.slots.some((s,i)=>loggedCount(d.id,i,!!s.cardio)>0);
+    if(!started) return;
+    const feel=(wk.today||{})[d.id]||"Normal";
     const L=(wk.lockSets||{})[d.id];
-    if(!L){ wk.lockSets={...(wk.lockSets||{}),[d.id]:D.slots.map(A=>A&&A.sets!=null?A.sets:null)}; lockNew=true; return; }
-    D.slots.forEach((A,i)=>{ if(A&&L[i]!=null&&A.sets!=null&&!d.slots[i].cardio) A.sets=L[i]; }); });
+    const feelChanged=(wk.lockFeel||{})[d.id]!==feel;
+    if(!L||feelChanged){
+      wk.lockSets={...(wk.lockSets||{}),[d.id]:D.slots.map(A=>A&&A.sets!=null?A.sets:null)};
+      wk.lockFeel={...(wk.lockFeel||{}),[d.id]:feel};
+      lockNew=true;
+      return;
+    }
+    D.slots.forEach((A,i)=>{ if(A&&L[i]!=null&&A.sets!=null&&!d.slots[i].cardio) A.sets=Math.max(L[i], loggedCount(d.id,i,false)); }); });
   if(lockNew) save();
   /* Cardio */
   /* "Lose fat, keep strength" allows up to 0.7% of body weight a week, the top of the muscle-friendly range */
@@ -638,6 +667,7 @@ const missedLast=n=>{ const h=exHist[n]||[], x=h[h.length-1]; return x?x:null; }
 const isIso=s=>!!(s.upperAcc||s.support||s.label==="Glute med");
 function suggest(d,s,i,useLog,P){
   const n=exName(d,s,i), st=get(d.id,i), h=exHist[n]||[], bw=isBW(n);
+  if(st.keepW!=null){ const [lo]=range(s.reps); return {w:num(st.keepW,0), r:lo, why:"keep"}; }
   const now=useLog?lastSet(st.log,bw):null, last=now||h[h.length-1];
   if(!last||(!last.w&&!bw)||!last.r) return null;
   if(bw){ const [lo0,hi0]=range(s.reps), top0=isIso(s)?hi0+3:hi0;
@@ -821,7 +851,42 @@ function resyncDone(dayId){
    Watch: a headline per note, ranked; safety notes always come first and never fold away. */
 const capF1=x=>x?x[0].toUpperCase()+x.slice(1):x;
 const andList=a=>a.length<2?(a[0]||""):`${a.slice(0,-1).join(", ")} and ${a[a.length-1]}`;
-function changeItems(G){ return Object.entries(G||{}).map(([c,l])=>{
+function keepWeight(dayId,i,w){
+  const st=get(dayId,i), stored=String(num(w,0)), log=(st.log||[]).slice();
+  for(let k=0;k<log.length;k++) if(log[k]&&!log[k].d&&!String(log[k].w||"").trim()) log[k]={...log[k],w:stored};
+  const ticks=log.filter(x=>x&&x.d).length;
+  set(dayId,i,"log",log);
+  set(dayId,i,"keepW",num(w,0));
+  set(dayId,i,"nudged",ticks);
+}
+function rowDone(dayId,i,P){
+  const d=DAYS.find(x=>x.id===dayId); if(!d||!d.slots[i]) return false;
+  const D=(P||plan()).days[dayId]; if(!D||!D.slots[i]||D.slots[i].skip==="hidden") return false;
+  const st=get(dayId,i);
+  if(d.slots[i].cardio) return !!(st.cdone||num(st.act,0)>0);
+  const n=(st.log||[]).filter(x=>x&&x.d).length;
+  if(!n) return false;
+  return n>=(D.slots[i].sets||n);
+}
+function countsInDay(dayId,i,P){
+  const d=DAYS.find(x=>x.id===dayId); if(!d||!d.slots[i]) return false;
+  const D=(P||plan()).days[dayId]; const A=D&&D.slots[i];
+  if(!A||A.skip==="hidden") return false;
+  const st=get(dayId,i), started=d.slots[i].cardio?!!(st.cdone||num(st.act,0)>0):(st.log||[]).some(x=>x&&x.d);
+  if(A.skip&&!started) return false;
+  return true;
+}
+function changeItems(G, prev){
+  let src=G||{};
+  if(prev&&typeof prev==="object"){
+    src={};
+    Object.entries(G||{}).forEach(([c,l])=>{
+      const old=Array.isArray(prev[c])?prev[c]:[];
+      const items=(l||[]).filter(x=>!old.includes(x));
+      if(items.length) src[c]=items;
+    });
+  }
+  return Object.entries(src).map(([c,l])=>{
   const add=l.filter(x=>/\+1 set$/.test(x)).length, cut=l.filter(x=>/−1 set$/.test(x)).length, other=l.filter(x=>!/[+−]1 set$/.test(x));
   const parts=[]; if(add) parts.push(`${add} set${add>1?"s":""} added`); if(cut) parts.push(`${cut} set${cut>1?"s":""} cut`);
   if(other.length) parts.push(parts.length||other.length>1?`${other.length} other change${other.length>1?"s":""}`:other[0]);
@@ -892,7 +957,7 @@ function newWeek(start){
     const slope=xs.reduce((a,x,j)=>a+(x-mx)*(ys[j]-my),0)/Math.max(1e-9,xs.reduce((a,x)=>a+(x-mx)**2,0));
     const avgIn=ws.reduce((a,x)=>a+x.intake,0)/ws.length, avgRaw=ws.reduce((a,x)=>a+x.raw,0)/ws.length;
     wk.calib=Math.max(-400,Math.min(400,r5(avgIn-slope*500-avgRaw))); wk.calibN=ws.length; }
-  const reset={weekStart:start||Date.now(),ckDone:false,lockSets:{},review:{},done:{},donePlan:{},today:{},wt:{},rest:null,stretchDone:{},zAct:[],ready:"Normal",sore:"None",drink:"0",wAvg:"",deload:"No"};
+  const reset={weekStart:start||Date.now(),ckDone:false,lockSets:{},lockFeel:{},weekOrder:null,review:{},done:{},donePlan:{},today:{},wt:{},rest:null,stretchDone:{},zAct:[],ready:"Normal",sore:"None",drink:"0",wAvg:"",deload:"No"};
   refreshLiftK();
   ACT_IDS.forEach(a=>{ if(a!=="lift") reset[actKey(a)]=[]; });
   Object.assign(wk,reset);
@@ -901,10 +966,11 @@ function newWeek(start){
   Object.keys(wk.extra||{}).forEach(id=>{ const b=tplLen(id), st=slots[id]; if(st) Object.keys(st).forEach(i=>{ if(+i>=b) delete st[i]; }); });
   wk.extra={}; syncDays();
   wk.doneT={};
+  wk.lastChanges=Object.fromEntries(Object.entries(P.G||{}).map(([c,l])=>[c,(l||[]).slice()]));
   save(); return ["New week started. Check-in reset to normal."];
 }
 
-export { timeByKind, hoursMoved, mostPlayed, seasonFrom, changeItems, watchItems, wTitle, e1rm, prsBetween, weekComplete, weekStreak, countWeek, EFF_MULT, OWN_EFF, sessionKcal, liftKcal, refreshLiftK, LIFT_MET, weekActuals, swapOptions, swapDay, rateLb, isBW, yogaMet, pilMet, YOGA_EFF, PIL_EFF, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, MUSCLES, slotMuscles, musclePriority, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk };
+export { timeByKind, hoursMoved, mostPlayed, seasonFrom, changeItems, watchItems, keepWeight, rowDone, countsInDay, wTitle, e1rm, prsBetween, weekComplete, weekStreak, countWeek, EFF_MULT, OWN_EFF, sessionKcal, liftKcal, refreshLiftK, LIFT_MET, weekActuals, swapOptions, swapDay, rateLb, isBW, yogaMet, pilMet, YOGA_EFF, PIL_EFF, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, MUSCLES, slotMuscles, musclePriority, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk };
 
 /* workout titles read "Lower (Glute & Hamstring)"; older saved titles used a middle dot */
 const wTitle=t=>String(t||"").replace(/^(Lower|Upper) · (.+)$/,"$1 ($2)");

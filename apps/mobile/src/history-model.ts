@@ -63,6 +63,13 @@ function addDays(time: number, days: number): number {
   return date.getTime();
 }
 
+/** Average line: "45m" under an hour, "1.5h" or "2h" at an hour or more. */
+export function formatAverage(minutes: number): string {
+  if (minutes < 60) return `${Math.round(minutes)}m`;
+  const hours = Math.round((minutes / 60) * 10) / 10;
+  return `${String(hours).replace(/\.0$/, "")}h`;
+}
+
 /** "½h", "1½h", "7h", "10h". Hours of 10 or more round to a whole number. */
 export function formatHours(minutes: number): string {
   const hours = minutes / 60;

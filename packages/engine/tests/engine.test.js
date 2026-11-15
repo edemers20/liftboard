@@ -57,7 +57,23 @@ describe("progression", () => {
     E.slots.d1 = { 1: { log: [{ w: 95, r: 12 }, { w: 95, r: 7 }] }, 2: { log: [{ w: 30, r: 14 }] } };
     const P = E.plan();
     expect(E.review(d1(), d1().slots[1], 1, P).tag).toBe("collapse");
-    expect(E.review(d1(), d1().slots[2], 2, P).why).toMatch(/too light/);
+    const light = E.review(d1(), d1().slots[2], 2, P);
+    expect(light.why).toMatch(/too light/);
+    expect(light.r).toBe(8);
+    expect(light.w).toBeGreaterThan(30);
+  });
+  it("names the next rep target beside the weight", () => {
+    fresh({ focus: "Lower" });
+    E.slots.d1 = { 0: { log: [{ w: 135, r: 8 }] } };
+    const next = E.review(d1(), d1().slots[0], 0, E.plan());
+    expect(next.w).toBe(135);
+    expect(next.r).toBe(9);
+  });
+  it("says what moves up next time, and leaves holds out of that line", () => {
+    fresh({ focus: "Lower" });
+    E.slots.d1 = { 0: { log: [{ w: 135, r: 10 }] }, 2: { log: [{ w: 40, r: 8 }] } };
+    const line = E.markDone("d1").find(text => text.startsWith("Next time"));
+    expect(line).toBe("Next time: 1 moving up.");
   });
   it("holds weights in-season", () => {
     fresh({ acts: { lift: true, pickle: true }, mainSport: "pickle", season: "In-season", days: 2 });
@@ -260,7 +276,7 @@ describe("days 5–7 don't copy earlier days", () => {
   });
   it("lower focus day 5 is the glute & hamstring day", () => {
     fresh({ mig1: 1, mig2: 1, mig3: 1, focus: "Lower", days: 5 });
-    expect(E.DAYS[4].title).toBe("Lower · Glute & Hamstring");
+    expect(E.DAYS[4].title).toBe("Lower (Glute & Hamstring)");
     expect(exs(E.DAYS[4])[0]).toBe("Sumo Deadlift");
   });
   it("days 1–4 keep their usual defaults", () => {
@@ -720,7 +736,7 @@ describe("estimated 1RM, PRs and the week streak", () => {
     const week = E.wk.weeks.at(-1);
     expect(week.lifts).toBe(1);
     expect(week.planned).toBe(3);
-    expect(week.miss).toEqual(["Upper · Press", "Lower · Quad & Glute"]);
+    expect(week.miss).toEqual(["Upper (Press)", "Lower (Quad & Glute)"]);
     const glutes = week.muscles.find(row => row.name === "Glutes");
     expect(glutes.done).toBeGreaterThan(0);
     expect(glutes.planned).toBeGreaterThan(0);
@@ -753,7 +769,7 @@ describe("estimated 1RM, PRs and the week streak", () => {
     expect(thrust.toW).toBeGreaterThan(thrust.fromW);
     expect(week.muscles.some(row => row.name === "Delts")).toBe(true);
     expect(week.muscles.some(row => row.name === "Side delts")).toBe(false);
-    expect(week.nextTitle).toBe("Lower · Hinge & Glute");
+    expect(week.nextTitle).toBe("Lower (Hinge & Glute)");
     const report = E.pendingWeekReport();
     expect(report.completed).toBe(true);
     expect(report.streak).toBe(1);
@@ -772,5 +788,184 @@ describe("estimated 1RM, PRs and the week streak", () => {
     expect(report.sets).toBe(null);
     expect(report.prs).toEqual([]);
     expect(report.completed).toBe(false);
+  });
+});
+
+describe("logged activity effort", () => {
+  it("scales calorie rate for a session, and leaves class efforts alone", () => {
+    fresh({ weight: "138", acts: { lift: true, pickle: true, yoga: true, spin: true } });
+    const base = E.sessionKcal({ k: "pickle", min: 90 });
+    expect(E.sessionKcal({ k: "pickle", min: 90, eff: "Easy" })).toBeCloseTo(base * 0.85, 5);
+    expect(E.sessionKcal({ k: "pickle", min: 90, eff: "Hard" })).toBeCloseTo(base * 1.15, 5);
+    expect(E.sessionKcal({ k: "pickle", min: 90, eff: "Moderate" })).toBeCloseTo(base, 5);
+    expect(E.sessionKcal({ k: "yoga", min: 60, eff: "Hard" })).toBe(E.sessionKcal({ k: "yoga", min: 60 }));
+    expect(E.sessionKcal({ k: "spin", min: 45, eff: "Easy" })).toBe(E.sessionKcal({ k: "spin", min: 45 }));
+  });
+
+  it("scales this week's sport calories from the logged session", () => {
+    fresh({ weight: 150, acts: { lift: true, pickle: true }, pickle: "1" });
+    E.wk.weekStart = 0;
+    E.logAct("pAct", 0, "75", 1_700_000_000_000);
+    const mid = E.plan().math.otherK;
+    E.wk.sessions = E.wk.sessions.map(session => ({ ...session, eff: "Hard" }));
+    const hard = E.plan().math.otherK;
+    E.wk.sessions = E.wk.sessions.map(session => ({ ...session, eff: "Easy" }));
+    const easy = E.plan().math.otherK;
+    expect(hard).toBeCloseTo(mid * 1.15, 5);
+    expect(easy).toBeCloseTo(mid * 0.85, 5);
+  });
+
+  it("counts a logged zone 2 session in the week's burn", () => {
+    fresh({ weight: "138" });
+    const start = Date.UTC(2026, 10, 2, 5);
+    const session = { t: start + 864e5, k: "zone2", min: 45 };
+    E.wk.sessions = [session];
+    const raw = E.sessionKcal(session);
+    expect(raw).toBeGreaterThan(0);
+    expect(E.weekActuals(start).burn).toBe(Math.round(raw / 5) * 5);
+    expect(E.sessionKcal({ ...session, eff: "Easy" })).toBeCloseTo(raw * 0.85, 5);
+    expect(E.sessionKcal({ ...session, eff: "Hard" })).toBeCloseTo(raw * 1.15, 5);
+  });
+
+  it("a hard activity this week adds 1 to recovery load", () => {
+    const calm = fresh({ acts: { lift: true, pickle: true }, pickle: "1" }).score;
+    fresh({ acts: { lift: true, pickle: true }, pickle: "1" });
+    const start = E.weekStartOf(Date.now()).getTime();
+    E.wk.sessions = [{ t: start + 3600000, k: "pickle", min: 60, eff: "Hard" }];
+    const hard = E.plan();
+    expect(hard.score).toBe(calm + 1);
+    expect(hard.factors).toContain("hard activity");
+    E.wk.sessions = [{ t: start + 3600000, k: "yoga", min: 60, eff: "Hard" }];
+    expect(E.plan().score).toBe(calm);
+    E.wk.sessions = [{ t: start - 8 * 864e5, k: "pickle", min: 60, eff: "Hard" }];
+    expect(E.plan().score).toBe(calm);
+  });
+});
+
+describe("workout titles", () => {
+  it("uses parentheses on upper and lower days, and leaves the others", () => {
+    fresh();
+    const titles = Object.fromEntries(E.ALL.map(day => [day.id, day.title]));
+    expect(titles.d1).toBe("Lower (Hinge & Glute)");
+    expect(titles.d2).toBe("Upper (Press)");
+    expect(titles.d3).toBe("Lower (Quad & Glute)");
+    expect(titles.x).toBe("Upper (Pull)");
+    expect(titles.g2).toBe("Lower (Glute & Hamstring)");
+    expect(titles.u3).toBe("Upper (Delts & Arms)");
+    expect(titles.fa).toBe("Full Body A");
+    expect(titles.lf).toBe("Lower");
+  });
+  it("rewrites saved middle-dot titles once, and leaves the rest", () => {
+    expect(E.wTitle("Upper · Pull")).toBe("Upper (Pull)");
+    expect(E.wTitle("Lower")).toBe("Lower");
+    expect(E.wTitle("Full Body B")).toBe("Full Body B");
+    E.init(mem({ "liftboard.week.v2": JSON.stringify({
+      setupDone: true, mig1: 1, mig2: 1, mig4: 1, mig5: 1, mig6: 1,
+      sessions: [
+        { t: 1, k: "lift", title: "Lower · Hinge & Glute" },
+        { t: 2, k: "lift", title: "Full Body A" },
+        { t: 3, k: "run", title: "Run" },
+      ],
+      weeks: [{ start: 1, miss: ["Upper · Press", "Lower"], missed: ["Upper · Delts & Arms"], nextTitle: "Lower · Quad & Glute" }],
+    }) }));
+    expect(E.wk.sessions.map(session => session.title)).toEqual(["Lower (Hinge & Glute)", "Full Body A", "Run"]);
+    expect(E.wk.weeks[0].miss).toEqual(["Upper (Press)", "Lower"]);
+    expect(E.wk.weeks[0].missed).toEqual(["Upper (Delts & Arms)"]);
+    expect(E.wk.weeks[0].nextTitle).toBe("Lower (Quad & Glute)");
+  });
+});
+
+describe("changes and watch as headlines", () => {
+  it("summarises a cause's set changes", () => {
+    const C = E.changeItems({ "lower body focus": ["lower accessories +1 set", "unilateral +1 set", "side delts −1 set", "rear delts −1 set"] });
+    expect(C[0]).toMatchObject({ cause: "Lower body focus", summary: "2 sets added and 2 sets cut" });
+    expect(C[0].items).toHaveLength(4);
+  });
+  it("keeps a single non-set change as its own summary", () => {
+    expect(E.changeItems({ "pre-season ramp": ["one 45-min zone 2 session"] })[0].summary).toBe("One 45-min zone 2 session");
+  });
+  it("merges notes that share a headline and drops removed ones", () => {
+    const W = E.watchItems(["On a cut, preserving strength is the goal.", "At this pace, expect to hold muscle and strength rather than build.", "12 sessions this week. Stack activities.", "A 600 kcal/day food deficit is steep."]);
+    expect(W.map((x) => x.h)).toEqual(["Need more fuel", "Strength first"]);
+    expect(W[1].t).toBe("At this pace, expect to hold muscle and strength rather than build.");
+  });
+  it("puts safety notes first", () => {
+    const W = E.watchItems(["Protein 110–140 g daily.", "Eating ~1300 kcal/day is too low. Slow the rate."]);
+    expect(W[0]).toMatchObject({ h: "Need more fuel", safe: true });
+    expect(W[1]).toMatchObject({ h: "Protein", t: "110–140 g daily." });
+  });
+  it("asks to keep intense activity easy during a ramp", () => {
+    fresh({ acts: { lift: true, pickle: true }, mainSport: "pickle", season: "Off-season", ramp: "Yes", pickle: "1" });
+    const start = E.weekStartOf(Date.now()).getTime();
+    E.wk.sessions = [{ t: start + 3600000, k: "pickle", min: 60, eff: "Hard" }];
+    expect(E.plan().notes.some((note) => note === "Keep intense activity easy during ramp-up.")).toBe(true);
+  });
+});
+
+describe("section 20 logic", () => {
+  it("a finisher and an optional row are not done when only the required lifts are logged", () => {
+    const P0 = fresh({ focus: "Lower", mode: "Build", time: 45 });
+    const d = E.DAYS[0];
+    d.slots.forEach((s, i) => {
+      const A = P0.days[d.id].slots[i];
+      if (s.cardio || !A || A.skip) return;
+      E.set(d.id, i, "log", Array.from({ length: A.sets }, () => ({ w: 100, r: 8, d: true })));
+    });
+    const P = E.plan();
+    const fin = d.slots.findIndex((s) => s.cardio);
+    expect(fin).toBeGreaterThan(-1);
+    expect(E.rowDone(d.id, fin, P)).toBe(false);
+    const opt = d.slots.findIndex((s, i) => !s.cardio && P.days[d.id].slots[i].skip && P.days[d.id].slots[i].skip !== "hidden");
+    expect(opt).toBeGreaterThan(-1);
+    expect(E.rowDone(d.id, opt, P)).toBe(false);
+    expect(E.countsInDay(d.id, opt, P)).toBe(false);
+    expect(E.dayComplete(d.id)).toBe(false);
+  });
+  it("Rough keeps an accessory and the sets already logged", () => {
+    fresh({ focus: "Lower", time: 60 });
+    const d = E.DAYS[0];
+    const i = d.slots.findIndex((s) => s.trim && !s.cardio && !s.main);
+    expect(i).toBeGreaterThan(-1);
+    E.set(d.id, i, "log", [{ w: 40, r: 15, d: true }, { w: 40, r: 15, d: true }, { w: 40, r: 15, d: true }]);
+    E.wk.today = { d1: "Rough" };
+    E.wk.wt = { d1: { start: Date.now() } };
+    const A = E.plan().days.d1.slots[i];
+    expect(A.skip || "").toBe("");
+    expect(A.sets).toBeGreaterThanOrEqual(3);
+    expect((E.get("d1", i).log || []).filter((row) => row.d)).toHaveLength(3);
+  });
+  it("Keep holds the weight you were using and does not ask again", () => {
+    fresh({ focus: "Lower", mode: "Maintain" });
+    const d = E.DAYS[0];
+    const slot = d.slots[1];
+    const name = E.exName(d, slot, 1);
+    E.exHist[name] = [{ w: 100, r: 5 }, { w: 100, r: 5 }];
+    E.set(d.id, 1, "log", [{ w: "100", r: "5", d: true }]);
+    const dropped = E.suggest(d, slot, 1, true, E.plan());
+    expect(dropped.w).toBeLessThan(100);
+    E.keepWeight(d.id, 1, 100);
+    expect(E.suggest(d, slot, 1, true, E.plan()).w).toBe(100);
+    expect(E.offerNudge(d.id, 1)).toBeNull();
+  });
+  it("supersets and lower-body focus leave the changes list after the week rolls", () => {
+    fresh({ focus: "Lower", ss: "No", time: 60 });
+    const first = E.changeItems(E.plan().G, E.wk.lastChanges || null);
+    expect(first.some((row) => /superset/i.test(row.cause))).toBe(true);
+    expect(first.some((row) => /lower body focus/i.test(row.cause))).toBe(true);
+    E.newWeek();
+    const next = E.changeItems(E.plan().G, E.wk.lastChanges || null);
+    expect(next.some((row) => /superset/i.test(row.cause))).toBe(false);
+    expect(next.some((row) => /lower body focus/i.test(row.cause))).toBe(false);
+  });
+});
+
+describe("time moved", () => {
+  const D = 864e5;
+  it("adds lift and activity minutes, using session length for untimed lifts", () => {
+    fresh({ time: 60 });
+    E.wk.sessions = [{ t: D, k: "lift", id: "d1", min: 75 }, { t: 2 * D, k: "lift", id: "d2" }, { t: 3 * D, k: "pickle", min: 90 }, { t: 4 * D, k: "pickle", min: 75 }, { t: 5 * D, k: "pilates", min: 50 }];
+    expect(E.hoursMoved()).toBe(6); // 75+60+90+75+50 = 350 min
+    const top = E.mostPlayed(0);
+    expect(top).toMatchObject({ k: "pickle", n: 2, hours: 3 }); // 165 min
   });
 });

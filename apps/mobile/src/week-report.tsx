@@ -1,10 +1,13 @@
 import * as Sharing from "expo-sharing";
+import { PressableScale } from "@/components/pressable-scale";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { captureRef } from "react-native-view-shot";
 
-import { Rise, SheetFrame, useCountUp } from "@/components/motion";
+import { router, usePathname } from "expo-router";
+import { Rise, useCountUp } from "@/components/motion";
+import { openReportSheet } from "@/form-sheet";
 import { copy, fill } from "@/copy";
 import { haptic } from "@/haptic";
 import { Check, Share } from "@/icons";
@@ -26,7 +29,7 @@ type PR = { n: string; kind: "top" | "reps"; w: number; r: number; wasW: number 
 type Up = { n: string; fromW: number; fromR: number; toW: number; toR: number };
 type Activity = { k: string; n: number; min: number };
 
-type Report = {
+export type Report = {
   start: number;
   lifts: number;
   planned: number;
@@ -125,8 +128,8 @@ function ReportShare({ report }: { report: Report }) {
   );
 }
 
-function ReportSheet({ report }: { report: Report }) {
-  const { width, height } = useWindowDimensions();
+export function ReportSheet({ report }: { report: Report }) {
+  const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const progress = useCountUp(1);
   const shot = useRef<any>(null);
@@ -148,11 +151,10 @@ function ReportSheet({ report }: { report: Report }) {
   }
 
   return (
-    <View accessibilityLabel={copy.report.label} style={[styles.sheet, { width, height: height - Math.max(insets.top, 20) }]}>
+    <View accessibilityLabel={copy.report.label} style={[styles.sheet, { flex: 1, width }]}>
       <View ref={shot} collapsable={false} style={styles.offscreen}>
         <ReportShare report={report} />
       </View>
-      <View style={styles.handle} />
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.headerRow}>
           <Text accessibilityRole="header" numberOfLines={1} style={styles.title}>
@@ -214,7 +216,7 @@ function ReportSheet({ report }: { report: Report }) {
                 <View key={row.n} style={styles.split}>
                   <View style={styles.prName}>
                     <Text style={styles.rowName}>{row.n}</Text>
-                    <Text style={styles.kind}>{row.kind === "top" ? copy.report.heaviest : copy.report.moreReps}</Text>
+                    <Text style={styles.kind}>{row.kind === "top" ? copy.history.prTop : copy.history.prReps}</Text>
                   </View>
                   <View style={styles.prValue}>
                     <Text style={styles.prNumber}>{setLine(row.n, row.w, row.r)}</Text>
@@ -267,57 +269,52 @@ function ReportSheet({ report }: { report: Report }) {
 
       </ScrollView>
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-        <Pressable accessibilityRole="button" disabled={busy} onPress={() => void share()} style={[styles.share, busy && styles.busy]}>
+        <PressableScale accessibilityRole="button" disabled={busy} onPress={() => void share()} style={[styles.share, busy && styles.busy]}>
           <Share size={18} color={theme.text} />
           <Text style={styles.shareText}>{copy.workout.share}</Text>
-        </Pressable>
-        <Pressable
+        </PressableScale>
+        <PressableScale
           accessibilityRole="button"
           onPress={() => {
             engine.dismissWeekReport();
+            router.back();
             openPlan("week");
           }}
           style={styles.nextButton}
         >
           <Text style={styles.nextButtonText}>{copy.report.seeNext}</Text>
-        </Pressable>
+        </PressableScale>
       </View>
     </View>
   );
 }
 
+let reportOpened: number | null = null;
+
 export function WeekReportHost() {
+  const path = usePathname();
   const version = useEngineStore((state) => state.version);
   const live = useMemo(() => engine.pendingWeekReport() as Report | null, [version]);
-  const held = useRef<Report | null>(null);
-  if (live) held.current = live;
-  const report = live || held.current;
 
   useEffect(() => {
-    if (!live) return;
+    if (!live) {
+      reportOpened = null;
+      return;
+    }
+    if (reportOpened === live.start || path === "/sheet-report") return;
+    reportOpened = live.start;
     haptic.heavy();
-  }, [live?.start]);
+    openReportSheet();
+  }, [live, path]);
 
-  return (
-    <SheetFrame visible={live != null} onClose={() => engine.dismissWeekReport()} label={copy.close}>
-      {report ? <ReportSheet report={report} /> : null}
-    </SheetFrame>
-  );
+  return null;
 }
 
 const styles = StyleSheet.create({
   sheet: {
-    backgroundColor: theme.orange.background,
+    backgroundColor: "transparent",
     borderTopLeftRadius: 22,
     borderTopRightRadius: 22,
-  },
-  handle: {
-    width: 40,
-    height: 5,
-    borderRadius: 999,
-    backgroundColor: "#3a3431",
-    alignSelf: "center",
-    marginTop: 8,
   },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 16, gap: 14 },

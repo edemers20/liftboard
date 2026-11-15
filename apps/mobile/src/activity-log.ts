@@ -9,7 +9,14 @@ export type ActSession = {
   k: string;
   min?: number;
   src?: string;
+  /** Easy, Moderate or Hard. Spin, yoga and pilates keep their own settings. */
+  eff?: string;
 };
+
+/** Sports and other activities. Spin, yoga and pilates keep their class effort. */
+export function usesSessionEffort(id: string): boolean {
+  return id !== "spin" && id !== "yoga" && id !== "pilates";
+}
 
 export type StripDay = {
   offset: number;
@@ -20,6 +27,8 @@ export type StripDay = {
   today: boolean;
   past: boolean;
   lift: boolean;
+  /** A lift is queued on this day and not logged yet. */
+  planned: boolean;
   activity: boolean;
   usual: boolean;
 };
@@ -124,40 +133,62 @@ export function isUsualActivityDay(day: Date): boolean {
   return days.includes(mondayIndex(day));
 }
 
-function dateLabel(day: Date, lift: boolean, activity: boolean): string {
+function dateLabel(day: Date, lift: boolean, planned: boolean, activity: boolean): string {
   const formatted = day.toLocaleDateString("en-US", {
     weekday: "long",
     month: "short",
     day: "numeric",
   });
-  return `${formatted}${lift ? copy.workouts.liftDone : ""}${activity ? copy.workouts.activityMark : ""}`;
+  const mark = lift ? copy.workouts.liftDone : planned ? copy.workouts.liftPlanned : "";
+  return `${formatted}${mark}${activity ? copy.workouts.activityMark : ""}`;
 }
 
-export function stripFor(selectedOffset: number): WeekStrip {
-  const today = startOfDay(Date.now());
-  const selected = addDays(today, selectedOffset);
-  const start = weekStart(selected.getTime());
-  const wOff = weekOffset(selected, today);
+/** Days the Workouts pager can reach: start of the week 8 back through the end of next week. */
+export function dayBounds(now = Date.now()): { min: number; max: number; minWeek: number; maxWeek: number } {
+  const today = startOfDay(now);
+  const start = weekStart(today.getTime());
+  return {
+    min: daysBetween(today, addDays(start, WEEK_LIMIT_BACK * 7)),
+    max: daysBetween(today, addDays(start, WEEK_LIMIT_FORWARD * 7 + 6)),
+    minWeek: WEEK_LIMIT_BACK,
+    maxWeek: WEEK_LIMIT_FORWARD,
+  };
+}
+
+export function weekDays(weekOff: number, selectedOffset: number, now = Date.now()): StripDay[] {
+  const today = startOfDay(now);
+  const start = addDays(weekStart(today.getTime()), weekOff * 7);
+  const plan = (engine.weekModel(weekOff, now).plan || {}) as Record<number, unknown>;
   const days: StripDay[] = [];
   for (let i = 0; i < 7; i++) {
     const date = addDays(start, i);
     const offset = daysBetween(today, date);
     const logged = sessionsOn(date);
     const lift = logged.some((session) => session.k === "lift");
+    const planned = !lift && plan[i] != null;
     const activity = logged.some((session) => session.k !== "lift");
     days.push({
       offset,
       date,
       letter: copy.weekdayLetters.charAt(mondayIndex(date)),
-      label: dateLabel(date, lift, activity),
+      label: dateLabel(date, lift, planned, activity),
       selected: offset === selectedOffset,
       today: offset === 0,
       past: date.getTime() < today.getTime(),
       lift,
+      planned,
       activity,
       usual: !activity && offset >= 0 && isUsualActivityDay(date),
     });
   }
+  return days;
+}
+
+export function stripFor(selectedOffset: number, now = Date.now()): WeekStrip {
+  const today = startOfDay(now);
+  const selected = addDays(today, selectedOffset);
+  const wOff = weekOffset(selected, today);
+  const days = weekDays(wOff, selectedOffset, now);
   const index = Math.max(0, days.findIndex((day) => day.selected));
   return {
     days,
@@ -169,6 +200,17 @@ export function stripFor(selectedOffset: number): WeekStrip {
   };
 }
 
+/** Same weekday in `targetWeek`. Moving onto the current week opens today; staying put keeps the day. */
+export function offsetForWeek(fromOffset: number, targetWeek: number, now = Date.now()): number {
+  const today = startOfDay(now);
+  const fromWeek = weekOffset(addDays(today, fromOffset), today);
+  if (targetWeek === fromWeek) return fromOffset;
+  const next = fromOffset + (targetWeek - fromWeek) * 7;
+  const selected = addDays(today, next);
+  if (weekStart(selected.getTime()).getTime() === weekStart(today.getTime()).getTime()) return 0;
+  return next;
+}
+
 export function dayLine(offset: number): string {
   const today = startOfDay(Date.now());
   const selected = addDays(today, offset);
@@ -177,16 +219,14 @@ export function dayLine(offset: number): string {
     month: "short",
     day: "numeric",
   });
-  return offset === 0 ? `${copy.todayPrefix}${formatted}` : formatted;
+  return formatted;
 }
 
 /** Week arrows jump seven days. Landing back in the current week opens today. */
-export function shiftWeek(offset: number, direction: -1 | 1): number {
-  const next = offset + direction * 7;
-  const today = startOfDay(Date.now());
-  const selected = addDays(today, next);
-  if (weekStart(selected.getTime()).getTime() === weekStart(today.getTime()).getTime()) return 0;
-  return next;
+export function shiftWeek(offset: number, direction: -1 | 1, now = Date.now()): number {
+  const today = startOfDay(now);
+  const fromWeek = weekOffset(addDays(today, offset), today);
+  return offsetForWeek(offset, fromWeek + direction, now);
 }
 
 export function canLogDay(offset: number): boolean {
@@ -251,6 +291,15 @@ export function stampOn(day: Date, isToday: boolean): number {
   return t;
 }
 
+/** How far the minutes list is actually filled. Empty holes left by a delete do not raise the count. */
+function filledLength(slots: unknown[]): number {
+  let used = 0;
+  for (let i = 0; i < slots.length; i++) {
+    if (String(slots[i] ?? "").trim() !== "") used = i + 1;
+  }
+  return used;
+}
+
 export function logActivity(id: string, at: number): void {
   const key = actStorageKey(id);
   const slots = (engine.wk[key] || []) as unknown[];
@@ -263,18 +312,26 @@ export function logActivity(id: string, at: number): void {
     }
   }
   if (index < 0) {
-    index = Math.max(planned, slots.length);
+    index = Math.max(planned, filledLength(slots));
     if (id !== "zone2") engine.wk[id] = index + 1;
   }
   const minutes = id === "zone2" ? 45 : engine.plannedMin(id);
   engine.logAct(key, index, String(minutes), at);
+  if (usesSessionEffort(id)) {
+    engine.wk.sessions = allSessions().map((item) =>
+      item.t === at ? { ...item, eff: item.eff || "Moderate" } : item,
+    );
+  }
   engine.save();
 }
 
-/** Turn an activity on, then log it. Logging past the plan raises the weekly count. */
+/** Turn an activity on just for this log, then log it. Deleting the last session turns it off again. */
 export function logOther(id: string, at: number): void {
   engine.wk.acts = { ...(engine.wk.acts || {}), [id]: true };
   engine.wk[id] = 0;
+  engine.wk[actStorageKey(id)] = [];
+  engine.wk.once = { ...(engine.wk.once || {}), [id]: true };
+  engine.wk.adhoc = { ...(engine.wk.adhoc || {}), [id]: true };
   logActivity(id, at);
 }
 
@@ -310,9 +367,45 @@ export type SessionEdits = {
   heated?: boolean;
 };
 
+export function setSessionEffort(t: number, effort: string): void {
+  const session = getSession(t);
+  if (!session || !usesSessionEffort(session.k)) return;
+  engine.wk.sessions = allSessions().map((item) => (item.t === t ? { ...item, eff: effort } : item));
+  engine.save();
+}
+
+function slotsStillLogged(id: string): boolean {
+  const slots = (engine.wk[actStorageKey(id)] || []) as unknown[];
+  return slots.some((value) => String(value ?? "").trim() !== "");
+}
+
+/** Remove the session. A one-off activity (logged from Other) is turned off once nothing of it remains this week. */
+export function deleteSession(t: number): void {
+  const session = getSession(t);
+  if (!session) return;
+  const id = session.k;
+  writeSession(t, "");
+  const once = { ...(engine.wk.once || {}) } as Record<string, boolean>;
+  const adhoc = { ...(engine.wk.adhoc || {}) } as Record<string, boolean>;
+  if (!once[id] && !adhoc[id]) return;
+  if (slotsStillLogged(id)) return;
+  engine.wk.acts = { ...(engine.wk.acts || {}), [id]: false };
+  engine.wk[id] = 0;
+  engine.wk[actStorageKey(id)] = [];
+  delete once[id];
+  delete adhoc[id];
+  engine.wk.once = once;
+  engine.wk.adhoc = adhoc;
+  engine.fixSports(engine.wk);
+  engine.save();
+}
+
 export function saveSession(t: number, edits: SessionEdits): void {
   const session = getSession(t);
   if (!session) return;
+  if (usesSessionEffort(session.k) && edits.effort) {
+    engine.wk.sessions = allSessions().map((item) => (item.t === t ? { ...item, eff: edits.effort } : item));
+  }
   if (session.k === "spin" && edits.intensity) engine.wk.spint = edits.intensity;
   if (session.k === "yoga") {
     if (edits.effort) engine.wk.yeff = edits.effort;

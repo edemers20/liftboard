@@ -2,6 +2,7 @@ export { ArrowRight } from "./arrow-right";
 export { Check } from "./check";
 export { CheckCircle } from "./check-circle";
 export { Close } from "./close";
+export { Download } from "./download";
 export { Edit } from "./edit";
 export { Fuel } from "./fuel";
 export { Info } from "./info";

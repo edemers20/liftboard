@@ -7,9 +7,11 @@ import {
   num,
   plannedMin,
   recentPrs,
+  wTitle,
   weekActuals,
   weekCompleted,
   weekRuleAt,
+  weekStartOf,
   weekStreak,
   wk,
 } from "@liftboard/engine";
@@ -107,6 +109,8 @@ export type HistorySnapshot = {
   /** Oldest of the recent closed weeks first. Green when that week counts toward the streak. */
   dots: boolean[];
   streak: number;
+  /** 52 weeks of this calendar year, oldest first, in rows of 13. */
+  year: { state: "future" | "past" | "part" | "done"; current: boolean }[];
   prs: HistoryPr[];
   lifts: HistoryLift[];
 };
@@ -148,9 +152,10 @@ function sessionName(session: RawSession): string {
 
 function shortName(session: RawSession): string {
   if (session.k !== "lift") return sessionName(session);
-  const title = session.title || "";
-  if (title && title !== copy.history.lift) return title.split(" · ").pop() || copy.history.lift;
-  return copy.history.lift;
+  const title = wTitle(session.title || "");
+  if (!title || title === copy.history.lift) return copy.history.lift;
+  const inside = title.match(/\((.+)\)$/);
+  return inside ? inside[1] : title;
 }
 
 function asExercise(row: RawExercise): SessionExercise | null {
@@ -302,9 +307,37 @@ export function readHistory(now = Date.now()): HistorySnapshot {
       .slice(-12)
       .map((week) => week.completed),
     streak: weekStreak(),
+    year: yearCells(now),
     prs,
     lifts,
   };
+}
+
+function yearCells(now: number): HistorySnapshot["year"] {
+  const year = new Date(now).getFullYear();
+  const start = weekStartOf(new Date(year, 0, 1).getTime()).getTime();
+  const keyOf = (t: number) => {
+    const day = weekStartOf(t);
+    return `${day.getFullYear()}-${day.getMonth()}-${day.getDate()}`;
+  };
+  const nowKey = keyOf(now);
+  const by = new Map<string, { completed: boolean; lifts: number }>();
+  ((wk.weeks || []) as { start?: number; counted?: boolean; lifts?: number; planned?: number }[]).forEach((week) => {
+    const at = num(week.start, 0);
+    if (!at) return;
+    by.set(keyOf(at), { completed: weekCompleted(week), lifts: num(week.lifts, 0) });
+  });
+  return Array.from({ length: 52 }, (_, index) => {
+    const day = new Date(start);
+    day.setDate(day.getDate() + index * 7);
+    const key = keyOf(day.getTime());
+    const week = by.get(key);
+    const current = key === nowKey;
+    if (week?.completed) return { state: "done" as const, current };
+    if (week && week.lifts > 0) return { state: "part" as const, current };
+    if (week || day.getTime() < now) return { state: "past" as const, current };
+    return { state: "future" as const, current };
+  });
 }
 
 function loggedSets(start: number, sessions: RawSession[]): number {

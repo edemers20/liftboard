@@ -1,20 +1,7 @@
 import { useRouter } from "expo-router";
+import { PressableScale } from "@/components/pressable-scale";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import {
-  Animated,
-  BackHandler,
-  Easing,
-  Keyboard,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-  type StyleProp,
-  type ViewStyle,
-} from "react-native";
+import { Animated, BackHandler, Easing, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Reanimated, { useAnimatedStyle, useSharedValue, withDelay, withTiming } from "react-native-reanimated";
 
@@ -395,7 +382,7 @@ function LevelSlider({
       </View>
       <View style={styles.levelNames}>
         {LEVEL_NAMES.map((name, index) => (
-          <Pressable
+          <PressableScale
             key={name}
             accessibilityRole="button"
             accessibilityState={{ selected: value === index }}
@@ -409,7 +396,7 @@ function LevelSlider({
             <Text style={[styles.levelName, value === index && { color: LEVEL_COLORS[index] }, index === 1 && styles.levelCenter, index === 2 && styles.levelEnd]}>
               {name}
             </Text>
-          </Pressable>
+          </PressableScale>
         ))}
       </View>
     </View>
@@ -500,7 +487,7 @@ function PillGrid({
         const on = item.id === selected;
         return (
           <View key={item.label} style={styles.gridCell}>
-            <Pressable
+            <PressableScale
               accessibilityRole="button"
               accessibilityState={{ selected: on }}
               onPress={() => {
@@ -512,7 +499,7 @@ function PillGrid({
               <Text style={[styles.pillText, on && (tone === "pink" ? styles.pillPinkText : styles.pillGreenText)]}>
                 {item.label}
               </Text>
-            </Pressable>
+            </PressableScale>
           </View>
         );
       })}
@@ -534,7 +521,7 @@ function ChoiceList({
       {items.map((item) => {
         const on = item.id === selected;
         return (
-          <Pressable
+          <PressableScale
             key={item.id}
             accessibilityRole="button"
             accessibilityState={{ selected: on }}
@@ -546,7 +533,7 @@ function ChoiceList({
           >
             <Text style={[styles.choiceTitle, on && styles.choiceOnText]}>{item.label}</Text>
             <Text style={[styles.choiceDetail, on && styles.choiceOnDetail]}>{item.detail}</Text>
-          </Pressable>
+          </PressableScale>
         );
       })}
     </View>
@@ -557,7 +544,7 @@ function SwitchRow({ label, on, onToggle }: { label: string; on: boolean; onTogg
   return (
     <View style={styles.switchRow}>
       <Text style={styles.switchLabel}>{label}</Text>
-      <Pressable
+      <PressableScale
         accessibilityRole="switch"
         accessibilityLabel={label}
         accessibilityState={{ checked: on }}
@@ -571,7 +558,7 @@ function SwitchRow({ label, on, onToggle }: { label: string; on: boolean; onTogg
         <View style={[styles.switchTrack, on && styles.switchTrackOn]}>
           <View style={[styles.switchKnob, on && styles.switchKnobOn]} />
         </View>
-      </Pressable>
+      </PressableScale>
     </View>
   );
 }
@@ -588,12 +575,12 @@ function DaysStep({
   const o = copy.onboarding;
   return (
     <View style={styles.stack}>
-      <Text style={styles.eyebrow}>{o.usualLiftDays(draft.days.length)}</Text>
+      <Text style={styles.eyebrow}>{o.liftDays}</Text>
       <View style={styles.dayRow}>
         {copy.weekdays.map((name, index) => {
           const on = draft.days.includes(index);
           return (
-            <Pressable
+            <PressableScale
               key={name}
               accessibilityRole="button"
               accessibilityLabel={name}
@@ -602,7 +589,7 @@ function DaysStep({
               style={[styles.day, on && styles.dayOn]}
             >
               <Text style={[styles.dayText, on && styles.dayTextOn]}>{copy.weekdayLetters.charAt(index)}</Text>
-            </Pressable>
+            </PressableScale>
           );
         })}
       </View>
@@ -611,7 +598,7 @@ function DaysStep({
         <View key={`${row.kind}-${row.id}`} style={styles.stepper}>
           <Text style={styles.stepperName}>{row.name}</Text>
           <View style={styles.stepperControls}>
-            <Pressable
+            <PressableScale
               accessibilityRole="button"
               accessibilityLabel={o.fewer(row.name)}
               onPress={() => {
@@ -621,9 +608,9 @@ function DaysStep({
               style={styles.stepperButton}
             >
               <Text style={styles.stepperSymbol}>−</Text>
-            </Pressable>
+            </PressableScale>
             <Text style={styles.stepperValue}>{row.value}</Text>
-            <Pressable
+            <PressableScale
               accessibilityRole="button"
               accessibilityLabel={o.more(row.name)}
               onPress={() => {
@@ -633,7 +620,7 @@ function DaysStep({
               style={styles.stepperButton}
             >
               <Text style={styles.stepperSymbol}>+</Text>
-            </Pressable>
+            </PressableScale>
           </View>
         </View>
       ))}
@@ -918,9 +905,9 @@ export function OnboardingScreen() {
               </Text>
             )}
             {showSkip ? (
-              <Pressable accessibilityRole="button" onPress={onSkip} style={styles.skip}>
+              <PressableScale accessibilityRole="button" onPress={onSkip} style={styles.skip}>
                 <Text style={styles.skipText}>{copy.onboarding.skip}</Text>
-              </Pressable>
+              </PressableScale>
             ) : (
               <View />
             )}
@@ -1027,19 +1014,19 @@ export function OnboardingScreen() {
         ) : null}
         <View style={styles.actions}>
           {showBack ? (
-            <Pressable accessibilityRole="button" onPress={onBack} style={styles.back}>
+            <PressableScale accessibilityRole="button" onPress={onBack} style={styles.back}>
               <Text style={styles.backText}>{copy.onboarding.back}</Text>
-            </Pressable>
+            </PressableScale>
           ) : (
             <View style={styles.backSpacer} />
           )}
-          <Pressable
+          <PressableScale
             accessibilityRole="button"
             onPress={onNext}
             style={[styles.next, draft.step === 9 && styles.nextGo]}
           >
             <Text style={[styles.nextText, draft.step === 9 && styles.nextGoText]}>{nextLabel(draft.step)}</Text>
-          </Pressable>
+          </PressableScale>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>

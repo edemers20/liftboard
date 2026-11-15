@@ -1,16 +1,8 @@
 import { router, useFocusEffect } from "expo-router";
+import { PressableScale } from "@/components/pressable-scale";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
-import {
-  Keyboard,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  type ScrollViewInstance,
-  Text,
-  useWindowDimensions,
-  View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Keyboard, StyleSheet, type ScrollViewInstance, Text, useWindowDimensions, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -23,6 +15,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { useNotice } from "@/activity-log";
+import { LiveWorkoutBar } from "@/components/live-workout";
 import { avgWeightDial, DialValue, shareDial } from "@/components/number-dial";
 import {
   ChoicePills,
@@ -32,7 +25,6 @@ import {
   StatusMark,
   ToggleRow,
   fieldLabelStyle,
-  linkStyle,
   noteStyle,
   panelStyle,
   planColors,
@@ -40,11 +32,13 @@ import {
 import { copy, fill } from "@/copy";
 import { Edit } from "@/icons";
 import { subscribePlanView, takePlanView } from "@/links";
+import { openWorkout } from "@/workout/share-box";
 import {
   fitPace,
   migratePace,
   paceFromDial,
   readPlan,
+  usePlanClock,
   weightForInput,
   weightForStore,
   type PlanPart,
@@ -52,9 +46,11 @@ import {
   type PlanRow,
 } from "@/plan-model";
 import { storage } from "@/storage";
+import { TabBarSpacer, TabScrollMarker } from "@/tab-bar-inset";
 import { engine, useEngineStore } from "@/store";
 import { theme } from "@/theme";
 import { useReduceMotion } from "@/use-reduce-motion";
+import { useHideOnScroll, type HideOnScroll } from "@/use-hide-on-scroll";
 
 const VIEW_KEY = "liftboard.v1.pv";
 
@@ -76,6 +72,7 @@ type Actions = {
   setFocus: (value: string) => void;
   commitShare: (text: string) => void;
   openRow: (row: PlanRow) => void;
+  setSession: (minutes: number) => void;
   show: (lines: string[], pulse?: boolean) => void;
   undoFinish: () => void;
 };
@@ -85,9 +82,13 @@ function savedView(): ViewName {
 }
 
 export default function PlanScreen() {
+  "use no memo";
   const version = useEngineStore((state) => state.version);
+  const clock = usePlanClock();
   const reduceMotion = useReduceMotion();
-  const model = useMemo(() => readPlan(), [version]);
+  const insets = useSafeAreaInsets();
+  const hide = useHideOnScroll();
+  const model = useMemo(() => readPlan(), [version, clock]);
   const { width } = useWindowDimensions();
   const [view, setView] = useState<ViewName>(savedView);
   const [pendingSeason, setPendingSeason] = useState<"In-season" | "Off-season" | null>(null);
@@ -163,6 +164,13 @@ export default function PlanScreen() {
       requestAnimationFrame(() => {
         weekScroll.current?.scrollTo({ y: 0, animated: !reduceMotion });
       });
+    },
+    setSession(minutes) {
+      if (Number(engine.wk.time) === minutes) return;
+      commitToast(() => {
+        engine.wk.time = minutes;
+        engine.syncDays();
+      }, false);
     },
     toggleLift(index) {
       const current: number[] = model.liftDays;
@@ -245,7 +253,7 @@ export default function PlanScreen() {
     },
     openRow(row) {
       if (row.kind === "lift") {
-        router.push({ pathname: "/workout/[id]", params: { id: row.id } });
+        openWorkout(row.id, "plain");
         return;
       }
       if (row.openedAt != null) {
@@ -259,6 +267,7 @@ export default function PlanScreen() {
 
   function go(next: ViewName) {
     if (next === view) return;
+    hide.show();
     storage.setItem(VIEW_KEY, next);
     setView(next);
     if (reduceMotion) {
@@ -294,12 +303,31 @@ export default function PlanScreen() {
       scrollRef={weekScroll}
       reduceMotion={reduceMotion}
       onFinishWeek={() => setPendingFinish(true)}
+      hide={hide}
+      active={view === "week"}
+      topPad={hide.space + 4}
     />
   );
-  const season = <SeasonPane model={model} actions={actions} reduceMotion={reduceMotion} />;
+  const season = (
+    <SeasonPane
+      model={model}
+      actions={actions}
+      reduceMotion={reduceMotion}
+      hide={hide}
+      active={view === "season"}
+      topPad={hide.space + 4}
+    />
+  );
 
   return (
-    <SafeAreaView style={styles.screen} edges={["top"]}>
+    <View style={styles.screen}>
+      <Animated.View
+        accessibilityElementsHidden={!hide.blocks}
+        importantForAccessibility={hide.blocks ? "auto" : "no-hide-descendants"}
+        pointerEvents={hide.blocks ? "auto" : "none"}
+        onLayout={hide.onHeaderLayout}
+        style={[styles.chrome, { top: 0, paddingTop: insets.top }, hide.chromeStyle, hide.headerStyle]}
+      >
       <Header
         weekTitle={model.weekTitle}
         view={view}
@@ -310,6 +338,7 @@ export default function PlanScreen() {
         onWeek={() => go("week")}
         onSeason={() => go("season")}
       />
+      </Animated.View>
       {reduceMotion ? (
         <View style={styles.pager}>
           <Animated.View
@@ -372,7 +401,8 @@ export default function PlanScreen() {
           }}
         />
       ) : null}
-    </SafeAreaView>
+      <LiveWorkoutBar />
+    </View>
   );
 }
 
@@ -446,12 +476,12 @@ function Header({
         )}
       </View>
       <View accessibilityRole="tablist" style={styles.switchTrack}>
-        <Pressable accessibilityRole="tab" accessibilityState={{ selected: view === "week" }} aria-selected={view === "week"} hitSlop={{ top: 6, bottom: 6 }} onPress={onWeek} style={[styles.switchBtn, view === "week" && styles.switchOn]}>
+        <PressableScale kind="button" brighten={view === "week"} accessibilityRole="tab" accessibilityState={{ selected: view === "week" }} aria-selected={view === "week"} hitSlop={{ top: 6, bottom: 6 }} onPress={onWeek} style={[styles.switchBtn, view === "week" && styles.switchOn]}>
           <Text style={[styles.switchText, view === "week" && styles.switchTextOn]}>{copy.plan.week}</Text>
-        </Pressable>
-        <Pressable accessibilityRole="tab" accessibilityState={{ selected: view === "season" }} aria-selected={view === "season"} hitSlop={{ top: 6, bottom: 6 }} onPress={onSeason} style={[styles.switchBtn, view === "season" && styles.switchOn]}>
+        </PressableScale>
+        <PressableScale kind="button" brighten={view === "season"} accessibilityRole="tab" accessibilityState={{ selected: view === "season" }} aria-selected={view === "season"} hitSlop={{ top: 6, bottom: 6 }} onPress={onSeason} style={[styles.switchBtn, view === "season" && styles.switchOn]}>
           <Text style={[styles.switchText, view === "season" && styles.switchTextOn]}>{copy.plan.season}</Text>
-        </Pressable>
+        </PressableScale>
       </View>
     </View>
   );
@@ -463,23 +493,34 @@ function WeekPane({
   scrollRef,
   reduceMotion,
   onFinishWeek,
+  hide,
+  active,
+  topPad,
 }: {
   model: PlanRead;
   actions: Actions;
   scrollRef: RefObject<ScrollViewInstance | null>;
   reduceMotion: boolean;
   onFinishWeek: () => void;
+  hide: HideOnScroll;
+  active: boolean;
+  topPad: number;
 }) {
   const saving = useRef(false);
 
   return (
-    <ScrollView
+    <TabScrollMarker active={active}>
+    <Animated.ScrollView
       ref={scrollRef}
       style={styles.page}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, { paddingTop: topPad }]}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode={reduceMotion ? "none" : "on-drag"}
       automaticallyAdjustKeyboardInsets
+      onScroll={hide.onScroll}
+      scrollEventThrottle={16}
+      scrollsToTop={active}
+      contentInsetAdjustmentBehavior="never"
     >
       {model.finishedNote ? (
         <View style={styles.finished}>
@@ -488,9 +529,9 @@ function WeekPane({
             {model.finishedNote.slice(model.finishedNote.indexOf(".") + 1)}
           </Text>
           {model.canUndoFinish ? (
-            <Pressable accessibilityRole="button" onPress={() => actions.undoFinish()} style={styles.undo}>
+            <PressableScale accessibilityRole="button" onPress={() => actions.undoFinish()} style={styles.undo}>
               <Text style={styles.undoText}>{copy.plan.undo}</Text>
-            </Pressable>
+            </PressableScale>
           ) : null}
         </View>
       ) : null}
@@ -573,17 +614,18 @@ function WeekPane({
               style={styles.input}
             />
           </View>
-          <Pressable
+          <PressableScale
+            kind="surface"
             accessibilityRole="button"
             onPress={() => {
               saving.current = true;
               actions.saveCheckIn(model.form.weight);
               saving.current = false;
             }}
-            style={({ pressed }) => [styles.save, pressed && styles.pressed]}
+            style={styles.save}
           >
             <Text style={styles.saveText}>{copy.plan.saveCheckIn}</Text>
-          </Pressable>
+          </PressableScale>
         </View>
       )}
 
@@ -600,13 +642,14 @@ function WeekPane({
         )}
         {model.liftingOn ? (
           <View style={styles.dayBlock}>
-            <Text style={styles.dayLabel}>{fill(copy.plan.usualLiftDays, [model.liftDays.length])}</Text>
+            <Text style={styles.dayLabel}>{copy.plan.liftDays}</Text>
             <DayPicker selected={model.liftDays} tone="lift" onToggle={actions.toggleLift} />
+            <SessionLength minutes={Number(engine.wk.time) || 60} onChange={actions.setSession} />
             {model.inSeasonNow ? <Text style={noteStyle()}>{copy.plan.inSeasonCap}</Text> : null}
           </View>
         ) : null}
         <View style={styles.dayBlock}>
-          <Text style={styles.dayLabel}>{fill(copy.plan.usualActivityDays, [model.activityDays.length])}</Text>
+          <Text style={styles.dayLabel}>{copy.plan.activityDays}</Text>
           <DayPicker selected={model.activityDays} tone="activity" onToggle={actions.toggleActivity} />
         </View>
       </View>
@@ -615,9 +658,9 @@ function WeekPane({
       {model.changes.length ? <ChangeList title={copy.plan.changes} info={copy.plan.info.changes} rows={model.changes} /> : null}
       {model.watch.length ? <WatchList notes={model.watch} /> : null}
       {model.finishedEarly ? null : (
-        <Pressable accessibilityRole="button" onPress={onFinishWeek} style={styles.newWeek}>
+        <PressableScale accessibilityRole="button" onPress={onFinishWeek} style={styles.newWeek}>
           <Text style={styles.newWeekText}>{copy.plan.markWeekFinished}</Text>
-        </Pressable>
+        </PressableScale>
       )}
       {model.ckDone ? (
         <View style={styles.checkLine}>
@@ -625,7 +668,7 @@ function WeekPane({
             <Text style={styles.checkStrong}>{copy.plan.checkIn}</Text>
             {` \u00b7 ${model.checkInLine}`}
           </Text>
-          <Pressable
+          <PressableScale
             accessibilityRole="button"
             accessibilityLabel={copy.plan.editCheckIn}
             onPress={actions.editCheckIn}
@@ -633,10 +676,12 @@ function WeekPane({
             style={styles.pencil}
           >
             <Edit size={18} color={theme.orange.accent} />
-          </Pressable>
+          </PressableScale>
         </View>
       ) : null}
-    </ScrollView>
+      <TabBarSpacer />
+    </Animated.ScrollView>
+    </TabScrollMarker>
   );
 }
 
@@ -649,6 +694,42 @@ const SHINE_BANDS = [
   { left: "58%", width: "6%", backgroundColor: "rgba(111,208,180,0.10)" },
   { left: "64%", width: "6%", backgroundColor: "rgba(111,208,180,0.05)" },
 ] as const;
+
+const SESSION_MINUTES = [30, 45, 60, 75] as const;
+
+function SessionLength({ minutes, onChange }: { minutes: number; onChange: (minutes: number) => void }) {
+  const index = Math.max(0, SESSION_MINUTES.indexOf(minutes as (typeof SESSION_MINUTES)[number]));
+  const current = SESSION_MINUTES.includes(minutes as (typeof SESSION_MINUTES)[number]) ? minutes : SESSION_MINUTES[index];
+  return (
+    <View style={styles.sessionBlock}>
+      <Text style={styles.dayLabel}>{copy.plan.sessionLength}</Text>
+      <View accessibilityLabel={copy.plan.sessionLength} style={styles.sessionStepper}>
+        <PressableScale
+          accessibilityRole="button"
+          accessibilityLabel={`${copy.you.decrease} to ${SESSION_MINUTES[index - 1] ?? current} ${copy.you.min}`}
+          disabled={index === 0}
+          onPress={() => onChange(SESSION_MINUTES[index - 1])}
+          style={styles.sessionStep}
+        >
+          <Text style={[styles.sessionSymbol, index === 0 && styles.sessionSymbolOff]}>−</Text>
+        </PressableScale>
+        <Text style={styles.sessionValue}>
+          {current}
+          <Text style={styles.sessionUnit}> {copy.you.min}</Text>
+        </Text>
+        <PressableScale
+          accessibilityRole="button"
+          accessibilityLabel={`${copy.you.increase} to ${SESSION_MINUTES[index + 1] ?? current} ${copy.you.min}`}
+          disabled={index === SESSION_MINUTES.length - 1}
+          onPress={() => onChange(SESSION_MINUTES[index + 1])}
+          style={styles.sessionStep}
+        >
+          <Text style={[styles.sessionSymbol, index === SESSION_MINUTES.length - 1 && styles.sessionSymbolOff]}>+</Text>
+        </PressableScale>
+      </View>
+    </View>
+  );
+}
 
 function PlanShine() {
   const progress = useSharedValue(0);
@@ -686,10 +767,16 @@ function SeasonPane({
   model,
   actions,
   reduceMotion,
+  hide,
+  active,
+  topPad,
 }: {
   model: PlanRead;
   actions: Actions;
   reduceMotion: boolean;
+  hide: HideOnScroll;
+  active: boolean;
+  topPad: number;
 }) {
   const [hot, setHot] = useState<Record<string, boolean>>({});
   const previous = useRef<Record<string, string> | null>(null);
@@ -713,12 +800,17 @@ function SeasonPane({
   }, [model.sentence, reduceMotion]);
 
   return (
-    <ScrollView
+    <TabScrollMarker active={active}>
+    <Animated.ScrollView
       style={styles.page}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, { paddingTop: topPad }]}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode={reduceMotion ? "none" : "on-drag"}
       automaticallyAdjustKeyboardInsets
+      onScroll={hide.onScroll}
+      scrollEventThrottle={16}
+      scrollsToTop={active}
+      contentInsetAdjustmentBehavior="never"
     >
       <View style={[panelStyle(), styles.planCard]}>
         <Eyebrow title={copy.plan.yourPlan} />
@@ -729,9 +821,9 @@ function SeasonPane({
         <Eyebrow title={copy.plan.season} info={copy.plan.info.season} />
         {model.seasonNote ? (
           model.seasonNote === copy.plan.pickSport ? (
-            <Pressable accessibilityRole="button" onPress={() => router.navigate("/you")}>
+            <PressableScale accessibilityRole="button" onPress={() => router.navigate("/you")}>
               <Text style={noteStyle()}>{model.seasonNote}</Text>
-            </Pressable>
+            </PressableScale>
           ) : (
             <Text style={noteStyle()}>{model.seasonNote}</Text>
           )
@@ -757,38 +849,40 @@ function SeasonPane({
           onChange={actions.setGoal}
           options={copy.plan.goals.map((goal) => ({ value: goal.value, label: goal.label }))}
         />
-        {model.pace ? (
-          <Field label={copy.plan.pace}>
-            <View style={styles.paceRow}>
-              <DialValue
-                label={copy.plan.pace}
-                accessibilityLabel={`${model.pace.shown} ${model.pace.unit}`}
-                value={model.pace.shown}
-                spec={{
-                  min: model.pace.min,
-                  max: model.pace.max,
-                  step: model.pace.step,
-                  unit: model.pace.unit,
-                }}
-                onChange={actions.setPace}
-                style={[styles.input, styles.shareInput]}
-                textStyle={styles.shareText}
-              />
-              <Text style={styles.paceUnit}>{model.pace.unit}</Text>
-            </View>
-          </Field>
-        ) : null}
-        {model.lossGoal ? (
-          <View style={styles.field}>
-            <Text style={fieldLabelStyle()}>{copy.plan.fromCardio}</Text>
-            <DialValue
-              label={copy.plan.fromCardio}
-              value={model.form.share}
-              spec={shareDial}
-              onChange={(text) => actions.commitShare(text)}
-              style={[styles.input, styles.shareInput]}
-              textStyle={styles.shareText}
-            />
+        {model.pace || model.lossGoal ? (
+          <View style={styles.pacePair}>
+            {model.pace ? (
+              <View style={styles.paceCol}>
+                <Text style={fieldLabelStyle()}>{model.pace.unit}</Text>
+                <DialValue
+                  label={model.pace.unit}
+                  accessibilityLabel={`${model.pace.shown} ${model.pace.unit}`}
+                  value={model.pace.shown}
+                  spec={{
+                    min: model.pace.min,
+                    max: model.pace.max,
+                    step: model.pace.step,
+                    unit: model.pace.unit,
+                  }}
+                  onChange={actions.setPace}
+                  style={[styles.input, styles.pairInput]}
+                  textStyle={styles.shareText}
+                />
+              </View>
+            ) : null}
+            {model.lossGoal ? (
+              <View style={styles.paceCol}>
+                <Text style={fieldLabelStyle()}>{copy.plan.fromCardio}</Text>
+                <DialValue
+                  label={copy.plan.fromCardio}
+                  value={model.form.share}
+                  spec={shareDial}
+                  onChange={(text) => actions.commitShare(text)}
+                  style={[styles.input, styles.pairInput]}
+                  textStyle={styles.shareText}
+                />
+              </View>
+            ) : null}
           </View>
         ) : null}
         {model.showFocus ? (
@@ -804,7 +898,9 @@ function SeasonPane({
           </Field>
         ) : null}
       </View>
-    </ScrollView>
+      <TabBarSpacer />
+    </Animated.ScrollView>
+    </TabScrollMarker>
   );
 }
 
@@ -825,11 +921,17 @@ function Sentence({ parts, hot }: { parts: PlanPart[]; hot: Record<string, boole
   );
 }
 
+function fuelHow(model: PlanRead): string {
+  const lines = [model.fuel.explain];
+  if (model.fuel.deficit) lines.push(`${copy.plan.weeklyDeficit}: ${model.fuel.deficit}.`);
+  if (model.fuel.finishers) lines.push(`${model.fuel.finishers}.`);
+  return lines.join("\n\n");
+}
+
 function FuelCard({ model }: { model: PlanRead }) {
-  const [open, setOpen] = useState(false);
   return (
     <View style={panelStyle()}>
-      <Eyebrow title={copy.plan.fuelRecovery} />
+      <Eyebrow title={copy.plan.fuelRecovery} info={[{ label: copy.plan.howCalculated, body: fuelHow(model) }]} />
       <View style={styles.fuelRow}>
         <View style={styles.fuelMain}>
           <Text style={styles.fuelLabel}>{copy.plan.fuelToday}</Text>
@@ -846,26 +948,6 @@ function FuelCard({ model }: { model: PlanRead }) {
         <Tile label={copy.plan.vsLastWeek} value={model.fuel.vsText} tone={model.fuel.vsTone} />
         <Tile label={model.fuel.lossLabel} value={model.fuel.lossValue} unit={model.fuel.lossUnit} words={!model.fuel.lossUnit} />
       </View>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityState={{ expanded: open }}
-        onPress={() => setOpen((value) => !value)}
-        style={styles.disclosure}
-      >
-        <Text style={linkStyle()}>{copy.plan.howCalculated}</Text>
-      </Pressable>
-      {open ? (
-        <View style={styles.explain}>
-          <Text style={noteStyle()}>{model.fuel.explain}</Text>
-          {model.fuel.deficit ? (
-            <View style={styles.deficit}>
-              <Text style={styles.deficitLabel}>{copy.plan.weeklyDeficit}</Text>
-              <Text style={styles.deficitValue}>{model.fuel.deficit}</Text>
-            </View>
-          ) : null}
-          {model.fuel.finishers ? <Text style={noteStyle()}>{model.fuel.finishers}</Text> : null}
-        </View>
-      ) : null}
     </View>
   );
 }
@@ -923,32 +1005,69 @@ function ChangeList({
 }: {
   title: string;
   info: readonly { label: string; body: string }[];
-  rows: { cause: string; detail: string }[];
+  rows: { cause: string; summary: string; items: string[] }[];
 }) {
+  const [open, setOpen] = useState<string | null>(null);
   return (
     <View style={panelStyle()}>
       <Eyebrow title={title} info={info} />
-      {rows.map((row) => (
-        <Text key={`${row.cause}-${row.detail}`} style={styles.item}>
-          <Text style={styles.bullet}>{"\u2022  "}</Text>
-          {row.cause ? <Text style={styles.cause}>{row.cause}</Text> : null}
-          <Text>{row.cause ? ` \u2192 ${row.detail}` : row.detail}</Text>
-        </Text>
-      ))}
+      {rows.map((row) => {
+        const single = row.items.length === 1 && row.summary === row.items[0];
+        const shown = open === row.cause && !single;
+        return (
+          <View key={row.cause} style={styles.changeRow}>
+            <PressableScale
+              accessibilityRole="button"
+              accessibilityState={{ expanded: shown, disabled: single }}
+              disabled={single}
+              onPress={() => setOpen(shown ? null : row.cause)}
+              style={styles.changeHit}
+            >
+              <Text style={styles.changeCause}>{row.cause}</Text>
+              <Text style={styles.changeSummary}>{row.summary}</Text>
+            </PressableScale>
+            {shown ? (
+              <View style={styles.changePills}>
+                {row.items.map((item) => {
+                  const added = /\+1 set$/.test(item);
+                  const cut = /−1 set$/.test(item);
+                  return (
+                    <View key={item} style={[styles.changePill, added && styles.changePillUp]}>
+                      <Text style={[styles.changePillText, added && styles.changePillUpText, cut && styles.changePillCut]}>
+                        {item}
+                      </Text>
+                    </View>
+                  );
+                })}
+              </View>
+            ) : null}
+          </View>
+        );
+      })}
     </View>
   );
 }
 
-function WatchList({ notes }: { notes: string[] }) {
+function WatchList({ notes }: { notes: { h: string; t: string; safe: boolean }[] }) {
+  const [more, setMore] = useState(false);
+  const safe = notes.filter((note) => note.safe);
+  const rest = notes.filter((note) => !note.safe);
+  const shown = more ? notes : safe.concat(rest.slice(0, Math.max(0, 3 - safe.length)));
+  const hidden = notes.length - shown.length;
   return (
     <View style={panelStyle()}>
       <Eyebrow title={copy.plan.watch} info={copy.plan.info.watch} />
-      {notes.map((note) => (
-        <Text key={note} style={styles.item}>
-          <Text style={styles.bullet}>{"\u2022  "}</Text>
-          {note}
-        </Text>
+      {shown.map((note) => (
+        <View key={note.h} style={styles.changeRow}>
+          <Text style={[styles.changeCause, note.safe && styles.watchSafe]}>{note.h}</Text>
+          <Text style={styles.changeSummary}>{note.t}</Text>
+        </View>
       ))}
+      {hidden > 0 || more ? (
+        <PressableScale accessibilityRole="button" onPress={() => setMore((open) => !open)} style={styles.moreHit}>
+          <Text style={styles.moreText}>{more ? copy.plan.showLess : copy.plan.moreNotes(hidden)}</Text>
+        </PressableScale>
+      ) : null}
     </View>
   );
 }
@@ -965,14 +1084,14 @@ function PlanRowButton({ row, first, onPress }: { row: PlanRow; first: boolean; 
     );
   }
   return (
-    <Pressable
+    <PressableScale
+      kind="surface"
       accessibilityRole="button"
-      accessibilityLabel={label}
       onPress={onPress}
-      style={({ pressed }) => [styles.row, !first && styles.rowLine, pressed && styles.pressed]}
+      style={[styles.row, !first && styles.rowLine]}
     >
       <RowBody row={row} />
-    </Pressable>
+    </PressableScale>
   );
 }
 
@@ -1018,6 +1137,13 @@ function Flag({ children }: { children: string }) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.orange.background },
+  chrome: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    backgroundColor: theme.orange.background,
+  },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -1038,12 +1164,14 @@ const styles = StyleSheet.create({
   },
   switchTrack: {
     flexDirection: "row",
+    alignItems: "stretch",
+    minHeight: 44,
     backgroundColor: theme.orange.surface,
     borderRadius: theme.radii.pill,
     padding: 3,
   },
   switchBtn: {
-    minHeight: 32,
+    minHeight: 38,
     paddingHorizontal: 14,
     borderRadius: theme.radii.pill,
     alignItems: "center",
@@ -1069,8 +1197,9 @@ const styles = StyleSheet.create({
   },
   shareInput: { alignSelf: "flex-start", minWidth: 120 },
   shareText: { textAlign: "center" },
-  paceRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  paceUnit: { color: theme.muted, fontFamily: theme.fonts.body, fontSize: 13 },
+  pacePair: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
+  paceCol: { flex: 1, gap: 8 },
+  pairInput: { alignSelf: "stretch", minWidth: 0 },
   save: {
     minHeight: 52,
     borderRadius: 14,
@@ -1086,6 +1215,20 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     gap: 8,
   },
+  sessionBlock: { gap: 8, marginTop: 4 },
+  sessionStepper: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: theme.orange.background,
+    borderRadius: theme.radii.tile,
+    padding: 2,
+  },
+  sessionStep: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
+  sessionSymbol: { fontFamily: theme.fonts.monoMedium, fontSize: 22, color: theme.text },
+  sessionSymbolOff: { color: "#393330" },
+  sessionValue: { minWidth: 72, textAlign: "center", fontFamily: theme.fonts.monoMedium, fontSize: 18, color: theme.text },
+  sessionUnit: { fontFamily: theme.fonts.monoMedium, fontSize: 12, color: theme.muted },
   dayLabel: {
     color: theme.orange.accent,
     fontFamily: theme.fonts.bodySemi,
@@ -1138,14 +1281,22 @@ const styles = StyleSheet.create({
   tileUnit: { color: theme.muted, fontFamily: theme.fonts.mono, fontSize: 11 },
   up: { color: theme.fuel },
   down: { color: theme.orange.accent },
-  disclosure: { minHeight: 44, justifyContent: "center" },
-  explain: { gap: 8 },
-  deficit: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", gap: 12 },
-  deficitLabel: { color: planColors.sentence, fontFamily: theme.fonts.body, fontSize: 13 },
-  deficitValue: { color: theme.text, fontFamily: theme.fonts.monoMedium, fontSize: 13 },
   item: { color: planColors.sentence, fontFamily: theme.fonts.body, fontSize: 14, lineHeight: 20 },
   bullet: { color: theme.muted },
   cause: { color: theme.text, fontFamily: theme.fonts.bodySemi },
+  changeRow: { paddingVertical: 10, gap: 2 },
+  changeHit: { gap: 2 },
+  changeCause: { color: theme.text, fontFamily: theme.fonts.bodySemi, fontSize: 15 },
+  changeSummary: { color: theme.muted, fontFamily: theme.fonts.body, fontSize: 13, lineHeight: 18 },
+  changePills: { flexDirection: "row", flexWrap: "wrap", gap: 6, paddingTop: 8 },
+  changePill: { borderRadius: theme.radii.pill, paddingHorizontal: 10, paddingVertical: 4, backgroundColor: theme.orange.surface },
+  changePillUp: { backgroundColor: "#1f3029" },
+  changePillText: { color: theme.text, fontFamily: theme.fonts.body, fontSize: 12 },
+  changePillUpText: { color: theme.green.accent },
+  changePillCut: { color: theme.muted },
+  watchSafe: { color: "#e7b94a" },
+  moreHit: { minHeight: 44, justifyContent: "center" },
+  moreText: { color: theme.orange.accent, fontFamily: theme.fonts.bodySemi, fontSize: 14 },
   checkLine: {
     minHeight: 48,
     borderRadius: 14,

@@ -1,21 +1,18 @@
-import { useCallback, useRef, useState } from "react";
-import { useFocusEffect } from "expo-router";
+import { PressableScale } from "@/components/pressable-scale";
 import {
   Modal,
-  Pressable,
   StyleSheet,
   Text,
-  useWindowDimensions,
   View,
-  type ViewInstance,
   type StyleProp,
   type TextStyle,
   type ViewStyle,
 } from "react-native";
 
+import { InfoTip } from "@/components/tip-popover";
 import { copy } from "@/copy";
 import { haptic } from "@/haptic";
-import { Info as InfoIcon, StatusDone, StatusNext, StatusOpen } from "@/icons";
+import { StatusDone, StatusNext, StatusOpen } from "@/icons";
 import { theme } from "@/theme";
 import { useReduceMotion } from "@/use-reduce-motion";
 
@@ -44,65 +41,14 @@ export function Eyebrow({ title, info }: { title: string; info?: readonly InfoBl
 }
 
 export function InfoButton({ sections }: { sections: readonly InfoBlock[] }) {
-  const reduceMotion = useReduceMotion();
-  const ref = useRef<ViewInstance>(null);
-  const screen = useWindowDimensions();
-  const [anchor, setAnchor] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
-  const open = anchor != null;
-  useFocusEffect(
-    useCallback(() => {
-      return () => setAnchor(null);
-    }, []),
-  );
-
-  function toggle() {
-    if (open) {
-      setAnchor(null);
-      return;
-    }
-    ref.current?.measureInWindow((x, y, w, h) => setAnchor({ x, y, w, h }));
-  }
-
-  const width = Math.min(300, screen.width - 32);
-  const estimated = 28 + sections.length * 72;
-  let top = anchor ? anchor.y + anchor.h + 8 : 0;
-  if (anchor && top + estimated > screen.height - 16) top = Math.max(16, anchor.y - estimated - 8);
-  const left = anchor
-    ? Math.max(16, Math.min(screen.width - width - 16, anchor.x + anchor.w / 2 - width / 2))
-    : 16;
-
   return (
-    <>
-      <Pressable
-        ref={ref}
-        accessibilityRole="button"
-        accessibilityLabel={copy.plan.whatThisDoes}
-        accessibilityState={{ expanded: open }}
-        hitSlop={13}
-        onPress={toggle}
-        style={styles.info}
-      >
-        <InfoIcon size={16} color={open ? theme.orange.accent : planColors.sentence} />
-      </Pressable>
-      <Modal
-        visible={open}
-        transparent
-        animationType={reduceMotion ? "none" : "fade"}
-        onRequestClose={() => setAnchor(null)}
-      >
-        <View style={styles.fill}>
-          <Pressable style={StyleSheet.absoluteFill} onPress={() => setAnchor(null)} />
-          <View style={[styles.pop, { width, left, top }]}>
-            {sections.map((section) => (
-              <Text key={section.label} style={styles.popBody}>
-                <Text style={styles.popLabel}>{section.label}: </Text>
-                {section.body}
-              </Text>
-            ))}
-          </View>
-        </View>
-      </Modal>
-    </>
+    <InfoTip
+      sections={sections}
+      label={copy.plan.whatThisDoes}
+      color={planColors.sentence}
+      activeColor={theme.orange.accent}
+      style={styles.info}
+    />
   );
 }
 
@@ -134,8 +80,10 @@ export function ChoicePills({
       {options.map((option) => {
         const selected = option.value === value;
         return (
-          <Pressable
+          <PressableScale
             key={option.value}
+            kind="button"
+            brighten={selected}
             accessibilityRole="radio"
             accessibilityLabel={option.label}
             accessibilityState={{ selected }}
@@ -144,13 +92,12 @@ export function ChoicePills({
               if (option.value !== value) haptic.selection();
               onChange(option.value);
             }}
-            style={({ pressed }) => [
+            style={[
               styles.pill,
               tone === "fill" ? styles.pillFill : styles.pillRound,
               layout === "pair" && styles.pillPair,
               layout === "triple" && styles.pillTriple,
               selected && (tone === "peach" ? styles.peachOn : tone === "green" ? styles.greenOn : styles.fillOn),
-              pressed && styles.pressed,
             ]}
           >
             <Text
@@ -165,7 +112,7 @@ export function ChoicePills({
             >
               {option.label}
             </Text>
-          </Pressable>
+          </PressableScale>
         );
       })}
     </View>
@@ -174,7 +121,9 @@ export function ChoicePills({
 
 export function ToggleRow({ label, on, onChange }: { label: string; on: boolean; onChange: (on: boolean) => void }) {
   return (
-    <Pressable
+    <PressableScale
+      kind="button"
+      brighten={on}
       accessibilityRole="switch"
       accessibilityLabel={label}
       accessibilityState={{ checked: on }}
@@ -188,10 +137,10 @@ export function ToggleRow({ label, on, onChange }: { label: string; on: boolean;
       <Text style={styles.toggleLabel} importantForAccessibility="no" accessibilityElementsHidden>
         {label}
       </Text>
-      <View style={[styles.track, on && styles.trackOn]}>
+      <View pointerEvents="none" style={[styles.track, on && styles.trackOn]}>
         <View style={[styles.knob, on && styles.knobOn]} />
       </View>
-    </Pressable>
+    </PressableScale>
   );
 }
 
@@ -209,8 +158,10 @@ export function DayPicker({
       {copy.plan.dayLetters.split("").map((letter, index) => {
         const on = selected.includes(index);
         return (
-          <Pressable
+          <PressableScale
             key={copy.plan.weekdays[index]}
+            kind="button"
+            brighten={on}
             accessibilityRole="button"
             accessibilityLabel={copy.plan.weekdays[index]}
             accessibilityState={{ selected: on }}
@@ -219,16 +170,15 @@ export function DayPicker({
               haptic.selection();
               onToggle(index);
             }}
-            style={({ pressed }) => [
+            style={[
               styles.day,
               on && (tone === "lift" ? styles.dayLift : styles.dayAct),
-              pressed && styles.pressed,
             ]}
           >
             <Text style={[styles.dayText, on && (tone === "lift" ? styles.dayLiftText : styles.dayActText)]}>
               {letter}
             </Text>
-          </Pressable>
+          </PressableScale>
         );
       })}
     </View>
@@ -244,14 +194,14 @@ export function StatusMark({ status }: { status: "done" | "next" | "open" }) {
 export function Notice({ lines, onDismiss }: { lines: string[]; onDismiss: () => void }) {
   if (!lines.length) return null;
   return (
-    <Pressable accessibilityRole="alert" onPress={onDismiss} style={styles.notice}>
+    <PressableScale kind="surface" accessibilityRole="alert" onPress={onDismiss} style={styles.notice}>
       <Text style={styles.noticeTitle}>{lines[0]}</Text>
       {lines.slice(1).map((line, index) => (
         <Text key={`${index}-${line}`} style={index === 0 ? styles.noticeStrong : styles.noticeBody}>
           {line}
         </Text>
       ))}
-    </Pressable>
+    </PressableScale>
   );
 }
 
@@ -272,18 +222,18 @@ export function ConfirmCard({
   return (
     <Modal visible transparent animationType={reduceMotion ? "none" : "fade"} onRequestClose={onCancel}>
       <View style={styles.fill}>
-        <Pressable style={styles.backdrop} onPress={onCancel} />
+        <PressableScale kind="plain" style={styles.backdrop} onPress={onCancel} />
         <View style={styles.dialogWrap} pointerEvents="box-none">
           <View accessibilityViewIsModal style={styles.dialog}>
             <Text style={styles.dialogTitle}>{title}</Text>
             <Text style={styles.dialogBody}>{body}</Text>
             <View style={styles.dialogButtons}>
-              <Pressable accessibilityRole="button" onPress={onCancel} style={styles.secondary}>
+              <PressableScale accessibilityRole="button" onPress={onCancel} style={styles.secondary}>
                 <Text style={styles.secondaryText}>{copy.plan.cancel}</Text>
-              </Pressable>
-              <Pressable accessibilityRole="button" onPress={onConfirm} style={styles.primary}>
+              </PressableScale>
+              <PressableScale accessibilityRole="button" onPress={onConfirm} style={styles.primary}>
                 <Text style={styles.primaryText}>{confirm}</Text>
-              </Pressable>
+              </PressableScale>
             </View>
           </View>
         </View>
@@ -325,16 +275,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginLeft: 4,
   },
-  pop: {
-    position: "absolute",
-    backgroundColor: planColors.card,
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 8,
-  },
-  popBody: { color: planColors.white, fontFamily: theme.fonts.body, fontSize: 13, lineHeight: 19 },
-  popLabel: { color: theme.orange.accent, fontFamily: theme.fonts.bodySemi },
   pills: { gap: 8 },
   pillsWrap: { flexDirection: "row", flexWrap: "wrap" },
   pillsGrid: { flexDirection: "row", flexWrap: "wrap" },
@@ -377,18 +317,19 @@ const styles = StyleSheet.create({
     width: 52,
     height: 32,
     borderRadius: theme.radii.pill,
-    backgroundColor: planColors.line,
-    justifyContent: "center",
+    backgroundColor: "#393330",
   },
   trackOn: { backgroundColor: theme.orange.selectedFill },
   knob: {
+    position: "absolute",
+    top: 3,
+    left: 3,
     width: 26,
     height: 26,
     borderRadius: 13,
     backgroundColor: theme.text,
-    marginLeft: 3,
   },
-  knobOn: { marginLeft: 23, backgroundColor: planColors.white },
+  knobOn: { left: 23, backgroundColor: planColors.white },
   days: { flexDirection: "row", gap: 4 },
   day: {
     flex: 1,

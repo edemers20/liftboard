@@ -32,16 +32,16 @@ From step 1 on, a "Plan so far" card at the bottom updates live. Finishing write
 [`20-workouts-today`, `21-workouts-past-day`]
 
 - Header: LIFT BOARD title; a Today button (disabled when today is selected).
-- Week strip: seven day cells with a dot per item (green lift, pink activity); arrows to the previous/next week; today ringed; selected day filled.
-- Day line: ‹ "Saturday, Nov 7" ›.
-- Swiping: anywhere below the week strip, swipe left/right to change day (the cards slide). On the M–Sun strip itself, swipe left/right to change week.
+- Week strip: seven day cells with a dot per item (green lift, pink activity). No arrows beside the strip. It scrolls a week at a time and follows your finger. Today ringed; selected day filled.
+- Day line: ‹ "Saturday, Nov 7" › stays fixed. The arrows change the date in place.
+- Day pager: the cards, activity chips and Fuel & recovery are one page per day under the date line. Dragging horizontally follows the finger, shows the next or previous day and snaps to the nearest day. The M–Sun strip is a week pager with the same drag and snap, and it stays on the selected day's week. Each day scrolls vertically. The strip stays under the header.
 - Day cards:
   - **Today, lift planned**: workout title, exercise list with targets, Start workout; "Switch to …" link when relevant.
   - **Completed lift**: whole card is tappable and opens the workout with a card-to-page transition.
   - **Planned (future) lift**: Move to today.
   - **Open day (today or future, nothing planned)**: "Nothing planned" + "View next lift".
   - **Past day, nothing logged**: "Rest · Nothing logged".
-  - **Activity logged**: pink card with minutes; tap to edit minutes or delete.
+  - **Activity logged**: pink card with minutes. Logging it expands the card inline: minutes, and Difficulty (Easy / Moderate / Hard, default Moderate). Spin, yoga and Pilates keep their own effort options. Deleting a one-off (logged from Other) removes that activity as well as the session. A regular activity only loses the session. Tap a card to open or close the details.
   - **Usual activity day**: a reminder card.
 - Activity chips: one pill per activity with "0 of 2" progress, plus "Other" to log anything. Only on today and past days of this week.
 - Fuel & recovery card (today only): Fuel today kcal; Lower body and Upper body recovery ("18h rest" or "Ready"). Taps through to Plan.

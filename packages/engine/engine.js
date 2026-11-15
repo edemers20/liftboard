@@ -58,18 +58,31 @@ const ACT_IDS=Object.keys(ACT), SPORTS=ACT_IDS.filter(a=>ACT[a].sport);
 const yogaMet=()=>(YOGA_EFF[wk.yeff]||3.0)+(wk.heated==="Yes"?1.0:0), pilMet=()=>PIL_EFF[wk.peff]||3.0;
 const actKey=a=>({pickle:"pAct",yoga:"yAct",spin:"sAct"})[a]||a+"Act";
 const minKey=a=>({pickle:"pmin",climb:"cmin",yoga:"ymin"})[a]||a+"min";
+/* Logged effort on a session (Easy / Moderate / Hard). Spin, yoga and pilates keep their own settings. */
+const effortMul=eff=>eff==="Easy"?0.85:eff==="Hard"?1.15:1;
+const slotStoreKey=id=>id==="zone2"?"zAct":actKey(id);
+function slotEffort(id,i){
+  if(id==="yoga"||id==="pilates"||id==="spin") return 1;
+  const src=`${slotStoreKey(id)}:${i}:${wk.weekStart||0}`;
+  const s=(wk.sessions||[]).find(x=>x.src===src);
+  return effortMul(s&&s.eff);
+}
+function sportKcal(a){
+  const n=cnt(a), slots=wk[actKey(a)]||[], rate=perMin(ACT[a].met);
+  let k=0; for(let i=0;i<n;i++) k+=num(slots[i],plannedMin(a))*rate*slotEffort(a,i); return k;
+}
 
 /* ---------- Day templates (slot order is storage order; append only) ---------- */
 const SUP={calves:["pickle","run","soccer","volleyball","tennis","hockey","rugby"],adductor:["pickle","soccer","tennis","hockey","rugby"],cuff:["pickle","volleyball","climb","tennis","golf"]};
 const ALL=[
- {id:"d1",title:"Lower · Hinge & Glute",slots:[
+ {id:"d1",title:"Lower (Hinge & Glute)",slots:[
   {label:"Main glute",main:1,opts:L.mainGlute,sets:4,reps:"6–10"},
   {label:"Hinge",lower:1,opts:L.hinge,sets:3,reps:"8"},
   {label:"Unilateral",uni:1,lower:1,opts:L.uni,sets:3,reps:"8–10 / leg"},
   {label:"Glute med",trim:1,lower:1,opts:L.gluteMed,sets:3,reps:"15–20"},
   {label:"Calves",support:1,sp:SUP.calves,opts:L.calves,sets:2,reps:"12–15"},
   {label:"Cardio finisher",cardio:1,opts:STEADY}]},
- {id:"d2",title:"Upper · Press",slots:[
+ {id:"d2",title:"Upper (Press)",slots:[
   {label:"Main press",main:1,upperMain:1,opts:L.press,sets:3,reps:"5–8"},
   {label:"Vertical pull",ss:"A1",vpull:1,opts:L.vpull,sets:3,reps:"8–12"},
   {label:"Chest",ss:"A2",opts:L.chest,sets:3,reps:"8–12"},
@@ -79,7 +92,7 @@ const ALL=[
   {label:"Arms",ss:"C2",trim:1,arms:1,upperAcc:1,opts:L.arms,sets:2,reps:"12–15"},
   {label:"Rotator cuff",support:1,sp:SUP.cuff,opts:L.cuff,sets:2,reps:"15"},
   {label:"Cardio finisher",cardio:1,opts:[...INTERVAL,...STEADY]}]},
- {id:"d3",title:"Lower · Quad & Glute",slots:[
+ {id:"d3",title:"Lower (Quad & Glute)",slots:[
   {label:"Main quad",main:1,quad:1,opts:L.quad,sets:4,reps:"6–10"},
   {label:"Glute (light)",lower:1,opts:L.lightGlute,sets:3,reps:"10–12"},
   {label:"Hamstrings",lower:1,opts:L.ham,sets:3,reps:"10–12"},
@@ -87,7 +100,7 @@ const ALL=[
   {label:"Side delts",ss:"A2",trim:1,upperAcc:1,opts:L.side,sets:2,reps:"15"},
   {label:"Adductors",support:1,sp:SUP.adductor,opts:L.adductor,sets:2,reps:"10–12"},
   {label:"Cardio finisher",cardio:1,opts:STEADY}]},
- {id:"x",title:"Upper · Pull",slots:[
+ {id:"x",title:"Upper (Pull)",slots:[
   {label:"Main row",main:1,upperMain:1,opts:L.mainRow,sets:4,reps:"6–10"},
   {label:"Vertical pull",vpull:1,opts:L.vpull,sets:3,reps:"6–10"},
   {label:"Press",ss:"A1",opts:L.press,sets:3,reps:"8–12"},
@@ -129,14 +142,14 @@ const ALL=[
   {label:"Cardio finisher",cardio:1,opts:STEADY}]},
  /* Third lower day for a lower focus. Day 1 is a heavy thrust + RDL; this one covers what the week is missing:
     a different hinge, a lunge in place of the split squat, lying leg curls and back extensions. */
- {id:"g2",title:"Lower · Glute & Hamstring",slots:[
+ {id:"g2",title:"Lower (Glute & Hamstring)",slots:[
   {label:"Main hinge",main:1,opts:L.hinge,def:"Sumo Deadlift",sets:3,reps:"6–8"},
   {label:"Unilateral",uni:1,lower:1,opts:L.uni,def:"Deficit Reverse Lunge (Dumbbell)",sets:3,reps:"10–12 / leg"},
   {label:"Hamstrings",lower:1,opts:L.ham,def:"Leg Curl (Lying)",sets:3,reps:"10–12"},
   {label:"Glute (light)",trim:1,lower:1,opts:L.lightGlute,def:"45° Back Extension (glute bias)",sets:3,reps:"12–15"},
   {label:"Glute med",trim:1,lower:1,opts:L.gluteMed,def:"Cable Hip Abduction",sets:2,reps:"15–20"},
   {label:"Cardio finisher",cardio:1,opts:STEADY}]},
- {id:"u3",title:"Upper · Delts & Arms",slots:[
+ {id:"u3",title:"Upper (Delts & Arms)",slots:[
   {label:"Main press",main:1,upperMain:1,opts:L.press,sets:3,reps:"8–10"},
   {label:"Side delts",ss:"A1",upperAcc:1,opts:L.side,sets:3,reps:"12–20"},
   {label:"Rear delts",ss:"A2",upperAcc:1,opts:L.rear,sets:3,reps:"12–15"},
@@ -198,6 +211,8 @@ function buildDefaults(){ DEFS={}; const used=new Set();
     DEFS[d.id][i]=c; if(!s.cardio) used.add(c===CUSTOM?(st.custom||""):c); }); }); }
 function defChoice(d,s,i){ return (DEFS[d.id]&&DEFS[d.id][i])??(s.def&&s.opts.includes(s.def)?s.def:s.opts[0]); }
 function exName(d,s,i){ const st=get(d.id,i); const c=st.choice??defChoice(d,s,i); return c===CUSTOM?(st.custom||"Custom exercise"):c; }
+/* workout titles read "Lower (Glute & Hamstring)"; older saved titles used a middle dot */
+function wTitle(t){ return String(t||"").replace(/^(Lower|Upper) · (.+)$/,"$1 ($2)"); }
 
 
 
@@ -209,6 +224,11 @@ function init(storage){
   try{ slots=JSON.parse(store.getItem(KEY)||"{}")||{}; }catch(e){}
   try{ const raw=store.getItem(KEY2); hadStore=!!raw; wk={...JSON.parse(JSON.stringify(DEF)),...(JSON.parse(raw||"{}")||{})}; }catch(e){}
   try{ exHist=JSON.parse(store.getItem(KEY3)||"{}")||{}; }catch(e){}
+  if(Array.isArray(wk.sessions)) wk.sessions=wk.sessions.map(x=>x&&x.title&&/ · /.test(x.title)?{...x,title:wTitle(x.title)}:x);
+  if(Array.isArray(wk.weeks)) wk.weeks=wk.weeks.map(w=>w?{...w,
+    ...(Array.isArray(w.miss)?{miss:w.miss.map(wTitle)}:{}),
+    ...(Array.isArray(w.missed)?{missed:w.missed.map(wTitle)}:{}),
+    ...(w.nextTitle?{nextTitle:wTitle(w.nextTitle)}:{})}:w);
 
 if(!wk.mig1){ [["d1",4],["d2",7],["d3",5]].forEach(([d,i])=>{ if(slots[d]&&slots[d][i]){ slots[d][i+1]=slots[d][i]; delete slots[d][i]; } }); wk.mig1=1; }
 /* Day 5 (lower focus) was rebuilt: drop saved picks and logs that no longer fit their slot */
@@ -369,6 +389,23 @@ function balanceWeek(P,MP,inS,deload){
     status:x.done>=x.target?"done":(x.missed>0&&proj(m)<x.target)?"behind":"on track"})).sort((a,b)=>b.p-a.p||a.name.localeCompare(b.name));
   P.balance=changes;
 }
+function loggedCount(dayId,i,cardio){
+  const st=get(dayId,i);
+  if(cardio) return (st.cdone||num(st.act,0)>0)?1:0;
+  return (st.log||[]).filter(x=>x&&x.d).length;
+}
+/** Exercises already started stay in the list, with at least as many sets as were logged. */
+function holdLogged(P){
+  DAYS.forEach(d=>{
+    const D=P.days[d.id]; if(!D) return;
+    d.slots.forEach((s,i)=>{
+      const n=loggedCount(d.id,i,!!s.cardio); if(!n) return;
+      const A=D.slots[i]; if(!A) return;
+      if(A.skip&&A.skip!=="hidden") A.skip="";
+      if(!s.cardio) A.sets=Math.max(num(A.sets,0), n);
+    });
+  });
+}
 function musclePriority(){
   const P={glutes:3,quads:3,hams:3,back:3,chest:3,adductors:2,calves:1,sdelts:2,rdelts:2,core:2,cuff:1,biceps:1,triceps:1}, why={};
   const bump=(m,d,w)=>{ P[m]=Math.max(0,P[m]+d); if(w) (why[m]=why[m]||[]).push(w); };
@@ -411,6 +448,9 @@ function plan(){ buildDefaults(); const cut=cutting();
   if(fem()) addF(wk.cycle==="Period"||wk.cycle==="Luteal"?1:0,wk.cycle==="Period"?"period":"luteal phase");
   addF(legMin>=240?1:0,"heavy sport week");
   addF(hardSpin?(sp>=4?2:1):0,sp>=4?`${sp}× spin`:"hard spin");
+  const weekAt=weekStartOf(Date.now()).getTime();
+  const hardAct=(wk.sessions||[]).some(s=>s&&s.eff==="Hard"&&s.k&&s.k!=="lift"&&s.k!=="spin"&&s.k!=="yoga"&&s.k!=="pilates"&&s.t>=weekAt&&s.t<weekAt+7*864e5);
+  addF(hardAct?1:0,"hard activity");
   addF(sessions>=13?2:sessions>=10?1:0,`${sessions} sessions this week`);
   const S=F.reduce((a,x)=>a+x[0],0);
   P.score=S; P.factors=F.map(x=>x[1]);
@@ -439,6 +479,8 @@ function plan(){ buildDefaults(); const cut=cutting();
     const D={slots:[],today,dayS,shortD,cutD,dayCause,autoRough,restSuggest:d.id===P.nextId&&twoHard};
     d.slots.forEach((s,i)=>{
       const A={delta:0,why:[],skip:"",steady:false};
+      /* Removed from today only. The plan still has it next time. */
+      if(get(d.id,i).cut){ A.skip="hidden"; D.slots.push(A); return; }
       if(s.extra){ A.sets=s.sets; A.why.push("added by you"); D.slots.push(A); return; }
       const base=s.sets+(d.full&&!inS&&!s.cardio&&!s.support?1:0);
       if(s.support&&!(inS&&seasonSports().some(a=>s.sp.includes(a)))){A.skip="hidden"; D.slots.push(A); return;}
@@ -483,14 +525,27 @@ function plan(){ buildDefaults(); const cut=cutting();
     });
     P.days[d.id]=D;
   });
+  /* Rough (and other cuts) only change what is still ahead. Logged work stays, and a set count never drops below sets already logged. */
+  holdLogged(P);
   balanceWeek(P,MP,inS,deload);
+  holdLogged(P);
   let lockNew=false;
   /* A workout in progress keeps the set counts it started with. Logging sets mid-session updates the weekly
-     ledger, which used to add or drop a catch-up set (5 sets became 4 after the 4th, and the exercise ended early). */
-  DAYS.forEach(d=>{ const D=P.days[d.id]; if(!D||done[d.id]||!((wk.wt||{})[d.id]||{}).start) return;
+     ledger, which used to add or drop a catch-up set (5 sets became 4 after the 4th, and the exercise ended early).
+     Switching how the day feels (Rough) retakes that snapshot so what is still ahead can shorten. */
+  DAYS.forEach(d=>{ const D=P.days[d.id]; if(!D||done[d.id]) return;
+    const started=((wk.wt||{})[d.id]||{}).start||d.slots.some((s,i)=>loggedCount(d.id,i,!!s.cardio)>0);
+    if(!started) return;
+    const feel=(wk.today||{})[d.id]||"Normal";
     const L=(wk.lockSets||{})[d.id];
-    if(!L){ wk.lockSets={...(wk.lockSets||{}),[d.id]:D.slots.map(A=>A&&A.sets!=null?A.sets:null)}; lockNew=true; return; }
-    D.slots.forEach((A,i)=>{ if(A&&L[i]!=null&&A.sets!=null&&!d.slots[i].cardio) A.sets=L[i]; }); });
+    const feelChanged=(wk.lockFeel||{})[d.id]!==feel;
+    if(!L||feelChanged){
+      wk.lockSets={...(wk.lockSets||{}),[d.id]:D.slots.map(A=>A&&A.sets!=null?A.sets:null)};
+      wk.lockFeel={...(wk.lockFeel||{}),[d.id]:feel};
+      lockNew=true;
+      return;
+    }
+    D.slots.forEach((A,i)=>{ if(A&&L[i]!=null&&A.sets!=null&&!d.slots[i].cardio) A.sets=Math.max(L[i], loggedCount(d.id,i,false)); }); });
   if(lockNew) save();
   /* Cardio */
   /* "Lose fat, keep strength" allows up to 0.7% of body weight a week, the top of the muscle-friendly range */
@@ -498,12 +553,12 @@ function plan(){ buildDefaults(); const cut=cutting();
   const rateEff=(build||maintain)?0:recomp?Math.min(rateLb(),recompCap):rateLb(), shareEff=recomp?Math.min(num(wk.share,25),25):num(wk.share,25);
   const target=rateEff*3500, cardioTarget=(build||maintain)?0:target*shareEff/100;
   const sess=(n,act,pl,rate)=>{let k=0;for(let i=0;i<n;i++)k+=num((act||[])[i],pl)*rate;return k;};
-  let sportK=0; sportOn.forEach(([a,m])=>{ sportK+=m*perMin(ACT[a].met); });
-  const climbK=cl*75*perMin(ACT.climb.met);
+  let sportK=0; sportOn.forEach(([a])=>{ sportK+=sportKcal(a); });
+  const climbRate=perMin(ACT.climb.met); let climbK=0; for(let i=0;i<cl;i++) climbK+=75*climbRate*slotEffort("climb",i);
   const pilK=sess(cnt("pilates"),wk[actKey("pilates")],plannedMin("pilates"),perMin(pilMet()));
   const yogaK=sess(yg,wk.yAct,num(wk.ymin,60),perMin(yogaMet()));
   const spinK=sess(sp,wk.sAct,SPIN_MIN,perMin(SPIN_MET[wk.spint]||8.5));
-  const zoneK=ramp?num((wk.zAct||[])[0],45)*perMin(CARDIO["Bike (steady)"].met):0;
+  const zoneK=ramp?num((wk.zAct||[])[0],45)*perMin(CARDIO["Bike (steady)"].met)*slotEffort("zone2",0):0;
   let doneK=0; const cand=[];
   DAYS.forEach(d=>{ d.slots.forEach((s,i)=>{ const A=P.days[d.id].slots[i]; if(!s.cardio) return;
       const act=num(get(d.id,i).act,0);
@@ -533,6 +588,8 @@ function plan(){ buildDefaults(); const cut=cutting();
   const stepsK=num(wk.steps,8000)*0.04*num(wk.weight,150)/150;
   const baseM=bmr*1.1;
   if(!(num(wk.liftKAuto,0)>0)) refreshLiftK();
+  /* remember when the season last switched, for "this season" on the profile */
+  if(wk._seasonSeen===undefined) wk._seasonSeen=wk.season; else if(wk._seasonSeen!==wk.season){ wk._seasonSeen=wk.season; wk.seasonFrom=Date.now(); }
   const nLift=DAYS.length, liftDay=nLift*num(wk.liftKAuto,0)/7;
   const ouraV=num(wk.oura,0), useOura=ouraV>0;
   const act=baseM+stepsK+liftDay+cardioTotal/7, tef=act/9;
@@ -573,7 +630,8 @@ function plan(){ buildDefaults(); const cut=cutting();
   if(food>500) P.notes.push(`A ${r5(food)} kcal/day food deficit is steep.`);
   if(!build&&!maintain&&food<0) P.notes.push(`Your activity covers the whole deficit. Eat ${r5(-food)} kcal/day above maintenance so it doesn't cost muscle.`);
   if(fins.length&&m>cap&&cap>0) P.notes.push(`Finishers run ${m} min, past a normal ${cap}-min finisher.`);
-  if(ramp&&sp&&wk.spint==="Really hard") P.notes.push("Keep spin easy during the ramp; hard classes don't build base.");
+  /* Keep intense activity easy shows during the pre-season ramp when spin is Really hard or any activity this week was logged Hard. */
+  if(ramp&&((sp&&wk.spint==="Really hard")||(wk.sessions||[]).some(s=>s&&s.eff==="Hard"&&s.k&&s.k!=="lift"&&s.t>=weekAt&&s.t<weekAt+7*864e5))) P.notes.push("Keep intense activity easy during ramp-up.");
   const nL=DAYS.length;
   if(nL===7) P.notes.push("7 lift days leaves no rest day. Days 6 and 7 run lighter; drop one if anything aches.");
   else if(nL===6) P.notes.push("6 lift days leaves one rest day. Day 6 runs lighter so recovery keeps up.");
@@ -631,6 +689,8 @@ const missedLast=n=>{ const h=exHist[n]||[], x=h[h.length-1]; return x?x:null; }
 const isIso=s=>!!(s.upperAcc||s.support||s.label==="Glute med");
 function suggest(d,s,i,useLog,P){
   const n=exName(d,s,i), st=get(d.id,i), h=exHist[n]||[], bw=isBW(n);
+  /* Keep on a weight suggestion: the rest of this workout stays at the weight you were using. */
+  if(st.keepW!=null){ const [lo]=range(s.reps); return {w:num(st.keepW,0), r:lo, why:"keep"}; }
   const now=useLog?lastSet(st.log,bw):null, last=now||h[h.length-1];
   if(!last||(!last.w&&!bw)||!last.r) return null;
   if(bw){ const [lo0,hi0]=range(s.reps), top0=isIso(s)?hi0+3:hi0;
@@ -662,14 +722,14 @@ function review(d,s,i,P){
   if(bw){ const L0=log[log.length-1]; return {n:exName(d,s,i),w:base.w,r:base.r,why:base.why,tag:base.bwUp||base.w>L0.w?"up":"hold",bw:1}; }
   const n=exName(d,s,i), last=log[log.length-1], first=log[0], A=P.days[d.id].slots[i], D=P.days[d.id];
   const [lo,hi]=range(s.reps), top=isIso(s)?hi+3:hi;
-  let {w,why}=base, tag="";
+  let {w,why,r}=base, tag="";
   const canUp=!inSeason()&&wk.deload!=="Yes"&&!D.cutD;
-  if(canUp&&last.r>=top+3){ w=last.w+2*incFor(n,s,last.w); why="too light, bigger jump"; }
+  if(canUp&&last.r>=top+3){ w=last.w+2*incFor(n,s,last.w); r=lo; why="too light, bigger jump"; }
   else if(log.length>=2&&first.w===last.w&&first.r-last.r>=4){ w=last.w; why="reps fell off across sets; rest longer, same weight"; tag="collapse"; }
   else if(last.r<lo&&base.why.startsWith("hold")){ why="hold"; }
   if(log.length<(A.sets||0)) why+=` · ${log.length}/${A.sets} sets`;
   tag=tag||(w>last.w?"up":w<last.w?"down":"hold");
-  return {n,w,r:base.r,why,tag};
+  return {n,w,r,why,tag};
 }
 const TAGTXT={up:"Up",down:"Down",hold:"Held",collapse:"Fatigue"};
 function fx(P){
@@ -677,7 +737,7 @@ function fx(P){
   Object.entries(P.G).forEach(([c,l])=>{ o["r:"+c.replace(/ \d+ \(.*\)$/,"").replace(/^\d+ min /,"")]=`${c[0].toUpperCase()+c.slice(1)} → ${l.join(", ")}`; });
   o.intake=r5(P.math.intake); o.tdee=r5(P.math.tdee); o.target=r5(P.math.target);
   o.fin=P.math.nLift?(P.math.nFin?`Finishers now ${P.math.m} min × ${P.math.nFin}`:"No finishers needed"):"";
-  o.days=DAYS.length?`Days now: ${DAYS.map(d=>d.title.split(" · ")[0]).join(" · ")}`:"No lifting days";
+  o.days=DAYS.length?`Days now: ${DAYS.map(d=>d.title.split(" (")[0]).join(" · ")}`:"No lifting days";
   return o;
 }
 function diffFx(a,b){
@@ -739,9 +799,11 @@ function liftKcal(){ const L=(wk.sessions||[]).filter(x=>x.k==="lift"&&num(x.min
 function refreshLiftK(){ wk.liftKAuto=liftKcal(); return wk.liftKAuto; }
 function sessionKcal(x){
   if(x.k==="lift") return liftMinOf(x)*perMin(LIFT_MET)+(x.ex||[]).filter(e=>e.cardio&&e.min>0).reduce((a,e)=>a+e.min*perMin((CARDIO[e.n]||CARDIO["Incline Walk"]).met),0);
+  if(x.k==="zone2") return x.min>0?x.min*perMin(CARDIO["Bike (steady)"].met)*effortMul(x.eff):0;
   const A=ACT[x.k]; if(!A||!(x.min>0)) return 0;
   const met=x.k==="yoga"?yogaMet():x.k==="pilates"?pilMet():x.k==="spin"?(SPIN_MET[wk.spint]||8.5):A.met;
-  return met?x.min*perMin(met):0;
+  const mul=x.k==="yoga"||x.k==="pilates"||x.k==="spin"?1:effortMul(x.eff);
+  return met?x.min*perMin(met)*mul:0;
 }
 /* A calendar week's actuals from the log, so edits made after the week closed still count */
 function weekActuals(start){
@@ -788,7 +850,7 @@ function markDone(dayId){
   const note=drops>=2?`Reps dropped on ${drops} lifts, so ${nxt?nxt.tab:"your next session"} is shortened.`:"";
   wk.review={...(wk.review||{}),[dayId]:{items,note}};
   save();
-  const parts=[c("up")&&`${c("up")} moving up`,c("hold")&&`${c("hold")} holding`,(c("down")+c("collapse"))&&`${c("down")+c("collapse")} easing off`].filter(Boolean);
+  const parts=[c("up")&&`${c("up")} moving up`,(c("down")+c("collapse"))&&`${c("down")+c("collapse")} easing off`].filter(Boolean);
   return [`${d.tab} done`,...(parts.length?[`Next time: ${parts.join(", ")}.`]:[]),...(note?[note]:[]),...(items.some(x=>x.why.startsWith("too light"))?["Some lifts were too light; they get a bigger jump."]:[])];
 }
 /** After editing sets on a finished day, rewrite that day's history entries and next-time review. */
@@ -834,7 +896,7 @@ function newWeek(start){
   if(weekRuleAt(begin-1)!==rule) kept.push({t:DAY0(begin).getTime(),rule});
   wk.wkStartAt=kept.length?kept:[{t:0,rule}];
   wk.wkStart=rule;
-  const reset={weekStart:begin,ckDone:false,lockSets:{},review:{},done:{},donePlan:{},today:{},wt:{},rest:null,stretchDone:{},zAct:[],ready:"Normal",sore:"None",drink:"0",wAvg:"",deload:"No"};
+  const reset={weekStart:begin,ckDone:false,lockSets:{},lockFeel:{},weekOrder:null,review:{},done:{},donePlan:{},today:{},wt:{},rest:null,stretchDone:{},zAct:[],ready:"Normal",sore:"None",drink:"0",wAvg:"",deload:"No"};
   ACT_IDS.forEach(a=>{ if(a!=="lift") reset[actKey(a)]=[]; });
   Object.assign(wk,reset);
   ALL.forEach(d=>d.slots.forEach((s,i)=>{ const st=slots[d.id]&&slots[d.id][i]; if(!st) return; if(s.cardio) delete st.act; if(done[d.id]){ st.log=[]; delete st.cdone; } }));
@@ -842,6 +904,7 @@ function newWeek(start){
   Object.keys(wk.extra||{}).forEach(id=>{ const b=tplLen(id), st=slots[id]; if(st) Object.keys(st).forEach(i=>{ if(+i>=b) delete st[i]; }); });
   wk.extra={}; syncDays();
   wk.doneT={};
+  wk.lastChanges=Object.fromEntries(Object.entries(P.G||{}).map(([c,l])=>[c,(l||[]).slice()]));
   wk.reportPending=record.start;
   save(); return ["New week started. Check-in reset to normal."];
 }
@@ -891,9 +954,18 @@ function pinnedToday(todo, now){ const p=wk.pinToday; return p&&p.d===dayKey(now
 /** The plan's week has moved ahead of the calendar week (Mark week as finished). */
 function earlyDone(now){ now=now||Date.now(); return !!(wk.weekStart&&wk.weekStart>weekStartOf(now).getTime()); }
 function planOff(now){ return earlyDone(now)?1:0; }
+function queueTodo(done){
+  const ids=DAYS.map(d=>d.id), first=wk.upNext&&!done[wk.upNext]?wk.upNext:(ids.find(id=>!done[id])||ids[0]);
+  const base=rotation(first).filter(id=>!done[id]);
+  const custom=Array.isArray(wk.weekOrder)?wk.weekOrder.filter(id=>ids.includes(id)&&!done[id]):[];
+  if(!custom.length) return base;
+  const todo=custom.slice();
+  base.forEach(id=>{ if(!todo.includes(id)) todo.push(id); });
+  return todo;
+}
 function weekModel0(now){
-  const done=wk.done||{}, ids=DAYS.map(d=>d.id), first=wk.upNext&&!done[wk.upNext]?wk.upNext:(ids.find(id=>!done[id])||ids[0]);
-  const todo=rotation(first).filter(id=>!done[id]);
+  const done=wk.done||{}, ids=DAYS.map(d=>d.id);
+  const todo=queueTodo(done);
   const m={todo,next0:ids[0],left:[]};
   const E=earlyDone(now), today=DAY0(now), W=addD(weekStartOf(now),E?7:0), t=E?0:Math.round((today-W)/864e5), L0=ldays();
   const liftToday=!E&&(wk.sessions||[]).some(s=>s.k==="lift"&&DAY0(s.t).getTime()===today.getTime());
@@ -942,6 +1014,25 @@ function dayBoard(selOff, now){
     otherId:(M.todo||[]).find(id=>id!==plannedId)||null};
 }
 function moveLiftToToday(id, now){ now=now||Date.now(); wk.pinToday={d:dayKey(now),id}; save(); }
+function dayStarted(id){
+  if((wk.done||{})[id]) return true;
+  const d=DAYS.find(x=>x.id===id); if(!d) return true;
+  return d.slots.some((s,i)=>loggedCount(id,i,!!s.cardio)>0);
+}
+/** Swap two lifts in this week's order only. Next week goes back to the usual order. */
+function swapWeek(curId, otherId){
+  if(!curId||!otherId||curId===otherId) return false;
+  if(dayStarted(curId)||dayStarted(otherId)) return false;
+  const todo=queueTodo(wk.done||{});
+  const a=todo.indexOf(curId), b=todo.indexOf(otherId);
+  if(a<0||b<0) return false;
+  const next=todo.slice(); next[a]=otherId; next[b]=curId;
+  wk.weekOrder=next;
+  if(wk.upNext===curId) wk.upNext=otherId;
+  else if(wk.upNext===otherId) wk.upNext=curId;
+  save();
+  return true;
+}
 const FIN_KEY=KEY2+".preFinish";
 function readFinishSnap(){ try{ return JSON.parse(store.getItem(FIN_KEY)||"null"); }catch(e){ return null; } }
 function hasFinishSnap(){ const x=readFinishSnap(); return !!x&&x.to===wk.weekStart; }
@@ -1003,7 +1094,9 @@ function restView(now){
   now=now||Date.now(); const r=wk.rest; if(!r) return null;
   const left=(r.end-now)/1000;
   if(left<-300){ wk.rest=null; save(); return null; }
-  return {over:left<=0,seconds:Math.max(0,Math.round(Math.abs(left))),why:r.why||"",end:r.end};
+  /* Stop at 0:00. Done closes the bar; it does not count up. */
+  if(left<=0) return {over:true,seconds:0,why:r.why||"",end:r.end};
+  return {over:false,seconds:Math.round(left),why:r.why||"",end:r.end};
 }
 
 /* ---------- First weight when an exercise has no history yet ---------- */
@@ -1036,6 +1129,16 @@ function startWeight(name, slot){
 function showsSide(name){ return UNI_RE.test(String(name||"")); }
 function lastSide(name){ const h=(exHist[name]||[]).slice().reverse().find(x=>x.side); return h?h.side:""; }
 
+/** Remember Keep for this exercise today, so the rest of the sets stay at that weight and the prompt does not return. */
+function keepWeight(dayId,i,w){
+  const st=get(dayId,i), stored=String(num(w,0)), log=(st.log||[]).slice();
+  for(let k=0;k<log.length;k++) if(log[k]&&!log[k].d&&!String(log[k].w||"").trim()) log[k]={...log[k],w:stored};
+  const ticks=log.filter(x=>x&&x.d).length;
+  set(dayId,i,"log",log);
+  set(dayId,i,"keepW",num(w,0));
+  set(dayId,i,"nudged",ticks);
+}
+
 /** Easy or tough set: one increment up or down for the sets still open. Null when there is nothing to offer. */
 function offerNudge(dayId, i){
   const d=DAYS.find(x=>x.id===dayId); if(!d) return null;
@@ -1043,7 +1146,7 @@ function offerNudge(dayId, i){
   const P=plan(), D=P.days[dayId]; if(!D) return null;
   const A=D.slots[i]; if(!A||A.skip||D.done) return null;
   const st=get(dayId,i), log=st.log||[], ticks=log.filter(x=>x.d).length;
-  if(ticks>=(A.sets||0)||st.nudged===ticks) return null;
+  if(ticks>=(A.sets||0)||st.nudged===ticks||st.keepW!=null) return null;
   const lastT=log.slice(0,ticks).slice().reverse().find(x=>x.d&&+x.w>0&&+x.r>0); if(!lastT) return null;
   const [lo,hi]=range(s.reps), top=isIso(s)?hi+3:hi;
   const w0=+lastT.w, r0=+lastT.r, inc=incFor(exName(d,s,i),s,w0);
@@ -1195,11 +1298,74 @@ function dismissWeekReport(){
   save();
   return true;
 }
+/* ---------- This week's changes and Watch, as headline + detail ----------
+   Changes: one row per cause with a short summary; the set-by-set detail opens on tap.
+   Watch: a headline per note, ranked; safety notes always come first and never fold away. */
+const capF1=x=>x?x[0].toUpperCase()+x.slice(1):x;
+const andList=a=>a.length<2?(a[0]||""):`${a.slice(0,-1).join(", ")} and ${a[a.length-1]}`;
+function changeItems(G, prev){
+  let src=G||{};
+  /* A change shows the week it happens. Once it is in last week's plan, it stops showing. */
+  if(prev&&typeof prev==="object"){
+    src={};
+    Object.entries(G||{}).forEach(([c,l])=>{
+      const old=Array.isArray(prev[c])?prev[c]:[];
+      const items=(l||[]).filter(x=>!old.includes(x));
+      if(items.length) src[c]=items;
+    });
+  }
+  return Object.entries(src).map(([c,l])=>{
+  const add=l.filter(x=>/\+1 set$/.test(x)).length, cut=l.filter(x=>/−1 set$/.test(x)).length, other=l.filter(x=>!/[+−]1 set$/.test(x));
+  const parts=[]; if(add) parts.push(`${add} set${add>1?"s":""} added`); if(cut) parts.push(`${cut} set${cut>1?"s":""} cut`);
+  if(other.length) parts.push(parts.length||other.length>1?`${other.length} other change${other.length>1?"s":""}`:other[0]);
+  return {cause:capF1(c),summary:capF1(andList(parts)),items:l.map(capF1)}; }); }
+/* headline, rank, safety; null drops the note from Watch. Notes that share a headline merge into one row. */
+const WATCH=[[/^Eating ~/,"Need more fuel",0,1],[/food deficit is steep/,"Need more fuel",1],[/covers the whole deficit/,"Need more fuel",1],
+  [/period is a sign/,"Watch your cycle",0,1],[/leaves no rest day/,"Need more recovery",0,1],[/leaves one rest day/,"Need more recovery",2],
+  [/Reps are dropping/,"Reps dropping",1],[/^Food raised to/,"Fuel raised",1],[/aggressive; strength will stall/,"Aggressive pace",1],
+  [/weeks at a faster pace/,"Time for a break",1],[/close to daily/,null],[/sessions this week/,null],[/two a day on average/,null],
+  [/^Finishers run/,"Long finishers",2],[/caps loss at/,"Pace capped",2],[/caps cardio at 25%/,"Cardio capped",2],[/^Keep intense activity easy/,"Keep intense activity easy",2],
+  [/rather than build/,"Strength first",3],[/preserving strength is the goal/,"Strength first",3],[/^Protein /,"Protein",4]];
+function watchItems(notes){ const by=new Map();
+  /* Strength first: when both notes apply, only the "rather than build" one shows */
+  if((notes||[]).some(t=>/rather than build/.test(t))) notes=notes.filter(t=>!/preserving strength is the goal/.test(t));
+  (notes||[]).forEach((t,i)=>{ const m=WATCH.find(([re])=>re.test(t))||[null,"Note",3,0]; if(m[1]===null) return;
+    const body=m[1]==="Protein"?t.replace(/^Protein /,""):t, x=by.get(m[1]);
+    if(x){ x.t+=" "+body; x.rank=Math.min(x.rank,m[2]); x.safe=x.safe||!!m[3]; } else by.set(m[1],{h:m[1],t:body,rank:m[2],safe:!!m[3],i}); });
+  return [...by.values()].sort((a,b)=>a.rank-b.rank||a.i-b.i); }
+/* ---------- Time moved: hours across lifts and activities (profile) ----------
+   A lift counts its logged minutes (or your session length if none was saved); activities count their minutes. */
+const sessMin=x=>x.k==="lift"?(num(x.min,0)>0?num(x.min,0):num(wk.time,60)):num(x.min,0);
+function timeByKind(from=0,to=Infinity){ const by={};
+  (wk.sessions||[]).filter(x=>x&&x.t>=from&&x.t<to).forEach(x=>{ const c=by[x.k]||(by[x.k]={k:x.k,min:0,n:0}); c.min+=sessMin(x); c.n++; });
+  return Object.values(by).map(c=>({...c,hours:Math.round(c.min/60*10)/10})).sort((a,b)=>b.min-a.min); }
+const hoursMoved=(from=0,to=Infinity)=>Math.round(timeByKind(from,to).reduce((a,c)=>a+c.min,0)/60);
+/* the activity (not lifting) with the most time; the season starts when In-season was last switched, else at your first log */
+const seasonFrom=()=>num(wk.seasonFrom,0)||Math.min(Date.now(),...(wk.sessions||[]).map(x=>x.t||Infinity));
+function mostPlayed(from=seasonFrom()){ const a=timeByKind(from).filter(c=>c.k!=="lift")[0]; return a?{...a,hours:Math.round(a.min/60)}:null; }
+/** Done only with logged sets, or logged minutes on a finisher. Skipped or trimmed is not done. */
+function rowDone(dayId,i,P){
+  const d=DAYS.find(x=>x.id===dayId); if(!d||!d.slots[i]) return false;
+  const D=(P||plan()).days[dayId]; if(!D||!D.slots[i]||D.slots[i].skip==="hidden") return false;
+  const st=get(dayId,i);
+  if(d.slots[i].cardio) return !!(st.cdone||num(st.act,0)>0);
+  const n=(st.log||[]).filter(x=>x&&x.d).length;
+  if(!n) return false;
+  return n>=(D.slots[i].sets||n);
+}
+/** Optional items that were never started do not count toward the day's progress. */
+function countsInDay(dayId,i,P){
+  const d=DAYS.find(x=>x.id===dayId); if(!d||!d.slots[i]) return false;
+  const D=(P||plan()).days[dayId]; const A=D&&D.slots[i];
+  if(!A||A.skip==="hidden") return false;
+  const st=get(dayId,i), started=d.slots[i].cardio?!!(st.cdone||num(st.act,0)>0):(st.log||[]).some(x=>x&&x.d);
+  if(A.skip&&!started) return false;
+  return true;
+}
 function dayComplete(dayId){
   const d=DAYS.find(x=>x.id===dayId); if(!d) return false;
-  const D=plan().days[dayId]; if(!D) return false;
-  return d.slots.every((s,i)=>{ const A=D.slots[i]; if(!A||A.skip) return true; if(s.cardio) return !!get(dayId,i).cdone;
-    return (get(dayId,i).log||[]).filter(x=>x.d).length>=A.sets; });
+  const P=plan(); if(!P.days[dayId]) return false;
+  return d.slots.every((_,i)=>!countsInDay(dayId,i,P)||rowDone(dayId,i,P));
 }
 
-export { sessionKcal, liftKcal, refreshLiftK, LIFT_MET, weekActuals, swapOptions, swapDay, earlyDone, planOff, finishWeek, undoFinish, hasFinishSnap, rateLb, isBW, yogaMet, pilMet, YOGA_EFF, PIL_EFF, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, MUSCLES, slotMuscles, musclePriority, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk, weekModel, dayBoard, moveLiftToToday, dayKey, weekStartOf, weekRuleAt, setWeekStart, restPlan, beginRest, adjustRest, clearRest, restView, startingGuess, startWeight, showsSide, sideDefault, lastSide, offerNudge, dayComplete, e1rm, weekTops, liftTrends, recentPrs, weekCompleted, weekStreak, countWeek, weekActivities, weekReport, pendingWeekReport, dismissWeekReport };
+export { timeByKind, hoursMoved, mostPlayed, seasonFrom, changeItems, watchItems, keepWeight, rowDone, countsInDay, swapWeek, wTitle, sessionKcal, liftKcal, refreshLiftK, LIFT_MET, weekActuals, swapOptions, swapDay, earlyDone, planOff, finishWeek, undoFinish, hasFinishSnap, rateLb, isBW, yogaMet, pilMet, YOGA_EFF, PIL_EFF, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, MUSCLES, slotMuscles, musclePriority, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk, weekModel, dayBoard, moveLiftToToday, dayKey, weekStartOf, weekRuleAt, setWeekStart, restPlan, beginRest, adjustRest, clearRest, restView, startingGuess, startWeight, showsSide, sideDefault, lastSide, offerNudge, dayComplete, e1rm, weekTops, liftTrends, recentPrs, weekCompleted, weekStreak, countWeek, weekActivities, weekReport, pendingWeekReport, dismissWeekReport };

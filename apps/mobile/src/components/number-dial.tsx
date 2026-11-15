@@ -1,14 +1,6 @@
 import { createContext, useContext, useRef, useState, type ReactNode } from "react";
-import {
-  FlatList,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-  type StyleProp,
-  type TextStyle,
-  type ViewStyle,
-} from "react-native";
+import { PressableScale } from "@/components/pressable-scale";
+import { FlatList, StyleSheet, Text, View, type StyleProp, type TextStyle, type ViewStyle } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { SheetFrame } from "@/components/motion";
@@ -101,7 +93,7 @@ export function DialValue({
   const open = useContext(DialContext);
   const shown = value.trim();
   return (
-    <Pressable
+    <PressableScale
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
       accessibilityHint={shown || placeholder}
@@ -121,7 +113,7 @@ export function DialValue({
       <Text style={[styles.valueText, textStyle, !shown && styles.placeholder]} numberOfLines={1}>
         {shown || placeholder || " "}
       </Text>
-    </Pressable>
+    </PressableScale>
   );
 }
 
@@ -179,13 +171,13 @@ function NumberDial({ request, onClose }: { request: Request; onClose: () => voi
     <SheetFrame visible onClose={onClose} label={copy.you.cancel}>
         <View style={[styles.sheet, { marginBottom: insets.bottom + 12 }]}>
           <View style={styles.top}>
-            <Text style={styles.label}>{request.label}</Text>
-            <Pressable accessibilityRole="button" accessibilityLabel={copy.you.cancel} onPress={onClose} style={styles.close}>
+            <Text style={[styles.label, greenDial(request.accent) && styles.labelGreen]}>{request.label}</Text>
+            <PressableScale accessibilityRole="button" accessibilityLabel={copy.you.cancel} onPress={onClose} style={styles.close}>
               <Close />
-            </Pressable>
+            </PressableScale>
           </View>
           <View style={styles.wheelWrap}>
-            <View pointerEvents="none" style={styles.band} />
+            <View pointerEvents="none" style={[styles.band, greenDial(request.accent) && styles.bandGreen]} />
             <FlatList
               ref={list}
               data={vals}
@@ -213,12 +205,12 @@ function NumberDial({ request, onClose }: { request: Request; onClose: () => voi
                 const on = itemIndex === index;
                 const text = item == null ? copy.you.none : formatValue(item, request.step);
                 return (
-                  <Pressable accessibilityRole="button" accessibilityLabel={item == null ? text : `${text} ${request.unit ?? ""}`.trim()} onPress={() => move(itemIndex, !reduceMotion)} style={styles.item}>
+                  <PressableScale accessibilityRole="button" accessibilityLabel={item == null ? text : `${text} ${request.unit ?? ""}`.trim()} onPress={() => move(itemIndex, !reduceMotion)} style={styles.item}>
                     <Text style={[styles.itemText, on && styles.itemOn]}>
                       {text}
-                      {item != null && request.unit ? <Text style={[styles.unit, on && styles.unitOn]}> {request.unit}</Text> : null}
+                      {item != null && request.unit ? <Text style={[styles.unit, on && (greenDial(request.accent) ? styles.unitGreen : styles.unitOn)]}> {request.unit}</Text> : null}
                     </Text>
-                  </Pressable>
+                  </PressableScale>
                 );
               }}
             />
@@ -226,7 +218,7 @@ function NumberDial({ request, onClose }: { request: Request; onClose: () => voi
           {request.detail && current != null ? (
             <View style={styles.detail}>{request.detail(formatValue(current, request.step))}</View>
           ) : null}
-          <Pressable
+          <PressableScale
             accessibilityRole="button"
             onPress={() => {
               const picked = vals[indexRef.current];
@@ -236,10 +228,14 @@ function NumberDial({ request, onClose }: { request: Request; onClose: () => voi
             style={[styles.done, { backgroundColor: request.accent }]}
           >
             <Text style={styles.doneText}>{copy.workout.done}</Text>
-          </Pressable>
+          </PressableScale>
         </View>
     </SheetFrame>
   );
+}
+
+function greenDial(accent: string): boolean {
+  return accent === theme.green.accent || accent === theme.green.accentFill;
 }
 
 const styles = StyleSheet.create({
@@ -256,6 +252,9 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   top: { minHeight: 44, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  labelGreen: { color: theme.green.accent },
+  bandGreen: { backgroundColor: "rgba(111,208,180,0.18)" },
+  unitGreen: { color: theme.green.accent },
   label: {
     color: theme.orange.accent,
     fontFamily: theme.fonts.bodySemi,

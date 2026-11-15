@@ -35,17 +35,28 @@ let player: ChimePlayer | null = null;
 let subscription: { remove: () => void } | null = null;
 let releaseTimer: ReturnType<typeof setTimeout> | null = null;
 let generation = 0;
+let onDone: (() => void) | null = null;
 
-/** Same three notes as the web chime. Mixes over other audio and does not hold the session. */
-export function playChime(): void {
-  if (Platform.OS === "web") {
-    playWebChime();
-    return;
-  }
-  void playNativeChime();
+function finish(mine: number) {
+  if (mine !== generation) return;
+  const done = onDone;
+  onDone = null;
+  done?.();
 }
 
-function playWebChime() {
+/** Same three notes as the web chime. Mixes over other audio and does not hold the session. */
+export function playChime(done?: () => void): void {
+  const mine = ++generation;
+  onDone = done ?? null;
+  if (Platform.OS === "web") {
+    if (!playWebChime()) finish(mine);
+    else setTimeout(() => finish(mine), 1000);
+    return;
+  }
+  void playNativeChime(mine);
+}
+
+function playWebChime(): boolean {
   const host = globalThis as {
     AudioContext?: new () => ChimeContext;
     webkitAudioContext?: new () => ChimeContext;
@@ -58,7 +69,7 @@ function playWebChime() {
     // The playback session is an iOS web extra. The tones still play without it.
   }
   const Context = host.AudioContext || host.webkitAudioContext;
-  if (!Context) return;
+  if (!Context) return false;
   const audio = new Context();
   void audio.resume?.();
   const start = audio.currentTime;
@@ -81,10 +92,10 @@ function playWebChime() {
     tone.start(start + delay);
     tone.stop(start + delay + 0.65);
   });
+  return true;
 }
 
-async function playNativeChime() {
-  const mine = ++generation;
+async function playNativeChime(mine: number) {
   try {
     const { createAudioPlayer, setAudioModeAsync } = await import("expo-audio");
     // mixWithOthers plays over music. doNotMix pauses it. playsInSilentMode uses the
@@ -110,6 +121,7 @@ async function playNativeChime() {
     next.play();
   } catch {
     // A dev build from before expo-audio has no player. The next native build includes it.
+    finish(mine);
   }
 }
 
@@ -121,4 +133,5 @@ function releaseNative(mine: number) {
   subscription = null;
   player?.remove();
   player = null;
+  finish(mine);
 }

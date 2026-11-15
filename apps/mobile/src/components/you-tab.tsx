@@ -1,28 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { PressableScale } from "@/components/pressable-scale";
 import { File, Paths } from "expo-file-system";
-import {
-  AccessibilityInfo,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  Share,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-  type AccessibilityRole,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { usePathname, useRouter } from "expo-router";
+import { AccessibilityInfo, KeyboardAvoidingView, Platform, ScrollView, Share, StyleSheet, Text, TextInput, View, type AccessibilityRole } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { applyBackup, parseBackup, type LiftBackup } from "@/backup";
 import { playChime } from "@/chime";
+import { LiveWorkoutBar } from "@/components/live-workout";
 import { SheetFrame } from "@/components/motion";
+import { InfoTip, type TipSection } from "@/components/tip-popover";
 import { ageDial, bodyFatDial, DialValue, heightDial, stepsDial, weightDial, type DialSpec } from "@/components/number-dial";
 import { copy, fill } from "@/copy";
 import { haptic } from "@/haptic";
-import { Info } from "@/icons";
 import { storage } from "@/storage";
+import { resetTabTips } from "@/tab-tips";
+import { TabScrollMarker } from "@/tab-bar-inset";
 import { engine, useEngineStore } from "@/store";
 import { rollWeekIfDue } from "@/week-roll";
 import { theme } from "@/theme";
@@ -74,8 +67,6 @@ type Source = {
   stretch: string;
   sound: string;
 };
-
-type InfoItem = { label: string; body: string };
 
 type Tile = {
   label: string;
@@ -299,19 +290,21 @@ function readBackupFile(): Promise<string | null> {
   });
 }
 
-/** The profile is read from the engine module, which the compiler would treat as constant. */
-export function YouTab({ onReplay }: { onReplay: () => void }) {
+/** Settings, opened from the gear on You. Body edits stay in a draft until saved. */
+export function SettingsScreen({ onReplay, startMetrics = false }: { onReplay: () => void; startMetrics?: boolean }) {
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
   "use no memo";
   useEngineStore((state) => state.version);
   const call = useEngineStore((state) => state.call);
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState(startMetrics);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [openFaq, setOpenFaq] = useState<Record<number, boolean>>({});
-  const [info, setInfo] = useState<InfoItem[] | null>(null);
   const [confirm, setConfirm] = useState<null | "reset" | "delete" | "restore">(null);
   const [pending, setPending] = useState<LiftBackup | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
+  const path = usePathname();
   const kgMode = engine.wk.units === "kg";
   const changed = dirty(draft);
   const form = sourceFrom(draft);
@@ -385,6 +378,13 @@ export function YouTab({ onReplay }: { onReplay: () => void }) {
     const fixed = { acts: form.acts, mainSport: main, sport2: second, season: form.season };
     engine.fixSports(fixed);
     stage({ mainSport: fixed.mainSport, sport2: fixed.sport2, season: fixed.season });
+    call((api) => {
+      api.wk.mainSport = fixed.mainSport;
+      api.wk.sport2 = fixed.sport2;
+      api.wk.season = fixed.season;
+      api.fixSports(api.wk);
+      api.save();
+    });
   }
 
   function eraseOnThisPhone() {
@@ -447,159 +447,154 @@ export function YouTab({ onReplay }: { onReplay: () => void }) {
   }
 
   const week = engine.wk;
-  const name = str(week.name).trim() || copy.tabs.you;
-  const sessions = (week.sessions || []) as { t: number; k: string }[];
-  const lifts = sessions.filter((session) => session.k === "lift").length;
-  const weeks = new Set(sessions.map((session) => engine.weekStartOf(session.t).getTime())).size;
-  const tags = (engine.ACT_IDS as string[])
-    .filter((id) => id !== "lift" && engine.enabled(id))
-    .sort((a, b) => Number(b === week.mainSport) - Number(a === week.mainSport));
-  const sports = ([...(engine.SPORTS as string[]), "yoga", "pilates"] as string[]).filter((id) => form.acts[id]);
-  const sessionIndex = Math.max(0, SESSION_MINUTES.indexOf(Number(form.time) as (typeof SESSION_MINUTES)[number]));
-  const session = SESSION_MINUTES[sessionIndex];
+  const [adding, setAdding] = useState(false);
+  const [showAllFaq, setShowAllFaq] = useState(false);
+  const enabledActs = (engine.ACT_IDS as string[]).filter((id) => id !== "lift" && engine.enabled(id));
+  const activityChoices = (engine.ACT_IDS as string[]).filter((id) => id !== "lift");
+  const planFaq = copy.faq.findIndex(([question]) => question.startsWith("How is my plan"));
+  const fuelFaq = copy.faq.findIndex(([question]) => question.startsWith("How is fuel"));
+
+  function toggleActivity(id: string) {
+    call((api) => {
+      const on = !api.wk.acts?.[id];
+      api.wk.acts = { ...(api.wk.acts || {}), [id]: on };
+      if (on && (api.SPORTS as string[]).includes(id)) {
+        if (!api.wk.mainSport) api.wk.mainSport = id;
+        else if (!api.wk.sport2 && api.wk.mainSport !== id) api.wk.sport2 = id;
+      }
+      api.fixSports(api.wk);
+      api.syncDays();
+      api.save();
+    });
+  }
+
+  function metric(label: string, value: string) {
+    return (
+      <View key={label} style={styles.metric}>
+        <Text style={styles.metricLabel}>{label}</Text>
+        <Text style={styles.metricValue}>{value || copy.you.emptyMetric}</Text>
+      </View>
+    );
+  }
+
+  const heightIn = engine.num(week.height, 0);
+  const heightText = heightIn
+    ? kgMode
+      ? `${Math.round(heightIn * 2.54)} ${copy.you.cm}`
+      : `${Math.floor(heightIn / 12)}′${Math.round(heightIn % 12)}″`
+    : "";
+  const weightN = engine.num(week.weight, 0);
+  const weightText = weightN ? `${kgMode ? toDisplay(weightN) : weightN} ${kgMode ? copy.you.kg : copy.you.lb}` : "";
+  const stepsN = engine.num(week.steps, 0);
+  const levelLabel = lookup(copy.levels, levelKey(week)) || "";
 
   return (
-    <SafeAreaView style={styles.screen} edges={["top"]}>
+    <View style={styles.screen}>
       <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <TabScrollMarker>
       <ScrollView
         style={styles.screen}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + 8, paddingBottom: Math.max(28, insets.bottom + 16) }]}
         keyboardShouldPersistTaps="handled"
         automaticallyAdjustKeyboardInsets
+        scrollsToTop
+        contentInsetAdjustmentBehavior="never"
       >
-        <View style={styles.hero}>
-          <View style={styles.who}>
-            <Avatar letter={name.slice(0, 1).toUpperCase()} />
-            <View style={styles.whoText}>
-              <Text style={styles.name} numberOfLines={1}>
-                {name}
-              </Text>
-              <Text style={styles.since}>{copy.you.memberSince(memberSince(week))}</Text>
-            </View>
-          </View>
-          {tags.length ? (
-            <View style={styles.tags}>
-              {tags.map((id) => (
-                <View key={id} style={styles.tag}>
-                  <Text style={styles.tagText}>
-                    {activityName(id)}
-                    {id === week.mainSport && engine.inSeason() ? copy.you.inSeason : ""}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          ) : null}
-          <View style={styles.stats}>
-            <Stat value={String(lifts)} label={copy.you.lifts} />
-            <Stat value={String(sessions.length - lifts)} label={copy.you.activities} />
-            <Stat value={String(weeks)} label={copy.you.weeksActive} />
-          </View>
-        </View>
+        <PressableScale accessibilityRole="button" accessibilityLabel={copy.you.backYou} onPress={() => router.back()} style={styles.backLink}>
+          <Text style={styles.backText}>{copy.you.backYou}</Text>
+        </PressableScale>
+        <Text accessibilityRole="header" style={styles.settingsTitle}>{copy.you.settings}</Text>
+        <PressableScale accessibilityRole="button" onPress={() => router.push("/plan")} style={styles.seasonNote}>
+          <Text style={styles.seasonNoteText}>
+            {copy.you.seasonNote}
+            <Text style={styles.seasonNoteLink}>{copy.you.planSeason}</Text>.
+          </Text>
+        </PressableScale>
 
         <View style={styles.panel}>
-          <View style={styles.grid}>
-            {profileTiles(kgMode, true).map((tile) => (
-              <View key={tile.label} style={tile.wide ? styles.tileWide : styles.tileThird}>
-                <View accessible style={styles.tile}>
-                  <Text style={styles.tileLabel}>{tile.label}</Text>
-                  {tile.text ? (
-                    <Text style={styles.tileText}>{tile.value}</Text>
-                  ) : (
-                    <Text style={styles.tileValue} numberOfLines={1}>
-                      {tile.value}
-                      {tile.unit ? <Text style={styles.tileUnit}>{tile.unit}</Text> : null}
-                    </Text>
-                  )}
-                </View>
-              </View>
-            ))}
-          </View>
-          {editing ? null : (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityState={{ expanded: false }}
-            onPress={() => setEditing(true)}
-            style={styles.secondary}
-          >
-            <Text style={styles.secondaryText}>{copy.you.viewPreferences}</Text>
-          </Pressable>
-          )}
+          <Text accessibilityRole="header" style={styles.eyebrow}>{copy.you.body}</Text>
           {editing ? (
             <ProfileForm
+              bodyOnly
               form={form}
               kgMode={kgMode}
               onStage={stage}
               onSport={pickSport}
-              sports={sports}
-              onInfo={setInfo}
+              sports={[...(engine.SPORTS as string[]), "yoga", "pilates"].filter(
+                (id, index, all) => all.indexOf(id) === index && engine.enabled(id),
+              )}
             />
-          ) : null}
+          ) : (
+            <View style={styles.metrics}>
+              {metric(copy.you.height, heightText)}
+              {metric(copy.you.weight, weightText)}
+              {metric(copy.you.bodyFat, week.bf ? `${week.bf}%` : "")}
+              {metric(copy.you.age, str(week.age))}
+              {metric(copy.you.sex, lookup(copy.sex, week.sex) || "")}
+              {metric(copy.you.stepsADay, stepsN ? stepsN.toLocaleString("en-US") : "")}
+            </View>
+          )}
+          <PressableScale
+            kind="text"
+            accessibilityRole="button"
+            onPress={() => {
+              if (editing && changed) saveProfile();
+              else if (editing) closeEdit();
+              else setEditing(true);
+            }}
+            style={styles.linkButton}
+          >
+            <Text style={styles.linkButtonText}>{copy.you.editMetrics}</Text>
+          </PressableScale>
         </View>
 
-        {editing && engine.enabled("lift") ? (
-          <View style={styles.panel}>
-            <Heading
-              title={copy.you.trainingPreferences}
-              onInfo={() =>
-                setInfo([{ label: copy.you.supersets, body: copy.info.supersets }])
-              }
-            />
-            <Text style={styles.fieldTitle}>{copy.you.experience}</Text>
-            <ExperienceSlider value={form.level} onChange={(level) => stage({ level })} />
-            <Text style={styles.fieldTitle}>{copy.you.sessionLength}</Text>
-            <View accessibilityLabel={copy.you.sessionLength} style={styles.stepper}>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`${copy.you.decrease} to ${SESSION_MINUTES[sessionIndex - 1] ?? session} ${copy.you.min}`}
-                disabled={sessionIndex === 0}
-                onPress={() => stage({ time: SESSION_MINUTES[sessionIndex - 1] })}
-                style={styles.stepButton}
-              >
-                <Text style={[styles.stepSymbol, sessionIndex === 0 && styles.stepSymbolOff]}>−</Text>
-              </Pressable>
-              <Text style={styles.stepValue}>
-                {session}
-                <Text style={styles.stepUnit}> {copy.you.min}</Text>
-              </Text>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`${copy.you.increase} to ${SESSION_MINUTES[sessionIndex + 1] ?? session} ${copy.you.min}`}
-                disabled={sessionIndex === SESSION_MINUTES.length - 1}
-                onPress={() => stage({ time: SESSION_MINUTES[sessionIndex + 1] })}
-                style={styles.stepButton}
-              >
-                <Text
-                  style={[
-                    styles.stepSymbol,
-                    sessionIndex === SESSION_MINUTES.length - 1 && styles.stepSymbolOff,
-                  ]}
-                >
-                  +
-                </Text>
-              </Pressable>
+        <View style={styles.panel}>
+          <Text accessibilityRole="header" style={styles.eyebrow}>{copy.you.training}</Text>
+          <View style={styles.valueRow}>
+            <Text style={styles.rowLabel}>{copy.you.experience}</Text>
+            <Text style={styles.rowHint}>{levelLabel}</Text>
+          </View>
+          <ExperienceSlider value={levelKey(week)} onChange={(level) => write("level", level)} />
+          <Toggle label={copy.you.supersets} on={(week.ss || "Yes") === "Yes"} onPress={() => write("ss", (week.ss || "Yes") === "Yes" ? "No" : "Yes")} />
+          <Toggle label={copy.you.stretchingAfterLifts} on={week.stretch === "Yes"} onPress={() => write("stretch", week.stretch === "Yes" ? "No" : "Yes")} />
+          <View style={styles.soundRow}>
+            <View style={styles.rowCopy}>
+              <Text style={styles.rowLabel}>{copy.you.restTimerSound}</Text>
+              <TestSoundButton />
             </View>
             <Toggle
-              label={copy.you.supersets}
-              on={form.ss === "Yes"}
-              onPress={() => stage({ ss: form.ss === "Yes" ? "No" : "Yes" })}
-            />
-            <Toggle
-              label={copy.you.stretchingAfterLifts}
-              on={form.stretch === "Yes"}
-              onPress={() => stage({ stretch: form.stretch === "Yes" ? "No" : "Yes" })}
-            />
-            <Toggle
+              bare
               label={copy.you.restTimerSound}
-              on={form.sound === "Yes"}
-              onPress={() => stage({ sound: form.sound === "Yes" ? "No" : "Yes" })}
+              on={(week.sound || "Yes") === "Yes"}
+              onPress={() => write("sound", (week.sound || "Yes") === "Yes" ? "No" : "Yes")}
             />
-            {form.sound === "Yes" ? (
-              <Pressable accessibilityRole="button" onPress={playChime} style={styles.testSound}>
-                <Text style={styles.secondaryText}>{copy.you.playTestSound}</Text>
-              </Pressable>
-            ) : null}
           </View>
-        ) : null}
+        </View>
+
+        <View style={styles.panel}>
+          <Text accessibilityRole="header" style={styles.eyebrow}>{copy.you.activities}</Text>
+          <View style={styles.pills}>
+            {(adding ? activityChoices : enabledActs).map((id) => (
+              <PressableScale
+                key={id}
+                accessibilityRole="button"
+                accessibilityState={{ selected: !!engine.enabled(id) }}
+                onPress={() => toggleActivity(id)}
+                style={[styles.actPill, engine.enabled(id) ? styles.actPillOn : styles.actPillOff]}
+              >
+                <Text style={[styles.actPillText, engine.enabled(id) ? styles.actPillTextOn : styles.actPillTextOff]}>{activityName(id)}</Text>
+              </PressableScale>
+            ))}
+            <PressableScale
+              accessibilityRole="button"
+              accessibilityState={{ expanded: adding }}
+              onPress={() => setAdding((open) => !open)}
+              style={[styles.actPill, styles.actPillOff]}
+            >
+              <Text style={styles.actPillTextOff}>{copy.you.addActivity}</Text>
+            </PressableScale>
+          </View>
+        </View>
 
         <View style={styles.panel}>
           <Text accessibilityRole="header" style={styles.eyebrow}>
@@ -625,7 +620,6 @@ export function YouTab({ onReplay }: { onReplay: () => void }) {
           />
           <TwoWay
             label={copy.you.weekStartsOn}
-            hint={copy.you.weekStartsHint}
             value={week.wkStart === "Sun" ? "Sun" : "Mon"}
             options={[
               ["Mon", copy.you.mon],
@@ -633,83 +627,113 @@ export function YouTab({ onReplay }: { onReplay: () => void }) {
             ]}
             onChange={(value) => call((api) => api.setWeekStart(value))}
           />
-          <TwoWay
+          <Toggle
             label={copy.you.nextMorning}
-            hint={copy.you.nextMorningHint}
-            value={(week.remind || "On") === "Off" ? "Off" : "On"}
-            options={[
-              ["On", copy.you.on],
-              ["Off", copy.you.off],
-            ]}
-            onChange={(value) => write("remind", value)}
+            on={(week.remind || "On") !== "Off"}
+            onPress={() => write("remind", (week.remind || "On") === "Off" ? "On" : "Off")}
           />
         </View>
 
         <View style={styles.panel}>
           <Text accessibilityRole="header" style={styles.eyebrow}>
-            {copy.you.faq}
+            {copy.you.help}
           </Text>
-          {copy.faq.map(([question, answer], index) => {
-            const open = !!openFaq[index];
-            return (
-              <View key={question} style={index === 0 ? undefined : styles.faqDivider}>
-                <Pressable
+          <View>
+            {[
+              { index: planFaq, label: copy.faq[planFaq]?.[0] || "" },
+              { index: fuelFaq, label: copy.you.howFuelWorkedOut },
+            ].map(({ index, label }, row) => {
+              const open = !!openFaq[index];
+              const answer = copy.faq[index]?.[1] || "";
+              return (
+                <PressableScale
+                  key={label}
                   accessibilityRole="button"
                   accessibilityState={{ expanded: open }}
                   onPress={() => setOpenFaq((prev) => ({ ...prev, [index]: !prev[index] }))}
-                  style={styles.faqQuestion}
+                  style={[styles.helpRow, row === 0 ? null : styles.faqDivider]}
                 >
-                  <Text style={styles.faqQuestionText}>{question}</Text>
-                </Pressable>
-                {open ? <Text style={styles.faqAnswer}>{answer}</Text> : null}
+                  <View style={styles.helpLine}>
+                    <Text style={styles.rowLabel}>{label}</Text>
+                    <Text style={styles.helpChevron}>›</Text>
+                  </View>
+                  {open ? <Text style={styles.faqAnswer}>{answer}</Text> : null}
+                </PressableScale>
+              );
+            })}
+            <PressableScale
+              accessibilityRole="button"
+              accessibilityState={{ expanded: showAllFaq }}
+              onPress={() => setShowAllFaq((open) => !open)}
+              style={[styles.helpRow, styles.faqDivider]}
+            >
+              <View style={styles.helpLine}>
+                <Text style={styles.rowLabel}>{copy.you.allQuestions}</Text>
+                <Text style={styles.helpChevron}>›</Text>
               </View>
-            );
-          })}
+            </PressableScale>
+            {showAllFaq
+              ? copy.faq.map(([question, answer], index) =>
+                  index === planFaq || index === fuelFaq ? null : (
+                    <View key={question} style={[styles.faqItem, styles.faqDivider]}>
+                      <Text style={styles.faqQuestionText}>{question}</Text>
+                      <Text style={styles.faqAnswer}>{answer}</Text>
+                    </View>
+                  ),
+                )
+              : null}
+          </View>
         </View>
 
         <View style={styles.panel}>
           <Text accessibilityRole="header" style={styles.eyebrow}>
             {copy.you.yourData}
           </Text>
-          {__DEV__ ? (
-            <>
-              <Text style={styles.note}>{copy.you.backupNote}</Text>
-              <Pressable accessibilityRole="button" onPress={() => void chooseBackup()} style={styles.secondary}>
-                <Text style={styles.secondaryText}>{copy.you.restoreBackup}</Text>
-              </Pressable>
-              {notice ? (
-                <Text accessibilityRole="alert" style={styles.notice}>
-                  {notice}
-                </Text>
-              ) : null}
-            </>
-          ) : null}
-          <Pressable accessibilityRole="button" onPress={() => void exportData()} style={styles.secondary}>
-            <Text style={styles.secondaryText}>{copy.you.exportData}</Text>
-          </Pressable>
-          <Pressable accessibilityRole="button" onPress={() => setConfirm("delete")} style={styles.secondary}>
-            <Text style={styles.secondaryText}>{copy.you.deleteAccount}</Text>
-          </Pressable>
-        </View>
-
-        <Text style={styles.disclaimer}>{copy.you.disclaimer}</Text>
-        <View style={styles.foot}>
-          <Pressable accessibilityRole="button" onPress={onReplay} style={[styles.secondary, styles.footButton]}>
-            <Text style={styles.secondaryText}>{copy.you.replayTour}</Text>
-          </Pressable>
-          <Pressable
+          <PressableScale accessibilityRole="button" onPress={() => void exportData()} style={[styles.helpRow, styles.faqDivider]}>
+            <View style={styles.helpLine}>
+              <Text style={styles.rowLabel}>{copy.you.exportData}</Text>
+              <Text style={styles.helpChevron}>›</Text>
+            </View>
+          </PressableScale>
+          <PressableScale
             accessibilityRole="button"
-            onPress={() => setConfirm("reset")}
-            style={[styles.secondary, styles.footButton]}
+            onPress={() => {
+              resetTabTips(path);
+              onReplay();
+            }}
+            style={[styles.helpRow, styles.faqDivider]}
           >
-            <Text style={styles.secondaryText}>{copy.you.resetProfile}</Text>
-          </Pressable>
+            <View style={styles.helpLine}>
+              <Text style={styles.rowLabel}>{copy.you.replayTour}</Text>
+              <Text style={styles.helpChevron}>›</Text>
+            </View>
+          </PressableScale>
+          {__DEV__ ? (
+            <PressableScale accessibilityRole="button" onPress={() => void chooseBackup()} style={[styles.helpRow, styles.faqDivider]}>
+              <View style={styles.helpLine}>
+                <Text style={styles.rowLabel}>{copy.you.restoreBackup}</Text>
+                <Text style={styles.helpChevron}>›</Text>
+              </View>
+            </PressableScale>
+          ) : null}
+          {notice ? (
+            <Text accessibilityRole="alert" style={styles.notice}>
+              {notice}
+            </Text>
+          ) : null}
+          <PressableScale accessibilityRole="button" onPress={() => setConfirm("reset")} style={[styles.helpRow, styles.faqDivider]}>
+            <Text style={styles.dangerLabel}>{copy.you.resetProfile}</Text>
+          </PressableScale>
+          <PressableScale accessibilityRole="button" onPress={() => setConfirm("delete")} style={[styles.helpRow, styles.faqDivider]}>
+            <Text style={styles.dangerLabel}>{copy.you.deleteAccount}</Text>
+          </PressableScale>
         </View>
       </ScrollView>
+      </TabScrollMarker>
 
       {editing ? (
-        <View style={styles.saveBar}>
-          <Pressable
+        <View style={[styles.saveBar, { paddingBottom: Math.max(12, insets.bottom) }]}>
+          <PressableScale
             accessibilityRole="button"
             onPress={() => (changed ? saveProfile() : closeEdit())}
             style={[styles.save, changed ? styles.saveOn : styles.secondary]}
@@ -717,82 +741,61 @@ export function YouTab({ onReplay }: { onReplay: () => void }) {
             <Text style={[styles.saveText, changed ? styles.saveTextOn : styles.secondaryText]}>
               {changed ? copy.you.saveClose : copy.you.close}
             </Text>
-          </Pressable>
+          </PressableScale>
         </View>
       ) : null}
       </KeyboardAvoidingView>
 
       <SheetFrame
-        visible={info != null || confirm != null}
-        label={copy.you.close}
+        visible={confirm != null}
+        label={copy.you.cancel}
         onClose={() => {
-          setInfo(null);
           setConfirm(null);
           setPending(null);
         }}
       >
           <View style={styles.sheet}>
-            {confirm ? (
-              <>
-                <Text style={styles.eyebrow}>{copy.you.areYouSure}</Text>
-                <Text accessibilityRole="header" style={styles.confirmTitle}>
-                  {confirm === "restore"
-                    ? copy.you.restoreTitle
-                    : confirm === "delete"
-                      ? copy.you.deleteAccount
-                      : copy.you.resetProfile}
+            <Text accessibilityRole="header" style={styles.confirmTitle}>
+              {confirm === "restore"
+                ? copy.you.restoreTitle
+                : confirm === "delete"
+                  ? copy.you.deleteAccount
+                  : copy.you.resetProfile}
+            </Text>
+            <Text style={styles.confirmBody}>
+              {confirm === "restore"
+                ? fill(copy.you.restoreBody, new Date(pending?.at || "").toLocaleDateString())
+                : copy.you.resetBody}
+            </Text>
+            <View style={styles.confirmButtons}>
+              <PressableScale
+                accessibilityRole="button"
+                onPress={() => {
+                  setConfirm(null);
+                  setPending(null);
+                }}
+                style={[styles.secondary, styles.confirmCancel]}
+              >
+                <Text style={styles.secondaryText}>{copy.you.cancel}</Text>
+              </PressableScale>
+              <PressableScale
+                accessibilityRole="button"
+                onPress={() => {
+                  if (confirm !== "restore") haptic.warning();
+                  if (confirm === "restore") restoreFromBackup();
+                  else eraseOnThisPhone();
+                }}
+                style={confirm === "restore" ? styles.restore : styles.danger}
+              >
+                <Text style={styles.dangerText}>
+                  {confirm === "restore" ? copy.you.restore : copy.you.erase}
                 </Text>
-                <Text style={styles.confirmBody}>
-                  {confirm === "restore"
-                    ? fill(copy.you.restoreBody, new Date(pending?.at || "").toLocaleDateString())
-                    : copy.you.resetBody}
-                </Text>
-                <View style={styles.confirmButtons}>
-                  <Pressable
-                    accessibilityRole="button"
-                    onPress={() => {
-                      setConfirm(null);
-                      setPending(null);
-                    }}
-                    style={[styles.secondary, styles.confirmCancel]}
-                  >
-                    <Text style={styles.secondaryText}>{copy.you.cancel}</Text>
-                  </Pressable>
-                  <Pressable
-                    accessibilityRole="button"
-                    onPress={() => {
-                      if (confirm !== "restore") haptic.warning();
-                      if (confirm === "restore") restoreFromBackup();
-                      else eraseOnThisPhone();
-                    }}
-                    style={confirm === "restore" ? styles.restore : styles.danger}
-                  >
-                    <Text style={styles.dangerText}>
-                      {confirm === "restore" ? copy.you.restore : copy.you.erase}
-                    </Text>
-                  </Pressable>
-                </View>
-              </>
-            ) : (
-              <>
-                {info?.map((item) => (
-                  <View key={item.label}>
-                    <Text style={styles.infoLabel}>{item.label}</Text>
-                    <Text style={styles.infoBody}>{item.body}</Text>
-                  </View>
-                ))}
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={() => setInfo(null)}
-                  style={styles.secondary}
-                >
-                  <Text style={styles.secondaryText}>{copy.you.close}</Text>
-                </Pressable>
-              </>
-            )}
+              </PressableScale>
+            </View>
           </View>
       </SheetFrame>
-    </SafeAreaView>
+      <LiveWorkoutBar />
+    </View>
   );
 }
 
@@ -821,21 +824,19 @@ function Stat({ value, label }: { value: string; label: string }) {
   );
 }
 
-function Heading({ title, onInfo }: { title: string; onInfo: () => void }) {
+function Heading({ title, sections }: { title: string; sections: readonly TipSection[] }) {
   return (
     <View style={styles.heading}>
       <Text accessibilityRole="header" style={styles.eyebrow}>
         {title}
       </Text>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={copy.you.whatTheseDo}
-        onPress={onInfo}
-        hitSlop={4}
+      <InfoTip
+        sections={sections}
+        label={copy.you.whatTheseDo}
+        color="#d4cfcc"
+        activeColor={theme.orange.accent}
         style={styles.infoButton}
-      >
-        <Info size={16} color="#d4cfcc" />
-      </Pressable>
+      />
     </View>
   );
 }
@@ -845,7 +846,7 @@ function ExperienceSlider({ value, onChange }: { value: string; onChange: (level
     <View accessibilityRole="radiogroup" accessibilityLabel={copy.you.experience} style={styles.slider}>
       <View pointerEvents="none" style={styles.track}>
         {Array.from({ length: 12 }, (_, index) => (
-          <View key={index} style={{ flex: 1, backgroundColor: mix("#6fd0b4", "#e9b69b", index / 11) }} />
+          <View key={index} style={{ flex: 1, backgroundColor: mix("#6fd0b4", theme.pink.accent, index / 11) }} />
         ))}
       </View>
       <View style={styles.stops}>
@@ -853,7 +854,7 @@ function ExperienceSlider({ value, onChange }: { value: string; onChange: (level
           const selected = level === value;
           const label = lookup(copy.levels, level) ?? level;
           return (
-            <Pressable
+            <PressableScale
               key={level}
               accessibilityRole={"radio" as AccessibilityRole}
               accessibilityState={{ selected }}
@@ -868,7 +869,7 @@ function ExperienceSlider({ value, onChange }: { value: string; onChange: (level
                 <View style={[styles.knob, selected && styles.knobOn]} />
               </View>
               <Text style={[styles.stopLabel, selected && styles.stopLabelOn]}>{label}</Text>
-            </Pressable>
+            </PressableScale>
           );
         })}
       </View>
@@ -876,9 +877,9 @@ function ExperienceSlider({ value, onChange }: { value: string; onChange: (level
   );
 }
 
-function Toggle({ label, on, onPress }: { label: string; on: boolean; onPress: () => void }) {
+function Toggle({ label, on, onPress, bare }: { label: string; on: boolean; onPress: () => void; bare?: boolean }) {
   return (
-    <Pressable
+    <PressableScale
       accessibilityRole="switch"
       accessibilityLabel={label}
       accessibilityState={{ checked: on }}
@@ -887,13 +888,13 @@ function Toggle({ label, on, onPress }: { label: string; on: boolean; onPress: (
         haptic.selection();
         onPress();
       }}
-      style={styles.row}
+      style={bare ? styles.switchOnly : styles.row}
     >
-      <Text style={styles.rowLabel}>{label}</Text>
+      {bare ? null : <Text style={styles.rowLabel}>{label}</Text>}
       <View pointerEvents="none" style={[styles.switchTrack, on && styles.switchTrackOn]}>
         <View style={[styles.switchKnob, on && styles.switchKnobOn]} />
       </View>
-    </Pressable>
+    </PressableScale>
   );
 }
 
@@ -920,7 +921,7 @@ function TwoWay({
         {options.map(([option, text]) => {
           const selected = option === value;
           return (
-            <Pressable
+            <PressableScale
               key={option}
               accessibilityRole={"radio" as AccessibilityRole}
               accessibilityState={{ selected }}
@@ -932,11 +933,32 @@ function TwoWay({
               style={[styles.segment, selected && styles.segmentOn]}
             >
               <Text style={[styles.segmentText, selected && styles.segmentTextOn]}>{text}</Text>
-            </Pressable>
+            </PressableScale>
           );
         })}
       </View>
     </View>
+  );
+}
+
+function TestSoundButton() {
+  const [playing, setPlaying] = useState(false);
+  const round = useRef(0);
+  return (
+    <PressableScale
+      accessibilityRole="button"
+      accessibilityState={{ busy: playing }}
+      onPress={() => {
+        const mine = ++round.current;
+        setPlaying(true);
+        playChime(() => {
+          if (round.current === mine) setPlaying(false);
+        });
+      }}
+      style={styles.testSound}
+    >
+      <Text style={styles.testLinkText}>{playing ? copy.you.playing : copy.you.playTestSound}</Text>
+    </PressableScale>
   );
 }
 
@@ -946,16 +968,58 @@ function ProfileForm({
   onStage,
   onSport,
   sports,
-  onInfo,
+  bodyOnly,
 }: {
   form: Source;
   kgMode: boolean;
   onStage: (partial: Draft) => void;
   onSport: (id: string) => void;
   sports: string[];
-  onInfo: (items: InfoItem[]) => void;
+  bodyOnly?: boolean;
 }) {
-  const activityInfo: InfoItem[] = [
+  if (bodyOnly) {
+    return (
+      <View style={styles.form}>
+        <Text style={styles.fieldTitle}>{copy.you.sex}</Text>
+        <View accessibilityRole="radiogroup" accessibilityLabel={copy.you.sex} style={styles.pills}>
+          {SEX.map((id) => (
+            <Pill
+              key={id}
+              label={lookup(copy.sex, id) ?? id}
+              selected={form.sex === id}
+              tone="pink"
+              onPress={() => onStage({ sex: id })}
+            />
+          ))}
+        </View>
+        <View style={styles.fields}>
+          <Field label={copy.you.age} value={form.age} dial={ageDial} onChange={(age) => onStage({ age })} />
+          <Field label={copy.you.heightIn} value={form.height} dial={heightDial} onChange={(height) => onStage({ height })} />
+          <Field
+            label={kgMode ? copy.you.weightLb.replaceAll("lb", copy.you.kg) : copy.you.weightLb}
+            value={weightShown(form.weight, kgMode)}
+            dial={weightDial(kgMode)}
+            onChange={(text) => onStage({ weight: weightStored(text, kgMode) })}
+          />
+          <Field
+            label={copy.you.bodyFatPct}
+            value={form.bf}
+            placeholder={copy.onboarding.optional}
+            dial={bodyFatDial}
+            onChange={(bf) => onStage({ bf })}
+          />
+          <Field
+            label={copy.you.stepsADay}
+            value={form.steps}
+            dial={stepsDial}
+            start={form.steps.trim() ? undefined : Number(copy.onboarding.stepsExample.replace(/[^\d]/g, "")) || undefined}
+            onChange={(steps) => onStage({ steps })}
+          />
+        </View>
+      </View>
+    );
+  }
+  const activityInfo: TipSection[] = [
     { label: copy.you.activities, body: copy.info.activities },
     { label: copy.you.mainSport, body: copy.info.mainSport },
   ];
@@ -966,7 +1030,7 @@ function ProfileForm({
   return (
     <View style={styles.form}>
       <View style={styles.group}>
-        <Heading title={copy.you.activities} onInfo={() => onInfo(activityInfo)} />
+        <Heading title={copy.you.activities} sections={activityInfo} />
         <View style={styles.pills}>
           {(engine.ACT_IDS as string[]).map((id) => (
             <Pill
@@ -980,6 +1044,8 @@ function ProfileForm({
         </View>
       </View>
       {sports.length ? (
+        <>
+        <View style={styles.groupRule} />
         <View style={styles.group}>
           <Text style={styles.sportsLabel}>
             <Text style={styles.fieldTitle}>{copy.you.sportsInSeason}</Text>
@@ -1002,13 +1068,13 @@ function ProfileForm({
             })}
           </View>
         </View>
+        </>
       ) : null}
       {form.acts.lift ? (
+        <>
+        <View style={styles.groupRule} />
         <View style={styles.group}>
-          <Heading
-            title={copy.you.lifting}
-            onInfo={() => onInfo([{ label: copy.you.focus, body: copy.info.focus }])}
-          />
+          <Heading title={copy.you.lifting} sections={[{ label: copy.you.focus, body: copy.info.focus }]} />
           {form.days === "0" ? null : (
             <>
               <Text style={styles.fieldTitle}>{copy.you.focus}</Text>
@@ -1018,7 +1084,7 @@ function ProfileForm({
                     key={id}
                     label={lookup(copy.focus, id) ?? id}
                     selected={form.focus === id}
-                    tone="green"
+                    tone="pink"
                     onPress={() => onStage({ focus: id })}
                   />
                 ))}
@@ -1026,21 +1092,21 @@ function ProfileForm({
             </>
           )}
         </View>
+        </>
       ) : null}
+      <View style={styles.groupRule} />
       <View style={styles.group}>
         <Heading
           title={copy.you.bioData}
-          onInfo={() =>
-            onInfo([
-              { label: copy.you.sex, body: copy.info.sex },
-              { label: copy.you.age, body: copy.info.restingMetabolism },
-              { label: copy.you.height, body: copy.info.height },
-              { label: copy.you.weight, body: copy.info.weight },
-              { label: copy.you.bodyFat, body: copy.info.bodyFat },
-              { label: copy.you.steps, body: copy.info.steps },
-              { label: copy.you.dailyBurn, body: copy.info.dailyBurn },
-            ])
-          }
+          sections={[
+            { label: copy.you.sex, body: copy.info.sex },
+            { label: copy.you.age, body: copy.info.restingMetabolism },
+            { label: copy.you.height, body: copy.info.height },
+            { label: copy.you.weight, body: copy.info.weight },
+            { label: copy.you.bodyFat, body: copy.info.bodyFat },
+            { label: copy.you.steps, body: copy.info.steps },
+            { label: copy.you.dailyBurn, body: copy.info.dailyBurn },
+          ]}
         />
         <Text style={styles.fieldTitle}>{copy.you.sex}</Text>
         <View accessibilityRole="radiogroup" accessibilityLabel={copy.you.sex} style={styles.pills}>
@@ -1049,7 +1115,7 @@ function ProfileForm({
               key={id}
               label={lookup(copy.sex, id) ?? id}
               selected={form.sex === id}
-              tone="green"
+              tone="pink"
               onPress={() => onStage({ sex: id })}
             />
           ))}
@@ -1105,7 +1171,7 @@ function Pill({
   onPress: () => void;
 }) {
   return (
-    <Pressable
+    <PressableScale
       accessibilityRole="button"
       accessibilityState={{ selected }}
       accessibilityLabel={badge ? `${label}, ${badge}` : label}
@@ -1119,7 +1185,7 @@ function Pill({
         {label}
         {badge ? <Text style={styles.badge}> {badge}</Text> : null}
       </Text>
-    </Pressable>
+    </PressableScale>
   );
 }
 
@@ -1162,8 +1228,55 @@ function Field({
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: theme.orange.background },
-  content: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 28, gap: 10 },
+  screen: { flex: 1, backgroundColor: theme.pink.background },
+  content: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 32, gap: 12 },
+  backLink: { minHeight: 44, justifyContent: "center", alignSelf: "flex-start" },
+  backText: { fontFamily: theme.fonts.bodySemi, fontSize: 14, color: theme.muted },
+  settingsTitle: {
+    fontFamily: theme.fonts.display,
+    fontSize: 34,
+    lineHeight: 38,
+    color: theme.text,
+    textTransform: "uppercase",
+  },
+  seasonNote: { backgroundColor: "#2a2329", borderRadius: 14, padding: 12 },
+  seasonNoteText: { fontFamily: theme.fonts.body, fontSize: 13, lineHeight: 18, color: "#d9c9cf" },
+  seasonNoteLink: { fontFamily: theme.fonts.bodySemi, color: theme.pink.accent },
+  metrics: { flexDirection: "row", flexWrap: "wrap", gap: 12, paddingVertical: 10 },
+  metric: { width: "30%", flexGrow: 1, gap: 2 },
+  metricLabel: { fontFamily: theme.fonts.body, fontSize: 12, color: theme.muted },
+  metricValue: { fontFamily: theme.fonts.mono, fontSize: 18, color: theme.text },
+  valueRow: {
+    minHeight: 48,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    borderTopWidth: 1,
+    borderTopColor: theme.pink.line,
+    paddingVertical: 12,
+  },
+  soundRow: {
+    minHeight: 48,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    borderTopWidth: 1,
+    borderTopColor: theme.pink.line,
+  },
+  actPill: { minHeight: 44, paddingHorizontal: 12, borderRadius: theme.radii.pill, alignItems: "center", justifyContent: "center" },
+  actPillOn: { backgroundColor: "#3a2430" },
+  actPillOff: { backgroundColor: theme.pink.background },
+  actPillText: { fontFamily: theme.fonts.bodySemi, fontSize: 13 },
+  actPillTextOn: { color: theme.pink.accent },
+  actPillTextOff: { color: theme.muted },
+  helpRow: { paddingVertical: 12, gap: 4 },
+  helpLine: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
+  helpChevron: { fontFamily: theme.fonts.body, fontSize: 18, color: theme.muted },
+  dangerLabel: { fontFamily: theme.fonts.body, fontSize: 15, color: "#ff8a80" },
+  switchOnly: { width: 52, height: 44, alignItems: "center", justifyContent: "center" },
+  testLinkText: { fontFamily: theme.fonts.bodySemi, fontSize: 12, color: theme.pink.accent },
   hero: { gap: 12, paddingBottom: 4 },
   who: { flexDirection: "row", alignItems: "center", gap: 14 },
   whoText: { flex: 1 },
@@ -1196,7 +1309,7 @@ const styles = StyleSheet.create({
   tag: { backgroundColor: "#2a1f25", borderRadius: theme.radii.pill, paddingHorizontal: 10, paddingVertical: 6 },
   tagText: { fontFamily: theme.fonts.bodySemi, fontSize: 12, color: theme.pink.accent },
   stats: { flexDirection: "row", gap: 6 },
-  stat: { flex: 1, backgroundColor: theme.orange.surface, borderRadius: 14, padding: 12 },
+  stat: { flex: 1, backgroundColor: theme.pink.surface, borderRadius: 14, padding: 12 },
   statValue: { fontFamily: theme.fonts.monoMedium, fontSize: 22, color: theme.text },
   statLabel: {
     marginTop: 2,
@@ -1206,13 +1319,13 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     color: theme.muted,
   },
-  panel: { backgroundColor: theme.orange.surface, borderRadius: theme.radii.card, padding: 12, gap: 12 },
+  panel: { backgroundColor: theme.pink.surface, borderRadius: theme.radii.card, padding: 12, gap: 12 },
   grid: { flexDirection: "row", flexWrap: "wrap", margin: -3 },
   tileWide: { width: "50%", padding: 3 },
   tileThird: { width: "33.333%", padding: 3 },
   tile: {
     flex: 1,
-    backgroundColor: theme.orange.background,
+    backgroundColor: theme.pink.background,
     borderRadius: theme.radii.tile,
     paddingVertical: 10,
     paddingHorizontal: 12,
@@ -1233,7 +1346,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     letterSpacing: 0.9,
     textTransform: "uppercase",
-    color: theme.orange.accent,
+    color: theme.pink.accent,
   },
   heading: { flexDirection: "row", alignItems: "center" },
   infoButton: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
@@ -1245,17 +1358,30 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: 12,
   },
+  linkButton: {
+    minHeight: 44,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "transparent",
+  },
+  linkButtonText: {
+    fontFamily: theme.fonts.bodySemi,
+    fontSize: 15,
+    color: theme.pink.accent,
+    textAlign: "center",
+  },
   secondaryText: { fontFamily: theme.fonts.bodySemi, fontSize: 14, color: theme.text, textAlign: "center" },
   note: { fontFamily: theme.fonts.body, fontSize: 13, lineHeight: 18, color: theme.muted },
   notice: { fontFamily: theme.fonts.body, fontSize: 13, lineHeight: 18, color: theme.fuel },
-  form: { gap: 4 },
-  group: { borderTopWidth: 1, borderTopColor: "#433d39", paddingTop: 16, gap: 10 },
+  form: { gap: 0 },
+  group: { gap: 10 },
+  groupRule: { height: 1, backgroundColor: "#433d39", marginVertical: 16 },
   pills: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   pill: {
     minHeight: 44,
     paddingHorizontal: 14,
     borderRadius: theme.radii.pill,
-    backgroundColor: theme.orange.background,
+    backgroundColor: theme.pink.background,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1279,7 +1405,7 @@ const styles = StyleSheet.create({
   input: {
     minHeight: 44,
     borderRadius: theme.radii.tile,
-    backgroundColor: theme.orange.background,
+    backgroundColor: theme.pink.background,
     paddingHorizontal: 12,
     color: theme.text,
     fontFamily: theme.fonts.body,
@@ -1306,16 +1432,16 @@ const styles = StyleSheet.create({
     borderRadius: 7,
     backgroundColor: "#48423f",
     borderWidth: 3,
-    borderColor: theme.orange.surface,
+    borderColor: theme.pink.surface,
   },
-  knobOn: { width: 26, height: 26, borderRadius: 13, backgroundColor: theme.orange.accent },
+  knobOn: { width: 26, height: 26, borderRadius: 13, backgroundColor: theme.pink.accent },
   stopLabel: { fontFamily: theme.fonts.body, fontSize: 13, textAlign: "center", color: theme.muted },
   stopLabelOn: { fontFamily: theme.fonts.bodySemi, color: theme.text },
   stepper: {
     alignSelf: "flex-start",
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: theme.orange.background,
+    backgroundColor: theme.pink.background,
     borderRadius: theme.radii.tile,
     padding: 2,
   },
@@ -1330,7 +1456,16 @@ const styles = StyleSheet.create({
     color: theme.text,
   },
   stepUnit: { fontFamily: theme.fonts.monoMedium, fontSize: 12, color: theme.muted },
-  row: { minHeight: 48, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
+  row: {
+    minHeight: 48,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    borderTopWidth: 1,
+    borderTopColor: theme.pink.line,
+    paddingVertical: 4,
+  },
   rowCopy: { flex: 1 },
   rowLabel: { fontFamily: theme.fonts.bodySemi, fontSize: 14, color: theme.text },
   rowHint: { marginTop: 2, fontFamily: theme.fonts.body, fontSize: 12, color: theme.muted },
@@ -1340,7 +1475,7 @@ const styles = StyleSheet.create({
     borderRadius: theme.radii.pill,
     backgroundColor: "#393330",
   },
-  switchTrackOn: { backgroundColor: theme.orange.selectedFill },
+  switchTrackOn: { backgroundColor: theme.pink.accent },
   switchKnob: {
     position: "absolute",
     top: 3,
@@ -1353,7 +1488,7 @@ const styles = StyleSheet.create({
   switchKnobOn: { left: 23, backgroundColor: "#ffffff" },
   trackSwitch: {
     flexDirection: "row",
-    backgroundColor: theme.orange.background,
+    backgroundColor: theme.pink.background,
     borderRadius: theme.radii.pill,
     padding: 3,
   },
@@ -1365,35 +1500,28 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  segmentOn: { backgroundColor: theme.orange.selectedFill },
-  segmentText: { fontFamily: theme.fonts.bodySemi, fontSize: 14, color: theme.muted },
-  segmentTextOn: { color: "#ffffff" },
-  testSound: {
-    alignSelf: "flex-start",
-    minHeight: 44,
-    paddingHorizontal: 14,
-    borderRadius: theme.radii.pill,
-    backgroundColor: "rgba(0,0,0,0.3)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  faqDivider: { borderTopWidth: 1, borderTopColor: "#393330" },
-  faqQuestion: { minHeight: 44, justifyContent: "center" },
-  faqQuestionText: { fontFamily: theme.fonts.bodyMedium, fontSize: 14, color: theme.text },
-  faqAnswer: { fontFamily: theme.fonts.body, fontSize: 13, lineHeight: 18, color: theme.muted, paddingBottom: 12 },
+  segmentOn: { backgroundColor: theme.pink.accent },
+  segmentText: { fontFamily: theme.fonts.bodySemi, fontSize: 13, color: theme.muted },
+  segmentTextOn: { color: theme.pink.onAccent },
+  testSound: { alignSelf: "flex-start", minHeight: 32, justifyContent: "center" },
+  testSoundPressed: { opacity: 0.72, transform: [{ scale: 0.97 }] },
+  faqItem: { paddingTop: 9, paddingBottom: 7 },
+  faqDivider: { borderTopWidth: 1, borderTopColor: theme.pink.line },
+  faqQuestion: { justifyContent: "center" },
+  faqQuestionText: { fontFamily: theme.fonts.bodyMedium, fontSize: 14, lineHeight: 20, color: theme.text },
+  faqAnswer: { marginTop: 4, fontFamily: theme.fonts.body, fontSize: 13, lineHeight: 18, color: theme.muted },
   disclaimer: { fontFamily: theme.fonts.body, fontSize: 12, lineHeight: 18, color: theme.muted, marginTop: 4 },
   foot: { flexDirection: "row", gap: 8 },
   footButton: { flex: 1 },
-  saveBar: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12, backgroundColor: theme.orange.background },
+  saveBar: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12, backgroundColor: theme.pink.background },
+  saveBarClear: { marginBottom: 88 },
   save: { minHeight: 52, borderRadius: 14, alignItems: "center", justifyContent: "center" },
-  saveOn: { backgroundColor: theme.orange.selectedFill },
+  saveOn: { backgroundColor: theme.pink.selectedFill },
   saveText: { fontFamily: theme.fonts.bodySemi, fontSize: 15 },
   saveTextOn: { color: "#ffffff" },
   backdrop: { flex: 1, justifyContent: "flex-end", padding: 12 },
   backdropFill: { ...StyleSheet.absoluteFill, backgroundColor: "rgba(0,0,0,0.55)" },
   sheet: { backgroundColor: "#2f2a27", borderRadius: 20, padding: 18, gap: 12, zIndex: 1 },
-  infoLabel: { fontFamily: theme.fonts.bodySemi, fontSize: 14, color: theme.text },
-  infoBody: { marginTop: 2, fontFamily: theme.fonts.body, fontSize: 14, lineHeight: 20, color: "#d4cfcc" },
   confirmTitle: {
     fontFamily: theme.fonts.display,
     fontSize: 26,
@@ -1408,7 +1536,7 @@ const styles = StyleSheet.create({
     flex: 2,
     minHeight: 44,
     borderRadius: theme.radii.tile,
-    backgroundColor: theme.orange.selectedFill,
+    backgroundColor: theme.pink.selectedFill,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 12,

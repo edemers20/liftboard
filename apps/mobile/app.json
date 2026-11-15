@@ -35,21 +35,28 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#181513",
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 304
+          "backgroundColor": "#181513"
         }
       ],
       [
         "expo-notifications",
         {
+          "icon": "./assets/images/android-icon-monochrome.png",
           "sounds": [
             "./assets/sounds/rest_chime.wav"
           ]
         }
       ],
       "expo-audio",
-      "expo-sharing"
+      "expo-sharing",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Lift Board adds workout cards to your photo library.",
+          "savePhotosPermission": "Lift Board adds workout cards to your photo library.",
+          "isAccessMediaLocationEnabled": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

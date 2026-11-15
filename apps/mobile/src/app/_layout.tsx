@@ -9,17 +9,22 @@ import { useFonts } from "expo-font";
 import { Redirect, Stack, usePathname } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { AppState, Platform, View } from "react-native";
 import { SharedTransitionBoundary } from "react-native-reanimated";
 
+import { LaunchSplash, claimLaunchSplash } from "@/components/launch-splash";
+import { LiveWorkoutState, useLiveWorkout } from "@/components/live-workout";
 import { DialHost } from "@/components/number-dial";
 import { NoticeHost } from "@/components/motion";
+import { TipHost } from "@/components/tip-popover";
 import { engine, useEngineStore } from "@/store";
+import { watchTabTipPath } from "@/tab-tips";
 import { WeekReportHost } from "@/week-report";
 import { theme } from "@/theme";
 import { useReduceMotion } from "@/use-reduce-motion";
 import { prepareRestAlerts } from "@/workout/notify";
+import { subscribeWorkoutEnter, WORKOUT_CLOSE_MS, type WorkoutEnter } from "@/workout/share-box";
 import { rollWeekIfDue } from "@/week-roll";
 
 SplashScreen.preventAutoHideAsync();
@@ -38,6 +43,9 @@ function TransitionRoot({ active, children }: { active: boolean; children: React
 function OnboardingGate() {
   const pathname = usePathname();
   useEngineStore((state) => state.version);
+  useEffect(() => {
+    if (pathname) watchTabTipPath(pathname);
+  }, [pathname]);
   if (engine.wk.onbDone) return null;
   if (!pathname || pathname === "/onboarding") return null;
   return <Redirect href="/onboarding" />;
@@ -53,10 +61,12 @@ export default function RootLayout() {
     DMMono_400Regular,
     DMMono_500Medium,
   });
+  const appReady = ready || !!error;
+  const [showSplash, setShowSplash] = useState(claimLaunchSplash);
 
   useEffect(() => {
-    if (ready || error) SplashScreen.hideAsync();
-  }, [ready, error]);
+    if (!showSplash && appReady) SplashScreen.hideAsync().catch(() => {});
+  }, [showSplash, appReady]);
 
   useEffect(() => {
     prepareRestAlerts();
@@ -68,13 +78,18 @@ export default function RootLayout() {
   }, []);
 
   const reduceMotion = useReduceMotion();
-  if (!ready && !error) return null;
+  const [enter, setEnter] = useState<WorkoutEnter>("plain");
+  useEffect(() => subscribeWorkoutEnter(setEnter), []);
+  const live = useLiveWorkout();
 
   return (
-    <>
+    <LiveWorkoutState live={live}>
+    <View style={{ flex: 1, backgroundColor: theme.orange.background }}>
       <StatusBar style="light" />
-      <OnboardingGate />
-      <TransitionRoot active={!reduceMotion}>
+      {appReady ? (
+        <>
+          <OnboardingGate />
+          <TransitionRoot active={!reduceMotion}>
         <DialHost>
         <View style={{ flex: 1 }}>
         <Stack
@@ -84,16 +99,57 @@ export default function RootLayout() {
           }}
         >
           <Stack.Screen name="onboarding" options={{ gestureEnabled: false, animation: "fade", contentStyle: { backgroundColor: theme.orange.background } }} />
+          <Stack.Screen name="settings" options={{ contentStyle: { backgroundColor: theme.pink.background } }} />
           <Stack.Screen
             name="workout/[id]"
-            options={{ animation: "fade", animationDuration: reduceMotion ? 160 : 450 }}
+            options={{
+              animation: reduceMotion ? "fade" : Platform.OS === "ios" ? "default" : enter === "expand" ? "none" : "fade",
+              animationDuration: reduceMotion ? 140 : WORKOUT_CLOSE_MS,
+            }}
+          />
+          <Stack.Screen
+            name="activity/[t]"
+            options={{
+              presentation: "formSheet",
+              sheetAllowedDetents: [0.68, 1],
+              sheetGrabberVisible: true,
+              sheetInitialDetentIndex: 0,
+              headerShown: false,
+              contentStyle: { backgroundColor: "transparent" },
+            }}
+          />
+          <Stack.Screen
+            name="sheet-fit"
+            options={{
+              presentation: "formSheet",
+              sheetAllowedDetents: "fitToContents",
+              sheetGrabberVisible: true,
+              headerShown: false,
+              contentStyle: { backgroundColor: "transparent" },
+            }}
+          />
+          <Stack.Screen
+            name="sheet-report"
+            options={{
+              presentation: "formSheet",
+              sheetAllowedDetents: [0.78, 1],
+              sheetGrabberVisible: true,
+              sheetInitialDetentIndex: 0,
+              headerShown: false,
+              contentStyle: { backgroundColor: "transparent" },
+            }}
           />
         </Stack>
         <NoticeHost />
+        <TipHost />
         </View>
         <WeekReportHost />
         </DialHost>
-      </TransitionRoot>
-    </>
+          </TransitionRoot>
+        </>
+      ) : null}
+      {showSplash ? <LaunchSplash appReady={appReady} onDone={() => setShowSplash(false)} /> : null}
+    </View>
+    </LiveWorkoutState>
   );
 }

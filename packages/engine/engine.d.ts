@@ -37,6 +37,7 @@ export const YOGA_MET: any;
 export const actKey: any;
 export const addExtra: any;
 export const catOf: any;
+export const changeItems: any;
 export const cnt: any;
 export const cutting: any;
 export const dayDiff: any;
@@ -106,18 +107,33 @@ export function showsSide(name: string): boolean;
 export function sideDefault(name: string): string;
 export function lastSide(name: string): string;
 export function offerNudge(dayId: string, slotIndex: number): any;
+export function keepWeight(dayId: string, slotIndex: number, weight: number): void;
+export function rowDone(dayId: string, slotIndex: number, plan?: any): boolean;
+export function countsInDay(dayId: string, slotIndex: number, plan?: any): boolean;
+export function swapWeek(currentId: string, otherId: string): boolean;
 export function dayComplete(dayId: string): boolean;
 export function e1rm(w: number, r: number): number;
 export function weekTops(name: string): { start: number; w: number; r: number; t: number; e1: number | null; pr: "" | "top" | "reps"; wasW: number | null; wasR: number | null }[];
 export function liftTrends(): { name: string; lastT: number; rows: { start: number; w: number; r: number; t: number; e1: number | null; pr: "" | "top" | "reps"; wasW: number | null; wasR: number | null }[] }[];
 export function recentPrs(): { kind: "top" | "reps"; name: string; w: number; r: number; t: number; e1: number | null }[];
 export function weekCompleted(week: { counted?: boolean; lifts?: number; planned?: number } | null | undefined): boolean;
+export function watchItems(notes: string[]): { h: string; t: string; rank: number; safe: boolean; i: number }[];
 export function weekStreak(): number;
+/** Minutes by activity id between two timestamps. Lifts without saved minutes use session length. */
+export function timeByKind(from?: number, to?: number): { k: string; min: number; n: number; hours: number }[];
+/** Whole hours of lifting and activities in the window. */
+export function hoursMoved(from?: number, to?: number): number;
+/** When "this season" starts: the last In-season switch, or the first log. */
+export function seasonFrom(): number;
+/** The non-lift activity with the most time since `from` (this season by default). */
+export function mostPlayed(from?: number): { k: string; min: number; n: number; hours: number } | null;
 export function countWeek(start: number): boolean;
 export function weekActivities(start: number): { k: string; n: number; min: number }[];
 export function weekReport(start: number): any;
 export function pendingWeekReport(): any;
 export function dismissWeekReport(): boolean;
+/** "Lower · Quad & Glute" from an older save reads "Lower (Quad & Glute)". */
+export function wTitle(title: string): string;
 export function swapOptions(id: string): any[];
 export function swapDay(curId: string, newId: string): boolean;
 export function sessionKcal(session: any): number;

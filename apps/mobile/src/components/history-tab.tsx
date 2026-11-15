@@ -1,28 +1,21 @@
 import { router } from "expo-router";
+import { PressableScale } from "@/components/pressable-scale";
+import { Flame } from "lucide-react-native";
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import {
-  Animated,
-  Easing,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  useWindowDimensions,
-  View,
-  type ScrollViewInstance,
-  type ViewInstance,
-  type ViewStyle,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Animated, Easing, Platform, ScrollView, StyleSheet, Text, useWindowDimensions, View, type ScrollViewInstance, type ViewStyle } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Polyline } from "react-native-svg";
+import Reanimated from "react-native-reanimated";
 
+import { LiveWorkoutBar } from "@/components/live-workout";
+import { StepButton } from "@/components/step-button";
+import { InfoTip } from "@/components/tip-popover";
 import { copy } from "@/copy";
 import type { HistoryDay, HistoryLift, HistoryPr, HistorySession, HistorySnapshot, HistoryWeek, MuscleBar, SessionExercise } from "@/history-data";
 import { Info, TabWorkouts } from "@/icons";
 import {
   displayWeight,
+  formatAverage,
   formatHours,
   formatWeight,
   linePoints,
@@ -33,10 +26,11 @@ import {
   type MonthCell,
   type MixWeek,
 } from "@/history-model";
-import { openPlan } from "@/links";
 import { storage } from "@/storage";
+import { TabBarSpacer, TabScrollMarker } from "@/tab-bar-inset";
 import { engine, useEngineStore } from "@/store";
 import { theme } from "@/theme";
+import { useHideOnScroll, type HideOnScroll } from "@/use-hide-on-scroll";
 import { nativeDriver, useReduceMotion } from "@/use-reduce-motion";
 
 const VIEW_KEY = "liftboard.v1.hv";
@@ -71,12 +65,6 @@ const DONE_PILL = "#1f3029";
 const TRACK = "#34302c";
 const PR_CARD = "#2a211c";
 const HAIRLINE = "#2f2a27";
-
-type InfoId = "mix";
-
-const INFO: Record<InfoId, { title: string; body: string }> = {
-  mix: { title: copy.history.weekMix, body: copy.history.weekMixInfo },
-};
 
 function storedView(): ViewId {
   const saved = storage.getItem(VIEW_KEY);
@@ -178,10 +166,10 @@ function weekRows(cells: MonthCell[]): MonthCell[][] {
 
 export function HistoryTab({ data }: { data: HistorySnapshot }) {
   const reduce = useReduceMotion();
+  const insets = useSafeAreaInsets();
+  const hide = useHideOnScroll();
   const { width } = useWindowDimensions();
   const [view, setView] = useState<ViewId>(storedView);
-  const [info, setInfo] = useState<InfoId | null>(null);
-  const [infoTop, setInfoTop] = useState(120);
   const index = VIEWS.indexOf(view);
   const slide = useRef(new Animated.Value(0)).current;
   const fade = useRef(new Animated.Value(1)).current;
@@ -217,26 +205,20 @@ export function HistoryTab({ data }: { data: HistorySnapshot }) {
 
   function choose(next: ViewId) {
     if (next === view) return;
-    setInfo(null);
+    hide.show();
     setView(next);
     storage.setItem(VIEW_KEY, next);
   }
 
-  function toggleInfo(id: InfoId, node: ViewInstance | null) {
-    if (info === id) {
-      setInfo(null);
-      return;
-    }
-    node?.measureInWindow((_x, y, _width, height) => {
-      setInfoTop(y + height + 8);
-      setInfo(id);
-    });
-  }
-
-  const open = info ? INFO[info] : null;
-
   return (
-    <SafeAreaView edges={["top"]} style={styles.screen}>
+    <View style={styles.screen}>
+      <Reanimated.View
+        accessibilityElementsHidden={!hide.blocks}
+        importantForAccessibility={hide.blocks ? "auto" : "no-hide-descendants"}
+        pointerEvents={hide.blocks ? "auto" : "none"}
+        onLayout={hide.onHeaderLayout}
+        style={[styles.chrome, { top: 0, paddingTop: insets.top }, hide.chromeStyle, hide.headerStyle]}
+      >
       <View style={styles.header}>
         <Text accessibilityRole="header" style={styles.title}>
           {copy.tabs.history}
@@ -245,8 +227,10 @@ export function HistoryTab({ data }: { data: HistorySnapshot }) {
           {VIEWS.map((id) => {
             const selected = id === view;
             return (
-              <Pressable
+              <PressableScale
                 key={id}
+                kind="button"
+                brighten={selected}
                 accessibilityRole="tab"
                 accessibilityState={{ selected }}
                 accessibilityLabel={viewLabel(id)}
@@ -255,11 +239,12 @@ export function HistoryTab({ data }: { data: HistorySnapshot }) {
                 style={[styles.segment, selected && styles.segmentOn]}
               >
                 <Text style={[styles.segmentText, selected && styles.segmentTextOn]}>{viewLabel(id)}</Text>
-              </Pressable>
+              </PressableScale>
             );
           })}
         </View>
       </View>
+      </Reanimated.View>
       <View style={styles.pager}>
         <Animated.View style={[styles.track, { width: width * 3, transform: [{ translateX: slide }], opacity: fade }]}>
           <View
@@ -268,7 +253,7 @@ export function HistoryTab({ data }: { data: HistorySnapshot }) {
             importantForAccessibility={view === "cal" ? "auto" : "no-hide-descendants"}
             pointerEvents={view === "cal" ? "auto" : "none"}
           >
-            <CalendarPage data={data} infoOpen={info === "mix"} onInfo={(node) => toggleInfo("mix", node)} />
+            <CalendarPage data={data} hide={hide} active={view === "cal"} topPad={hide.space} />
           </View>
           <View
             style={{ width, height: "100%" }}
@@ -276,7 +261,7 @@ export function HistoryTab({ data }: { data: HistorySnapshot }) {
             importantForAccessibility={view === "weeks" ? "auto" : "no-hide-descendants"}
             pointerEvents={view === "weeks" ? "auto" : "none"}
           >
-            <WeeksPage data={data} />
+            <WeeksPage data={data} hide={hide} active={view === "weeks"} topPad={hide.space} />
           </View>
           <View
             style={{ width, height: "100%" }}
@@ -284,60 +269,33 @@ export function HistoryTab({ data }: { data: HistorySnapshot }) {
             importantForAccessibility={view === "lifts" ? "auto" : "no-hide-descendants"}
             pointerEvents={view === "lifts" ? "auto" : "none"}
           >
-            <LiftsPage data={data} />
+            <LiftsPage data={data} hide={hide} active={view === "lifts"} topPad={hide.space} />
           </View>
         </Animated.View>
       </View>
-      <Modal transparent visible={open !== null} animationType="fade" onRequestClose={() => setInfo(null)}>
-        <Pressable accessibilityRole="button" style={styles.backdrop} onPress={() => setInfo(null)}>
-          <Pressable style={[styles.popover, { top: infoTop }]} onPress={(event) => event.stopPropagation()}>
-            <Text style={styles.popoverTitle}>{open?.title}</Text>
-            <Text style={styles.popoverBody}>{open?.body}</Text>
-          </Pressable>
-        </Pressable>
-      </Modal>
-    </SafeAreaView>
-  );
-}
-
-function SectionHeading({
-  title,
-  open,
-  onInfo,
-}: {
-  title: string;
-  open: boolean;
-  onInfo: (node: ViewInstance | null) => void;
-}) {
-  const ref = useRef<ViewInstance>(null);
-  return (
-    <View ref={ref} style={styles.heading} collapsable={false}>
-      <Text accessibilityRole="header" style={styles.eyebrow}>
-        {title}
-      </Text>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={copy.history.whatThisDoes}
-        accessibilityState={{ expanded: open }}
-        hitSlop={14}
-        onPress={() => onInfo(ref.current)}
-        style={styles.infoButton}
-      >
-        <Info size={16} color={open ? theme.orange.accent : "#d4cfcc"} />
-      </Pressable>
+      <LiveWorkoutBar />
     </View>
   );
 }
 
-function CalendarPage({
-  data,
-  infoOpen,
-  onInfo,
-}: {
-  data: HistorySnapshot;
-  infoOpen: boolean;
-  onInfo: (node: ViewInstance | null) => void;
-}) {
+function SectionHeading({ title, body }: { title: string; body: string }) {
+  return (
+    <View style={styles.heading} collapsable={false}>
+      <Text accessibilityRole="header" style={styles.eyebrow}>
+        {title}
+      </Text>
+      <InfoTip
+        sections={[{ body }]}
+        label={copy.history.whatThisDoes}
+        color="#d4cfcc"
+        activeColor={theme.orange.accent}
+        style={styles.infoButton}
+      />
+    </View>
+  );
+}
+
+function CalendarPage({ data, hide, active, topPad }: { data: HistorySnapshot; hide: HideOnScroll; active: boolean; topPad: number }) {
   const reduce = useReduceMotion();
   const now = new Date();
   const [offset, setOffset] = useState(0);
@@ -362,31 +320,40 @@ function CalendarPage({
   }
 
   return (
-    <ScrollView ref={scroll} contentContainerStyle={styles.page}>
-      {data.mix ? <WeekMix data={data} open={infoOpen} onInfo={onInfo} /> : null}
+    <TabScrollMarker active={active}>
+    <Reanimated.ScrollView
+      ref={scroll}
+      contentContainerStyle={[styles.page, { paddingTop: topPad }]}
+      onScroll={hide.onScroll}
+      scrollEventThrottle={16}
+      scrollsToTop={active}
+      contentInsetAdjustmentBehavior="never"
+    >
+      {data.mix ? <WeekMix data={data} /> : null}
       <View style={styles.panel}>
         <View style={styles.monthBar}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={copy.history.previousMonth}
+          <StepButton
+            glyph="‹"
+            label={copy.history.previousMonth}
+            reduce={reduce}
+            surface={theme.orange.surface}
+            hot={theme.fuel}
+            ink={theme.orange.background}
             onPress={() => shift(-1)}
-            style={styles.monthButton}
-          >
-            <Text style={styles.chevron}>‹</Text>
-          </Pressable>
+          />
           <Text accessibilityRole="header" style={styles.monthTitle}>
             {monthTitle(year, month)}
           </Text>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={copy.history.nextMonth}
-            accessibilityState={{ disabled: offset >= 0 }}
+          <StepButton
+            glyph="›"
+            label={copy.history.nextMonth}
             disabled={offset >= 0}
+            reduce={reduce}
+            surface={theme.orange.surface}
+            hot={theme.fuel}
+            ink={theme.orange.background}
             onPress={() => shift(1)}
-            style={[styles.monthButton, offset >= 0 && styles.monthButtonOff]}
-          >
-            <Text style={styles.chevron}>›</Text>
-          </Pressable>
+          />
         </View>
         <View style={styles.weekdays}>
           {copy.history.dayLetters.split("").map((letter, index) => (
@@ -424,7 +391,9 @@ function CalendarPage({
         ) : null}
         {data.hasSessions ? null : <Text style={styles.note}>{copy.history.sessionsShow}</Text>}
       </View>
-    </ScrollView>
+      <TabBarSpacer />
+    </Reanimated.ScrollView>
+    </TabScrollMarker>
   );
 }
 
@@ -456,7 +425,7 @@ function DayCell({
   if (!logged) return <View style={[styles.cell, fill, ringStyle]}>{body}</View>;
   const names = day.sessions.map((session) => session.name).join(", ");
   return (
-    <Pressable
+    <PressableScale
       accessibilityRole="button"
       accessibilityState={{ selected }}
       accessibilityLabel={`${longDate(day.sessions[0]?.t ?? Date.now())}: ${names}`}
@@ -464,7 +433,7 @@ function DayCell({
       style={[styles.cell, fill, ringStyle]}
     >
       {body}
-    </Pressable>
+    </PressableScale>
   );
 }
 
@@ -485,7 +454,7 @@ function DayDetail({ day, units, label, spoken }: { day: HistoryDay; units: stri
         const open = session.openActivity != null;
         const body = (
           <>
-            {day.sessions.length > 1 || session.minutes > 0 ? (
+            {!session.lift && (day.sessions.length > 1 || session.minutes > 0) ? (
               <View style={styles.sessionLine}>
                 <View style={[styles.dot, session.lift ? styles.dotLift : styles.dotAct]} />
                 <Text style={styles.sessionText}>
@@ -499,15 +468,16 @@ function DayDetail({ day, units, label, spoken }: { day: HistoryDay; units: stri
         );
         if (!open) return <View key={`${session.t}-${index}`} style={styles.session}>{body}</View>;
         return (
-          <Pressable
+          <PressableScale
             key={`${session.t}-${index}`}
+            kind="surface"
             accessibilityRole="button"
             accessibilityLabel={session.name}
             onPress={() => openSession(session)}
-            style={({ pressed }) => [styles.session, pressed && styles.sessionPressed]}
+            style={styles.session}
           >
             {body}
-          </Pressable>
+          </PressableScale>
         );
       })}
     </View>
@@ -531,23 +501,15 @@ function ExerciseList({ exercises, units }: { exercises: SessionExercise[]; unit
   );
 }
 
-function WeekMix({
-  data,
-  open,
-  onInfo,
-}: {
-  data: HistorySnapshot;
-  open: boolean;
-  onInfo: (node: ViewInstance | null) => void;
-}) {
+function WeekMix({ data }: { data: HistorySnapshot }) {
   const mix = data.mix;
   if (!mix) return null;
   const used = MIX_ORDER.filter((kind) => mix.weeks.some((week) => week.minutes[kind] > 0));
-  const averageHours = mix.averageMinutes / 60;
-  const trend = mix.averageMinutes > 0 ? averageHours.toFixed(1) : "";
+  const trend = mix.averageMinutes > 0 ? formatAverage(mix.averageMinutes) : "";
+  const trendBottom = 18 + (mix.averageMinutes / mix.max) * BAR_MAX - 7;
   return (
     <View style={styles.panel}>
-      <SectionHeading title={copy.history.weekMix} open={open} onInfo={onInfo} />
+      <SectionHeading title={copy.history.weekMix} body={copy.history.weekMixInfo} />
       <View
         accessibilityRole="image"
         accessibilityLabel={[mixSummary(mix.weeks), trend ? copy.history.aboutAWeek(trend).replace(/^ · /, "") : ""]
@@ -555,6 +517,15 @@ function WeekMix({
           .join(". ")}
         style={styles.mix}
       >
+        {trend ? (
+          <View pointerEvents="none" style={[styles.trend, { bottom: trendBottom }]}>
+            <View style={styles.trendLine}>
+              {Array.from({ length: 80 }, (_, index) => (
+                <View key={index} style={styles.trendDash} />
+              ))}
+            </View>
+          </View>
+        ) : null}
         {mix.weeks.map((week) => (
           <View key={week.start} style={styles.mixCol}>
             <Text style={styles.mixHours}>{week.total ? formatHours(week.total) : ""}</Text>
@@ -571,13 +542,9 @@ function WeekMix({
           </View>
         ))}
         {trend ? (
-          <View
-            pointerEvents="none"
-            style={[styles.trend, { bottom: 18 + (mix.averageMinutes / mix.max) * BAR_MAX - 7 }]}
-          >
-            <View style={styles.trendLine} />
-            <Text style={styles.trendValue}>{trend}</Text>
-          </View>
+          <Text pointerEvents="none" style={[styles.trendValue, { bottom: trendBottom }]}>
+            {trend}
+          </Text>
         ) : null}
       </View>
       {used.length ? (
@@ -594,16 +561,51 @@ function WeekMix({
   );
 }
 
-function WeeksPage({ data }: { data: HistorySnapshot }) {
+function WeeksPage({ data, hide, active, topPad }: { data: HistorySnapshot; hide: HideOnScroll; active: boolean; topPad: number }) {
   const [open, setOpen] = useState<number | null>(null);
   return (
-    <ScrollView contentContainerStyle={styles.stack}>
+    <TabScrollMarker active={active}>
+    <Reanimated.ScrollView
+      contentContainerStyle={[styles.stack, { paddingTop: topPad }]}
+      onScroll={hide.onScroll}
+      scrollEventThrottle={16}
+      scrollsToTop={active}
+      contentInsetAdjustmentBehavior="never"
+    >
+      <View style={styles.card}>
+        <View style={styles.yearCard}>
+          <Text accessibilityRole="header" style={styles.yearTitle}>{copy.history.yourYear}</Text>
+          <View style={styles.yearWrap}>
+            <View style={styles.yearMonths}>
+              {copy.history.yearMonths.map((month) => (
+                <Text key={month} style={styles.yearMonth}>{month}</Text>
+              ))}
+            </View>
+            <View accessibilityLabel={copy.history.yearLabel} style={styles.yearGrid}>
+              {data.year.map((cell, index) => (
+                <View key={index} style={styles.yearCell}>
+                  <View
+                    style={[
+                      styles.yearSquare,
+                      cell.state === "past" && styles.yearPast,
+                      cell.state === "part" && styles.yearPart,
+                      cell.state === "done" && styles.yearDone,
+                      cell.state === "future" && styles.yearFuture,
+                      cell.current && styles.yearNow,
+                    ]}
+                  />
+                </View>
+              ))}
+            </View>
+          </View>
+        </View>
+      </View>
       {data.weeks.length ? (
         <>
           <View style={styles.streakRow}>
             <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.streakDots}>
               {data.dots.map((done, index) => (
-                <View key={index} style={[styles.streakDot, { backgroundColor: done ? theme.fuel : TRACK }]} />
+                <Flame key={index} size={14} color={done ? theme.fuel : theme.muted} strokeWidth={1.8} />
               ))}
             </View>
             <Text style={styles.streakText}>{copy.history.streakWeeks(data.streak)}</Text>
@@ -617,12 +619,10 @@ function WeeksPage({ data }: { data: HistorySnapshot }) {
             />
           ))}
         </>
-      ) : (
-        <Pressable accessibilityRole="button" onPress={() => openPlan("week")}>
-          <Text style={styles.note}>{copy.history.savesWhen}</Text>
-        </Pressable>
-      )}
-    </ScrollView>
+      ) : null}
+      <TabBarSpacer />
+    </Reanimated.ScrollView>
+    </TabScrollMarker>
   );
 }
 
@@ -647,14 +647,14 @@ function WeekCard({ week, open, onToggle }: { week: HistoryWeek; open: boolean; 
   return (
     <View style={styles.card}>
       {expandable ? (
-        <Pressable
+        <PressableScale
           accessibilityRole="button"
           accessibilityState={{ expanded: open }}
           onPress={onToggle}
           style={styles.cardButton}
         >
           {header}
-        </Pressable>
+        </PressableScale>
       ) : (
         <View style={styles.cardButton}>{header}</View>
       )}
@@ -681,10 +681,7 @@ function WeekDetail({ week }: { week: HistoryWeek }) {
     <View style={styles.detailBlock}>
       {week.muscles ? (
         <View style={styles.muscleBlock}>
-          <View style={styles.muscleHead}>
-            <Text style={styles.muscleTitle}>{copy.history.setsByMuscle}</Text>
-            <Text style={styles.muscleHint}>{copy.history.donePlanned}</Text>
-          </View>
+          <Text style={styles.muscleTitle}>{copy.history.setsByMuscle}</Text>
           {week.muscles.map((muscle) => (
             <MuscleRow key={muscle.name} muscle={muscle} />
           ))}
@@ -693,14 +690,14 @@ function WeekDetail({ week }: { week: HistoryWeek }) {
       {week.lifts < week.planned ? (
         <View style={styles.missedRow}>
           <Text style={styles.missedText}>{week.miss.length ? copy.history.missed(joinNames(week.miss)) : ""}</Text>
-          <Pressable
+          <PressableScale
             accessibilityRole="button"
             accessibilityLabel={week.counted ? copy.history.undo : copy.history.countCompleted}
             onPress={() => useEngineStore.getState().call((api) => api.countWeek(week.start))}
             style={styles.countButton}
           >
             <Text style={styles.countText}>{week.counted ? copy.history.undo : copy.history.countCompleted}</Text>
-          </Pressable>
+          </PressableScale>
         </View>
       ) : null}
     </View>
@@ -727,18 +724,34 @@ function MuscleRow({ muscle }: { muscle: MuscleBar }) {
   );
 }
 
-function LiftsPage({ data }: { data: HistorySnapshot }) {
+function LiftsPage({ data, hide, active, topPad }: { data: HistorySnapshot; hide: HideOnScroll; active: boolean; topPad: number }) {
   const [open, setOpen] = useState<string | null>(null);
   const [tip, setTip] = useState(false);
   if (!data.lifts.length && !data.prs.length) {
     return (
-      <ScrollView contentContainerStyle={styles.stack}>
+      <TabScrollMarker active={active}>
+      <Reanimated.ScrollView
+        contentContainerStyle={[styles.stack, { paddingTop: topPad }]}
+        onScroll={hide.onScroll}
+        scrollEventThrottle={16}
+        scrollsToTop={active}
+        contentInsetAdjustmentBehavior="never"
+      >
         <Text style={styles.note}>{copy.history.appearsAfter}</Text>
-      </ScrollView>
+        <TabBarSpacer />
+      </Reanimated.ScrollView>
+      </TabScrollMarker>
     );
   }
   return (
-    <ScrollView contentContainerStyle={styles.stack}>
+    <TabScrollMarker active={active}>
+    <Reanimated.ScrollView
+      contentContainerStyle={[styles.stack, { paddingTop: topPad }]}
+      onScroll={hide.onScroll}
+      scrollEventThrottle={16}
+      scrollsToTop={active}
+      contentInsetAdjustmentBehavior="never"
+    >
       {data.prs.length ? (
         <View style={styles.prBlock}>
           <Text accessibilityRole="header" style={styles.sectionTitle}>
@@ -746,6 +759,7 @@ function LiftsPage({ data }: { data: HistorySnapshot }) {
           </Text>
           <ScrollView
             horizontal
+            scrollsToTop={false}
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.prScroll}
             style={styles.prBleed}
@@ -761,16 +775,16 @@ function LiftsPage({ data }: { data: HistorySnapshot }) {
           <Text accessibilityRole="header" style={styles.sectionTitle}>
             {copy.history.mainLifts}
           </Text>
-          <Pressable
+          <PressableScale
             accessibilityRole="button"
             accessibilityLabel={copy.history.about1Rm}
             accessibilityState={{ expanded: tip }}
-            hitSlop={8}
+            hitSlop={14}
             onPress={() => setTip((current) => !current)}
             style={styles.liftInfo}
           >
             <Info size={16} color={theme.muted} />
-          </Pressable>
+          </PressableScale>
         </View>
       ) : null}
       {data.lifts.length && tip ? (
@@ -795,7 +809,9 @@ function LiftsPage({ data }: { data: HistorySnapshot }) {
           onToggle={() => setOpen((current) => (current === lift.name ? null : lift.name))}
         />
       ))}
-    </ScrollView>
+      <TabBarSpacer />
+    </Reanimated.ScrollView>
+    </TabScrollMarker>
   );
 }
 
@@ -832,10 +848,10 @@ function LiftCard({
   const rising = (lift.delta ?? 0) > 0;
   return (
     <View style={styles.card}>
-      <Pressable
+      <PressableScale
         accessibilityRole="button"
         accessibilityState={{ expanded: open }}
-        accessibilityLabel={`${lift.name}. ${formatWeight(lift.e1)} ${copy.history.oneRm(unit)}. ${copy.history.prTop} ${top}${delta ? `. ${delta}` : ""}`}
+        accessibilityLabel={`${lift.name}. ${copy.history.prTop} ${top}${delta ? `. ${delta}` : ""}`}
         onPress={onToggle}
         style={styles.liftButton}
       >
@@ -843,25 +859,18 @@ function LiftCard({
           <Text numberOfLines={1} style={styles.liftName}>
             {lift.name}
           </Text>
-          <View style={styles.e1Row}>
-            <Text style={styles.e1Value}>{formatWeight(lift.e1)}</Text>
-            <Text style={styles.e1Unit}>{copy.history.oneRm(unit)}</Text>
-          </View>
           <View style={styles.topLine}>
             <View accessibilityLabel={copy.history.prTop} accessibilityRole="image">
               <TabWorkouts size={14} color={theme.muted} />
             </View>
             <Text style={styles.topSet}>{top}</Text>
             {delta ? (
-              <Text style={styles.deltaLine}>
-                {" · "}
-                <Text style={{ color: rising ? theme.green.accent : theme.muted }}>{delta}</Text>
-              </Text>
+              <Text style={[styles.deltaLine, { color: rising ? theme.fuel : theme.muted }]}>{delta}</Text>
             ) : null}
           </View>
         </View>
         <Spark values={lift.series} label={`${lift.name}. ${formatWeight(lift.e1)} ${copy.history.oneRm(unit)}`} />
-      </Pressable>
+      </PressableScale>
       {open ? (
         <Reveal>
           <View style={styles.liftTable}>
@@ -902,13 +911,13 @@ function Spark({ values, label }: { values: number[]; label: string }) {
           <Polyline
             points={points.map((point) => `${point.x},${point.y}`).join(" ")}
             fill="none"
-            stroke={theme.green.accent}
+            stroke={theme.fuel}
             strokeWidth={2}
             strokeLinejoin="round"
             strokeLinecap="round"
           />
         ) : null}
-        {last ? <Circle cx={last.x} cy={last.y} r={3.5} fill={theme.green.accent} /> : null}
+        {last ? <Circle cx={last.x} cy={last.y} r={3.5} fill={theme.fuel} /> : null}
       </Svg>
     </View>
   );
@@ -936,6 +945,13 @@ function Reveal({ children }: { children: ReactNode }) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.orange.background },
+  chrome: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    backgroundColor: theme.orange.background,
+  },
   header: {
     paddingHorizontal: 16,
     paddingTop: 8,
@@ -954,7 +970,7 @@ const styles = StyleSheet.create({
   segment: {
     flex: 1,
     minHeight: 40,
-    borderRadius: 8,
+    borderRadius: theme.radii.pill,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: theme.orange.background,
@@ -980,15 +996,24 @@ const styles = StyleSheet.create({
   trend: {
     position: "absolute",
     left: 0,
-    right: 0,
+    right: 44,
     height: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
+    zIndex: 0,
+    justifyContent: "center",
   },
-  trendLine: { flex: 1, height: 1, backgroundColor: theme.fuel },
-  trendValue: { fontFamily: theme.fonts.monoMedium, fontSize: 11, color: theme.fuel },
-  mixCol: { flex: 1, alignItems: "center", justifyContent: "flex-end", gap: 4, minWidth: 0 },
+  trendLine: { width: "100%", flexDirection: "row", alignItems: "center", gap: 4, overflow: "hidden" },
+  trendDash: { width: 6, height: 1, backgroundColor: "rgba(168,160,156,0.4)" },
+  trendValue: {
+    position: "absolute",
+    right: 0,
+    zIndex: 2,
+    height: 14,
+    fontFamily: theme.fonts.monoMedium,
+    fontSize: 11,
+    lineHeight: 14,
+    color: theme.muted,
+  },
+  mixCol: { flex: 1, alignItems: "center", justifyContent: "flex-end", gap: 4, minWidth: 0, zIndex: 1 },
   mixHours: { height: 14, fontFamily: theme.fonts.monoMedium, fontSize: 11, color: "#d4cfcc" },
   mixBar: {
     width: "100%",
@@ -1006,16 +1031,6 @@ const styles = StyleSheet.create({
   legendSwatch: { width: 9, height: 9, borderRadius: 2 },
   legendText: { fontFamily: theme.fonts.body, fontSize: 12, color: theme.muted },
   monthBar: { flexDirection: "row", alignItems: "center", gap: 8 },
-  monthButton: {
-    minWidth: 44,
-    minHeight: 40,
-    borderRadius: 8,
-    backgroundColor: "rgba(0,0,0,0.3)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  monthButtonOff: { opacity: 0.35 },
-  chevron: { fontFamily: theme.fonts.body, fontSize: 20, lineHeight: 22, color: theme.text },
   monthTitle: {
     flex: 1,
     textAlign: "center",
@@ -1074,10 +1089,22 @@ const styles = StyleSheet.create({
   exerciseValue: { fontFamily: theme.fonts.monoMedium, fontSize: 13, color: theme.text },
   stack: { paddingHorizontal: 16, paddingBottom: 32, gap: 12 },
   streakRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 2, paddingVertical: 4 },
-  streakDots: { flexDirection: "row", gap: 4, flexShrink: 1 },
-  streakDot: { width: 14, height: 14, borderRadius: 4 },
+  streakDots: { flexDirection: "row", alignItems: "center", gap: 4, flexShrink: 1 },
   streakText: { flexShrink: 1, fontFamily: theme.fonts.body, fontSize: 13, color: theme.fuel },
   card: { backgroundColor: theme.orange.surface, borderRadius: 16, overflow: "hidden" },
+  yearCard: { padding: 16, gap: 12 },
+  yearTitle: { fontFamily: theme.fonts.bodySemi, fontSize: 15, color: theme.text },
+  yearWrap: { flexDirection: "row", gap: 8 },
+  yearMonths: { justifyContent: "space-around" },
+  yearMonth: { fontFamily: theme.fonts.body, fontSize: 11, color: theme.muted },
+  yearGrid: { flex: 1, flexDirection: "row", flexWrap: "wrap" },
+  yearCell: { width: "7.692%", aspectRatio: 1, padding: 1.5 },
+  yearSquare: { flex: 1, borderRadius: 4 },
+  yearFuture: { borderWidth: 1, borderColor: "#2f2a27" },
+  yearPast: { backgroundColor: "#2c2724" },
+  yearPart: { backgroundColor: "#4a3a33" },
+  yearDone: { backgroundColor: theme.fuel },
+  yearNow: { borderWidth: 1.5, borderColor: theme.fuel },
   cardButton: { paddingHorizontal: 16, paddingVertical: 14, gap: 10 },
   weekTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
   weekRange: {
@@ -1100,9 +1127,7 @@ const styles = StyleSheet.create({
   statValue: { fontFamily: theme.fonts.monoMedium, fontSize: 18, color: theme.text },
   detailBlock: { paddingHorizontal: 16, paddingBottom: 14, gap: 8 },
   muscleBlock: { gap: 8, borderTopWidth: 1, borderTopColor: HAIRLINE, paddingTop: 12 },
-  muscleHead: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between" },
   muscleTitle: { fontFamily: theme.fonts.bodySemi, fontSize: 13, color: theme.text },
-  muscleHint: { fontFamily: theme.fonts.body, fontSize: 12, color: theme.muted },
   muscleRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   muscleName: { width: 100, fontFamily: theme.fonts.body, fontSize: 13, color: theme.text },
   muscleTrack: { flex: 1, height: 6, borderRadius: 999, backgroundColor: TRACK, overflow: "hidden" },
@@ -1144,8 +1169,8 @@ const styles = StyleSheet.create({
   prName: { fontFamily: theme.fonts.body, fontSize: 13, color: theme.text },
   prValue: { fontFamily: theme.fonts.monoMedium, fontSize: 20, color: theme.text },
   prDate: { fontFamily: theme.fonts.body, fontSize: 12, color: theme.muted },
-  liftHead: { flexDirection: "row", alignItems: "center", gap: 6 },
-  liftInfo: { width: 28, height: 28, alignItems: "center", justifyContent: "center" },
+  liftHead: { flexDirection: "row", alignItems: "center", alignSelf: "flex-start", gap: 5 },
+  liftInfo: { width: 16, height: 16, alignItems: "center", justifyContent: "center" },
   tip: { backgroundColor: "#2f2a27", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, gap: 6 },
   tipBody: { fontFamily: theme.fonts.body, fontSize: 13, lineHeight: 18, color: theme.text },
   tipStrong: { fontFamily: theme.fonts.bodySemi, fontSize: 13, color: theme.text },
@@ -1153,13 +1178,13 @@ const styles = StyleSheet.create({
   tipMuted: { flex: 1, fontFamily: theme.fonts.body, fontSize: 13, lineHeight: 18, color: theme.muted },
   liftButton: { paddingHorizontal: 16, paddingVertical: 14, flexDirection: "row", alignItems: "center", gap: 12 },
   liftCopy: { flex: 1, minWidth: 0 },
-  liftName: { fontFamily: theme.fonts.body, fontSize: 14, color: theme.text },
+  liftName: { fontFamily: theme.fonts.bodySemi, fontSize: 16, color: theme.text },
   e1Row: { flexDirection: "row", alignItems: "baseline", gap: 6 },
   e1Value: { fontFamily: theme.fonts.monoMedium, fontSize: 26, lineHeight: 32, color: theme.text },
   e1Unit: { fontFamily: theme.fonts.body, fontSize: 12, color: theme.muted },
   topLine: { flexDirection: "row", alignItems: "center", gap: 5, fontFamily: theme.fonts.body, fontSize: 12, color: theme.muted },
   topSet: { fontFamily: theme.fonts.mono, fontSize: 12, color: theme.text },
-  deltaLine: { fontFamily: theme.fonts.body, fontSize: 12, color: theme.muted },
+  deltaLine: { marginLeft: 3, fontFamily: theme.fonts.body, fontSize: 12 },
   spark: { width: 96, height: 44 },
   liftTable: { paddingHorizontal: 16, paddingBottom: 14, gap: 6 },
   tableHead: { flexDirection: "row", borderTopWidth: 1, borderTopColor: HAIRLINE, paddingTop: 10 },
@@ -1169,19 +1194,4 @@ const styles = StyleSheet.create({
   tableMono: { flex: 1, fontFamily: theme.fonts.mono, fontSize: 13, color: theme.text },
   tableRight: { textAlign: "right" },
   tablePr: { color: theme.fuel },
-  backdrop: { flex: 1 },
-  popover: {
-    position: "absolute",
-    left: 16,
-    right: 16,
-    backgroundColor: "#2f2a27",
-    borderRadius: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    gap: 6,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
-  },
-  popoverTitle: { fontFamily: theme.fonts.bodySemi, fontSize: 13, color: theme.orange.accent },
-  popoverBody: { fontFamily: theme.fonts.body, fontSize: 13, lineHeight: 19, color: theme.text },
 });

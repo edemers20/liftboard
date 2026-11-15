@@ -22,6 +22,7 @@ export const theme = {
     reminder: "#241d21",
     input: "#1c1519",
     accent: "#fc96bf",
+    selectedFill: "#9c4a6d",
     onAccent: "#2a1520",
     tint: "rgba(252, 150, 191, 0.18)",
     line: "#5a3a48",
