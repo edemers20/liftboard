@@ -1295,3 +1295,11 @@ button,a,[role="button"],summary,label.sw,.wcbtn,.chip,.seg button{transition:tr
 .ybtns{display:grid;grid-template-columns:auto 1fr;gap:8px;margin-top:8px}
 @media (prefers-reduced-motion:reduce){.yshine,.ymiles div,.ysflame.wig{animation:none}}
 .ysl.one{grid-template-columns:1fr}
+/* Day done: records set today */
+.dpr{background:linear-gradient(135deg,rgba(254,160,106,.22),rgba(252,150,191,.14)),#2a211c;border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;box-shadow:inset 0 0 0 1px rgba(254,160,106,.35)}
+.dprh{display:flex;align-items:center;gap:10px}
+.dprh b{font-size:15px;color:#fea06a}
+.dprb{width:32px;height:32px;border-radius:999px;background:#fea06a;color:#2a1a12;display:grid;place-items:center;font:400 15px var(--display);animation:yPop .5s .25s both}
+.dprr{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:14px}
+.dprr .mono b{font-weight:500;color:var(--fg);font-size:15px} .dprr small{color:var(--muted);font-size:12px;margin-left:4px}
+.dprt{font-style:normal;font:400 11px var(--display);color:#2a1a12;background:#fea06a;border-radius:999px;padding:1px 6px;margin-left:4px;vertical-align:1px}

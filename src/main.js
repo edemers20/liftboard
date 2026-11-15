@@ -1555,10 +1555,17 @@ function setupDone(){
 /* "145 × 8"; bodyweight shows "BW × 12" or "BW+10 × 8" */
 const fmtSet=(n,w,r)=>`${isBW(n)?(+w>0?`BW+${toU(w)}`:"BW"):toU(w)} × ${r}`;
 /* Each exercise with its top set; the arrow is what happens next time (↑ up, = held, ↓ ease). */
-function workoutRows(S,items){
+/* records set in this workout: today's sets compared with everything before them */
+function todayPRs(S,start){ const d0=new Date(); d0.setHours(0,0,0,0); const from=Math.min(start||Infinity,d0.getTime()), names=new Set(S.filter(x=>!x.cardio).map(x=>x.n));
+  return prsBetween(from,Date.now()+6e4).filter(x=>names.has(x.n)); }
+function prHighlight(S,start){ const P=todayPRs(S,start); if(!P.length) return "";
+  return `<section class="dpr" aria-label="Personal Records"><div class="dprh"><span class="dprb" aria-hidden="true">PR</span><b>${P.length===1?"New personal record":`${P.length} new personal records`}</b></div>
+    ${P.map(x=>`<div class="dprr"><span>${esc(x.n)}</span><span class="mono"><b>${fmtSet(x.n,x.w,x.r)}</b>${x.was?` <small>was ${fmtSet(x.n,x.was.w,x.was.r)}</small>`:""}</span></div>`).join("")}</section>`; }
+function workoutRows(S,items,prStart){
   if(!S.length) return `<p class="dnote">No sets logged.</p>`;
+  const pr=new Set(prStart!==undefined?todayPRs(S,prStart).map(x=>x.n):[]);
   return `<div class="drows wo">${S.map(x=>{ const r=(items||[]).find(y=>y.n===x.n);
-    return `<div class="prow"><span>${esc(x.n)}${x.extra?` <small>added</small>`:""}</span><b class="${r&&r.tag==="up"?"a":""}">${x.cardio?`${x.min?x.min+" min":"done"}`:fmtSet(x.n,x.w,x.r)}${r&&TAGICON[r.tag]?` <i aria-label="Next time: ${TAGTXT[r.tag]}">${TAGICON[r.tag]}</i>`:""}</b></div>`; }).join("")}</div>`;
+    return `<div class="prow"><span>${esc(x.n)}${x.extra?` <small>added</small>`:""}${pr.has(x.n)?` <em class="dprt">PR</em>`:""}</span><b class="${r&&r.tag==="up"?"a":""}">${x.cardio?`${x.min?x.min+" min":"done"}`:fmtSet(x.n,x.w,x.r)}${r&&TAGICON[r.tag]?` <i aria-label="Next time: ${TAGTXT[r.tag]}">${TAGICON[r.tag]}</i>`:""}</b></div>`; }).join("")}</div>`;
 }
 function dayDone(id,sets){
   const d=DAYS.find(x=>x.id===id), rv=(wk.review||{})[id]||{items:[]}, c=t=>rv.items.filter(x=>x.tag===t).length;
@@ -1566,7 +1573,7 @@ function dayDone(id,sets){
   const T=(wk.wt||{})[id];
   const S=daySummary(id), mins=T&&T.start&&T.end?Math.max(1,Math.round((T.end-T.start)/60000)):0;
   showDone({eyebrow:`${d.tab}: ${d.title}${mins?` · ${mins} min`:""}`,title:"Day done",
-    body:workoutRows(S,rv.items)+(rv.note?`<p class="dnote">${esc(rv.note)}</p>`:""),
+    body:prHighlight(S,T&&T.start)+workoutRows(S,rv.items,(T&&T.start)||0)+(rv.note?`<p class="dnote">${esc(rv.note)}</p>`:""),
     cta:"Finish & close",onCta:()=>goTab("workouts"),shareId:id});
 }
 /* Weekly report: opens when the week is finished or rolls over. Numbers count up. */

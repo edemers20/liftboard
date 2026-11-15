@@ -473,3 +473,16 @@ Web too (the web's existing day swap only offers similar workouts; add the "othe
 3. A8, A2, A5, B5.
 4. Copy and styling: A4, A6, A12, A13, then A9, A10, A3.
 5. Web app: every item marked "Web too", then run the web tests (`npx vitest run`) and build (`npx vite build`).
+
+---
+
+## 21. Records on the Day done card (built in the web app)
+
+When a workout sets a personal record, the Day done card says so.
+- **Highlight block** at the top of the card, above the exercise rows: an orange-tinted card (orange to pink gradient over #2a211c, thin orange outline) with a round orange **PR** badge that pops in, the title **New personal record** (or **{n} new personal records**), then one line per record: the exercise, the new top set and "was {old top set}" in grey.
+- **Row badge:** each exercise in the list that set a record gets a small orange **PR** pill after its name.
+- **What counts:** the same rule as History and the weekly report (`prsBetween`): a heavier top set, or more reps at the same or a heavier weight, compared with every earlier session of that exercise. Only records from this workout (sets logged today), and never the first time you do an exercise. The cardio finisher never counts.
+- No records, no block; the card looks as it does now.
+- Haptic: a success notification when the card opens with a record.
+- The share card already has the PRs tile; make sure it uses the same list.
+- Web: `prHighlight()` and `todayPRs()` in `src/main.js`, styles `.dpr` in `src/styles.css`; engine test "a heavier top set today shows as a record for the Day done card".

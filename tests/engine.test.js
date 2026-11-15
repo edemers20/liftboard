@@ -132,6 +132,15 @@ describe("finishing a day", () => {
     expect(E.get(d.id, 0).log.length).toBe(2);
     expect(E.exHist[n].at(-1)).toMatchObject({ w: 135, r: 9 });
   });
+  it("a heavier top set today shows as a record for the Day done card", () => {
+    fresh({ focus: "Lower", days: 3 }); const d = logDay(); const n = E.exName(d, d.slots[0], 0);
+    E.exHist[n] = [{ w: 130, r: 8, t: Date.now() - 3 * 864e5 }];
+    E.markDone(d.id);
+    const d0 = new Date(); d0.setHours(0, 0, 0, 0);
+    const P = E.prsBetween(d0.getTime(), Date.now() + 6e4).filter(x => x.n === n);
+    expect(P).toHaveLength(1);
+    expect(P[0]).toMatchObject({ w: 135, was: { w: 130, r: 8 } });
+  });
   it("reopening the day takes its history back out", () => {
     fresh({ focus: "Lower", days: 3 }); const d = logDay(); const n = E.exName(d, d.slots[0], 0); const before = (E.exHist[n] || []).length;
     E.markDone(d.id); E.markDone(d.id);
