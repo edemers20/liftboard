@@ -73,17 +73,26 @@ export default function RootLayout() {
   }, [showSplash, appReady]);
 
   useEffect(() => {
-    prepareRestAlerts();
-    rollWeekIfDue();
-    const clock = startDayClock(onNewDay);
-    const sub = AppState.addEventListener("change", (next) => {
+    let clock: ReturnType<typeof startDayClock> | null = null;
+  const sub = AppState.addEventListener("change", (next) => {
       if (next !== "active") return;
       rollWeekIfDue();
-      clock.check();
+      clock?.check();
+    });
+    let cancelled = false;
+    const id = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (cancelled) return;
+        prepareRestAlerts();
+        rollWeekIfDue();
+        clock = startDayClock(onNewDay);
+      });
     });
     return () => {
+      cancelled = true;
+      cancelAnimationFrame(id);
       sub.remove();
-      clock.stop();
+      clock?.stop();
     };
   }, []);
 

@@ -375,12 +375,15 @@ export function WeekReportHost() {
     }
     if (reportOpened === live.start || path === "/sheet-report") return;
     afterLaunchSplash(() => {
-      const current = engine.pendingWeekReport() as Report | null;
-      if (!current || reportOpened === current.start) return;
-      reportOpened = current.start;
-      remembered = current;
-      haptic.heavy();
-      openReportSheet();
+      requestAnimationFrame(() => {
+        if (!engine.wk.setupDone) return;
+        const current = engine.pendingWeekReport() as Report | null;
+        if (!current || reportOpened === current.start) return;
+        reportOpened = current.start;
+        remembered = current;
+        haptic.heavy();
+        openReportSheet();
+      });
     });
   }, [live, path]);
 
