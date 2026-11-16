@@ -11,6 +11,7 @@ import { startOfDay, useNotice } from "@/activity-log";
 import { copy, fill } from "@/copy";
 import { Download, Share } from "@/icons";
 import { engine } from "@/store";
+import { noCollapse } from "@/no-collapse";
 import { theme } from "@/theme";
 import { toDisplay } from "@/units";
 
@@ -174,7 +175,7 @@ export function ShareWorkoutActions({ id }: { id: string }) {
   if (!data) return null;
   return (
     <>
-      <View ref={ref} collapsable={false} style={styles.offscreen}>
+      <View ref={ref} {...noCollapse} style={styles.offscreen}>
         <ShareCardView data={data} />
       </View>
       <View style={styles.actions}>

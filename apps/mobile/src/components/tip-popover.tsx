@@ -4,6 +4,7 @@ import { usePathname } from "expo-router";
 import { Modal, PanResponder, ScrollView, StyleSheet, Text, useWindowDimensions, View, type StyleProp, type ViewStyle } from "react-native";
 
 import { Info } from "@/icons";
+import { noCollapse } from "@/no-collapse";
 import { theme } from "@/theme";
 import { useReduceMotion } from "@/use-reduce-motion";
 
@@ -81,7 +82,7 @@ export function InfoTip({
     <PressableScale
       kind="text"
       ref={ref}
-      collapsable={false}
+      {...noCollapse}
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ expanded: open }}

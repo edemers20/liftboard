@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PressableScale } from "@/components/pressable-scale";
-import { AccessibilityInfo, StyleSheet, type LayoutChangeEvent } from "react-native";
+import { AccessibilityInfo, Platform, StyleSheet, type LayoutChangeEvent } from "react-native";
 import Animated, {
   Easing,
   runOnJS,
@@ -23,6 +23,7 @@ import { theme } from "@/theme";
  * Clock from docs/design/splash-preview.html. The native launch screen is only
  * the page colour, so this view draws the bar and the plates begin at 0.55s.
  */
+const IS_WEB = Platform.OS === "web";
 const PLATE_MS = 420;
 const WORD_MS = 400;
 const EXIT_MS = 350;
@@ -277,7 +278,7 @@ export function LaunchSplash({ appReady, onDone }: { appReady: boolean; onDone: 
       >
         {box.w > 0 && box.h > 0 ? (
           <Svg width={box.w} height={box.h} viewBox={viewBox}>
-            <AnimatedG animatedProps={groupProps}>
+            <AnimatedG animatedProps={IS_WEB ? undefined : groupProps}>
               <Rect x={96} y={494} width={832} height={36} rx={18} fill={theme.orange.accent} />
               <Rect x={302} y={452} width={28} height={120} rx={12} fill={theme.text} />
               {leftPlates.map((spec) => (

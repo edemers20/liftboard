@@ -16,6 +16,7 @@ import { haptic } from "@/haptic";
 import { Check, Share } from "@/icons";
 import { openPlan } from "@/links";
 import { engine, useEngineStore } from "@/store";
+import { noCollapse } from "@/no-collapse";
 import { theme } from "@/theme";
 import { toDisplay } from "@/units";
 
@@ -347,7 +348,7 @@ export function ReportSheet({ report }: { report: Report }) {
           <Text style={styles.nextButtonText}>{copy.report.seeNext}</Text>
         </PressableScale>
       </View>
-      <View ref={shot} collapsable={false} pointerEvents="none" style={styles.offscreen}>
+      <View ref={shot} {...noCollapse} pointerEvents="none" style={styles.offscreen}>
         <ReportShare report={report} />
       </View>
     </View>
