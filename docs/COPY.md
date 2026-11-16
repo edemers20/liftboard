@@ -584,7 +584,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | App | main.js:463 |
 |  | FAQ | main.js:463 |
 |  | Your data | main.js:463 |
-|  | Everything lives on this phone only. Download a backup now and then; restoring replaces what's here. | main.js:463 |
+|  | Everything lives on this phone only. Export your data now and then; restoring replaces what's here. | main.js:463 (Emma, Nov 16: matches "Export my data") |
 |  | Export my data | main.js:463 (was "Download backup"; Emma, Nov 16) |
 |  | Restore backup | main.js:463 |
 |  | Lift Board gives general training and nutrition estimates, not medical advice. Check with a doctor before big changes, especially if you're pregnant, injured or managing a health condition. | main.js:463 |

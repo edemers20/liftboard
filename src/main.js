@@ -585,7 +585,7 @@ function strongest(){ let best=null;
     if(!best||c.dw>best.dw||(c.dw===best.dw&&c.last.w>best.last.w)) best=c; });
   return best; }
 /* earned milestones only, newest first */
-function milestones(){ const out=[], S=(wk.sessions||[]).filter(x=>x&&x.t).sort((a,b)=>a.t-b.t), O=["#ffc08a","#d07a3a"], P=["#ffb3d0","#d46a96"], G=["#9ee4cf","#3f9f88"], R=["#d2c0ff","#7a5fc0"];
+function milestones(){ const out=[], S=(wk.sessions||[]).filter(x=>x&&x.t).sort((a,b)=>a.t-b.t), O="#fea06a", P="#fc96bf", G="#6fd0b4", R="#b79cf0";
   const lifts=S.filter(x=>x.k==="lift"); [10,25,50,100,200].forEach(n=>{ if(lifts.length>=n) out.push({i:String(n),t:`${n} lifts`,d:lifts[n-1].t,c:G}); });
   let m=0; const H=[10,50,100,250,500]; let h=0; S.forEach(x=>{ m+=x.k==="lift"?(num(x.min,0)>0?num(x.min,0):num(wk.time,60)):num(x.min,0); while(h<H.length&&m>=H[h]*60){ out.push({i:String(H[h]),t:`${H[h]} hours moved`,d:x.t,c:O}); h++; } });
   const W=wk.weeks||[]; let run=0, first=false; const ST=[3,6,10,16,26,52], got={};
@@ -644,7 +644,7 @@ function renderProfile(){
       <div class="ymix">${mix.map(c=>{ const h=Math.round(c.min/60); return `<div><span>${esc(ACT[c.k]?ACT[c.k].name:c.k)}</span><i><b style="width:${Math.round(c.min/top*100)}%;background:${col(c.k)}"></b></i><span class="mono">${h}h</span></div>`; }).join("")}</div></section>`; }
   /* milestones: earned ones only */
   const M=milestones().slice(0,6);
-  const msH=`<section class="ysec"><div class="yh"><h3>Milestones</h3></div>${M.length?`<div class="ymiles">${M.map(m=>`<div class="ymf" style="background:radial-gradient(circle at 30% 22%,rgba(255,255,255,.3),transparent 45%),linear-gradient(155deg,${m.c[0]},${m.c[1]})"><span class="ybadge">${m.i}</span><b>${esc(m.t)}</b><small>${MDAY(m.d)}</small></div>`).join("")}</div>`
+  const msH=`<section class="ysec"><div class="yh"><h3>Milestones</h3></div>${M.length?`<div class="ymiles">${M.map(m=>`<div class="ymf" style="background:${m.c}"><span class="ybadge">${m.i}</span><b>${esc(m.t)}</b><small>${MDAY(m.d)}</small></div>`).join("")}</div>`
     :`<p class="small">Milestones show up here as you hit them, like your first full week or your 10th lift.</p>`}</section>`;
   return `<div class="yprof">${gear}${hero}${streak}${tileH}${setup}${slH}${prH}${mpH}${msH}</div>`;
 }
@@ -670,7 +670,7 @@ function renderSettings(){
     ${seg("wkStart","Week starts on",[["Mon","Mon"],["Sun","Sun"]],wk.wkStart||"Mon",0,"sw2")}
     ${seg("remind","Next-morning check",[["On","On"],["Off","Off"]],wk.remind||"On",0,"sw2")}</div>
   <div class="panel"><h3>Help</h3>${HOW.map(([q,a])=>`<details class="how"><summary>${esc(q)}</summary><p class="small">${esc(a)}</p></details>`).join("")}</div>
-  <div class="panel"><h3>Your data</h3><p class="small">Everything lives on this phone only. Download a backup now and then; restoring replaces what's here.</p>
+  <div class="panel"><h3>Your data</h3><p class="small">Everything lives on this phone only. Export your data now and then; restoring replaces what's here.</p>
     <div class="foot" style="margin:0"><button class="btn" id="bkDown" type="button">Export my data</button><label class="btn" for="bkFile">Restore backup<input id="bkFile" type="file" accept="application/json,.json" hidden></label></div>
     <div class="foot season-foot"><button class="btn" id="replayTour" type="button">Replay tour</button><button class="btn" id="resetProfile" type="button">Reset profile</button></div></div>
   ${moveHTML()}
@@ -799,7 +799,7 @@ function renderSeason(P){
   ${moveHTML()}
   <div class="panel"><h3>Units</h3>${seg("units","",[["lb","Pounds (lb)"],["kg","Kilograms (kg)"]],wk.units||"lb")}</div>
   <div class="panel"><h3>Tips</h3>${seg("guide","",[["More","More guidance"],["Less","Fewer tips"]],wk.guide||"More")}<p class="small">${(wk.guide||"More")==="Less"?"No first-visit tips, shorter change popups and no reasons under exercises. Watch notes and (i) explanations stay.":"First-visit tips on each tab, full change popups and the reason behind each exercise change."}</p></div>
-  <div class="panel"><h3>Your data</h3><p class="small">Everything lives on this phone only. Download a backup now and then; restoring replaces what's here.</p>
+  <div class="panel"><h3>Your data</h3><p class="small">Everything lives on this phone only. Export your data now and then; restoring replaces what's here.</p>
     <div class="foot" style="margin:0"><button class="btn" id="bkDown" type="button">Export my data</button><label class="btn" for="bkFile">Restore backup<input id="bkFile" type="file" accept="application/json,.json" hidden></label></div></div>
   <p class="small disclaimer">Lift Board gives general training and nutrition estimates, not medical advice. Check with a doctor before big changes, especially if you're pregnant, injured or managing a health condition.</p>
   <div class="foot season-foot"><button class="btn" id="replayTour" type="button">Replay tour</button><button class="btn" id="resetProfile" type="button">Reset profile</button></div>`;

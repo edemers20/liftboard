@@ -111,7 +111,7 @@ export const copy = {
     faq: "FAQ",
     yourData: "Your data",
     backupNote:
-      "Everything lives on this phone only. Download a backup now and then; restoring replaces what's here.",
+      "Everything lives on this phone only. Export your data now and then; restoring replaces what's here.",
     restoreBackup: "Restore backup",
     restoreTitle: "Restore backup?",
     restoreBody: "Replaces everything on this phone with the backup from {…}.",

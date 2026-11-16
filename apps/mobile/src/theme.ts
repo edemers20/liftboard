@@ -33,23 +33,13 @@ export const theme = {
     /** Black at 30% over the pink surface. */
     secondary: "#191617",
   },
-  /** Personal records: filled purple cards with a lavender glow (`record` is the accent). */
+  /** Personal records: solid purple cards (`record` is the accent). */
   purple: {
-    card: "#262034",
-    orb: ["#4a3a72", "#241c38"],
-    glow: "#b79cf0",
+    card: "#33284f",
     border: "rgba(183, 156, 240, 0.45)",
-    label: "#e8dffc",
     value: "#f4efff",
     muted: "rgba(237, 234, 232, 0.72)",
     tint: "rgba(183, 156, 240, 0.14)",
-  },
-  /** Milestone cards: a light-to-deep diagonal of each accent under a white highlight, so the fill has depth. */
-  milestone: {
-    green: ["#9ee4cf", "#3f9f88"],
-    orange: ["#ffc08a", "#d07a3a"],
-    pink: ["#ffb3d0", "#d46a96"],
-    purple: ["#d2c0ff", "#7a5fc0"],
   },
   banner: "#3a3018",
   radii: {

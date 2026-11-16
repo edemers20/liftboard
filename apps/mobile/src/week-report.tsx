@@ -10,7 +10,6 @@ import { captureRef } from "react-native-view-shot";
 import { router, usePathname } from "expo-router";
 import { afterLaunchSplash } from "@/components/launch-splash";
 import { Rise, useCountUp } from "@/components/motion";
-import { OrbFill } from "@/components/orb-fill";
 import { openReportSheet } from "@/form-sheet";
 import { copy, fill } from "@/copy";
 import { haptic } from "@/haptic";
@@ -249,7 +248,6 @@ export function ReportSheet({ report }: { report: Report }) {
         {report.prs.length ? (
           <Rise delay={220}>
             <View accessibilityLabel={copy.report.records} style={styles.prCard}>
-              <OrbFill colors={theme.purple.orb} glow={theme.purple.glow} glowOpacity={0.45} at={{ x: 0.15, y: 0.1 }} reach={0.6} />
               <Text style={styles.prTitle}>{copy.report.records}</Text>
               {report.prs.map((row) => (
                 <View key={row.n} style={styles.split}>
@@ -433,10 +431,10 @@ const styles = StyleSheet.create({
   value: { fontFamily: theme.fonts.monoMedium, fontSize: 28, lineHeight: 34, flexShrink: 1 },
   unit: { opacity: 0.7, fontFamily: theme.fonts.mono, fontSize: 14 },
   card: { backgroundColor: theme.orange.surface, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14, gap: 10 },
-  prCard: { backgroundColor: theme.purple.card, borderRadius: 16, borderWidth: 1, borderColor: theme.purple.border, overflow: "hidden", paddingHorizontal: 16, paddingVertical: 14, gap: 10 },
+  prCard: { backgroundColor: theme.purple.card, borderRadius: 16, borderWidth: 1, borderColor: theme.purple.border, paddingHorizontal: 16, paddingVertical: 14, gap: 10 },
   activityCard: { backgroundColor: theme.pink.surface, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14, gap: 8 },
   cardTitle: { color: theme.text, fontFamily: theme.fonts.bodySemi, fontSize: 15 },
-  prTitle: { color: theme.purple.label, fontFamily: theme.fonts.bodySemi, fontSize: 15 },
+  prTitle: { color: theme.record, fontFamily: theme.fonts.bodySemi, fontSize: 15 },
   split: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 10 },
   rowName: { flex: 1, minWidth: 0, color: theme.text, fontFamily: theme.fonts.body, fontSize: 14 },
   from: { flexShrink: 1, color: theme.muted, fontFamily: theme.fonts.mono, fontSize: 13, textAlign: "right" },
