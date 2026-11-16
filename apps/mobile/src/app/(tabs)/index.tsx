@@ -26,7 +26,6 @@ import {
   saveSession,
   setSessionEffort,
   showReminder,
-  plannedActivityCount,
   suggestedActivity,
   showRest,
   spinIntensity,
@@ -607,9 +606,6 @@ function DayPage({
         {showReminder(offset) ? (
           <View style={styles.reminder}>
             <Text style={styles.eyebrow}>{copy.workouts.activityDay}</Text>
-            {plannedActivityCount() ? (
-              <Text style={styles.reminderTitle}>{copy.plannedActivity(plannedActivityCount())}</Text>
-            ) : null}
             {suggestedActivity() ? (
               <Text style={styles.reminderText}>{copy.workouts.suggestedFirst(suggestedActivity())}</Text>
             ) : null}
@@ -1828,11 +1824,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     gap: 4,
-  },
-  reminderTitle: {
-    color: theme.text,
-    fontFamily: theme.fonts.bodySemi,
-    fontSize: 18,
   },
   reminderText: {
     color: theme.text,

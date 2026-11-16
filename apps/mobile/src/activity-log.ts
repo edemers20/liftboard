@@ -241,11 +241,6 @@ export function suggestedActivity(): string {
   return id ? activityName(id) : "";
 }
 
-/** How many activities you plan (not one-offs). */
-export function plannedActivityCount(): number {
-  return (engine.plannedActs() as string[]).length;
-}
-
 export function showReminder(offset: number): boolean {
   const today = startOfDay(Date.now());
   const selected = addDays(today, offset);

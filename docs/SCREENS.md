@@ -42,7 +42,7 @@ From step 1 on, a "Plan so far" card at the bottom updates live. Finishing write
   - **Open day (today or future, nothing planned)**: "Nothing planned" + "View next lift".
   - **Past day, nothing logged**: "Rest · Nothing logged".
   - **Activity logged**: pink card with minutes. Logging it expands the card inline: minutes, and Difficulty (Easy / Moderate / Hard, default Moderate). Spin, yoga and Pilates keep their own effort options. Deleting a one-off (logged from Other) removes that activity as well as the session. A regular activity only loses the session. Tap a card to open or close the details.
-  - **Usual activity day**: a reminder card reading "Activity" (one activity planned) or "Activities" (more than one), then the suggested activity ("Pickleball first", TODO copy), then the log line. No count.
+  - **Usual activity day**: a reminder card with the "Activity day" eyebrow, the suggested activity ("Pickleball first", TODO copy), then the log line. No count. Activities stay separate named pills on Workouts (the chips); the combined "Activity" / "Activities" wording is only on Plan.
 - Activity chips: one pill per activity (no count), in suggestion order (main sport, second sport, then the order they were turned on), then one-offs, plus "Other" to log anything. Only on today and past days of this week.
 - Fuel & recovery card (today only): Fuel today kcal; Lower body and Upper body recovery ("18h rest" or "Ready"). Taps through to Plan.
 - Banners: next-morning check ("Did you play or train yesterday?") when yesterday is empty and the setting is on.
