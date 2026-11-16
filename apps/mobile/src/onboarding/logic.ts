@@ -345,6 +345,7 @@ function writeAnswers(wk: Record<string, any>, draft: Draft, real: boolean) {
   }
   engine.fixSports(wk);
   engine.syncDays();
+  engine.fitActivityDays();
   fitPace(wk);
   if (real) {
     wk.createdAt = wk.createdAt || Date.now();

@@ -235,6 +235,11 @@ export function canLogDay(offset: number): boolean {
   return weekOffset(selected, today) === 0 && selected.getTime() <= today.getTime();
 }
 
+/** Activities you plan (not one-offs), main sport first, for the activity-day prompt. */
+export function plannedActivityNames(): string[] {
+  return (engine.plannedActs() as string[]).map((id) => activityName(id));
+}
+
 export function showReminder(offset: number): boolean {
   const today = startOfDay(Date.now());
   const selected = addDays(today, offset);
@@ -311,10 +316,7 @@ export function logActivity(id: string, at: number): void {
       break;
     }
   }
-  if (index < 0) {
-    index = Math.max(planned, filledLength(slots));
-    if (id !== "zone2") engine.wk[id] = index + 1;
-  }
+  if (index < 0) index = Math.max(planned, filledLength(slots));
   const minutes = id === "zone2" ? 45 : engine.plannedMin(id);
   engine.logAct(key, index, String(minutes), at);
   if (usesSessionEffort(id)) {

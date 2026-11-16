@@ -342,9 +342,13 @@ export const copy = {
     done: "Done",
     minutes: (n: number) => `${n} min`,
     minutesDone: "Minutes done",
-    countOf: (done: number, planned: number) => `${done} of ${planned}`,
     other: "Other",
     activityDay: "Activity day",
+    // TODO copy: activity-day prompt naming the planned activities, from Emma's example "Pickleball or yoga". Not in docs/COPY.md yet.
+    plannedActivities: (names: string[]) => {
+      const words = names.map((name, index) => (index === 0 ? name : name.toLowerCase()));
+      return words.length > 1 ? `${words.slice(0, -1).join(", ")} or ${words[words.length - 1]}` : words[0] ?? "";
+    },
     logBelow: "Played or took a class? Log it below.",
     usually: "You usually play or take a class today.",
     rest: "Rest",

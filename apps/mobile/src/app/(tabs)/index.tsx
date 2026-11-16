@@ -21,13 +21,12 @@ import {
   isRecent,
   logActivity,
   logOther,
-  loggedOf,
   offsetForWeek,
   otherIds,
-  plannedOf,
   saveSession,
   setSessionEffort,
   showReminder,
+  plannedActivityNames,
   showRest,
   spinIntensity,
   stampOn,
@@ -607,6 +606,9 @@ function DayPage({
         {showReminder(offset) ? (
           <View style={styles.reminder}>
             <Text style={styles.eyebrow}>{copy.workouts.activityDay}</Text>
+            {plannedActivityNames().length ? (
+              <Text style={styles.reminderTitle}>{copy.workouts.plannedActivities(plannedActivityNames())}</Text>
+            ) : null}
             <Text style={styles.reminderText}>{offset === 0 ? copy.workouts.logBelow : copy.workouts.usually}</Text>
           </View>
         ) : null}
@@ -1263,19 +1265,10 @@ function LogChip({ id, onPress }: { id: string; onPress: () => void }) {
   "use no memo";
   useEngineStore((state) => state.version);
   const name = activityName(id);
-  const planned = plannedOf(id);
-  const logged = loggedOf(id);
-  const progress = planned > 0 ? copy.workouts.countOf(logged, planned) : logged > 0 ? String(logged) : "";
   return (
-    <PressableScale
-      style={styles.chip}
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={progress ? `${name} ${progress}` : name}
-    >
+    <PressableScale style={styles.chip} onPress={onPress} accessibilityRole="button" accessibilityLabel={name}>
       <Text style={styles.plus}>+</Text>
       <Text style={styles.chipName}>{name}</Text>
-      {progress ? <Text style={styles.chipCount}>{progress}</Text> : null}
     </PressableScale>
   );
 }
@@ -1832,6 +1825,11 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     gap: 4,
   },
+  reminderTitle: {
+    color: theme.text,
+    fontFamily: theme.fonts.bodySemi,
+    fontSize: 18,
+  },
   reminderText: {
     color: theme.text,
     fontFamily: theme.fonts.body,
@@ -1894,10 +1892,5 @@ const styles = StyleSheet.create({
     color: theme.text,
     fontFamily: theme.fonts.bodySemi,
     fontSize: 13,
-  },
-  chipCount: {
-    color: theme.muted,
-    fontFamily: theme.fonts.monoMedium,
-    fontSize: 12,
   },
 });

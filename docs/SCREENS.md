@@ -42,8 +42,8 @@ From step 1 on, a "Plan so far" card at the bottom updates live. Finishing write
   - **Open day (today or future, nothing planned)**: "Nothing planned" + "View next lift".
   - **Past day, nothing logged**: "Rest · Nothing logged".
   - **Activity logged**: pink card with minutes. Logging it expands the card inline: minutes, and Difficulty (Easy / Moderate / Hard, default Moderate). Spin, yoga and Pilates keep their own effort options. Deleting a one-off (logged from Other) removes that activity as well as the session. A regular activity only loses the session. Tap a card to open or close the details.
-  - **Usual activity day**: a reminder card.
-- Activity chips: one pill per activity with "0 of 2" progress, plus "Other" to log anything. Only on today and past days of this week.
+  - **Usual activity day**: a reminder card naming the planned activities ("Pickleball or yoga"), then the log line.
+- Activity chips: one pill per activity (no count), plus "Other" to log anything. Only on today and past days of this week.
 - Fuel & recovery card (today only): Fuel today kcal; Lower body and Upper body recovery ("18h rest" or "Ready"). Taps through to Plan.
 - Banners: next-morning check ("Did you play or train yesterday?") when yesterday is empty and the setting is on.
 
@@ -71,7 +71,7 @@ Header: the week's date range as a page title ("NOV 2 – 8") or "SEASON"; a Wee
 
 ### Week [`30-plan-week`, `31-plan-week-checkin`]
 1. **Weekly check-in** (only until saved for the week): Readiness, Soreness, Cycle (female only), Drinking nights, Avg weight, Save check-in. Once saved it collapses to a line at the bottom: "Check-in · Feeling normal, no soreness" with a pencil to edit.
-2. **This week's plan**: one row per lift and activity with a status icon (done, next, open); tap opens it. Then "Lift days" and "Activity days" (no count) Mon–Sun toggles.
+2. **This week's plan**: one row per lift and activity with a status icon (done, next, open); tap opens it. Then "Lift days" and "Activity days" (no count) Mon–Sun toggles. Activity days are one shared set; unchecking one also drops a planned session, and the change carries into later weeks.
 3. **Fuel/Recover** with an (i) whose tip is "How this is calculated": Fuel today kcal, recovery tiles; tiles for Your base, vs last week, Expected loss.
 4. **This week's changes** and **Watch** lists, each with an (i).
 

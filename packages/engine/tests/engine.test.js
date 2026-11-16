@@ -1007,3 +1007,47 @@ describe("weekly activity counts", () => {
     expect(E.wk.pAct).toEqual([]);
   });
 });
+
+describe("usual activity days are the saved plan", () => {
+  const two = { days: 3, ldays: [0, 2, 4], acts: { lift: true, pickle: true, yoga: true }, mainSport: "pickle", pickle: "3", yoga: "1", adays: [1, 3, 5, 6] };
+  it("carry over to a new week as they are, with the weekly counts", () => {
+    fresh(two);
+    E.newWeek();
+    expect(E.wk.adays).toEqual([1, 3, 5, 6]);
+    expect([E.cnt("pickle"), E.cnt("yoga")]).toEqual([3, 1]);
+  });
+  it("unchecking a day saves it and drops a session from the activity planned most often", () => {
+    fresh(two);
+    E.setActivityDay(6, false);
+    expect(E.wk.adays).toEqual([1, 3, 5]);
+    expect([E.cnt("pickle"), E.cnt("yoga")]).toEqual([2, 1]);
+    E.newWeek();
+    expect(E.wk.adays).toEqual([1, 3, 5]);
+    expect(E.cnt("pickle")).toBe(2);
+  });
+  it("on a tie the main sport keeps its sessions", () => {
+    fresh({ ...two, pickle: "2", yoga: "2" });
+    E.setActivityDay(1, false);
+    expect([E.cnt("pickle"), E.cnt("yoga")]).toEqual([2, 1]);
+  });
+  it("checking a day adds a session to the main sport", () => {
+    fresh({ ...two, adays: [1, 3, 5] , pickle: "2" });
+    E.setActivityDay(6, true);
+    expect(E.wk.adays).toEqual([1, 3, 5, 6]);
+    expect(E.cnt("pickle")).toBe(3);
+  });
+  it("logging past the plan counts toward the week but doesn't change the saved count", () => {
+    const P = fresh({ ...two, pAct: ["75", "75", "75", "75"] });
+    expect(E.cnt("pickle")).toBe(3);
+    expect(E.sessN("pickle")).toBe(4);
+    expect(P.sessions).toBe(3 + 4 + 1);
+  });
+  it("onboarding counts become that many activity days, on days without a lift first", () => {
+    fresh({ ...two, adays: [] });
+    E.fitActivityDays();
+    expect(E.wk.adays).toEqual([1, 3, 5, 6]);
+    E.wk.pickle = "1";
+    E.fitActivityDays();
+    expect(E.wk.adays).toEqual([1, 3]);
+  });
+});

@@ -187,10 +187,7 @@ export default function PlanScreen() {
       }, false);
     },
     toggleActivity(index) {
-      const current: number[] = model.activityDays;
-      engine.wk.adays = current.includes(index)
-        ? current.filter((day) => day !== index)
-        : [...current, index].sort((a, b) => a - b);
+      engine.setActivityDay(index, !model.activityDays.includes(index));
       engine.save();
     },
     setSeason(on) {
