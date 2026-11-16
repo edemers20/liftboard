@@ -26,7 +26,7 @@ Updated Nov 16, 2026, from a search of the code at commit `7cd4ab3`. A code sear
 | §21 | Records on the Day done card | **Not built** (B1) | Built |
 | Alerts and haptics Part 1, 3 | Rest alerts, sounds, haptics | Built | n/a |
 | Alerts and haptics Part 2 | Live Activity (Lock Screen and Dynamic Island) | **Not built** (B3) | n/a |
-| Liquid Glass audit 1–6 | Bottom accessory, zoom, form sheets, rest bar, tab bar minimise | Built (6 dropped) | n/a |
+| Liquid Glass audit 1–6 | Bottom accessory, zoom, form sheets, rest bar, tab bar minimise | Built (6 dropped); the bottom accessory isn't wired, the live pill is a dock above the tab bar | n/a |
 | Liquid Glass audit 7–9 | Prominent glass buttons, long-press menus, floating date line | Not built; "worth trying", **waiting on Emma** | n/a |
 | START-HERE | Import a web backup | **Not built** (B2) | n/a |
 | Backend | Supabase sign-in and sync | Not started; after Emma has used the app for a week (B4) | n/a |
@@ -46,6 +46,17 @@ These exist in code but haven't been confirmed working. Go through them with Emm
   - Fixed Nov 16 (phone test on e070d5f): Delete showed behind rows that weren't swiped, and delete sometimes did nothing. Delete now stays hidden until the row moves, uses a gesture-handler button so the swipe can't swallow the tap, and closes the row first. Rows get new keys after a delete or Undo, so no row inherits another's open swipe. Empty planned sets have no swipe, because deleting one changed nothing (the planned count refills the row); a set with anything entered, or one added past the plan, can be deleted.
 - Marking Rough mid-workout keeps finished exercises and their sets.
 - Opening a second workout from Plan doesn't make it live. The live pill goes away when the workout ends, and long-press offers End workout.
+  - Fixed Nov 16 (phone test on e070d5f): the live pill never showed. React Compiler cached the live workout read on the clock only, and the engine changes `wk` in place, so starting a workout or ticking a set never reached the pill while the tabs stayed mounted. `useLiveWorkout` now opts out (`"use no memo"`), the same as the tab screens; `src/engine-readers-compiler.test.ts` runs the compiler and fails if it is memoized again. The pill is the green dock above the tab bar on every tab; the system bottom accessory (`LiveWorkoutAccessory`) is built but not wired. Web: none (no live pill on the web). Check on the phone: start a workout, go back; the pill shows on all four tabs, tracks sets and rest, and long-press offers End workout.
+  - Stale values audit (Emma, Nov 16), fixed: React Compiler cached engine reads all over the app, because the engine changes `wk` in place. Every file that reaches the engine (33, found from the imports) now opts out at the top (`"use no memo"`), and `src/engine-readers-compiler.test.ts` compiles them all and fails if any is memoized again or a screen root stops subscribing to the store. What was stale:
+    - History: the whole tab was read once (after finishing a workout, logging an activity, undo or a new week it kept the old numbers).
+    - Week report: the pending report was read once, so a new week with the app open never showed it.
+    - Workouts: lift cards were cached by day (finish, undo, delete, swap and a new week kept the old cards); the activity-day card; the planned lift's preview and swap button; activity effort.
+    - Tab bar: the You letter and label after a name change in Settings.
+    - Workout screen: next-weight notes, carried weights and lb/kg labels after a Settings change; the swap sheet's choices.
+    - History records and onboarding weights after switching lb and kg.
+  - New week with the app open (Emma, Nov 16), fixed: the week only rolled at launch and on return to the app, and nothing redrew at midnight. A day clock in the root layout now wakes just after local midnight, rolls the week if due and redraws every screen; on return it does the same. `src/day-clock.test.ts` drives it with a fake clock (Sunday 23:59 to Monday, a sleep to Wednesday, and a week away).
+  - Web preview "Cannot update a component while rendering" on Start workout (Emma, Nov 16), fixed: `engine.plan()` saved the set-count snapshot the first time it saw a started day, and it runs while screens draw (the workout screen, the live pill, Plan and Workouts), so the first draw after Start updated the store mid-render. Same on iOS (dev warning only); it didn't cause wrong numbers, since every reader got the same snapshot. `plan()` no longer saves; Start, the first ticked set and the feel switch save it. Engine tests cover it.
+  - Web changes needed: none for the compiler (the web isn't React). Optional: `src/engine.js` `plan()` has the same save inside; harmless on the web.
 - The rest bar appears without a stutter, with its text centred in the glass.
 - Content scrolls under the status bar on every tab.
 - Keep on the weight suggestion is remembered when you leave and reopen the workout.
@@ -64,6 +75,9 @@ These exist in code but haven't been confirmed working. Go through them with Emm
 - **Activity order and suggestion (Emma chose A and C). Built on `outstanding-a-b`.** Chips and the activity-day suggestion follow main sport, second sport, then the order activities were turned on in Settings (new saved field `wk.actOrder`; existing activities keep the fixed order). The activity-day card adds "{activity} first" (`TODO copy`). In season the season sports lead (existing `seasonSports()`); a deload week uses the same order. Engine tests cover the order, one-offs, in season and deload. Check on the phone.
   - Pills (Emma, Nov 16): Workouts keeps separate named activity pills; the combined "Activity" / "Activities" wording stays on Plan only, so the Workouts activity-day card no longer shows it (eyebrow, suggestion, log line). Web: the activity-day card (line 422) gets only the suggestion line, no combined word.
   - Decided (Emma, Nov 16): a deload week uses the same activity order as a normal week.
+  - Decided (Emma, Nov 16), built: no "{activity} first" line; the suggestion is the first pill. Planned means at least one session a week: an activity on with 0 sessions has no Workouts pill or suggestion (log it from Other, which never changes a count) and is listed on Plan under "Add to your week" to add a session. Checking an activity day still adds to the main sport even at 0. Turning an activity off trims its days. After logging past the plan, a small card on today's Workouts offers to add a weekly session (Add raises the count and adds a day; Not now does nothing); asked once per activity per week. Engine tests cover planned, add, trim and the once-a-week ask.
+  - Gap: turning an activity on in Settings leaves it at 0 sessions (same as the web). It's never stuck (Plan's "Add to your week", or Add after logging it), but it isn't planned until then. Recommendation: start a newly turned-on activity at 1 a week with a day, like Add. Not built; Emma to decide.
+  - Web changes needed: planned = count above 0 for chips, the card and the order; Other lists on-but-0 activities and logs them without wiping; remove the suggestion line; "Add to your week" on Plan; the ask after an extra session; trim days when an activity is turned off.
   - Web changes needed: `noteAct` on the Settings activity toggle (line 1654); order the chips by `plannedActs()` then one-offs (line 423); the suggestion line on the activity-day card (line 422); port `orderActs`, `noteAct`, `suggestedAct` to `src/engine.js` with the tests.
 - The first lift of a new week can be swapped with any other unstarted lift that week.
 - The notification icon is the new one. This needs a fresh dev build: `npx expo prebuild --clean`, then build again.
@@ -141,7 +155,7 @@ The proposed formula:
 **C4. Liquid Glass audit items 7–9. Decided:** glass for the in-page switches (Plan Week/Season and History Calendar/Weeks/Lifts). No long-press menus on day cards and no floating date line.
 
 **C5. The You tab's first-run tip. Decided:** new copy is "See your accomplishments and other cool profile info. Tap the gear for settings."
-- Pending Emma's answer: four FAQ and onboarding lines still say "You →" for things that now live in Settings. Whether to change them is her call. They are in `docs/COPY.md`, `copy.ts` and `src/main.js`:
+- Decided (Emma, Nov 16): they say Settings now (native, marked TODO copy; "Training preferences" became "Training", the section's name). The backup line still says "Download backup" while Settings calls the row "Export my data"; left for Emma. Web: the same four lines in `src/main.js`. The lines were:
   - Onboarding experience: "Change it anytime under You → Training preferences."
   - FAQ "When does a new week start?": "(You → App → Week starts on)".
   - FAQ "What does experience change?": "Change it in You → Training preferences."

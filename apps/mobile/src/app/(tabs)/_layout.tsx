@@ -1,3 +1,5 @@
+"use no memo";
+
 import { DarkTheme, ThemeProvider, usePathname } from "expo-router";
 import { Tabs } from "expo-router/js-tabs";
 import { NativeTabs } from "expo-router/native-tabs";

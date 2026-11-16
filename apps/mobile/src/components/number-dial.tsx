@@ -1,3 +1,5 @@
+"use no memo";
+
 import { createContext, useContext, useRef, useState, type ReactNode } from "react";
 import { PressableScale } from "@/components/pressable-scale";
 import { FlatList, StyleSheet, Text, View, type StyleProp, type TextStyle, type ViewStyle } from "react-native";

@@ -263,7 +263,8 @@ export const copy = {
       },
       {
         title: "How long have you been lifting?",
-        body: "This sets how much guidance you see. Change it anytime under You → Training preferences.",
+        // TODO copy: was "You → Training preferences" (Emma, Nov 16: point to Settings).
+        body: "This sets how much guidance you see. Change it anytime under Settings → Training.",
       },
       {
         title: "A bit about you",
@@ -346,8 +347,12 @@ export const copy = {
     minutesDone: "Minutes done",
     other: "Other",
     activityDay: "Activity day",
-    // TODO copy: the suggested activity on the activity-day card. Not in docs/COPY.md yet.
-    suggestedFirst: (name: string) => `${name} first`,
+    // TODO copy: the ask after logging past your weekly sessions. Not in docs/COPY.md yet.
+    addAsk: (name: string) => `Add ${name} to your weekly sessions? It shows up every week.`,
+    // TODO copy
+    addYes: "Add",
+    // TODO copy
+    addNo: "Not now",
     logBelow: "Played or took a class? Log it below.",
     usually: "You usually play or take a class today.",
     rest: "Rest",
@@ -475,7 +480,8 @@ export const copy = {
     ],
     [
       "When does a new week start?",
-      "On its own, on Monday or Sunday (You → App → Week starts on). Your weekly check-in reopens at the top of Plan.",
+      // TODO copy: was "You → App"
+      "On its own, on Monday or Sunday (Settings → App → Week starts on). Your weekly check-in reopens at the top of Plan.",
     ],
     [
       "Forgot to log something?",
@@ -507,7 +513,7 @@ export const copy = {
     ],
     [
       "What does experience change?",
-      "How many tips you see. Beginner and Some Experience show tips; Advanced hides them, and (i) explanations stay either way. Change it in You → Training preferences.",
+      "How many tips you see. Beginner and Some Experience show tips; Advanced hides them, and (i) explanations stay either way. Change it in Settings → Training.", // TODO copy: was "You → Training preferences"
     ],
     [
       "Bodyweight exercises?",
@@ -519,7 +525,8 @@ export const copy = {
     ],
     [
       "Moving to a new phone?",
-      "You → Your data → Download backup, then Restore backup on the new phone. With accounts, signing in will do this for you.",
+      // TODO copy: was "You → Your data". Settings names the row "Export my data", not "Download backup".
+      "Settings → Your data → Download backup, then Restore backup on the new phone. With accounts, signing in will do this for you.",
     ],
     [
       "Is this medical advice?",
@@ -757,6 +764,8 @@ export const copy = {
     liftDays: "Lift days",
     sessionLength: "Session length",
     activityDays: "Activity days",
+    // TODO copy: label over activities that are on with 0 sessions a week. Not in docs/COPY.md yet.
+    addToWeek: "Add to your week",
     fuelRecovery: "Fuel/Recover",
     fuelToday: "Fuel today",
     startNewWeek: "Start new week",

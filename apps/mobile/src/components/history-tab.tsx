@@ -1,3 +1,5 @@
+"use no memo";
+
 import { router } from "expo-router";
 import { PressableScale } from "@/components/pressable-scale";
 import { Flame } from "lucide-react-native";

@@ -1,3 +1,5 @@
+"use no memo";
+
 import { isLiquidGlassAvailable } from "expo-glass-effect";
 import { PressableScale } from "@/components/pressable-scale";
 import { SheetFrame } from "@/components/motion";

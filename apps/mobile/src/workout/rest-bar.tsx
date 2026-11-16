@@ -1,3 +1,5 @@
+"use no memo";
+
 import { GlassContainer, GlassView, isGlassEffectAPIAvailable } from "expo-glass-effect";
 import { PressableScale } from "@/components/pressable-scale";
 import { useEffect, useRef, useState } from "react";

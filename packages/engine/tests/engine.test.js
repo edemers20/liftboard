@@ -1086,15 +1086,16 @@ describe("extra activity sessions", () => {
   });
 });
 
-describe("activity order and the activity-day suggestion", () => {
+describe("activity order and the suggestion (planned activities only)", () => {
   const acts = { lift: true, pickle: true, tennis: true, yoga: true, spin: true };
+  const counts = { pickle: "1", tennis: "1", yoga: "1", spin: "1" };
   it("main sport, then the second sport, then the rest in the fixed order for activities from before the order was saved", () => {
-    fresh({ acts, mainSport: "tennis", sport2: "pickle" });
+    fresh({ acts, ...counts, mainSport: "tennis", sport2: "pickle" });
     expect(E.plannedActs()).toEqual(["tennis", "pickle", "yoga", "spin"]);
     expect(E.suggestedAct()).toBe("tennis");
   });
   it("activities turned on in Settings follow in the order they were added, after older ones", () => {
-    fresh({ acts: { lift: true, yoga: true } });
+    fresh({ acts: { lift: true, yoga: true }, yoga: "1", spin: "1", climb: "1" });
     E.wk.acts = { ...E.wk.acts, spin: true }; E.noteAct("spin", true);
     E.wk.acts = { ...E.wk.acts, climb: true }; E.noteAct("climb", true);
     expect(E.plannedActs()).toEqual(["yoga", "spin", "climb"]);
@@ -1102,24 +1103,101 @@ describe("activity order and the activity-day suggestion", () => {
     expect(E.plannedActs()).toEqual(["yoga", "climb", "spin"]);
     expect(E.suggestedAct()).toBe("yoga");
   });
-  it("the suggestion skips one-offs and activities that are off", () => {
-    fresh({ acts: { lift: true, run: true, yoga: true, pickle: false }, adhoc: { run: true } });
+  it("an activity with 0 sessions is not planned and is never the suggestion", () => {
+    fresh({ acts, mainSport: "pickle", pickle: "0", tennis: "0", yoga: "2", spin: "0" });
+    expect(E.plannedActs()).toEqual(["yoga"]);
     expect(E.suggestedAct()).toBe("yoga");
-    fresh({ acts: { lift: true } });
+    fresh({ acts: { lift: true, yoga: true }, yoga: "0" });
+    expect(E.plannedActs()).toEqual([]);
     expect(E.suggestedAct()).toBe("");
   });
+  it("one-offs and activities that are off are not planned", () => {
+    fresh({ acts: { lift: true, run: true, yoga: true, pickle: false }, run: "1", yoga: "1", pickle: "2", adhoc: { run: true } });
+    expect(E.plannedActs()).toEqual(["yoga"]);
+  });
+  it("checking an activity day with nothing planned gives the main sport a session", () => {
+    fresh({ acts, mainSport: "pickle", pickle: "0", tennis: "0", yoga: "0", spin: "0", adays: [] });
+    E.setActivityDay(2, true);
+    expect(E.wk.pickle).toBe("1");
+    expect(E.plannedActs()).toEqual(["pickle"]);
+  });
   it("in season the season sports lead, main first, even if the second was added earlier", () => {
-    fresh({ acts, mainSport: "pickle", sport2: "tennis", season: "In-season", days: 2, actOrder: ["tennis", "spin", "pickle"] });
+    fresh({ acts, ...counts, mainSport: "pickle", sport2: "tennis", season: "In-season", days: 2, actOrder: ["tennis", "spin", "pickle"] });
     expect(E.inSeason()).toBe(true);
     expect(E.plannedActs().slice(0, 2)).toEqual(["pickle", "tennis"]);
     expect(E.suggestedAct()).toBe("pickle");
   });
   it("a deload week keeps the same order", () => {
-    const setup = { acts, mainSport: "pickle", sport2: "tennis", actOrder: ["spin"] };
+    const setup = { acts, ...counts, mainSport: "pickle", sport2: "tennis", actOrder: ["spin"] };
     fresh(setup);
     const normal = E.plannedActs();
     fresh({ ...setup, deload: "Yes" });
     expect(E.plannedActs()).toEqual(normal);
     expect(E.suggestedAct()).toBe("pickle");
+  });
+});
+
+describe("turning an activity off trims its activity days", () => {
+  it("keeps no more days than planned sessions, dropping from the end of the week", () => {
+    fresh({ acts: { lift: true, pickle: true, yoga: true }, mainSport: "pickle", pickle: "2", yoga: "1", adays: [0, 2, 4] });
+    E.wk.acts = { ...E.wk.acts, yoga: false }; E.wk.yoga = "0";
+    E.trimActivityDays();
+    expect(E.wk.adays).toEqual([0, 2]);
+    E.wk.acts = { ...E.wk.acts, pickle: false }; E.wk.pickle = "0";
+    E.trimActivityDays();
+    expect(E.wk.adays).toEqual([]);
+  });
+});
+
+describe("adding a session to the week", () => {
+  it("raises the saved count and adds a day without a lift first", () => {
+    fresh({ acts: { lift: true, yoga: true }, yoga: "0", days: 3, ldays: [0, 2, 4], adays: [] });
+    E.addWeekly("yoga");
+    expect(E.wk.yoga).toBe("1");
+    expect(E.wk.adays).toEqual([1]);
+    expect(E.plannedActs()).toEqual(["yoga"]);
+  });
+  it("turns a one-off into a planned activity", () => {
+    fresh({ acts: { lift: true, run: true }, run: 0, adhoc: { run: true }, adays: [] });
+    E.addWeekly("run");
+    expect(E.wk.adhoc.run).toBeUndefined();
+    expect(E.plannedActs()).toEqual(["run"]);
+    expect(E.wk.actOrder).toContain("run");
+  });
+  it("asks once per activity per week", () => {
+    fresh({ acts: { lift: true, yoga: true }, weekStart: 1000 });
+    expect(E.askedWeekly("yoga")).toBe(false);
+    E.markAskedWeekly("yoga");
+    expect(E.askedWeekly("yoga")).toBe(true);
+    expect(E.askedWeekly("spin")).toBe(false);
+    E.wk.weekStart = 2000;
+    expect(E.askedWeekly("yoga")).toBe(false);
+  });
+});
+
+describe("plan() is a read: it never saves", () => {
+  it("takes the started-day lock in memory without saving, so a render can't update the store", () => {
+    fresh();
+    const id = E.DAYS[0].id;
+    let saves = 0;
+    E.setSaveHook(() => { saves++; });
+    E.wk.wt = { [id]: { start: Date.now() } };
+    const first = E.plan();
+    expect(saves).toBe(0);
+    expect(E.wk.lockSets[id]).toEqual(first.days[id].slots.map(A => A && A.sets != null ? A.sets : null));
+    E.wk.today = { [id]: "Rough" };
+    E.plan();
+    expect(saves).toBe(0);
+    expect(E.wk.lockFeel[id]).toBe("Rough");
+    E.setSaveHook(() => {});
+  });
+
+  it("keeps the started counts once the caller saves the lock", () => {
+    fresh();
+    const id = E.DAYS[0].id;
+    E.wk.wt = { [id]: { start: Date.now() } };
+    const sets = E.plan().days[id].slots.map(A => A && A.sets);
+    E.save();
+    expect(E.plan().days[id].slots.map(A => A && A.sets)).toEqual(sets);
   });
 });

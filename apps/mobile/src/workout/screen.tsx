@@ -1,3 +1,5 @@
+"use no memo";
+
 import { useEffect, useRef, useState } from "react";
 import { PressableScale } from "@/components/pressable-scale";
 import { AppState, Platform, ScrollView, StyleSheet, type ScrollViewInstance, Text, TextInput, View } from "react-native";
@@ -266,6 +268,7 @@ export function WorkoutScreen({ id }: { id: string }) {
     if (current?.start && !current.end) return;
     timers[id] = { start: Date.now() };
     engine.wk.wt = timers;
+    engine.plan();
     engine.save();
   }
 
@@ -443,8 +446,9 @@ export function WorkoutScreen({ id }: { id: string }) {
     haptic.selection();
     const before = engine.plan();
     engine.wk.today = { ...(engine.wk.today || {}), [id]: value };
+    const after = engine.plan();
     engine.save();
-    showLines(engine.dayDiff(before, engine.plan(), id), false);
+    showLines(engine.dayDiff(before, after, id), false);
   }
 
   async function skipRest() {
@@ -517,6 +521,7 @@ export function WorkoutScreen({ id }: { id: string }) {
       const timers = { ...(engine.wk.wt || {}) };
       if (!timers[id]?.start) timers[id] = { start: Date.now() };
       engine.wk.wt = timers;
+      engine.plan();
     }
     const wasDone = !!engine.wk.done?.[id];
     engine.set(id, index, "log", log);

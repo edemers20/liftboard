@@ -1,3 +1,5 @@
+"use no memo";
+
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 
 import { SettingsScreen } from "@/components/you-tab";

@@ -1,3 +1,5 @@
+"use no memo";
+
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { PressableScale } from "@/components/pressable-scale";

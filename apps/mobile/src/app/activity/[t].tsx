@@ -1,3 +1,5 @@
+"use no memo";
+
 import { router, useLocalSearchParams } from "expo-router";
 import { PressableScale } from "@/components/pressable-scale";
 import { useEffect, useRef, useState } from "react";

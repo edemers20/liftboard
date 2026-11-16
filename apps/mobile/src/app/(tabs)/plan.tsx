@@ -1,3 +1,5 @@
+"use no memo";
+
 import { router, useFocusEffect } from "expo-router";
 import { PressableScale } from "@/components/pressable-scale";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
@@ -64,6 +66,7 @@ type Actions = {
   editCheckIn: () => void;
   toggleLift: (index: number) => void;
   toggleActivity: (index: number) => void;
+  addWeekly: (id: string) => void;
   setSeason: (on: boolean) => void;
   setRamp: (on: boolean) => void;
   setDeload: (on: boolean) => void;
@@ -82,7 +85,6 @@ function savedView(): ViewName {
 }
 
 export default function PlanScreen() {
-  "use no memo";
   const version = useEngineStore((state) => state.version);
   const clock = usePlanClock();
   const reduceMotion = useReduceMotion();
@@ -189,6 +191,9 @@ export default function PlanScreen() {
     toggleActivity(index) {
       engine.setActivityDay(index, !model.activityDays.includes(index));
       engine.save();
+    },
+    addWeekly(id) {
+      engine.addWeekly(id);
     },
     setSeason(on) {
       const next = on ? "In-season" : "Off-season";
@@ -648,6 +653,25 @@ function WeekPane({
         <View style={styles.dayBlock}>
           <Text style={styles.dayLabel}>{copy.plan.activityDays}</Text>
           <DayPicker selected={model.activityDays} tone="activity" onToggle={actions.toggleActivity} />
+          {model.addable.length ? (
+            <>
+              <Text style={styles.dayLabel}>{copy.plan.addToWeek}</Text>
+              <View style={styles.addRow}>
+                {model.addable.map((id) => (
+                  <PressableScale
+                    key={id}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${copy.plan.addToWeek} ${engine.ACT[id]?.name ?? id}`}
+                    onPress={() => actions.addWeekly(id)}
+                    style={styles.addPill}
+                  >
+                    <Text style={styles.addPlus}>+</Text>
+                    <Text style={styles.addName}>{engine.ACT[id]?.name ?? id}</Text>
+                  </PressableScale>
+                ))}
+              </View>
+            </>
+          ) : null}
         </View>
       </View>
 
@@ -1213,6 +1237,18 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   sessionBlock: { gap: 8, marginTop: 4 },
+  addRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  addPill: {
+    minHeight: 40,
+    paddingHorizontal: 14,
+    borderRadius: theme.radii.pill,
+    backgroundColor: theme.pink.surface,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  addPlus: { color: theme.pink.accent, fontFamily: theme.fonts.body, fontSize: 17, lineHeight: 20 },
+  addName: { color: theme.text, fontFamily: theme.fonts.bodySemi, fontSize: 13 },
   sessionStepper: {
     alignSelf: "flex-start",
     flexDirection: "row",

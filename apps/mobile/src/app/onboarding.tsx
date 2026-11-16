@@ -1,3 +1,5 @@
+"use no memo";
+
 import { OnboardingScreen } from "@/onboarding/onboarding-screen";
 
 export default function OnboardingRoute() {
