@@ -23,7 +23,7 @@ export const copy = {
     },
     you: {
       title: "You",
-      body: "change your preferences for tips, experience level, and FAQs about app calculations.",
+      body: "See your accomplishments and other cool profile info. Tap the gear for settings.",
     },
   },
   you: {

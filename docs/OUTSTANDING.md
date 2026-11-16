@@ -167,7 +167,7 @@ The proposed formula:
 
 **C4. Liquid Glass audit items 7–9. Decided:** glass for the in-page switches (Plan Week/Season and History Calendar/Weeks/Lifts). No long-press menus on day cards and no floating date line.
 
-**C5. The You tab's first-run tip. Decided:** new copy is "See your accomplishments and other cool profile info. Tap the gear for settings."
+**C5. The You tab's first-run tip. Decided:** new copy is "See your accomplishments and other cool profile info. Tap the gear for settings." **Built Nov 16** (native `copy.ts`, web `src/main.js`, `docs/COPY.md`).
 - Decided (Emma, Nov 16): they say Settings now (native, marked TODO copy; "Training preferences" became "Training", the section's name). Backup line decided (Emma, Nov 16): "Settings → Your data → Export my data"; the web's Settings button is "Export my data" too. Web: the same four lines in `src/main.js`. The lines were:
   - Onboarding experience: "Change it anytime under You → Training preferences."
   - FAQ "When does a new week start?": "(You → App → Week starts on)".

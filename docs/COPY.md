@@ -198,7 +198,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 | Title | History | First-run tip, History tab |
 |  | view your past activities, weeks completed and personal bests. | First-run tip, History tab |
 | Title | You | First-run tip, You tab |
-|  | change your preferences for tips, experience level, and FAQs about app calculations. | First-run tip, You tab |
+|  | See your accomplishments and other cool profile info. Tap the gear for settings. | First-run tip, You tab |
 | Tab | Day {…} | engine.js:290 |
 |  | {…} logged | main.js:516 |
 |  | Added to your activities. | main.js:516 |

@@ -2061,7 +2061,7 @@ if(!wk.onbDone) openOnb();
 const TAB_TIPS={workouts:["Workout Tab","where your workouts for every day of the week are shown. You can move them around, swap them for different lifts and log activities."],
   plan:["Plan Tab","Week shows your week overview - update your check-in to see your plan adjust. Season shows your overall plan and goals."],
   history:["History","view your past activities, weeks completed and personal bests."],
-  you:["You","change your preferences for tips, experience level, and FAQs about app calculations."]};
+  you:["You","See your accomplishments and other cool profile info. Tap the gear for settings."]};
 function tabTip(){ const old=document.getElementById("tabtip"); if(old) old.remove();
   if(!wk.setupDone||!wk.onbDone||!(nav in TAB_TIPS)||(nav==="workouts"&&cur!=="home")||(wk.tabTips||{})[nav]) return;
   if(!document.getElementById("tour")?.hidden&&document.getElementById("tour")) return;
