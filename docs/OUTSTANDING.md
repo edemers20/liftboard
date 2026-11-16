@@ -86,6 +86,7 @@ These exist in code but haven't been confirmed working. Go through them with Emm
   - Web changes needed: `noteAct` on the Settings activity toggle (line 1654); order the chips by `plannedActs()` then one-offs (line 423); the suggestion line on the activity-day card (line 422); port `orderActs`, `noteAct`, `suggestedAct` to `src/engine.js` with the tests.
 - The first lift of a new week can be swapped with any other unstarted lift that week.
 - The notification icon is the new one. This needs a fresh dev build: `npx expo prebuild --clean`, then build again.
+  - Checked Nov 16 (Emma: the rest alert still shows the old icon): iOS notifications always show the installed app's icon (the `expo-notifications` `icon` is Android only), so this can't change from JS or a Metro reload. The new icon is in the repo and wired: a clean prebuild puts the barbell-on-gradient icon (light, dark, tinted) in `AppIcon.appiconset`. The phone's dev build is older than the icon (`4d28f3f`). Removed the unused old `assets/expo.icon` (the Expo template icon). On the Mac: delete Lift Board from the phone (iOS caches the icon), then `cd apps/mobile && npx expo prebuild --platform ios --clean && npx expo run:ios --device`, and reload Metro. Nothing else is missing.
 
 **A2. Next-time line format.** Section 12 says next-time lines read **Overhead Press (Barbell): 30lb x 8**, but `copy.ts` still has `nextLine: "· {…} lb · {…}"`. Find where next-time lines render (workout screen, Day done, review) and make sure every one uses the section 12 format, then remove the unused copy key.
 
