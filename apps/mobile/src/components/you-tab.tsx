@@ -705,7 +705,7 @@ export function SettingsScreen({ onReplay, startMetrics = false }: { onReplay: (
           <Text accessibilityRole="header" style={styles.eyebrow}>
             {copy.you.yourData}
           </Text>
-          <PressableScale accessibilityRole="button" onPress={() => void exportData()} style={[styles.helpRow, styles.faqDivider]}>
+          <PressableScale accessibilityRole="button" onPress={() => void exportData()} style={[styles.helpRow, styles.faqDivider, styles.dataRow]}>
             <View style={styles.helpLine}>
               <Text style={styles.rowLabel}>{copy.you.exportData}</Text>
               <Text style={styles.helpChevron}>›</Text>
@@ -717,7 +717,7 @@ export function SettingsScreen({ onReplay, startMetrics = false }: { onReplay: (
               resetTabTips(path);
               onReplay();
             }}
-            style={[styles.helpRow, styles.faqDivider]}
+            style={[styles.helpRow, styles.faqDivider, styles.dataRow]}
           >
             <View style={styles.helpLine}>
               <Text style={styles.rowLabel}>{copy.you.replayTour}</Text>
@@ -725,7 +725,7 @@ export function SettingsScreen({ onReplay, startMetrics = false }: { onReplay: (
             </View>
           </PressableScale>
           {__DEV__ ? (
-            <PressableScale accessibilityRole="button" onPress={() => void chooseBackup()} style={[styles.helpRow, styles.faqDivider]}>
+            <PressableScale accessibilityRole="button" onPress={() => void chooseBackup()} style={[styles.helpRow, styles.faqDivider, styles.dataRow]}>
               <View style={styles.helpLine}>
                 <Text style={styles.rowLabel}>{copy.you.restoreBackup}</Text>
                 <Text style={styles.helpChevron}>›</Text>
@@ -1102,7 +1102,7 @@ const styles = StyleSheet.create({
     gap: 12,
     borderTopWidth: 1,
     borderTopColor: theme.pink.line,
-    paddingVertical: 12,
+    paddingTop: 12,
   },
   soundRow: {
     minHeight: 48,
@@ -1112,11 +1112,14 @@ const styles = StyleSheet.create({
     gap: 12,
     borderTopWidth: 1,
     borderTopColor: theme.pink.line,
+    paddingTop: 12,
   },
   actPill: { minHeight: 44, paddingHorizontal: 12, borderRadius: theme.radii.pill, alignItems: "center", justifyContent: "center" },
   actPillOff: { backgroundColor: theme.pink.background },
   actPillTextOff: { color: theme.muted },
   helpRow: { paddingVertical: 12, gap: 4 },
+  /** In a panel the 12pt gap is the space above the divider, so the row adds only the space below it. */
+  dataRow: { paddingBottom: 0 },
   helpLine: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
   helpChevron: { fontFamily: theme.fonts.body, fontSize: 18, color: theme.muted },
   dangerLabel: { fontFamily: theme.fonts.body, fontSize: 15, color: "#ff8a80" },
@@ -1307,7 +1310,7 @@ const styles = StyleSheet.create({
     gap: 12,
     borderTopWidth: 1,
     borderTopColor: theme.pink.line,
-    paddingVertical: 4,
+    paddingTop: 12,
   },
   rowCopy: { flex: 1 },
   rowLabel: { fontFamily: theme.fonts.bodySemi, fontSize: 14, color: theme.text },

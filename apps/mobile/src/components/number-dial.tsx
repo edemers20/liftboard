@@ -169,7 +169,7 @@ function NumberDial({ request, onClose }: { request: Request; onClose: () => voi
 
   return (
     <SheetFrame visible onClose={onClose} label={copy.you.cancel}>
-        <View style={[styles.sheet, { marginBottom: insets.bottom + 12 }]}>
+        <View style={[styles.sheet, greenDial(request.accent) && styles.sheetGreen, { marginBottom: insets.bottom + 12 }]}>
           <View style={styles.top}>
             <Text style={[styles.label, greenDial(request.accent) && styles.labelGreen]}>{request.label}</Text>
             <PressableScale accessibilityRole="button" accessibilityLabel={copy.you.cancel} onPress={onClose} style={styles.close}>
@@ -252,6 +252,7 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   top: { minHeight: 44, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  sheetGreen: { backgroundColor: theme.green.surface },
   labelGreen: { color: theme.green.accent },
   bandGreen: { backgroundColor: "rgba(111,208,180,0.18)" },
   unitGreen: { color: theme.green.accent },

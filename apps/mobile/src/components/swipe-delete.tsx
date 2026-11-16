@@ -1,12 +1,36 @@
 import { useRef, type ReactNode } from "react";
 import { StyleSheet, Text } from "react-native";
-import ReanimatedSwipeable from "react-native-gesture-handler/ReanimatedSwipeable";
+import { Touchable } from "react-native-gesture-handler";
+import ReanimatedSwipeable, { type SwipeableMethods } from "react-native-gesture-handler/ReanimatedSwipeable";
+import Animated, { useAnimatedStyle, type SharedValue } from "react-native-reanimated";
 
-import { PressableScale } from "@/components/pressable-scale";
 import { haptic } from "@/haptic";
 import { theme } from "@/theme";
 
-/** Swipe left to reveal Delete. A haptic fires when the button is revealed. */
+/**
+ * Hidden until the row moves: rows without their own fill would otherwise show it at rest.
+ * A gesture-handler button, so the swipe can't swallow the tap.
+ */
+function DeleteAction({
+  progress,
+  label,
+  onPress,
+}: {
+  progress: SharedValue<number>;
+  label: string;
+  onPress: () => void;
+}) {
+  const shown = useAnimatedStyle(() => ({ opacity: progress.value > 0.02 ? 1 : 0 }));
+  return (
+    <Animated.View style={[styles.action, shown]}>
+      <Touchable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={styles.delete}>
+        <Text style={styles.deleteText}>{label}</Text>
+      </Touchable>
+    </Animated.View>
+  );
+}
+
+/** Swipe left to reveal Delete. A haptic fires when the button is revealed. Delete closes the row first. */
 export function SwipeDelete({
   children,
   label,
@@ -30,10 +54,16 @@ export function SwipeDelete({
       onSwipeableClose={() => {
         revealed.current = false;
       }}
-      renderRightActions={() => (
-        <PressableScale accessibilityRole="button" accessibilityLabel={label} onPress={onDelete} style={styles.delete}>
-          <Text style={styles.deleteText}>{label}</Text>
-        </PressableScale>
+      renderRightActions={(progress: SharedValue<number>, _translation: SharedValue<number>, methods: SwipeableMethods) => (
+        <DeleteAction
+          progress={progress}
+          label={label}
+          onPress={() => {
+            methods.close();
+            revealed.current = false;
+            onDelete();
+          }}
+        />
       )}
     >
       {children}
@@ -42,8 +72,9 @@ export function SwipeDelete({
 }
 
 const styles = StyleSheet.create({
+  action: { width: 88 },
   delete: {
-    width: 88,
+    flex: 1,
     backgroundColor: "#8f3a32",
     alignItems: "center",
     justifyContent: "center",

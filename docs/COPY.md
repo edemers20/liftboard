@@ -603,7 +603,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Next-morning check | main.js:477 |
 |  | Off | main.js:477 |
 |  | Sports in season | main.js:546 |
-|  | · up to two. Tap a picked sport again to make it primary. | main.js:546 |
+|  | · up to two. Tap a picked sport again to make it primary. (Native, Emma Nov 16: ": up to two. Tap a picked sport again to make it primary.") | main.js:546 |
 |  | Lifting | main.js:549 |
 |  | Bio Data | main.js:551 |
 |  | Female | main.js:552 |

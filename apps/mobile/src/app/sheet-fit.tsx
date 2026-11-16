@@ -94,7 +94,7 @@ export default function FitSheet() {
 
 const styles = StyleSheet.create({
   sheet: { borderTopLeftRadius: 16, borderTopRightRadius: 16 },
-  pad: { paddingHorizontal: 16, paddingTop: 8, gap: 12 },
+  pad: { paddingHorizontal: 16, paddingTop: 32, gap: 12 },
   top: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
   title: { flex: 1, color: theme.text, fontFamily: theme.fonts.bodySemi, fontSize: 20, lineHeight: 24 },
   close: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },

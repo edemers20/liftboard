@@ -216,6 +216,8 @@ export function WorkoutScreen({ id }: { id: string }) {
   const [resetAsk, setResetAsk] = useState(false);
   const [switchAsk, setSwitchAsk] = useState<string | null>(null);
   const [deleteAsk, setDeleteAsk] = useState<null | { index: number; name: string; sets: number }>(null);
+  /** Bumped when rows are removed or restored, so no row keeps another row's open swipe. */
+  const [swipeRev, setSwipeRev] = useState(0);
   const [undo, setUndo] = useState<null | { run: () => void }>(null);
   const pendingLive = useRef<null | (() => void)>(null);
   const nudgeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -302,6 +304,7 @@ export function WorkoutScreen({ id }: { id: string }) {
     engine.syncDays();
     engine.save();
     if (engine.wk.done?.[id]) engine.resyncDone(id);
+    setSwipeRev((rev) => rev + 1);
   }
 
   function deleteSet(index: number, setIndex: number) {
@@ -327,6 +330,7 @@ export function WorkoutScreen({ id }: { id: string }) {
     }
     if (engine.wk.done?.[id]) engine.resyncDone(id);
     releaseEmptyLive(id);
+    setSwipeRev((rev) => rev + 1);
     rememberUndo(() => restoreDay(snap));
   }
 
@@ -811,7 +815,7 @@ export function WorkoutScreen({ id }: { id: string }) {
             return readOnly ? (
               <View key={index}>{row}</View>
             ) : (
-              <SwipeDelete key={index} label={copy.workout.delete} onDelete={() => askDeleteExercise(index)}>
+              <SwipeDelete key={`${index}/${swipeRev}`} label={copy.workout.delete} onDelete={() => askDeleteExercise(index)}>
                 {row}
               </SwipeDelete>
             );
@@ -844,7 +848,7 @@ export function WorkoutScreen({ id }: { id: string }) {
           return readOnly ? (
             card
           ) : (
-            <SwipeDelete key={index} label={copy.workout.delete} onDelete={() => askDeleteExercise(index)}>
+            <SwipeDelete key={`${index}/${swipeRev}`} label={copy.workout.delete} onDelete={() => askDeleteExercise(index)}>
               {card}
             </SwipeDelete>
           );
@@ -1500,10 +1504,13 @@ function ExerciseCard(props: {
               onField={(fieldName, value) => props.onField(index, setIndex, fieldName, value)}
             />
             );
-            return readOnly ? (
+            const entry = log[setIndex] || {};
+            const removable =
+              setIndex >= (planSlot.sets || 0) || !!entry.d || String(entry.w ?? "").trim() !== "" || String(entry.r ?? "").trim() !== "";
+            return readOnly || !removable ? (
               setRow
             ) : (
-              <SwipeDelete key={setIndex} label={copy.workout.delete} onDelete={() => props.onDeleteSet(setIndex)}>
+              <SwipeDelete key={`${setIndex}/${rows}`} label={copy.workout.delete} onDelete={() => props.onDeleteSet(setIndex)}>
                 {setRow}
               </SwipeDelete>
             );

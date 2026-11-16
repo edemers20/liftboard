@@ -43,6 +43,7 @@ These exist in code but haven't been confirmed working. Go through them with Emm
 - "Added (Main Glute)" and "Day 4: Push" have no bullets.
 - You can swipe to delete a set and an exercise, and Undo works.
   - Fixed Nov 16: Start workout crashed the dev app ("GestureDetector must be used as a descendant of GestureHandlerRootView"). The root layout now wraps the app in `GestureHandlerRootView`; JS only, no native rebuild. A release build would not crash, but swipe would not work.
+  - Fixed Nov 16 (phone test on e070d5f): Delete showed behind rows that weren't swiped, and delete sometimes did nothing. Delete now stays hidden until the row moves, uses a gesture-handler button so the swipe can't swallow the tap, and closes the row first. Rows get new keys after a delete or Undo, so no row inherits another's open swipe. Empty planned sets have no swipe, because deleting one changed nothing (the planned count refills the row); a set with anything entered, or one added past the plan, can be deleted.
 - Marking Rough mid-workout keeps finished exercises and their sets.
 - Opening a second workout from Plan doesn't make it live. The live pill goes away when the workout ends, and long-press offers End workout.
 - The rest bar appears without a stutter, with its text centred in the glass.
@@ -77,6 +78,9 @@ These exist in code but haven't been confirmed working. Go through them with Emm
 - "Same weight" shows when the strongest lift hasn't gone up.
 
 **A4. Weekly report streak.** Section 19 lists "{n} weeks in a row" on the weekly report as a later item. `week-report.tsx` has a `streak` field; confirm whether it shows. If not, leave it for Emma to decide.
+
+**Phone test fixes on e070d5f (Nov 16), native.** Glass form sheets (swap, leg-day offer, weight suggestion, activity details) start 32pt below the top. The weight dial sheet is green (`theme.green.surface`) when its accent is green. Settings: "Sports in season: up to two…" (colon instead of the dot); rows with dividers have the same space above and below the line. Week card: the four tiles are the accent colour with dark text (Lifts green, PRs yellow #e7b94a as a proposal, Activity minutes pink, Exercise calories orange); Sets became PRs (records this week), also on the shared image's stat line. Pressed state: controls without their own fill fade slightly instead of showing a dark box; filled buttons keep the shade, clipped to their corners. History graph hours use decimals ("0.5h", "1.5h").
+  - Web changes needed: Delete per set only on rows with something entered or past the plan (`src/main.js` line 1081); "Sports in season: up to two…" (lines 742, 746); week report tiles and Sets → PRs (web report); `hrs()` decimals in the History graph (line 812). The rest is native-only styling.
 
 **A5. Web parity for section 20.** The web app has Delete buttons rather than swipe. Check every item marked "Web too" in section 20 behaves the same on the web (`src/main.js`), especially A7 Rough, A11 Keep, B3 changes and B5 swap.
 

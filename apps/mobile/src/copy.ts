@@ -135,7 +135,7 @@ export const copy = {
     resetProfile: "Reset profile",
     profileSaved: "Profile saved",
     sportsInSeason: "Sports in season",
-    sportsHint: " · up to two. Tap a picked sport again to make it primary.",
+    sportsHint: ": up to two. Tap a picked sport again to make it primary.",
     lifting: "Lifting",
     bioData: "Bio Data",
     focus: "Focus",

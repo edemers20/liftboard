@@ -108,7 +108,7 @@ export function SwapForm({
 }
 
 const styles = StyleSheet.create({
-  body: { paddingHorizontal: 16, paddingTop: 28, paddingBottom: 16, gap: 6 },
+  body: { paddingHorizontal: 16, paddingTop: 32, paddingBottom: 16, gap: 6 },
   title: { color: theme.text, fontFamily: theme.fonts.bodySemi, fontSize: 20, lineHeight: 24 },
   note: { color: theme.muted, fontFamily: theme.fonts.body, fontSize: 14, lineHeight: 18 },
   section: { gap: 6 },

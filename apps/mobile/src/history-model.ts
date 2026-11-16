@@ -70,13 +70,11 @@ export function formatAverage(minutes: number): string {
   return `${String(hours).replace(/\.0$/, "")}h`;
 }
 
-/** "½h", "1½h", "7h", "10h". Hours of 10 or more round to a whole number. */
+/** "0.5h", "1.5h", "7h", "10h". Hours of 10 or more round to a whole number. */
 export function formatHours(minutes: number): string {
   const hours = minutes / 60;
   if (hours >= 10) return `${Math.round(hours)}h`;
-  const half = Math.round(hours * 2) / 2;
-  const text = String(half).replace(/\.5$/, "½").replace(/^0½$/, "½");
-  return `${text}h`;
+  return `${Math.round(hours * 2) / 2}h`;
 }
 
 export function displayWeight(lb: number, units: string | undefined): number {

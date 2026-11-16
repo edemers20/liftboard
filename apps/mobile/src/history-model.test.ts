@@ -25,14 +25,14 @@ const june = monthGrid(2026, 5);
 assert.equal(june.lead, 0);
 assert.equal(june.days, 30);
 
-assert.equal(formatHours(30), "½h");
+assert.equal(formatHours(30), "0.5h");
 assert.equal(formatAverage(45), "45m");
 assert.equal(formatAverage(90), "1.5h");
 assert.equal(formatAverage(120), "2h");
-assert.equal(formatHours(90), "1½h");
+assert.equal(formatHours(90), "1.5h");
 assert.equal(formatHours(420), "7h");
 assert.equal(formatHours(600), "10h");
-assert.equal(formatHours(20), "½h");
+assert.equal(formatHours(20), "0.5h");
 
 assert.equal(displayWeight(140, "lb"), 140);
 assert.equal(displayWeight(110, "kg"), Math.round((110 / 2.20462) * 10) / 10);

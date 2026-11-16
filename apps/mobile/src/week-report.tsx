@@ -24,6 +24,11 @@ const PR_CARD = "#2a211c";
 const LINE = "#2f2a27";
 const INK = "#2a1a12";
 const SECONDARY = "#2f2a27";
+/** Week card tiles: the accent is the tile, the text is dark. PRs yellow is a proposal. */
+const TILE_LIFTS = theme.green.accent;
+const TILE_ACTIVITY = theme.pink.accent;
+const TILE_KCAL = theme.fuel;
+const TILE_PRS = SHORT;
 
 type Muscle = { name: string; done: number; planned: number };
 type PR = { n: string; kind: "top" | "reps"; w: number; r: number; wasW: number | null; wasR: number | null };
@@ -88,13 +93,14 @@ function CountValue({
   unit: string;
   label: string;
 }) {
+  const unitStyle = [styles.unit, { color }];
   const shown = useCountUp(target ?? 0);
   const final = target == null ? "–" : Math.round(target).toLocaleString("en-US");
   const text = target == null ? "–" : Math.round(shown).toLocaleString("en-US");
   return (
       <Text accessibilityLabel={`${label} ${final}${unit}`} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.65} style={[styles.value, { color }]}>
       {text}
-      {unit ? <Text style={styles.unit}>{unit}</Text> : null}
+      {unit ? <Text style={unitStyle}>{unit}</Text> : null}
     </Text>
   );
 }
@@ -112,7 +118,7 @@ function ReportShare({ report }: { report: Report }) {
         {copy.you.lifts} {report.lifts}/{report.planned}
       </Text>
       <Text style={styles.shareStat}>
-        {copy.history.sets} {report.sets == null ? "–" : report.sets}
+        {copy.workout.sharePrs} {report.prs.length}
       </Text>
       <Text style={styles.shareStat}>
         {copy.report.activityTile} {report.sport} {copy.you.min}
@@ -176,23 +182,23 @@ export function ReportSheet({ report }: { report: Report }) {
 
       <View style={styles.tiles}>
         <View style={styles.tileRow}>
-          <View style={[styles.tile, { width: tileW }]}>
+          <View style={[styles.tile, { width: tileW, backgroundColor: TILE_LIFTS }]}>
             <Text style={styles.tileLabel}>{copy.you.lifts}</Text>
-            <CountValue target={report.lifts} color={theme.green.accent} unit={` / ${report.planned}`} label={copy.you.lifts} />
+            <CountValue target={report.lifts} color={INK} unit={` / ${report.planned}`} label={copy.you.lifts} />
           </View>
-          <View style={[styles.tile, { width: tileW }]}>
-            <Text style={styles.tileLabel}>{copy.history.sets}</Text>
-            <CountValue target={report.sets} color={theme.text} unit="" label={copy.history.sets} />
+          <View style={[styles.tile, { width: tileW, backgroundColor: TILE_PRS }]}>
+            <Text style={styles.tileLabel}>{copy.workout.sharePrs}</Text>
+            <CountValue target={report.prs.length} color={INK} unit="" label={copy.workout.sharePrs} />
           </View>
         </View>
         <View style={styles.tileRow}>
-          <View style={[styles.tile, { width: tileW }]}>
+          <View style={[styles.tile, { width: tileW, backgroundColor: TILE_ACTIVITY }]}>
             <Text style={styles.tileLabel}>{copy.report.activityTile}</Text>
-            <CountValue target={report.sport} color={theme.pink.accent} unit={` ${copy.you.min}`} label={copy.report.activityTile} />
+            <CountValue target={report.sport} color={INK} unit={` ${copy.you.min}`} label={copy.report.activityTile} />
           </View>
-          <View style={[styles.tile, { width: tileW }]}>
+          <View style={[styles.tile, { width: tileW, backgroundColor: TILE_KCAL }]}>
             <Text style={styles.tileLabel}>{copy.report.exerciseCalories}</Text>
-            <CountValue target={report.burn} color={theme.fuel} unit={` ${copy.report.kcal}`} label={copy.report.exerciseCalories} />
+            <CountValue target={report.burn} color={INK} unit={` ${copy.report.kcal}`} label={copy.report.exerciseCalories} />
           </View>
         </View>
       </View>
@@ -398,9 +404,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     gap: 2,
   },
-  tileLabel: { color: theme.muted, fontFamily: theme.fonts.body, fontSize: 12 },
+  tileLabel: { color: INK, opacity: 0.75, fontFamily: theme.fonts.body, fontSize: 12 },
   value: { fontFamily: theme.fonts.monoMedium, fontSize: 28, lineHeight: 34, flexShrink: 1 },
-  unit: { color: theme.muted, fontFamily: theme.fonts.mono, fontSize: 14 },
+  unit: { opacity: 0.7, fontFamily: theme.fonts.mono, fontSize: 14 },
   card: { backgroundColor: theme.orange.surface, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14, gap: 10 },
   prCard: { backgroundColor: PR_CARD, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14, gap: 10 },
   activityCard: { backgroundColor: theme.pink.surface, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14, gap: 8 },
