@@ -226,6 +226,7 @@ export function useShownLiveWorkout(): LiveWorkout | null {
 
 /** Re-renders as the rest clock moves, and once the "Day done" flash should leave. */
 export function useLiveWorkout(): LiveWorkout | null {
+  "use no memo";
   const version = useEngineStore((state) => state.version);
   const [now, setNow] = useState(() => Date.now());
   const live = readLiveWorkout(now);

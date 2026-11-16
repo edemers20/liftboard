@@ -26,7 +26,7 @@ Updated Nov 16, 2026, from a search of the code at commit `7cd4ab3`. A code sear
 | §21 | Records on the Day done card | **Not built** (B1) | Built |
 | Alerts and haptics Part 1, 3 | Rest alerts, sounds, haptics | Built | n/a |
 | Alerts and haptics Part 2 | Live Activity (Lock Screen and Dynamic Island) | **Not built** (B3) | n/a |
-| Liquid Glass audit 1–6 | Bottom accessory, zoom, form sheets, rest bar, tab bar minimise | Built (6 dropped) | n/a |
+| Liquid Glass audit 1–6 | Bottom accessory, zoom, form sheets, rest bar, tab bar minimise | Built (6 dropped); the bottom accessory isn't wired, the live pill is a dock above the tab bar | n/a |
 | Liquid Glass audit 7–9 | Prominent glass buttons, long-press menus, floating date line | Not built; "worth trying", **waiting on Emma** | n/a |
 | START-HERE | Import a web backup | **Not built** (B2) | n/a |
 | Backend | Supabase sign-in and sync | Not started; after Emma has used the app for a week (B4) | n/a |
@@ -46,6 +46,8 @@ These exist in code but haven't been confirmed working. Go through them with Emm
   - Fixed Nov 16 (phone test on e070d5f): Delete showed behind rows that weren't swiped, and delete sometimes did nothing. Delete now stays hidden until the row moves, uses a gesture-handler button so the swipe can't swallow the tap, and closes the row first. Rows get new keys after a delete or Undo, so no row inherits another's open swipe. Empty planned sets have no swipe, because deleting one changed nothing (the planned count refills the row); a set with anything entered, or one added past the plan, can be deleted.
 - Marking Rough mid-workout keeps finished exercises and their sets.
 - Opening a second workout from Plan doesn't make it live. The live pill goes away when the workout ends, and long-press offers End workout.
+  - Fixed Nov 16 (phone test on e070d5f): the live pill never showed. React Compiler cached the live workout read on the clock only, and the engine changes `wk` in place, so starting a workout or ticking a set never reached the pill while the tabs stayed mounted. `useLiveWorkout` now opts out (`"use no memo"`), the same as the tab screens; `src/live-workout-compiler.test.ts` runs the compiler and fails if it's memoized again. The pill is the green dock above the tab bar on every tab; the system bottom accessory (`LiveWorkoutAccessory`) is built but not wired. Web: none (no live pill on the web). Check on the phone: start a workout, go back; the pill shows on all four tabs, tracks sets and rest, and long-press offers End workout.
+  - Not yet checked: other screens that read the engine without the opt-out (`week-report.tsx`, `workout/screen.tsx`, `swap-sheet.tsx`, `activity/[t].tsx`, `sheet-report.tsx`, `(tabs)/history.tsx`, both layouts) could show stale values the same way.
 - The rest bar appears without a stutter, with its text centred in the glass.
 - Content scrolls under the status bar on every tab.
 - Keep on the weight suggestion is remembered when you leave and reopen the workout.
