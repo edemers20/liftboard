@@ -19,7 +19,7 @@ const reduceMotionWatch = AccessibilityInfo.addEventListener("reduceMotionChange
 void reduceMotionWatch;
 
 function fire(run: () => Promise<void>) {
-  if (Platform.OS === "web" || !enabled || reduceMotion) return;
+  if (!enabled || reduceMotion || Platform.OS === "web") return;
   void run().catch(() => {});
 }
 

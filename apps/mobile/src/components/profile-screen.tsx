@@ -34,7 +34,7 @@ const HOUR_MARKS = [10, 50, 100];
 const STREAK_MARKS = [6, 12, 16];
 
 type Top = { start: number; w: number; r: number; t: number };
-type Milestone = { key: string; mark: string; title: string; t: number; bg: string; color: string };
+type Milestone = { key: string; mark: string; title: string; t: number; bg: string };
 
 function lookup(id: string) {
   const table = copy.activityNames as Record<string, string>;
@@ -95,8 +95,7 @@ function milestones(): Milestone[] {
           mark: String(lifts),
           title: copy.you.liftsMilestone(lifts),
           t: at,
-          bg: "#1f3029",
-          color: theme.green.accent,
+          bg: theme.green.accent,
         });
       }
     }
@@ -108,8 +107,7 @@ function milestones(): Milestone[] {
           mark: String(mark),
           title: copy.you.hoursMilestone(mark),
           t: at,
-          bg: "#2a211c",
-          color: theme.fuel,
+          bg: theme.fuel,
         });
       }
     });
@@ -135,8 +133,7 @@ function milestones(): Milestone[] {
         mark: "1",
         title: copy.you.firstFullWeek,
         t: at,
-        bg: "#3a2430",
-        color: theme.pink.accent,
+        bg: theme.pink.accent,
       });
     }
     if (STREAK_MARKS.includes(run)) {
@@ -145,8 +142,7 @@ function milestones(): Milestone[] {
         mark: String(run),
         title: copy.you.streakMilestone(run),
         t: at,
-        bg: "#3a2430",
-        color: theme.pink.accent,
+        bg: theme.pink.accent,
       });
     }
   });
@@ -159,8 +155,7 @@ function milestones(): Milestone[] {
       mark: "PR",
       title: copy.you.firstPrTitle,
       t: first.t,
-      bg: "#2a211c",
-      color: theme.fuel,
+      bg: theme.record,
     });
   }
   return earned.sort((a, b) => b.t - a.t);
@@ -466,9 +461,9 @@ export function ProfileScreen() {
             <View style={styles.mileGrid}>
               {earned.map((item) => (
                 <View key={item.key} style={styles.mileSlot}>
-                  <View style={styles.mileCard}>
-                    <View style={[styles.mileMark, { backgroundColor: item.bg }]}>
-                      <Text style={[styles.mileMarkText, { color: item.color }]}>{item.mark}</Text>
+                  <View style={[styles.mileCard, { backgroundColor: item.bg }]}>
+                    <View style={styles.mileMark}>
+                      <Text style={styles.mileMarkText}>{item.mark}</Text>
                     </View>
                     <Text style={styles.mileTitle}>{item.title}</Text>
                     <Text style={styles.mileDate}>{dayLabel(item.t)}</Text>
@@ -785,7 +780,7 @@ const styles = StyleSheet.create({
   prScroll: { marginHorizontal: -16 },
   prRow: { gap: 8, paddingHorizontal: 16 },
   prCard: { width: 136, backgroundColor: "#2a211c", borderRadius: 14, padding: 12, gap: 2 },
-  prKind: { fontFamily: theme.fonts.bodySemi, fontSize: 11, letterSpacing: 0.4, textTransform: "uppercase", color: theme.fuel },
+  prKind: { fontFamily: theme.fonts.bodySemi, fontSize: 11, letterSpacing: 0.4, textTransform: "uppercase", color: theme.record },
   prName: { fontFamily: theme.fonts.body, fontSize: 13, color: theme.text },
   prValue: { fontFamily: theme.fonts.monoMedium, fontSize: 20, color: theme.text },
   prDate: { fontFamily: theme.fonts.body, fontSize: 12, color: theme.muted },
@@ -798,7 +793,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  prBadgeText: { fontFamily: theme.fonts.display, fontSize: 16, color: theme.fuel },
+  prBadgeText: { fontFamily: theme.fonts.display, fontSize: 16, color: theme.record },
   emptyCopy: { flex: 1, fontFamily: theme.fonts.body, fontSize: 14, color: theme.muted },
   played: { fontFamily: theme.fonts.display, fontSize: 30, lineHeight: 34, color: theme.pink.accent, textTransform: "uppercase" },
   playedLine: { fontFamily: theme.fonts.body, fontSize: 14, color: theme.text },
@@ -810,10 +805,10 @@ const styles = StyleSheet.create({
   mixHours: { width: 52, textAlign: "right", fontFamily: theme.fonts.mono, fontSize: 12, color: theme.text },
   mileGrid: { flexDirection: "row", flexWrap: "wrap", marginHorizontal: -4 },
   mileSlot: { width: "50%", padding: 4 },
-  mileCard: { backgroundColor: theme.orange.surface, borderRadius: 16, padding: 14, gap: 6 },
-  mileMark: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
-  mileMarkText: { fontFamily: theme.fonts.display, fontSize: 18 },
-  mileTitle: { fontFamily: theme.fonts.bodySemi, fontSize: 14, color: theme.text },
-  mileDate: { fontFamily: theme.fonts.body, fontSize: 12, color: theme.muted },
+  mileCard: { borderRadius: 16, padding: 14, gap: 6 },
+  mileMark: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(42,26,18,0.14)" },
+  mileMarkText: { fontFamily: theme.fonts.display, fontSize: 18, color: theme.ink },
+  mileTitle: { fontFamily: theme.fonts.bodySemi, fontSize: 14, color: theme.ink },
+  mileDate: { fontFamily: theme.fonts.body, fontSize: 12, color: theme.ink, opacity: 0.75 },
   disclaimer: { fontFamily: theme.fonts.body, fontSize: 12, lineHeight: 18, color: theme.muted },
 });

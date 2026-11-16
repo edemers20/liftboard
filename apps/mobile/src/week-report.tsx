@@ -25,7 +25,7 @@ const SHORT = "#e7b94a";
 const PILL = "#1f3029";
 const PR_CARD = "#2a211c";
 const LINE = "#2f2a27";
-const INK = "#2a1a12";
+const INK = theme.ink;
 const SECONDARY = "#2f2a27";
 /** Week card tiles, on screen and in the shared image: the accent is the tile, the text is dark. */
 const TILE_LIFTS = theme.green.accent;

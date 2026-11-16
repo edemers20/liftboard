@@ -26,7 +26,7 @@ import { Check, Close, Swap } from "@/icons";
 import { RestBar } from "@/workout/rest-bar";
 
 import { endLiveWorkout, liveWorkoutHeld, quietLiveWorkout, releaseEmptyLive, releaseLiveWorkout } from "@/components/live-workout";
-import { SwipeDelete } from "@/components/swipe-delete";
+import { closeOpenSwipe, SwipeDelete, swipeCloseCapture } from "@/components/swipe-delete";
 import { armRest, cancelRestChime, claimRestChime } from "./notify";
 import { markWorkoutClose, openWorkout, ShareBox, WORKOUT_OPEN_MS, workoutEnter } from "./share-box";
 import { ShareWorkoutActions } from "./share-card";
@@ -310,9 +310,17 @@ export function WorkoutScreen({ id }: { id: string }) {
     setSwipeRev((rev) => rev + 1);
   }
 
+  /** Removes the row. A planned row also lowers this workout's set count, so the plan can't refill it. */
   function deleteSet(index: number, setIndex: number) {
+    const state = engine.get(id, index);
+    const planned = engine.plan().days[id].slots[index].sets || 0;
+    if (Math.max(planned, (state.log || []).length) <= 1) {
+      removeExercise(index);
+      return;
+    }
     const snap = daySnap();
-    const log = (engine.get(id, index).log || []).slice();
+    if (setIndex < planned) engine.set(id, index, "drop", (Number(state.drop) || 0) + 1);
+    const log = (state.log || []).slice();
     log.splice(setIndex, 1);
     engine.set(id, index, "log", log);
     if (engine.wk.done?.[id]) engine.resyncDone(id);
@@ -656,11 +664,12 @@ export function WorkoutScreen({ id }: { id: string }) {
 
   const screenTree = (
     <ShareBox tag={expand ? `lift-${id}` : undefined} style={styles.screen}>
-      <Animated.View style={[styles.reveal, bodyStyle]}>
+      <Animated.View style={[styles.reveal, bodyStyle]} {...swipeCloseCapture}>
       <Animated.ScrollView
         ref={scroll}
         style={styles.reveal}
         keyboardShouldPersistTaps="handled"
+        onScrollBeginDrag={closeOpenSwipe}
         onScroll={hide.onScroll}
         scrollEventThrottle={16}
         scrollsToTop
@@ -1509,10 +1518,7 @@ function ExerciseCard(props: {
               onField={(fieldName, value) => props.onField(index, setIndex, fieldName, value)}
             />
             );
-            const entry = log[setIndex] || {};
-            const removable =
-              setIndex >= (planSlot.sets || 0) || !!entry.d || String(entry.w ?? "").trim() !== "" || String(entry.r ?? "").trim() !== "";
-            return readOnly || !removable ? (
+            return readOnly ? (
               setRow
             ) : (
               <SwipeDelete key={`${setIndex}/${rows}`} label={copy.workout.delete} onDelete={() => props.onDeleteSet(setIndex)}>

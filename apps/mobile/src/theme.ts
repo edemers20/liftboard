@@ -4,6 +4,8 @@ export const theme = {
   fuel: "#fea06a",
   /** Personal records: the week card's PRs tile, on screen and in the shared image. */
   record: "#b79cf0",
+  /** Dark text and marks on a filled accent (week card tiles, milestones). */
+  ink: "#2a1a12",
   green: {
     background: "#131615",
     surface: "#1d2220",

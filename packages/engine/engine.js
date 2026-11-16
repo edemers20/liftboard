@@ -551,6 +551,9 @@ function plan(){ buildDefaults(); const cut=cutting();
       return;
     }
     D.slots.forEach((A,i)=>{ if(A&&L[i]!=null&&A.sets!=null&&!d.slots[i].cardio) A.sets=Math.max(L[i], loggedCount(d.id,i,false)); }); });
+  /* Sets deleted in this workout (st.drop) come off this day only, never below the sets already ticked. */
+  DAYS.forEach(d=>{ const D=P.days[d.id]; if(!D) return;
+    D.slots.forEach((A,i)=>{ const n=num(get(d.id,i).drop,0); if(A&&n>0&&A.sets!=null&&!d.slots[i].cardio) A.sets=Math.max(0,A.sets-n,loggedCount(d.id,i,false)); }); });
   /* Cardio */
   /* "Lose fat, keep strength" allows up to 0.7% of body weight a week, the top of the muscle-friendly range */
   const wLb=num(wk.weight,150), recompCap=Math.round(wLb*0.007*100)/100;
@@ -903,7 +906,7 @@ function newWeek(start){
   const reset={weekStart:begin,ckDone:false,lockSets:{},lockFeel:{},weekOrder:null,review:{},done:{},donePlan:{},today:{},wt:{},rest:null,stretchDone:{},zAct:[],ready:"Normal",sore:"None",drink:"0",wAvg:"",deload:"No"};
   ACT_IDS.forEach(a=>{ if(a!=="lift") reset[actKey(a)]=[]; });
   Object.assign(wk,reset);
-  ALL.forEach(d=>d.slots.forEach((s,i)=>{ const st=slots[d.id]&&slots[d.id][i]; if(!st) return; if(s.cardio) delete st.act; if(done[d.id]){ st.log=[]; delete st.cdone; } }));
+  ALL.forEach(d=>d.slots.forEach((s,i)=>{ const st=slots[d.id]&&slots[d.id][i]; if(!st) return; if(s.cardio) delete st.act; if(done[d.id]){ st.log=[]; delete st.cdone; delete st.drop; } }));
   /* exercises you added belong to that week */
   Object.keys(wk.extra||{}).forEach(id=>{ const b=tplLen(id), st=slots[id]; if(st) Object.keys(st).forEach(i=>{ if(+i>=b) delete st[i]; }); });
   wk.extra={}; syncDays();
@@ -1419,4 +1422,4 @@ function dayComplete(dayId){
   return d.slots.every((_,i)=>!countsInDay(dayId,i,P)||rowDone(dayId,i,P));
 }
 
-export { noteAct, orderActs, suggestedAct, trimActivityDays, addWeekly, askedWeekly, markAskedWeekly, sessN, plannedActs, setActivityDay, fitActivityDays, timeByKind, hoursMoved, mostPlayed, seasonFrom, changeItems, watchItems, keepWeight, rowDone, countsInDay, swapWeek, wTitle, sessionKcal, liftKcal, refreshLiftK, LIFT_MET, weekActuals, swapOptions, swapDay, earlyDone, planOff, finishWeek, undoFinish, hasFinishSnap, rateLb, isBW, yogaMet, pilMet, YOGA_EFF, PIL_EFF, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, MUSCLES, slotMuscles, musclePriority, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk, weekModel, dayBoard, moveLiftToToday, dayKey, weekStartOf, weekRuleAt, setWeekStart, restPlan, beginRest, adjustRest, clearRest, restView, startingGuess, startWeight, showsSide, sideDefault, lastSide, offerNudge, dayComplete, e1rm, weekTops, liftTrends, recentPrs, weekCompleted, weekStreak, countWeek, weekActivities, weekReport, pendingWeekReport, dismissWeekReport };
+export { onActs, noteAct, orderActs, suggestedAct, trimActivityDays, addWeekly, askedWeekly, markAskedWeekly, sessN, plannedActs, setActivityDay, fitActivityDays, timeByKind, hoursMoved, mostPlayed, seasonFrom, changeItems, watchItems, keepWeight, rowDone, countsInDay, swapWeek, wTitle, sessionKcal, liftKcal, refreshLiftK, LIFT_MET, weekActuals, swapOptions, swapDay, earlyDone, planOff, finishWeek, undoFinish, hasFinishSnap, rateLb, isBW, yogaMet, pilMet, YOGA_EFF, PIL_EFF, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, MUSCLES, slotMuscles, musclePriority, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk, weekModel, dayBoard, moveLiftToToday, dayKey, weekStartOf, weekRuleAt, setWeekStart, restPlan, beginRest, adjustRest, clearRest, restView, startingGuess, startWeight, showsSide, sideDefault, lastSide, offerNudge, dayComplete, e1rm, weekTops, liftTrends, recentPrs, weekCompleted, weekStreak, countWeek, weekActivities, weekReport, pendingWeekReport, dismissWeekReport };

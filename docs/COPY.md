@@ -257,7 +257,6 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Add {…} to your weekly sessions? It shows up every week. (TODO copy, native) | Workouts, after logging past the plan |
 |  | Add (TODO copy, native) | Workouts, same card |
 |  | Not now (TODO copy, native) | Workouts, same card |
-|  | Add to your week (TODO copy, native; label over "+ {activity}" pills for activities on with 0 sessions) | Plan, under Activity days |
 |  | {…} of {…} (web only; native chips show no count) | main.js:336 |
 |  | Other | main.js:336 |
 |  | Lift Board | main.js:339 |

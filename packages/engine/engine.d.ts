@@ -41,6 +41,8 @@ export const changeItems: any;
 export const cnt: any;
 export function sessN(id: string): number;
 export function plannedActs(): string[];
+/** On in Settings and not a one-off, including 0 a week, in activity order. */
+export function onActs(): string[];
 export function orderActs(ids: string[]): string[];
 export function noteAct(id: string, on: boolean): void;
 export function suggestedAct(): string;
