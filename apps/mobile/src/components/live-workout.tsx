@@ -202,6 +202,8 @@ function glassTabs(): boolean {
 export function useSolidLive(): boolean {
   const [reduce, setReduce] = useState(false);
   useEffect(() => {
+    // iOS only; React Native Web has no isReduceTransparencyEnabled and throws.
+    if (Platform.OS !== "ios") return;
     let current = true;
     AccessibilityInfo.isReduceTransparencyEnabled().then((on) => {
       if (current) setReduce(on);

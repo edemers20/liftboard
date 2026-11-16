@@ -108,5 +108,8 @@ assert.equal(rest(-W / 2 - 1, 0), -W, "settle on the UI thread");
 assert.equal(rest(-20, -800), -W);
 assert.equal(rest(-10, 0), 0);
 assert.equal(shown(-5), true);
+assert.equal(drag(0, -500, W, 360), -360, "full swipe drag on the UI thread");
+assert.equal(rest(-300, 0, W, 360), -360, "full swipe deletes on the UI thread");
+assert.equal(rest(-150, 0, W, 360), -W);
 
 console.log(`worklets ui thread ok (${count} worklets)`);

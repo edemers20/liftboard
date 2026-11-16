@@ -6,6 +6,8 @@ import { AccessibilityInfo, Platform } from "react-native";
 export function useSolidGlass(): boolean {
   const [reduce, setReduce] = useState(false);
   useEffect(() => {
+    // iOS only; React Native Web has no isReduceTransparencyEnabled and throws.
+    if (Platform.OS !== "ios") return;
     let live = true;
     AccessibilityInfo.isReduceTransparencyEnabled()
       .then((on) => {

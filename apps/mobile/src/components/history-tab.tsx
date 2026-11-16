@@ -10,6 +10,7 @@ import Svg, { Circle, Polyline } from "react-native-svg";
 import Reanimated from "react-native-reanimated";
 
 import { LiveWorkoutBar } from "@/components/live-workout";
+import { OrbFill } from "@/components/orb-fill";
 import { StepButton } from "@/components/step-button";
 import { InfoTip } from "@/components/tip-popover";
 import { copy } from "@/copy";
@@ -67,7 +68,6 @@ const SPLIT_FILL = {
 const UNDER = "#e7b94a";
 const DONE_PILL = "#1f3029";
 const TRACK = "#34302c";
-const PR_CARD = "#2a211c";
 const PR_WIDTH = 150;
 const PR_GAP = 8;
 const HAIRLINE = "#2f2a27";
@@ -832,6 +832,7 @@ function PrCard({ pr, units }: { pr: HistoryPr; units: string }) {
   const kind = pr.kind === "reps" ? copy.history.prReps : copy.history.prTop;
   return (
     <View accessibilityLabel={`${kind}, ${pr.name}, ${value}, ${shortDate(pr.t)}`} style={styles.prCard}>
+      <OrbFill colors={theme.purple.orb} glow={theme.purple.glow} glowOpacity={0.55} at={{ x: 0.32, y: 0.28 }} reach={0.52} />
       <Text style={styles.prKind}>{kind}</Text>
       <Text numberOfLines={1} style={styles.prName}>
         {pr.name}
@@ -1169,17 +1170,17 @@ const styles = StyleSheet.create({
   sectionTitle: { fontFamily: theme.fonts.bodySemi, fontSize: 15, color: theme.text },
   prBleed: { marginHorizontal: -16 },
   prScroll: { paddingHorizontal: 16, gap: PR_GAP },
-  prCard: { width: PR_WIDTH, backgroundColor: PR_CARD, borderRadius: 14, padding: 12, gap: 2 },
+  prCard: { width: PR_WIDTH, backgroundColor: theme.purple.card, borderRadius: 14, borderWidth: 1, borderColor: theme.purple.border, overflow: "hidden", padding: 12, gap: 2 },
   prKind: {
     fontFamily: theme.fonts.bodySemi,
     fontSize: 11,
     letterSpacing: 0.44,
     textTransform: "uppercase",
-    color: theme.record,
+    color: theme.purple.label,
   },
-  prName: { fontFamily: theme.fonts.body, fontSize: 13, color: theme.text },
-  prValue: { fontFamily: theme.fonts.monoMedium, fontSize: 20, color: theme.text },
-  prDate: { fontFamily: theme.fonts.body, fontSize: 12, color: theme.muted },
+  prName: { fontFamily: theme.fonts.bodySemi, fontSize: 13, color: theme.text },
+  prValue: { fontFamily: theme.fonts.monoMedium, fontSize: 20, color: theme.purple.value },
+  prDate: { fontFamily: theme.fonts.body, fontSize: 12, color: theme.purple.muted },
   liftHead: { flexDirection: "row", alignItems: "center", alignSelf: "flex-start", gap: 5 },
   liftInfo: { width: 16, height: 16, alignItems: "center", justifyContent: "center" },
   tip: { backgroundColor: "#2f2a27", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, gap: 6 },

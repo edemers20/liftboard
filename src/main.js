@@ -585,7 +585,7 @@ function strongest(){ let best=null;
     if(!best||c.dw>best.dw||(c.dw===best.dw&&c.last.w>best.last.w)) best=c; });
   return best; }
 /* earned milestones only, newest first */
-function milestones(){ const out=[], S=(wk.sessions||[]).filter(x=>x&&x.t).sort((a,b)=>a.t-b.t), O="#fea06a", P="#fc96bf", G="#6fd0b4", R="#b79cf0";
+function milestones(){ const out=[], S=(wk.sessions||[]).filter(x=>x&&x.t).sort((a,b)=>a.t-b.t), O=["#ffc08a","#d07a3a"], P=["#ffb3d0","#d46a96"], G=["#9ee4cf","#3f9f88"], R=["#d2c0ff","#7a5fc0"];
   const lifts=S.filter(x=>x.k==="lift"); [10,25,50,100,200].forEach(n=>{ if(lifts.length>=n) out.push({i:String(n),t:`${n} lifts`,d:lifts[n-1].t,c:G}); });
   let m=0; const H=[10,50,100,250,500]; let h=0; S.forEach(x=>{ m+=x.k==="lift"?(num(x.min,0)>0?num(x.min,0):num(wk.time,60)):num(x.min,0); while(h<H.length&&m>=H[h]*60){ out.push({i:String(H[h]),t:`${H[h]} hours moved`,d:x.t,c:O}); h++; } });
   const W=wk.weeks||[]; let run=0, first=false; const ST=[3,6,10,16,26,52], got={};
@@ -644,7 +644,7 @@ function renderProfile(){
       <div class="ymix">${mix.map(c=>{ const h=Math.round(c.min/60); return `<div><span>${esc(ACT[c.k]?ACT[c.k].name:c.k)}</span><i><b style="width:${Math.round(c.min/top*100)}%;background:${col(c.k)}"></b></i><span class="mono">${h}h</span></div>`; }).join("")}</div></section>`; }
   /* milestones: earned ones only */
   const M=milestones().slice(0,6);
-  const msH=`<section class="ysec"><div class="yh"><h3>Milestones</h3></div>${M.length?`<div class="ymiles">${M.map(m=>`<div class="ymf" style="background:${m.c}"><span class="ybadge">${m.i}</span><b>${esc(m.t)}</b><small>${MDAY(m.d)}</small></div>`).join("")}</div>`
+  const msH=`<section class="ysec"><div class="yh"><h3>Milestones</h3></div>${M.length?`<div class="ymiles">${M.map(m=>`<div class="ymf" style="background:radial-gradient(circle at 30% 22%,rgba(255,255,255,.3),transparent 45%),linear-gradient(155deg,${m.c[0]},${m.c[1]})"><span class="ybadge">${m.i}</span><b>${esc(m.t)}</b><small>${MDAY(m.d)}</small></div>`).join("")}</div>`
     :`<p class="small">Milestones show up here as you hit them, like your first full week or your 10th lift.</p>`}</section>`;
   return `<div class="yprof">${gear}${hero}${streak}${tileH}${setup}${slH}${prH}${mpH}${msH}</div>`;
 }

@@ -10,6 +10,7 @@ import { captureRef } from "react-native-view-shot";
 import { router, usePathname } from "expo-router";
 import { afterLaunchSplash } from "@/components/launch-splash";
 import { Rise, useCountUp } from "@/components/motion";
+import { OrbFill } from "@/components/orb-fill";
 import { openReportSheet } from "@/form-sheet";
 import { copy, fill } from "@/copy";
 import { haptic } from "@/haptic";
@@ -22,7 +23,6 @@ import { toDisplay } from "@/units";
 const TRACK = "#34302c";
 const SHORT = "#e7b94a";
 const PILL = "#1f3029";
-const PR_CARD = "#2a211c";
 const LINE = "#2f2a27";
 const INK = theme.ink;
 const SECONDARY = "#2f2a27";
@@ -131,8 +131,8 @@ function ReportShare({ report }: { report: Report }) {
         ))}
       </View>
       {report.prs.length ? (
-        <View style={styles.shareSection}>
-          <Text style={styles.shareSectionTitle}>{copy.report.records}</Text>
+        <View style={[styles.shareSection, styles.sharePrs]}>
+          <Text style={[styles.shareSectionTitle, styles.sharePrsTitle]}>{copy.report.records}</Text>
           {report.prs.map((row) => (
             <View key={row.n} style={styles.shareRow}>
               <Text numberOfLines={1} style={styles.shareRowName}>{row.n}</Text>
@@ -249,17 +249,18 @@ export function ReportSheet({ report }: { report: Report }) {
         {report.prs.length ? (
           <Rise delay={220}>
             <View accessibilityLabel={copy.report.records} style={styles.prCard}>
+              <OrbFill colors={theme.purple.orb} glow={theme.purple.glow} glowOpacity={0.45} at={{ x: 0.15, y: 0.1 }} reach={0.6} />
               <Text style={styles.prTitle}>{copy.report.records}</Text>
               {report.prs.map((row) => (
                 <View key={row.n} style={styles.split}>
                   <View style={styles.prName}>
                     <Text numberOfLines={2} style={styles.rowName}>{row.n}</Text>
-                    <Text style={styles.kind}>{row.kind === "top" ? copy.history.prTop : copy.history.prReps}</Text>
+                    <Text style={styles.prKind}>{row.kind === "top" ? copy.history.prTop : copy.history.prReps}</Text>
                   </View>
                   <View style={styles.prValue}>
                     <Text style={styles.prNumber}>{setLine(row.n, row.w, row.r)}</Text>
                     {row.wasW != null && row.wasR != null ? (
-                      <Text style={styles.kind}>{fill(copy.report.was, setLine(row.n, row.wasW, row.wasR))}</Text>
+                      <Text style={styles.prKind}>{fill(copy.report.was, setLine(row.n, row.wasW, row.wasR))}</Text>
                     ) : null}
                   </View>
                 </View>
@@ -432,18 +433,18 @@ const styles = StyleSheet.create({
   value: { fontFamily: theme.fonts.monoMedium, fontSize: 28, lineHeight: 34, flexShrink: 1 },
   unit: { opacity: 0.7, fontFamily: theme.fonts.mono, fontSize: 14 },
   card: { backgroundColor: theme.orange.surface, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14, gap: 10 },
-  prCard: { backgroundColor: PR_CARD, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14, gap: 10 },
+  prCard: { backgroundColor: theme.purple.card, borderRadius: 16, borderWidth: 1, borderColor: theme.purple.border, overflow: "hidden", paddingHorizontal: 16, paddingVertical: 14, gap: 10 },
   activityCard: { backgroundColor: theme.pink.surface, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14, gap: 8 },
   cardTitle: { color: theme.text, fontFamily: theme.fonts.bodySemi, fontSize: 15 },
-  prTitle: { color: theme.fuel, fontFamily: theme.fonts.bodySemi, fontSize: 15 },
+  prTitle: { color: theme.purple.label, fontFamily: theme.fonts.bodySemi, fontSize: 15 },
   split: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 10 },
   rowName: { flex: 1, minWidth: 0, color: theme.text, fontFamily: theme.fonts.body, fontSize: 14 },
   from: { flexShrink: 1, color: theme.muted, fontFamily: theme.fonts.mono, fontSize: 13, textAlign: "right" },
   to: { color: theme.fuel, fontFamily: theme.fonts.mono, fontSize: 13 },
   prName: { flex: 1, gap: 2 },
   prValue: { alignItems: "flex-end", gap: 2 },
-  kind: { color: theme.muted, fontFamily: theme.fonts.body, fontSize: 12 },
-  prNumber: { color: theme.text, fontFamily: theme.fonts.monoMedium, fontSize: 17 },
+  prKind: { color: theme.purple.muted, fontFamily: theme.fonts.body, fontSize: 12 },
+  prNumber: { color: theme.purple.value, fontFamily: theme.fonts.monoMedium, fontSize: 17 },
   muscle: { flexDirection: "row", alignItems: "center", gap: 10 },
   muscleName: { width: 96, flexShrink: 0, color: theme.text, fontFamily: theme.fonts.body, fontSize: 13 },
   track: { flex: 1, height: 8, borderRadius: 999, backgroundColor: TRACK, overflow: "hidden" },
@@ -495,4 +496,6 @@ const styles = StyleSheet.create({
   shareRowName: { flex: 1, color: theme.text, fontFamily: theme.fonts.bodyMedium, fontSize: 34 },
   shareRowValue: { color: theme.text, fontFamily: theme.fonts.monoMedium, fontSize: 36 },
   shareUp: { color: theme.fuel },
+  sharePrs: { backgroundColor: theme.purple.tint },
+  sharePrsTitle: { color: theme.record },
 });

@@ -1107,10 +1107,12 @@ html[data-vt^="day"] .wpager{view-transition-name:lbcards}
 /* History → Lifts */
 .prcards{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:0 16px}
 .prcards::-webkit-scrollbar{display:none}
-.prc{flex:0 0 auto;width:140px;background:#2a211c;border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:2px}
+/* records: a filled purple card lit from the top left */
+.prc{flex:0 0 auto;width:140px;background:radial-gradient(circle at 32% 28%,rgba(183,156,240,.55),transparent 52%),linear-gradient(155deg,#4a3a72,#241c38);border:1px solid rgba(183,156,240,.45);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:2px}
 .prk{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--record)}
+.prc .prk{color:#e8dffc}
 .prn{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.prc b{font:500 20px var(--mono)} .prc small{font-size:12px;color:var(--muted)}
+.prc b{font:500 20px var(--mono);color:#f4efff} .prc small{font-size:12px;color:rgba(237,234,232,.72)}
 h3.lhead{display:flex;align-items:center;gap:4px;justify-content:flex-start}
 .lrow{border-top:1px solid var(--line)} .lrow:first-of-type{border-top:0}
 .lbtn{width:100%;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer;padding:12px 0;display:grid;grid-template-columns:minmax(0,1fr) 96px;gap:12px;align-items:center}
@@ -1290,6 +1292,7 @@ button,a,[role="button"],summary,label.sw,.wcbtn,.chip,.seg button{transition:tr
 /* earned milestones are filled with their colour, with dark text and mark */
 .ymiles .ymf b,.ymiles .ymf small{color:var(--ink)} .ymiles .ymf small{opacity:.75}
 .ymiles .ymf .ybadge{background:rgba(42,26,18,.14);color:var(--ink)}
+.ymiles .ymf{border:1px solid rgba(255,255,255,.3)}
 @keyframes yPop{0%{transform:scale(.6);opacity:0}70%{transform:scale(1.08);opacity:1}100%{transform:scale(1)}}
 /* ---------- Settings ---------- */
 .ysettings{display:flex;flex-direction:column;gap:12px}

@@ -4,7 +4,7 @@ import { GestureDetector, Touchable, usePanGesture } from "react-native-gesture-
 import Animated, { cancelAnimation, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
 import { haptic } from "@/haptic";
-import { createSwipeRegistry, SWIPE_WIDTH, swipeActionShown, swipeDrag, swipeSettle } from "@/swipe-settle";
+import { createSwipeRegistry, SWIPE_WIDTH, swipeActionShown, swipeDrag, swipeFullAt, swipeSettle } from "@/swipe-settle";
 import { theme } from "@/theme";
 
 const rows = createSwipeRegistry();
@@ -24,8 +24,9 @@ export function closeOpenSwipe() {
 }
 
 /**
- * Swipe left to reveal Delete. The row always comes to rest fully closed or fully open,
- * including when the swipe is interrupted or the list takes over to scroll.
+ * Swipe left to reveal Delete; keep going past the full-swipe point and let go to delete (iOS Mail style).
+ * The row always comes to rest fully closed, fully open or deleted, including when the swipe is
+ * interrupted or the list takes over to scroll.
  */
 export function SwipeDelete({
   children,
@@ -41,6 +42,8 @@ export function SwipeDelete({
   const start = useSharedValue(0);
   const velocity = useSharedValue(0);
   const dragging = useSharedValue(false);
+  const rowWidth = useSharedValue(0);
+  const armed = useSharedValue(false);
   const [open, setOpen] = useState(false);
   const action = useRef<{ measureInWindow(callback: (x: number, y: number, width: number, height: number) => void): void } | null>(null);
 
@@ -66,6 +69,18 @@ export function SwipeDelete({
     action.current?.measureInWindow((left, top, width, height) => rows.setRect(key, { x: left, y: top, width, height }));
   }
 
+  function armChanged(on: boolean) {
+    if (on) haptic.medium();
+    else haptic.tap();
+  }
+
+  function fullSwiped() {
+    rows.release(key);
+    setOpen(false);
+    onDelete();
+    x.value = 0;
+  }
+
   useEffect(() => () => rows.release(key), [key]);
 
   const pan = usePanGesture({
@@ -77,29 +92,46 @@ export function SwipeDelete({
       start.value = x.value;
       velocity.value = 0;
       dragging.value = true;
+      armed.value = false;
       runOnJS(dragStarted)();
     },
     onUpdate: (event) => {
       "worklet";
-      x.value = swipeDrag(start.value, event.translationX);
+      x.value = swipeDrag(start.value, event.translationX, SWIPE_WIDTH, rowWidth.value);
       velocity.value = event.velocityX;
+      const past = x.value <= -swipeFullAt(rowWidth.value, SWIPE_WIDTH);
+      if (past !== armed.value) {
+        armed.value = past;
+        runOnJS(armChanged)(past);
+      }
     },
     onFinalize: () => {
       "worklet";
       if (!dragging.value) return;
       dragging.value = false;
-      const to = swipeSettle(x.value, velocity.value);
+      const to = swipeSettle(x.value, velocity.value, SWIPE_WIDTH, rowWidth.value);
       velocity.value = 0;
+      armed.value = false;
+      if (to < -SWIPE_WIDTH) {
+        x.value = withTiming(to, { duration: SETTLE_MS }, (done) => {
+          if (done) runOnJS(fullSwiped)();
+        });
+        return;
+      }
       x.value = withTiming(to, { duration: SETTLE_MS });
       runOnJS(settled)(to);
     },
   });
 
   const rowStyle = useAnimatedStyle(() => ({ transform: [{ translateX: x.value }] }));
-  const actionStyle = useAnimatedStyle(() => ({ opacity: swipeActionShown(x.value) ? 1 : 0 }));
+  // The red area grows with the row past fully open, the way Mail's does on a full swipe.
+  const actionStyle = useAnimatedStyle(() => ({
+    opacity: swipeActionShown(x.value) ? 1 : 0,
+    width: Math.max(SWIPE_WIDTH, -x.value),
+  }));
 
   return (
-    <View style={styles.wrap}>
+    <View style={styles.wrap} onLayout={(event) => (rowWidth.value = event.nativeEvent.layout.width)}>
       <Animated.View ref={action as never} style={[styles.action, actionStyle]} pointerEvents={open ? "auto" : "none"}>
         <Touchable
           accessibilityRole="button"

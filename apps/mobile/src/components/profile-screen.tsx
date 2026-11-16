@@ -20,6 +20,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Polyline } from "react-native-svg";
 
 import { LiveWorkoutBar } from "@/components/live-workout";
+import { OrbFill } from "@/components/orb-fill";
 import { copy } from "@/copy";
 import { useSolidGlass } from "@/glass";
 import { engine, useEngineStore } from "@/store";
@@ -34,7 +35,7 @@ const HOUR_MARKS = [10, 50, 100];
 const STREAK_MARKS = [6, 12, 16];
 
 type Top = { start: number; w: number; r: number; t: number };
-type Milestone = { key: string; mark: string; title: string; t: number; bg: string };
+type Milestone = { key: string; mark: string; title: string; t: number; bg: readonly [string, string] };
 
 function lookup(id: string) {
   const table = copy.activityNames as Record<string, string>;
@@ -95,7 +96,7 @@ function milestones(): Milestone[] {
           mark: String(lifts),
           title: copy.you.liftsMilestone(lifts),
           t: at,
-          bg: theme.green.accent,
+          bg: theme.milestone.green,
         });
       }
     }
@@ -107,7 +108,7 @@ function milestones(): Milestone[] {
           mark: String(mark),
           title: copy.you.hoursMilestone(mark),
           t: at,
-          bg: theme.fuel,
+          bg: theme.milestone.orange,
         });
       }
     });
@@ -133,7 +134,7 @@ function milestones(): Milestone[] {
         mark: "1",
         title: copy.you.firstFullWeek,
         t: at,
-        bg: theme.pink.accent,
+        bg: theme.milestone.pink,
       });
     }
     if (STREAK_MARKS.includes(run)) {
@@ -142,7 +143,7 @@ function milestones(): Milestone[] {
         mark: String(run),
         title: copy.you.streakMilestone(run),
         t: at,
-        bg: theme.pink.accent,
+        bg: theme.milestone.pink,
       });
     }
   });
@@ -155,7 +156,7 @@ function milestones(): Milestone[] {
       mark: "PR",
       title: copy.you.firstPrTitle,
       t: first.t,
-      bg: theme.record,
+      bg: theme.milestone.purple,
     });
   }
   return earned.sort((a, b) => b.t - a.t);
@@ -394,6 +395,7 @@ export function ProfileScreen() {
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.prScroll} contentContainerStyle={styles.prRow}>
               {prs.map((pr) => (
                 <View key={`${pr.name}-${pr.t}`} style={styles.prCard}>
+                  <OrbFill colors={theme.purple.orb} glow={theme.purple.glow} glowOpacity={0.55} at={{ x: 0.32, y: 0.28 }} reach={0.52} />
                   <Text style={styles.prKind}>{pr.kind === "reps" ? copy.history.prReps : copy.history.prTop}</Text>
                   <Text numberOfLines={1} style={styles.prName}>
                     {pr.name}
@@ -461,7 +463,8 @@ export function ProfileScreen() {
             <View style={styles.mileGrid}>
               {earned.map((item) => (
                 <View key={item.key} style={styles.mileSlot}>
-                  <View style={[styles.mileCard, { backgroundColor: item.bg }]}>
+                  <View style={styles.mileCard}>
+                    <OrbFill colors={item.bg} glow="#ffffff" glowOpacity={0.3} reach={0.48} />
                     <View style={styles.mileMark}>
                       <Text style={styles.mileMarkText}>{item.mark}</Text>
                     </View>
@@ -779,17 +782,19 @@ const styles = StyleSheet.create({
   climbUp: { color: theme.fuel },
   prScroll: { marginHorizontal: -16 },
   prRow: { gap: 8, paddingHorizontal: 16 },
-  prCard: { width: 136, backgroundColor: "#2a211c", borderRadius: 14, padding: 12, gap: 2 },
-  prKind: { fontFamily: theme.fonts.bodySemi, fontSize: 11, letterSpacing: 0.4, textTransform: "uppercase", color: theme.record },
-  prName: { fontFamily: theme.fonts.body, fontSize: 13, color: theme.text },
-  prValue: { fontFamily: theme.fonts.monoMedium, fontSize: 20, color: theme.text },
-  prDate: { fontFamily: theme.fonts.body, fontSize: 12, color: theme.muted },
+  prCard: { width: 136, backgroundColor: theme.purple.card, borderRadius: 14, borderWidth: 1, borderColor: theme.purple.border, overflow: "hidden", padding: 12, gap: 2 },
+  prKind: { fontFamily: theme.fonts.bodySemi, fontSize: 11, letterSpacing: 0.4, textTransform: "uppercase", color: theme.purple.label },
+  prName: { fontFamily: theme.fonts.bodySemi, fontSize: 13, color: theme.text },
+  prValue: { fontFamily: theme.fonts.monoMedium, fontSize: 20, color: theme.purple.value },
+  prDate: { fontFamily: theme.fonts.body, fontSize: 12, color: theme.purple.muted },
   emptyPr: { flexDirection: "row", alignItems: "center", gap: 12 },
   prBadge: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#2a211c",
+    backgroundColor: theme.purple.card,
+    borderWidth: 1,
+    borderColor: theme.purple.border,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -805,7 +810,14 @@ const styles = StyleSheet.create({
   mixHours: { width: 52, textAlign: "right", fontFamily: theme.fonts.mono, fontSize: 12, color: theme.text },
   mileGrid: { flexDirection: "row", flexWrap: "wrap", marginHorizontal: -4 },
   mileSlot: { width: "50%", padding: 4 },
-  mileCard: { borderRadius: 16, padding: 14, gap: 6 },
+  mileCard: {
+    borderRadius: 16,
+    padding: 14,
+    gap: 6,
+    overflow: "hidden",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(255,255,255,0.35)",
+  },
   mileMark: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(42,26,18,0.14)" },
   mileMarkText: { fontFamily: theme.fonts.display, fontSize: 18, color: theme.ink },
   mileTitle: { fontFamily: theme.fonts.bodySemi, fontSize: 14, color: theme.ink },
