@@ -1,3 +1,5 @@
+"use no memo";
+
 import { type ReactElement } from "react";
 import { Platform, View, type StyleProp, type ViewStyle } from "react-native";
 import { ScrollViewMarker } from "react-native-screens/src/components/gamma/scroll-view-marker/ScrollViewMarker";

@@ -1,3 +1,5 @@
+"use no memo";
+
 import { useEffect, useState } from "react";
 import { AppState } from "react-native";
 import * as engine from "@liftboard/engine";

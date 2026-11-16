@@ -1,3 +1,5 @@
+"use no memo";
+
 import * as Sharing from "expo-sharing";
 import { PressableScale } from "@/components/pressable-scale";
 import { useEffect, useMemo, useRef, useState } from "react";

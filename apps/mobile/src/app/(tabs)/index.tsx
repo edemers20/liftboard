@@ -1,3 +1,5 @@
+"use no memo";
+
 import { useFocusEffect } from "expo-router";
 import { PressableScale } from "@/components/pressable-scale";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -72,7 +74,6 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 export default function WorkoutsScreen() {
-  "use no memo";
   const version = useEngineStore((state) => state.version);
   const reduce = useReduceMotion();
   const insets = useSafeAreaInsets();
@@ -627,7 +628,6 @@ function DayPage({
 
 /** After logging past the weekly sessions: offer to make it a weekly session. Small, inline, asked once a week. */
 function AddWeeklyAsk() {
-  "use no memo";
   useEngineStore((state) => state.version);
   const id = addAskId();
   if (!id) return null;
@@ -654,7 +654,6 @@ function AddWeeklyAsk() {
 }
 
 function FuelLink() {
-  "use no memo";
   const version = useEngineStore((state) => state.version);
   const clock = usePlanClock();
   const model = useMemo(() => readPlan(), [version, clock]);
@@ -696,7 +695,6 @@ function RecoveryBit({ label, hours }: { label: string; hours: number | null }) 
 }
 
 function YesterdayBanner() {
-  "use no memo";
   useEngineStore((state) => state.version);
   const open = yesterdayOpen();
   if (!open) return null;
@@ -1252,7 +1250,6 @@ function ActivityChips({
   onToggle: () => void;
   onLog: (id: string, turnedOn: boolean) => void;
 }) {
-  "use no memo";
   useEngineStore((state) => state.version);
   if (!canLogDay(offset)) return null;
   const mine = chipIds();
@@ -1289,7 +1286,6 @@ function ActivityChips({
 }
 
 function LogChip({ id, onPress }: { id: string; onPress: () => void }) {
-  "use no memo";
   useEngineStore((state) => state.version);
   const name = activityName(id);
   return (

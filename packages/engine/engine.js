@@ -535,10 +535,10 @@ function plan(){ buildDefaults(); const cut=cutting();
   holdLogged(P);
   balanceWeek(P,MP,inS,deload);
   holdLogged(P);
-  let lockNew=false;
   /* A workout in progress keeps the set counts it started with. Logging sets mid-session updates the weekly
      ledger, which used to add or drop a catch-up set (5 sets became 4 after the 4th, and the exercise ended early).
-     Switching how the day feels (Rough) retakes that snapshot so what is still ahead can shorten. */
+     Switching how the day feels (Rough) retakes that snapshot so what is still ahead can shorten.
+     plan() is read during render, so it never saves; whoever starts the day or changes the feel saves the snapshot. */
   DAYS.forEach(d=>{ const D=P.days[d.id]; if(!D||done[d.id]) return;
     const started=((wk.wt||{})[d.id]||{}).start||d.slots.some((s,i)=>loggedCount(d.id,i,!!s.cardio)>0);
     if(!started) return;
@@ -548,11 +548,9 @@ function plan(){ buildDefaults(); const cut=cutting();
     if(!L||feelChanged){
       wk.lockSets={...(wk.lockSets||{}),[d.id]:D.slots.map(A=>A&&A.sets!=null?A.sets:null)};
       wk.lockFeel={...(wk.lockFeel||{}),[d.id]:feel};
-      lockNew=true;
       return;
     }
     D.slots.forEach((A,i)=>{ if(A&&L[i]!=null&&A.sets!=null&&!d.slots[i].cardio) A.sets=Math.max(L[i], loggedCount(d.id,i,false)); }); });
-  if(lockNew) save();
   /* Cardio */
   /* "Lose fat, keep strength" allows up to 0.7% of body weight a week, the top of the muscle-friendly range */
   const wLb=num(wk.weight,150), recompCap=Math.round(wLb*0.007*100)/100;

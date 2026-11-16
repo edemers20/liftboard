@@ -1,3 +1,5 @@
+"use no memo";
+
 import { useEffect, useRef, useState } from "react";
 import { PressableScale } from "@/components/pressable-scale";
 import { File, Paths } from "expo-file-system";
@@ -291,7 +293,6 @@ function readBackupFile(): Promise<string | null> {
 
 /** Settings, opened from the gear on You. Body edits stay in a draft until saved. */
 export function SettingsScreen({ onReplay, startMetrics = false }: { onReplay: () => void; startMetrics?: boolean }) {
-  "use no memo";
   const insets = useSafeAreaInsets();
   const router = useRouter();
   useEngineStore((state) => state.version);

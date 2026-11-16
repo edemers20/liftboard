@@ -128,6 +128,8 @@ Per lift, from your last logged set:
   - Plans missed days: Recomp and Build continue from the missed day; Deficit only resets to Day 1.
   - Runs calibration.
   - Resets the check-in.
+  - Native (Nov 16): the week also rolls while the app stays open. A day clock wakes just after local midnight (and at least hourly), rolls the week if it's due and redraws every screen for the new date; returning to the app runs the same check.
+- **Set counts during a workout (native):** a started day keeps the set counts it started with (`wk.lockSets`), retaken when the day's feel changes. `engine.plan()` is read while screens draw, so it never saves; Start, the first ticked set and the feel switch save the snapshot.
 
 ## 8. Feedback
 

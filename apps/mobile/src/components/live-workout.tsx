@@ -1,3 +1,5 @@
+"use no memo";
+
 import { isLiquidGlassAvailable } from "expo-glass-effect";
 import { PressableScale } from "@/components/pressable-scale";
 import { SheetFrame } from "@/components/motion";
@@ -226,7 +228,6 @@ export function useShownLiveWorkout(): LiveWorkout | null {
 
 /** Re-renders as the rest clock moves, and once the "Day done" flash should leave. */
 export function useLiveWorkout(): LiveWorkout | null {
-  "use no memo";
   const version = useEngineStore((state) => state.version);
   const [now, setNow] = useState(() => Date.now());
   const live = readLiveWorkout(now);

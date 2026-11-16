@@ -1,3 +1,5 @@
+"use no memo";
+
 import { router, useFocusEffect } from "expo-router";
 import { PressableScale } from "@/components/pressable-scale";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
@@ -83,7 +85,6 @@ function savedView(): ViewName {
 }
 
 export default function PlanScreen() {
-  "use no memo";
   const version = useEngineStore((state) => state.version);
   const clock = usePlanClock();
   const reduceMotion = useReduceMotion();

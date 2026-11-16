@@ -1,3 +1,5 @@
+"use no memo";
+
 import { LinearGradient } from "expo-linear-gradient";
 import { PressableScale } from "@/components/pressable-scale";
 import * as Sharing from "expo-sharing";

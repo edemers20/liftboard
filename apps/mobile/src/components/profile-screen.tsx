@@ -1,3 +1,5 @@
+"use no memo";
+
 import { GlassView } from "expo-glass-effect";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -166,7 +168,6 @@ function milestones(): Milestone[] {
 
 /** You, as a profile of what you've done. Settings opens from the gear. */
 export function ProfileScreen() {
-  "use no memo";
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const reduce = useReduceMotion();

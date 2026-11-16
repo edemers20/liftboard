@@ -1,3 +1,5 @@
+"use no memo";
+
 import { DMMono_400Regular } from "@expo-google-fonts/dm-mono/400Regular";
 import { DMMono_500Medium } from "@expo-google-fonts/dm-mono/500Medium";
 import { DMSans_400Regular } from "@expo-google-fonts/dm-sans/400Regular";
@@ -26,7 +28,8 @@ import { theme } from "@/theme";
 import { useReduceMotion } from "@/use-reduce-motion";
 import { prepareRestAlerts } from "@/workout/notify";
 import { subscribeWorkoutEnter, WORKOUT_CLOSE_MS, type WorkoutEnter } from "@/workout/share-box";
-import { rollWeekIfDue } from "@/week-roll";
+import { startDayClock } from "@/day-clock";
+import { onNewDay, rollWeekIfDue } from "@/week-roll";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -72,10 +75,16 @@ export default function RootLayout() {
   useEffect(() => {
     prepareRestAlerts();
     rollWeekIfDue();
+    const clock = startDayClock(onNewDay);
     const sub = AppState.addEventListener("change", (next) => {
-      if (next === "active") rollWeekIfDue();
+      if (next !== "active") return;
+      rollWeekIfDue();
+      clock.check();
     });
-    return () => sub.remove();
+    return () => {
+      sub.remove();
+      clock.stop();
+    };
   }, []);
 
   const reduceMotion = useReduceMotion();

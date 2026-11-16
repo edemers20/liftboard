@@ -1,3 +1,5 @@
+"use no memo";
+
 import { useLocalSearchParams } from "expo-router";
 
 import { WorkoutScreen } from "@/workout/screen";

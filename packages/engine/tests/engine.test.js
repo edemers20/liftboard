@@ -1174,3 +1174,30 @@ describe("adding a session to the week", () => {
     expect(E.askedWeekly("yoga")).toBe(false);
   });
 });
+
+describe("plan() is a read: it never saves", () => {
+  it("takes the started-day lock in memory without saving, so a render can't update the store", () => {
+    fresh();
+    const id = E.DAYS[0].id;
+    let saves = 0;
+    E.setSaveHook(() => { saves++; });
+    E.wk.wt = { [id]: { start: Date.now() } };
+    const first = E.plan();
+    expect(saves).toBe(0);
+    expect(E.wk.lockSets[id]).toEqual(first.days[id].slots.map(A => A && A.sets != null ? A.sets : null));
+    E.wk.today = { [id]: "Rough" };
+    E.plan();
+    expect(saves).toBe(0);
+    expect(E.wk.lockFeel[id]).toBe("Rough");
+    E.setSaveHook(() => {});
+  });
+
+  it("keeps the started counts once the caller saves the lock", () => {
+    fresh();
+    const id = E.DAYS[0].id;
+    E.wk.wt = { [id]: { start: Date.now() } };
+    const sets = E.plan().days[id].slots.map(A => A && A.sets);
+    E.save();
+    expect(E.plan().days[id].slots.map(A => A && A.sets)).toEqual(sets);
+  });
+});
