@@ -90,19 +90,26 @@ These exist in code but haven't been confirmed working. Go through them with Emm
 
 ---
 
-## C. Waiting on Emma (don't build yet)
+## C. Emma's decisions (recorded, not built yet)
 
-These have been discussed but not decided. Ask her before starting any of them.
+Emma decided these on Nov 16, 2026. They're recorded here only; nothing in this section has been built. Build them only when asked.
 
-**C1. Sheet styles.** One summary card uses the native glass sheet and others don't. The proposed rule:
+**C1. Sheet styles. Decided:** glass sheets for every pop-up except the weekly report, the Day done card and the share card, which stay solid.
+- Glass sheets keep their existing colour palette: swap, weights and the exercise picker are green; activities are pink; the number dial follows its context.
+
+Earlier proposal, for reference:
 - Small glass sheets for swap, the weight suggestion, activity details and confirmations.
 - A large glass sheet that opens nearly full for the weekly report.
 - Solid full screen for Day done.
 - Solid cards inside every sheet, and a solid share card.
 
-Emma hasn't confirmed which card she saw or agreed to the groups.
+**C2. Upper and lower strength trend on History → Lifts. Decided:**
+- The percent shows on tap.
+- It also compares against the user's bodyweight when they've entered it.
+- Core and carries are omitted.
+- Still to do before designing the card: check the formula against her real logs.
 
-**C2. Upper and lower strength trend on History → Lifts.** The proposed formula:
+The proposed formula:
 - Each exercise's estimated 1RM, as a percentage of its own first-3-session baseline.
 - Averaged per half, weighted by sets.
 - Smoothed over 3 weeks, taking the best session in each week.
@@ -111,13 +118,16 @@ Emma hasn't confirmed which card she saw or agreed to the groups.
 - Holding shows in green on a cut.
 - Nothing shows before 3 weeks of data.
 
-Waiting on Emma: whether to show percentages, and whether core and carries count. The plan is to check the formula against her real logs before designing the card.
+**C3. Playlist workout** (handoff section 4, board `docs/design/Proto_Playlist.dc.html`). **Decided: on hold.** Don't build.
 
-**C3. Playlist workout** (handoff section 4, board `docs/design/Proto_Playlist.dc.html`). An experiment, not yet built. Ask whether it's still wanted.
+**C4. Liquid Glass audit items 7–9. Decided:** glass for the in-page switches (Plan Week/Season and History Calendar/Weeks/Lifts). No long-press menus on day cards and no floating date line.
 
-**C4. Liquid Glass audit items 7–9.** "Worth trying" ideas: prominent glass Start and Log set buttons, long-press menus on day cards, a floating date line. Try them only if asked.
-
-**C5. The You tab's first-run tip** still says the tab is for tips, experience level and FAQs, which now live in Settings. It's Emma's wording; ask her for new copy rather than changing it.
+**C5. The You tab's first-run tip. Decided:** new copy is "See your accomplishments and other cool profile info. Tap the gear for settings."
+- Pending Emma's answer: four FAQ and onboarding lines still say "You →" for things that now live in Settings. Whether to change them is her call. They are in `docs/COPY.md`, `copy.ts` and `src/main.js`:
+  - Onboarding experience: "Change it anytime under You → Training preferences."
+  - FAQ "When does a new week start?": "(You → App → Week starts on)".
+  - FAQ "What does experience change?": "Change it in You → Training preferences."
+  - FAQ "Moving to a new phone?": "You → Your data → Download backup".
 
 ---
 
