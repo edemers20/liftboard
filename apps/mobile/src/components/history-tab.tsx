@@ -14,6 +14,7 @@ import { StepButton } from "@/components/step-button";
 import { InfoTip } from "@/components/tip-popover";
 import { copy } from "@/copy";
 import type { HistoryDay, HistoryLift, HistoryPr, HistorySession, HistorySnapshot, HistoryWeek, MuscleBar, SessionExercise } from "@/history-data";
+import { haptic } from "@/haptic";
 import { Info, TabWorkouts } from "@/icons";
 import {
   displayWeight,
@@ -28,6 +29,7 @@ import {
   type MonthCell,
   type MixWeek,
 } from "@/history-model";
+import { createScrollTick } from "@/scroll-tick";
 import { storage } from "@/storage";
 import { TabBarSpacer, TabScrollMarker } from "@/tab-bar-inset";
 import { engine, useEngineStore } from "@/store";
@@ -66,6 +68,8 @@ const UNDER = "#e7b94a";
 const DONE_PILL = "#1f3029";
 const TRACK = "#34302c";
 const PR_CARD = "#2a211c";
+const PR_WIDTH = 150;
+const PR_GAP = 8;
 const HAIRLINE = "#2f2a27";
 
 function storedView(): ViewId {
@@ -729,6 +733,7 @@ function MuscleRow({ muscle }: { muscle: MuscleBar }) {
 function LiftsPage({ data, hide, active, topPad }: { data: HistorySnapshot; hide: HideOnScroll; active: boolean; topPad: number }) {
   const [open, setOpen] = useState<string | null>(null);
   const [tip, setTip] = useState(false);
+  const prTick = useRef(createScrollTick(PR_WIDTH + PR_GAP)).current;
   if (!data.lifts.length && !data.prs.length) {
     return (
       <TabScrollMarker active={active}>
@@ -765,6 +770,10 @@ function LiftsPage({ data, hide, active, topPad }: { data: HistorySnapshot; hide
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.prScroll}
             style={styles.prBleed}
+            scrollEventThrottle={16}
+            onScroll={(event) => {
+              if (prTick(event.nativeEvent.contentOffset.x, Date.now())) haptic.selection();
+            }}
           >
             {data.prs.map((pr) => (
               <PrCard key={`${pr.name}-${pr.t}-${pr.kind}`} pr={pr} units={data.units} />
@@ -1159,14 +1168,14 @@ const styles = StyleSheet.create({
   prBlock: { gap: 8 },
   sectionTitle: { fontFamily: theme.fonts.bodySemi, fontSize: 15, color: theme.text },
   prBleed: { marginHorizontal: -16 },
-  prScroll: { paddingHorizontal: 16, gap: 8 },
-  prCard: { width: 150, backgroundColor: PR_CARD, borderRadius: 14, padding: 12, gap: 2 },
+  prScroll: { paddingHorizontal: 16, gap: PR_GAP },
+  prCard: { width: PR_WIDTH, backgroundColor: PR_CARD, borderRadius: 14, padding: 12, gap: 2 },
   prKind: {
     fontFamily: theme.fonts.bodySemi,
     fontSize: 11,
     letterSpacing: 0.44,
     textTransform: "uppercase",
-    color: theme.fuel,
+    color: theme.record,
   },
   prName: { fontFamily: theme.fonts.body, fontSize: 13, color: theme.text },
   prValue: { fontFamily: theme.fonts.monoMedium, fontSize: 20, color: theme.text },
@@ -1195,5 +1204,5 @@ const styles = StyleSheet.create({
   tableWeek: { flex: 1, fontFamily: theme.fonts.body, fontSize: 13, color: theme.muted },
   tableMono: { flex: 1, fontFamily: theme.fonts.mono, fontSize: 13, color: theme.text },
   tableRight: { textAlign: "right" },
-  tablePr: { color: theme.fuel },
+  tablePr: { color: theme.record },
 });

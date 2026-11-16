@@ -1,5 +1,5 @@
 import * as Haptics from "expo-haptics";
-import { AccessibilityInfo } from "react-native";
+import { AccessibilityInfo, Platform } from "react-native";
 
 /**
  * Every haptic in the app goes through here.
@@ -19,7 +19,7 @@ const reduceMotionWatch = AccessibilityInfo.addEventListener("reduceMotionChange
 void reduceMotionWatch;
 
 function fire(run: () => Promise<void>) {
-  if (!enabled || reduceMotion) return;
+  if (!enabled || reduceMotion || Platform.OS === "web") return;
   void run().catch(() => {});
 }
 
