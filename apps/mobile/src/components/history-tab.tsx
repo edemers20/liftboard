@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Polyline } from "react-native-svg";
 import Reanimated from "react-native-reanimated";
 
+import { GlassTrack } from "@/components/glass-track";
 import { LiveWorkoutBar } from "@/components/live-workout";
 import { StepButton } from "@/components/step-button";
 import { InfoTip } from "@/components/tip-popover";
@@ -228,7 +229,7 @@ export function HistoryTab({ data }: { data: HistorySnapshot }) {
         <Text accessibilityRole="header" style={styles.title}>
           {copy.tabs.history}
         </Text>
-        <View accessibilityRole="tablist" accessibilityLabel={copy.tabs.history} style={styles.switch}>
+        <GlassTrack label={copy.tabs.history} style={styles.switch}>
           {VIEWS.map((id) => {
             const selected = id === view;
             return (
@@ -247,7 +248,7 @@ export function HistoryTab({ data }: { data: HistorySnapshot }) {
               </PressableScale>
             );
           })}
-        </View>
+        </GlassTrack>
       </View>
       </Reanimated.View>
       <View style={styles.pager}>
@@ -976,14 +977,13 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     color: theme.text,
   },
-  switch: { flexDirection: "row", gap: 6, marginBottom: 12 },
+  switch: { gap: 4, marginBottom: 12 },
   segment: {
     flex: 1,
-    minHeight: 40,
+    minHeight: 38,
     borderRadius: theme.radii.pill,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: theme.orange.background,
   },
   segmentOn: { backgroundColor: theme.orange.selectedFill },
   segmentText: { fontFamily: theme.fonts.body, fontSize: 14, color: theme.text },
