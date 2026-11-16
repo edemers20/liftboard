@@ -114,7 +114,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Where do you want extra focus? | main.js:1470 |
 |  | Whenever you have the extra energy or time, you’ll see more exercises for your chosen focus. | main.js:1470 |
 |  | How long have you been lifting? | main.js:1471 |
-|  | This sets how much guidance you see. Change it anytime under You → Training preferences. | main.js:1471 |
+|  | This sets how much guidance you see. Change it anytime under Settings → Training. (TODO copy; was "You → Training preferences") | main.js:1471 |
 |  | A bit about you | main.js:1472 |
 |  | Your size sets your base burn, protein and starting weights. | main.js:1472 |
 |  | You’re set | main.js:1473 |
@@ -254,7 +254,10 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | You usually play or take a class today. | main.js:334 |
 |  | Activity day | main.js:334 |
 |  | Activity / Activities (one activity planned / more than one; Plan's planned activity rows, native) | Emma, Nov 16 |
-|  | {…} first (TODO copy: placeholder for the suggested activity on the activity-day card, native) | Workouts activity-day card |
+|  | Add {…} to your weekly sessions? It shows up every week. (TODO copy, native) | Workouts, after logging past the plan |
+|  | Add (TODO copy, native) | Workouts, same card |
+|  | Not now (TODO copy, native) | Workouts, same card |
+|  | Add to your week (TODO copy, native; label over "+ {activity}" pills for activities on with 0 sessions) | Plan, under Activity days |
 |  | {…} of {…} (web only; native chips show no count) | main.js:336 |
 |  | Other | main.js:336 |
 |  | Lift Board | main.js:339 |
@@ -632,7 +635,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | How does my week get scheduled? | main.js:431 |
 |  | Lifts line up in order on your usual lift days. Miss one and the rest slide forward. Anything that doesn't fit carries into next week, which starts where you left off. Move to today pulls a planned lift onto today. Activities aren't tied to a day: log them from Workouts whenever you do them. Usual activity days only mark when you tend to play. | main.js:431 |
 |  | When does a new week start? | main.js:431 |
-|  | On its own, on Monday or Sunday (You → App → Week starts on). Your weekly check-in reopens at the top of Plan. | main.js:431 |
+|  | On its own, on Monday or Sunday (Settings → App → Week starts on). Your weekly check-in reopens at the top of Plan. (TODO copy; was "You → App") | main.js:431 |
 |  | Forgot to log something? | main.js:431 |
 |  | Tap that day on Workouts and log it there. If the next-morning check is on, Workouts also asks "Did you play or train yesterday?" when the day before is empty. Tap a logged activity to change its minutes or delete it. | main.js:431 |
 |  | Which goal should I pick? | main.js:431 |
@@ -648,13 +651,13 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | How long should I rest? | main.js:431 |
 |  | Main lifts 2:30 (3:00 at 5 reps or fewer), other compound lifts 1:30, isolation 1:15. One side at a time adds 15 seconds and the first set adds 30. A cut, in-season or a rough day each add 15 seconds to compound lifts, up to 30. Tap the left or right side of the rest bar to take off or add 15 seconds; it remembers for that exercise. The chime may not play with the phone locked. | main.js:431 |
 |  | What does experience change? | main.js:431 |
-|  | How many tips you see. Beginner and Some Experience show tips; Advanced hides them, and (i) explanations stay either way. Change it in You → Training preferences. | main.js:431 |
+|  | How many tips you see. Beginner and Some Experience show tips; Advanced hides them, and (i) explanations stay either way. Change it in Settings → Training. (TODO copy; was "You → Training preferences") | main.js:431 |
 |  | Bodyweight exercises? | main.js:431 |
 |  | Leave the weight blank. Add a number only if you hold extra weight. Progress comes from reps, slower lowering or added weight. | main.js:431 |
 |  | How is Week Breakdown counted? | native FAQ |
 |  | Lifts use how long the workout took, rounded to 15 minutes. Lifts logged before that was saved count as your session length. Activities use the minutes you logged. | main.js:431 |
 |  | Moving to a new phone? | main.js:431 |
-|  | You → Your data → Download backup, then Restore backup on the new phone. With accounts, signing in will do this for you. | main.js:431 |
+|  | Settings → Your data → Download backup, then Restore backup on the new phone. With accounts, signing in will do this for you. (TODO copy; was "You → Your data"; the row is called "Export my data") | main.js:431 |
 |  | Is this medical advice? | main.js:431 |
 |  | No. These are general estimates. Check with a doctor before big changes, especially if you're pregnant, injured or managing a health condition. | main.js:431 |
 

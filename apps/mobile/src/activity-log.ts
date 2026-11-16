@@ -235,17 +235,12 @@ export function canLogDay(offset: number): boolean {
   return weekOffset(selected, today) === 0 && selected.getTime() <= today.getTime();
 }
 
-/** The first activity in suggestion order that is on in Settings, or "" when none is. */
-export function suggestedActivity(): string {
-  const id = engine.suggestedAct() as string;
-  return id ? activityName(id) : "";
-}
-
 export function showReminder(offset: number): boolean {
   const today = startOfDay(Date.now());
   const selected = addDays(today, offset);
   if (selected.getTime() < today.getTime()) return false;
   if (!isUsualActivityDay(selected)) return false;
+  if (!(engine.plannedActs() as string[]).length) return false;
   return activitySessionsOn(selected).length === 0;
 }
 
@@ -262,22 +257,35 @@ function rampOn(): boolean {
   return engine.hasSport() && !engine.inSeason() && engine.wk.ramp === "Yes";
 }
 
-/** Planned activities in suggestion order, then one-offs. */
+/** Planned activities (at least one a week) in suggestion order, so the first pill is the suggestion; then one-offs. */
 export function chipIds(): string[] {
-  const on = (engine.ACT_IDS as string[]).filter((id) => id !== "lift" && engine.enabled(id));
-  const planned = engine.plannedActs() as string[];
-  const ids = [...planned, ...on.filter((id) => !planned.includes(id))];
+  const oneOffs = (engine.ACT_IDS as string[]).filter((id) => id !== "lift" && engine.enabled(id) && engine.wk.adhoc?.[id]);
+  const ids = [...(engine.plannedActs() as string[]), ...oneOffs];
   if (rampOn()) ids.push("zone2");
   return ids;
 }
 
 /** Every activity that is not already turned on. */
+/** Activities that are off, and ones that are on with 0 a week (not planned). Logging one never changes its count. */
 export function otherIds(): string[] {
-  return (engine.ACT_IDS as string[]).filter((id) => id !== "lift" && !engine.enabled(id));
+  const shown = chipIds();
+  return (engine.ACT_IDS as string[]).filter((id) => id !== "lift" && !shown.includes(id));
 }
 
 function actStorageKey(id: string): string {
   return id === "zone2" ? "zAct" : engine.actKey(id);
+}
+
+/** Today's ask: an activity logged past its weekly sessions this week that hasn't been asked about. */
+export function addAskId(): string | null {
+  const ids = (engine.ACT_IDS as string[]).filter((id) => id !== "lift" && engine.enabled(id));
+  return ids.find((id) => loggedOf(id) > engine.cnt(id) && !engine.askedWeekly(id)) ?? null;
+}
+
+/** Either answer closes the ask for that activity until next week. */
+export function answerAddAsk(id: string, add: boolean): void {
+  if (add) engine.addWeekly(id);
+  engine.markAskedWeekly(id);
 }
 
 export function plannedOf(id: string): number {

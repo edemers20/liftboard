@@ -964,8 +964,10 @@ const adaysOf=()=>Array.isArray(wk.adays)?wk.adays.slice().sort((a,b)=>a-b):[];
 function noteAct(a,on){ const o=(wk.actOrder||[]).filter(x=>x!==a); wk.actOrder=on?o.concat([a]):o; }
 function orderActs(ids){ const lead=seasonSports(), rec=wk.actOrder||[], rank=a=>{ const i=lead.indexOf(a); if(i>=0) return i-10; return rec.indexOf(a); };
   return ids.slice().sort((a,b)=>rank(a)-rank(b)||ACT_IDS.indexOf(a)-ACT_IDS.indexOf(b)); }
-const plannedActs=()=>orderActs(ACT_IDS.filter(a=>a!=="lift"&&enabled(a)&&!(wk.adhoc||{})[a]));
-/* The activity-day suggestion: the first activity in that order that is on in Settings (not a one-off). */
+/* On in Settings (not one-offs), in order. Planned means on with at least one session a week (Emma, Nov 16). */
+const onActs=()=>orderActs(ACT_IDS.filter(a=>a!=="lift"&&enabled(a)&&!(wk.adhoc||{})[a]));
+const plannedActs=()=>onActs().filter(a=>cnt(a)>0);
+/* The suggested activity: the first planned one. Workouts shows it as the first pill. */
 const suggestedAct=()=>plannedActs()[0]||"";
 const plannedTotal=()=>plannedActs().reduce((t,a)=>t+cnt(a),0);
 function setActivityDay(k,on){
@@ -974,8 +976,22 @@ function setActivityDay(k,on){
   const n=wk.adays.length, total=plannedTotal(), acts=plannedActs();
   if(!on&&total>n){ const pick=acts.filter(a=>cnt(a)>0).reduce((b,a)=>!b||cnt(a)>cnt(b)||(cnt(a)===cnt(b)&&b===wk.mainSport)?a:b,"");
     if(pick) wk[pick]=String(cnt(pick)-1); }
-  if(on&&total<n&&acts.length){ const pick=acts[0]; wk[pick]=String(cnt(pick)+1); }
+  const add=onActs();
+  if(on&&total<n&&add.length){ const pick=add[0]; wk[pick]=String(cnt(pick)+1); }
 }
+/* One more session a week, from Plan or after logging past the plan: the count goes up and a day is added
+   (days without a lift first). A one-off becomes a planned activity. */
+function addWeekly(a){
+  if((wk.adhoc||{})[a]){ const h={...wk.adhoc}; delete h[a]; wk.adhoc=h; }
+  if(!enabled(a)) wk.acts={...(wk.acts||{}),[a]:true};
+  if(!(wk.actOrder||[]).includes(a)) noteAct(a,true);
+  wk[a]=String(cnt(a)+1); fitActivityDays(); save();
+}
+/* The "add to your week" ask after an extra session: asked once per activity per week, whatever the answer. */
+const askedWeekly=a=>{ const x=wk.addAsked||{}; return x.week===wk.weekStart&&!!(x.ids||{})[a]; };
+function markAskedWeekly(a){ const x=wk.addAsked||{}, ids=x.week===wk.weekStart?{...(x.ids||{})}:{}; ids[a]=1; wk.addAsked={week:wk.weekStart,ids}; save(); }
+/* No more activity days than planned sessions: turning an activity off drops its days from the end of the week. */
+function trimActivityDays(){ const A=adaysOf(), n=Math.min(7,plannedTotal()); if(A.length>n) wk.adays=A.slice(0,n); }
 /* After onboarding: as many activity days as planned sessions (up to 7). Saved days stay; extra ones go
    from the end of the week; new ones go on days without a lift first, Monday onward. */
 function fitActivityDays(){
@@ -1405,4 +1421,4 @@ function dayComplete(dayId){
   return d.slots.every((_,i)=>!countsInDay(dayId,i,P)||rowDone(dayId,i,P));
 }
 
-export { noteAct, orderActs, suggestedAct, sessN, plannedActs, setActivityDay, fitActivityDays, timeByKind, hoursMoved, mostPlayed, seasonFrom, changeItems, watchItems, keepWeight, rowDone, countsInDay, swapWeek, wTitle, sessionKcal, liftKcal, refreshLiftK, LIFT_MET, weekActuals, swapOptions, swapDay, earlyDone, planOff, finishWeek, undoFinish, hasFinishSnap, rateLb, isBW, yogaMet, pilMet, YOGA_EFF, PIL_EFF, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, MUSCLES, slotMuscles, musclePriority, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk, weekModel, dayBoard, moveLiftToToday, dayKey, weekStartOf, weekRuleAt, setWeekStart, restPlan, beginRest, adjustRest, clearRest, restView, startingGuess, startWeight, showsSide, sideDefault, lastSide, offerNudge, dayComplete, e1rm, weekTops, liftTrends, recentPrs, weekCompleted, weekStreak, countWeek, weekActivities, weekReport, pendingWeekReport, dismissWeekReport };
+export { noteAct, orderActs, suggestedAct, trimActivityDays, addWeekly, askedWeekly, markAskedWeekly, sessN, plannedActs, setActivityDay, fitActivityDays, timeByKind, hoursMoved, mostPlayed, seasonFrom, changeItems, watchItems, keepWeight, rowDone, countsInDay, swapWeek, wTitle, sessionKcal, liftKcal, refreshLiftK, LIFT_MET, weekActuals, swapOptions, swapDay, earlyDone, planOff, finishWeek, undoFinish, hasFinishSnap, rateLb, isBW, yogaMet, pilMet, YOGA_EFF, PIL_EFF, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, MUSCLES, slotMuscles, musclePriority, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk, weekModel, dayBoard, moveLiftToToday, dayKey, weekStartOf, weekRuleAt, setWeekStart, restPlan, beginRest, adjustRest, clearRest, restView, startingGuess, startWeight, showsSide, sideDefault, lastSide, offerNudge, dayComplete, e1rm, weekTops, liftTrends, recentPrs, weekCompleted, weekStreak, countWeek, weekActivities, weekReport, pendingWeekReport, dismissWeekReport };

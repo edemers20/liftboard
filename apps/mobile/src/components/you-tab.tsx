@@ -458,7 +458,10 @@ export function SettingsScreen({ onReplay, startMetrics = false }: { onReplay: (
       const on = !api.wk.acts?.[id];
       api.wk.acts = { ...(api.wk.acts || {}), [id]: on };
       api.noteAct(id, on);
-      if (!on) api.wk[id] = "0";
+      if (!on) {
+        api.wk[id] = "0";
+        api.trimActivityDays();
+      }
       if (api.wk.adhoc?.[id]) {
         const adhoc = { ...api.wk.adhoc };
         delete adhoc[id];

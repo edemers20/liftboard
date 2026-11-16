@@ -66,6 +66,8 @@ export type PlanRead = {
   rows: PlanRow[];
   liftDays: number[];
   activityDays: number[];
+  /** On in Settings with 0 sessions a week: listed so a session can be added. */
+  addable: string[];
   liftingOn: boolean;
   showCycle: boolean;
   checkInLine: string;
@@ -631,6 +633,7 @@ export function readPlan(): PlanRead {
     planHeading: engine.earlyDone() ? copy.plan.nextWeeksPlan : copy.plan.thisWeeksPlan,
     liftDays: liftDayIndexes(),
     activityDays: activityDayIndexes(),
+    addable: activityIds().filter((id) => id !== "zone2" && !engine.wk.adhoc?.[id] && engine.cnt(id) === 0),
     liftingOn: !!engine.enabled("lift"),
     showCycle: !!engine.fem(),
     checkInLine: checkInLine(),

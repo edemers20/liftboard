@@ -21,12 +21,13 @@ import {
   isRecent,
   logActivity,
   logOther,
+  addAskId,
+  answerAddAsk,
   offsetForWeek,
   otherIds,
   saveSession,
   setSessionEffort,
   showReminder,
-  suggestedActivity,
   showRest,
   spinIntensity,
   stampOn,
@@ -603,12 +604,10 @@ function DayPage({
             onToggle={() => onToggleSession(session.t)}
           />
         ))}
+        {offset === 0 ? <AddWeeklyAsk /> : null}
         {showReminder(offset) ? (
           <View style={styles.reminder}>
             <Text style={styles.eyebrow}>{copy.workouts.activityDay}</Text>
-            {suggestedActivity() ? (
-              <Text style={styles.reminderText}>{copy.workouts.suggestedFirst(suggestedActivity())}</Text>
-            ) : null}
             <Text style={styles.reminderText}>{offset === 0 ? copy.workouts.logBelow : copy.workouts.usually}</Text>
           </View>
         ) : null}
@@ -623,6 +622,34 @@ function DayPage({
       {offset === 0 ? <FuelLink /> : null}
       <TabBarSpacer />
     </Reanimated.ScrollView>
+  );
+}
+
+/** After logging past the weekly sessions: offer to make it a weekly session. Small, inline, asked once a week. */
+function AddWeeklyAsk() {
+  "use no memo";
+  useEngineStore((state) => state.version);
+  const id = addAskId();
+  if (!id) return null;
+  return (
+    <View style={styles.reminder}>
+      <Text style={styles.reminderText}>{copy.workouts.addAsk(activityName(id))}</Text>
+      <View style={styles.askRow}>
+        <PressableScale
+          accessibilityRole="button"
+          onPress={() => {
+            haptic.selection();
+            answerAddAsk(id, true);
+          }}
+          style={styles.askYes}
+        >
+          <Text style={styles.askYesText}>{copy.workouts.addYes}</Text>
+        </PressableScale>
+        <PressableScale kind="text" accessibilityRole="button" onPress={() => answerAddAsk(id, false)} style={styles.askNo}>
+          <Text style={styles.askNoText}>{copy.workouts.addNo}</Text>
+        </PressableScale>
+      </View>
+    </View>
   );
 }
 
@@ -1253,7 +1280,7 @@ function ActivityChips({
       {otherOpen ? (
         <View style={styles.chips}>
           {others.map((id) => (
-            <LogChip key={id} id={id} onPress={() => onLog(id, true)} />
+            <LogChip key={id} id={id} onPress={() => onLog(id, !engine.enabled(id))} />
           ))}
         </View>
       ) : null}
@@ -1831,6 +1858,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
   },
+  askRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 8 },
+  askYes: {
+    minHeight: 40,
+    paddingHorizontal: 18,
+    borderRadius: theme.radii.pill,
+    backgroundColor: theme.pink.selectedFill,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  askYesText: { color: theme.text, fontFamily: theme.fonts.bodySemi, fontSize: 14 },
+  askNo: { minHeight: 40, paddingHorizontal: 12, justifyContent: "center" },
+  askNoText: { color: theme.muted, fontFamily: theme.fonts.bodySemi, fontSize: 14 },
   rest: {
     backgroundColor: theme.green.surface,
     borderRadius: theme.radii.card,
