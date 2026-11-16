@@ -1085,3 +1085,41 @@ describe("extra activity sessions", () => {
     expect(off).toBeGreaterThan(none);
   });
 });
+
+describe("activity order and the activity-day suggestion", () => {
+  const acts = { lift: true, pickle: true, tennis: true, yoga: true, spin: true };
+  it("main sport, then the second sport, then the rest in the fixed order for activities from before the order was saved", () => {
+    fresh({ acts, mainSport: "tennis", sport2: "pickle" });
+    expect(E.plannedActs()).toEqual(["tennis", "pickle", "yoga", "spin"]);
+    expect(E.suggestedAct()).toBe("tennis");
+  });
+  it("activities turned on in Settings follow in the order they were added, after older ones", () => {
+    fresh({ acts: { lift: true, yoga: true } });
+    E.wk.acts = { ...E.wk.acts, spin: true }; E.noteAct("spin", true);
+    E.wk.acts = { ...E.wk.acts, climb: true }; E.noteAct("climb", true);
+    expect(E.plannedActs()).toEqual(["yoga", "spin", "climb"]);
+    E.noteAct("spin", false); E.noteAct("spin", true);
+    expect(E.plannedActs()).toEqual(["yoga", "climb", "spin"]);
+    expect(E.suggestedAct()).toBe("yoga");
+  });
+  it("the suggestion skips one-offs and activities that are off", () => {
+    fresh({ acts: { lift: true, run: true, yoga: true, pickle: false }, adhoc: { run: true } });
+    expect(E.suggestedAct()).toBe("yoga");
+    fresh({ acts: { lift: true } });
+    expect(E.suggestedAct()).toBe("");
+  });
+  it("in season the season sports lead, main first, even if the second was added earlier", () => {
+    fresh({ acts, mainSport: "pickle", sport2: "tennis", season: "In-season", days: 2, actOrder: ["tennis", "spin", "pickle"] });
+    expect(E.inSeason()).toBe(true);
+    expect(E.plannedActs().slice(0, 2)).toEqual(["pickle", "tennis"]);
+    expect(E.suggestedAct()).toBe("pickle");
+  });
+  it("a deload week keeps the same order", () => {
+    const setup = { acts, mainSport: "pickle", sport2: "tennis", actOrder: ["spin"] };
+    fresh(setup);
+    const normal = E.plannedActs();
+    fresh({ ...setup, deload: "Yes" });
+    expect(E.plannedActs()).toEqual(normal);
+    expect(E.suggestedAct()).toBe("pickle");
+  });
+});

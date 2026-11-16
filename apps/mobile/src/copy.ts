@@ -346,6 +346,8 @@ export const copy = {
     minutesDone: "Minutes done",
     other: "Other",
     activityDay: "Activity day",
+    // TODO copy: the suggested activity on the activity-day card. Not in docs/COPY.md yet.
+    suggestedFirst: (name: string) => `${name} first`,
     logBelow: "Played or took a class? Log it below.",
     usually: "You usually play or take a class today.",
     rest: "Rest",

@@ -959,8 +959,14 @@ const LDEF={0:[],1:[0],2:[0,3],3:[0,2,4],4:[0,2,4,6],5:[0,1,3,4,6],6:[0,1,2,3,4,
    follow them: unchecking a day drops a session from the activity planned most often (the main sport
    last on a tie), and checking one adds a session to the main sport. */
 const adaysOf=()=>Array.isArray(wk.adays)?wk.adays.slice().sort((a,b)=>a-b):[];
-const plannedActs=()=>{ const lead=[wk.mainSport,wk.sport2].filter(a=>a&&enabled(a)&&!(wk.adhoc||{})[a]);
-  return [...new Set([...lead,...ACT_IDS.filter(a=>a!=="lift"&&enabled(a)&&!(wk.adhoc||{})[a])])]; };
+/* Activity order: the season sports (main, then second; the same in a deload week), then the rest in the order
+   they were turned on in Settings (wk.actOrder). Activities on before that was saved keep the fixed order, ahead of newer ones. */
+function noteAct(a,on){ const o=(wk.actOrder||[]).filter(x=>x!==a); wk.actOrder=on?o.concat([a]):o; }
+function orderActs(ids){ const lead=seasonSports(), rec=wk.actOrder||[], rank=a=>{ const i=lead.indexOf(a); if(i>=0) return i-10; return rec.indexOf(a); };
+  return ids.slice().sort((a,b)=>rank(a)-rank(b)||ACT_IDS.indexOf(a)-ACT_IDS.indexOf(b)); }
+const plannedActs=()=>orderActs(ACT_IDS.filter(a=>a!=="lift"&&enabled(a)&&!(wk.adhoc||{})[a]));
+/* The activity-day suggestion: the first activity in that order that is on in Settings (not a one-off). */
+const suggestedAct=()=>plannedActs()[0]||"";
 const plannedTotal=()=>plannedActs().reduce((t,a)=>t+cnt(a),0);
 function setActivityDay(k,on){
   const A=adaysOf(); if(A.includes(k)===on) return;
@@ -1399,4 +1405,4 @@ function dayComplete(dayId){
   return d.slots.every((_,i)=>!countsInDay(dayId,i,P)||rowDone(dayId,i,P));
 }
 
-export { sessN, plannedActs, setActivityDay, fitActivityDays, timeByKind, hoursMoved, mostPlayed, seasonFrom, changeItems, watchItems, keepWeight, rowDone, countsInDay, swapWeek, wTitle, sessionKcal, liftKcal, refreshLiftK, LIFT_MET, weekActuals, swapOptions, swapDay, earlyDone, planOff, finishWeek, undoFinish, hasFinishSnap, rateLb, isBW, yogaMet, pilMet, YOGA_EFF, PIL_EFF, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, MUSCLES, slotMuscles, musclePriority, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk, weekModel, dayBoard, moveLiftToToday, dayKey, weekStartOf, weekRuleAt, setWeekStart, restPlan, beginRest, adjustRest, clearRest, restView, startingGuess, startWeight, showsSide, sideDefault, lastSide, offerNudge, dayComplete, e1rm, weekTops, liftTrends, recentPrs, weekCompleted, weekStreak, countWeek, weekActivities, weekReport, pendingWeekReport, dismissWeekReport };
+export { noteAct, orderActs, suggestedAct, sessN, plannedActs, setActivityDay, fitActivityDays, timeByKind, hoursMoved, mostPlayed, seasonFrom, changeItems, watchItems, keepWeight, rowDone, countsInDay, swapWeek, wTitle, sessionKcal, liftKcal, refreshLiftK, LIFT_MET, weekActuals, swapOptions, swapDay, earlyDone, planOff, finishWeek, undoFinish, hasFinishSnap, rateLb, isBW, yogaMet, pilMet, YOGA_EFF, PIL_EFF, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, MUSCLES, slotMuscles, musclePriority, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk, weekModel, dayBoard, moveLiftToToday, dayKey, weekStartOf, weekRuleAt, setWeekStart, restPlan, beginRest, adjustRest, clearRest, restView, startingGuess, startWeight, showsSide, sideDefault, lastSide, offerNudge, dayComplete, e1rm, weekTops, liftTrends, recentPrs, weekCompleted, weekStreak, countWeek, weekActivities, weekReport, pendingWeekReport, dismissWeekReport };

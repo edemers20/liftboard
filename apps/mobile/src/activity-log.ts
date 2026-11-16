@@ -235,6 +235,12 @@ export function canLogDay(offset: number): boolean {
   return weekOffset(selected, today) === 0 && selected.getTime() <= today.getTime();
 }
 
+/** The first activity in suggestion order that is on in Settings, or "" when none is. */
+export function suggestedActivity(): string {
+  const id = engine.suggestedAct() as string;
+  return id ? activityName(id) : "";
+}
+
 /** How many activities you plan (not one-offs). */
 export function plannedActivityCount(): number {
   return (engine.plannedActs() as string[]).length;
@@ -261,8 +267,11 @@ function rampOn(): boolean {
   return engine.hasSport() && !engine.inSeason() && engine.wk.ramp === "Yes";
 }
 
+/** Planned activities in suggestion order, then one-offs. */
 export function chipIds(): string[] {
-  const ids = (engine.ACT_IDS as string[]).filter((id) => id !== "lift" && engine.enabled(id));
+  const on = (engine.ACT_IDS as string[]).filter((id) => id !== "lift" && engine.enabled(id));
+  const planned = engine.plannedActs() as string[];
+  const ids = [...planned, ...on.filter((id) => !planned.includes(id))];
   if (rampOn()) ids.push("zone2");
   return ids;
 }
