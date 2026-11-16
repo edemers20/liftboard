@@ -253,6 +253,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Played or took a class? Log it below. | main.js:334 |
 |  | You usually play or take a class today. | main.js:334 |
 |  | Activity day | main.js:334 |
+|  | Activity / Activities (one activity planned / more than one; Workouts activity-day card and Plan's planned activity rows, native) | Emma, Nov 16 |
 |  | {…} of {…} (web only; native chips show no count) | main.js:336 |
 |  | Other | main.js:336 |
 |  | Lift Board | main.js:339 |

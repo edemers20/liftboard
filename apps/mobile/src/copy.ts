@@ -1,5 +1,7 @@
 /** User-facing strings. Source of truth is docs/COPY.md. */
 export const copy = {
+  /** Planned activity sessions on Workouts and Plan, by how many activities are planned. Never a sport name or a count. */
+  plannedActivity: (activities: number) => (activities === 1 ? "Activity" : "Activities"),
   tabs: {
     workouts: "Workouts",
     plan: "Plan",
@@ -344,11 +346,6 @@ export const copy = {
     minutesDone: "Minutes done",
     other: "Other",
     activityDay: "Activity day",
-    // TODO copy: activity-day prompt naming the planned activities, from Emma's example "Pickleball or yoga". Not in docs/COPY.md yet.
-    plannedActivities: (names: string[]) => {
-      const words = names.map((name, index) => (index === 0 ? name : name.toLowerCase()));
-      return words.length > 1 ? `${words.slice(0, -1).join(", ")} or ${words[words.length - 1]}` : words[0] ?? "";
-    },
     logBelow: "Played or took a class? Log it below.",
     usually: "You usually play or take a class today.",
     rest: "Rest",

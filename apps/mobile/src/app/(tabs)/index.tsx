@@ -26,7 +26,7 @@ import {
   saveSession,
   setSessionEffort,
   showReminder,
-  plannedActivityNames,
+  plannedActivityCount,
   showRest,
   spinIntensity,
   stampOn,
@@ -606,8 +606,8 @@ function DayPage({
         {showReminder(offset) ? (
           <View style={styles.reminder}>
             <Text style={styles.eyebrow}>{copy.workouts.activityDay}</Text>
-            {plannedActivityNames().length ? (
-              <Text style={styles.reminderTitle}>{copy.workouts.plannedActivities(plannedActivityNames())}</Text>
+            {plannedActivityCount() ? (
+              <Text style={styles.reminderTitle}>{copy.plannedActivity(plannedActivityCount())}</Text>
             ) : null}
             <Text style={styles.reminderText}>{offset === 0 ? copy.workouts.logBelow : copy.workouts.usually}</Text>
           </View>

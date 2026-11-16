@@ -235,9 +235,9 @@ export function canLogDay(offset: number): boolean {
   return weekOffset(selected, today) === 0 && selected.getTime() <= today.getTime();
 }
 
-/** Activities you plan (not one-offs), main sport first, for the activity-day prompt. */
-export function plannedActivityNames(): string[] {
-  return (engine.plannedActs() as string[]).map((id) => activityName(id));
+/** How many activities you plan (not one-offs). */
+export function plannedActivityCount(): number {
+  return (engine.plannedActs() as string[]).length;
 }
 
 export function showReminder(offset: number): boolean {
