@@ -1051,3 +1051,37 @@ describe("usual activity days are the saved plan", () => {
     expect(E.wk.adays).toEqual([1, 3]);
   });
 });
+
+describe("extra activity sessions", () => {
+  const base = { days: 3, acts: { lift: true, pickle: true }, pickle: "1", adays: [1] };
+  it("an extra session on a past, unplanned day is saved on that date, shows in the week and leaves the count alone", () => {
+    fresh(base);
+    const M = E.weekModel(0);
+    const t = M.dates[0] + 12 * 3600e3;
+    E.logAct("pAct", 0, "75", Date.now());
+    E.logAct("pAct", 1, "60", t);
+    expect(E.cnt("pickle")).toBe(1);
+    expect(E.wk.adays).toEqual([1]);
+    const saved = E.wk.sessions.find(s => s.t === t);
+    expect(saved).toMatchObject({ k: "pickle", min: 60 });
+    expect(E.weekModel(0).byDay[0].some(s => s.k === "pickle" && s.t === t)).toBe(true);
+    expect(E.sessN("pickle")).toBe(2);
+  });
+  it("counts toward the week's fuel", () => {
+    const one = fresh({ ...base, pAct: ["75"] }).math.intake;
+    const two = fresh({ ...base, pAct: ["75", "75"] }).math.intake;
+    expect(two).toBeGreaterThan(one);
+  });
+  it("a deleted extra session counts nothing", () => {
+    const kept = fresh({ ...base, pAct: ["75", "75"] }).math.intake;
+    const gap = fresh({ ...base, pAct: ["75", "", "75"] }).math.intake;
+    expect(gap).toBe(kept);
+  });
+  it("still counts after the activity is turned off", () => {
+    const on = fresh({ days: 3, acts: { lift: true, pickle: true }, pickle: "0", pAct: ["75"] }).math.intake;
+    const off = fresh({ days: 3, acts: { lift: true, pickle: false }, pickle: "0", pAct: ["75"] }).math.intake;
+    const none = fresh({ days: 3, acts: { lift: true, pickle: false }, pickle: "0" }).math.intake;
+    expect(off).toBe(on);
+    expect(off).toBeGreaterThan(none);
+  });
+});

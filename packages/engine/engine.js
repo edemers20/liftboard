@@ -68,8 +68,8 @@ function slotEffort(id,i){
   return effortMul(s&&s.eff);
 }
 function sportKcal(a){
-  const n=sessN(a), slots=wk[actKey(a)]||[], rate=perMin(ACT[a].met);
-  let k=0; for(let i=0;i<n;i++) k+=num(slots[i],plannedMin(a))*rate*slotEffort(a,i); return k;
+  const n=sessN(a), rate=perMin(ACT[a].met);
+  let k=0; for(let i=0;i<n;i++) k+=slotMin(a,i,plannedMin(a))*rate*slotEffort(a,i); return k;
 }
 
 /* ---------- Day templates (slot order is storage order; append only) ---------- */
@@ -192,9 +192,12 @@ const enabled=a=>!!(wk.acts||{})[a];
 /** Pace is stored as % of body weight a week (ratePct); lb/week follows current weight. Old saves keep wk.rate in lb. */
 const rateLb=()=>{ const p=String(wk.ratePct??"").trim(); return p!==""&&!isNaN(+p)?Math.round(+p/100*num(wk.weight,150)*100)/100:num(wk.rate,0.5); };
 const cnt=a=>enabled(a)?(parseInt(wk[a])||0):0;
-/* Sessions this week: the saved count, or more when more were logged. Logging never changes the saved count. */
+/* Sessions this week: the saved count, or more when more were logged (also after the activity is turned off).
+   Logging never changes the saved count. */
 const filledN=a=>{ let u=0; (wk[actKey(a)]||[]).forEach((v,i)=>{ if(String(v??"").trim()!=="") u=i+1; }); return u; };
-const sessN=a=>enabled(a)?Math.max(cnt(a),filledN(a)):0;
+const sessN=a=>Math.max(cnt(a),filledN(a));
+/* A slot's minutes. A planned session not logged yet counts as planned; past the plan only logged sessions count. */
+const slotMin=(a,i,pl)=>{ const v=(wk[actKey(a)]||[])[i]; return i<cnt(a)?num(v,pl):num(v,0); };
 const hasSport=()=>!!wk.mainSport&&enabled(wk.mainSport);
 /* up to two sports drive the season: the primary (mainSport) and an optional second */
 const seasonSports=()=>[wk.mainSport,wk.sport2].filter((a,i,arr)=>a&&enabled(a)&&arr.indexOf(a)===i);
@@ -415,7 +418,7 @@ function musclePriority(){
   if(wk.focus==="Lower"){ LOWER_M.forEach(m=>bump(m,m==="calves"?1:2,"lower body focus")); }
   if(wk.focus==="Upper"){ UPPER_M.forEach(m=>bump(m,m==="biceps"||m==="triceps"?1:2,"upper body focus")); }
   if(wk.mode==="Build"){ (wk.focus==="Upper"?UPPER_M:wk.focus==="Lower"?LOWER_M:[]).forEach(m=>bump(m,1)); }
-  const active=SPORTS.filter(a=>enabled(a)&&(cnt(a)>0||seasonSports().includes(a)));
+  const active=SPORTS.filter(a=>(enabled(a)||sessN(a)>0)&&(sessN(a)>0||seasonSports().includes(a)));
   active.forEach(a=>{ const A=ACT[a], nm=A.name.toLowerCase();
     if(A.sh){ bump("rdelts",2,nm); bump("cuff",2,nm); bump("core",1,nm); }
     if(A.leg>=1){ bump("adductors",1,nm); bump("calves",1,nm); }
@@ -434,13 +437,13 @@ function plan(){ buildDefaults(); const cut=cutting();
   const recomp=wk.mode==="Recomp", build=wk.mode==="Build", maintain=wk.mode==="Maintain", focus=wk.focus;
   /* sport load */
   let legMin=0, shMin=0, sportTot=0; const sportOn=[];
-  SPORTS.forEach(a=>{ if(ACT[a].noMin) return; const n=sessN(a); let m=0; for(let i=0;i<n;i++) m+=num((wk[actKey(a)]||[])[i],plannedMin(a));
+  SPORTS.forEach(a=>{ if(ACT[a].noMin) return; const n=sessN(a); let m=0; for(let i=0;i<n;i++) m+=slotMin(a,i,plannedMin(a));
     if(m){ sportOn.push([a,m]); sportTot+=m; legMin+=m*ACT[a].leg; shMin+=m*(ACT[a].sh||0); } });
   const sportWhy=sportOn.length===1?`${sportOn[0][1]} min ${ACT[sportOn[0][0]].name.toLowerCase()}`:`${sportTot} min of sport`;
   const cl=sessN("climb"), sp=sessN("spin"), yg=sessN("yoga");
   const hardSpin=sp>=2||(sp>=1&&wk.spint==="Really hard");
   /* how many sessions of anything this week: lift days + every activity + the ramp session */
-  const actN=ACT_IDS.filter(a=>a!=="lift"&&enabled(a)).map(a=>[a,sessN(a)]).filter(x=>x[1]>0);
+  const actN=ACT_IDS.filter(a=>a!=="lift").map(a=>[a,sessN(a)]).filter(x=>x[1]>0);
   const sessions=DAYS.length+actN.reduce((t,x)=>t+x[1],0)+((hasSport()&&!inSeason()&&wk.ramp==="Yes")?1:0);
   P.sessions=sessions;
   /* recovery load */
@@ -555,12 +558,12 @@ function plan(){ buildDefaults(); const cut=cutting();
   const wLb=num(wk.weight,150), recompCap=Math.round(wLb*0.007*100)/100;
   const rateEff=(build||maintain)?0:recomp?Math.min(rateLb(),recompCap):rateLb(), shareEff=recomp?Math.min(num(wk.share,25),25):num(wk.share,25);
   const target=rateEff*3500, cardioTarget=(build||maintain)?0:target*shareEff/100;
-  const sess=(n,act,pl,rate)=>{let k=0;for(let i=0;i<n;i++)k+=num((act||[])[i],pl)*rate;return k;};
+  const sess=(a,pl,rate)=>{let k=0;for(let i=0;i<sessN(a);i++)k+=slotMin(a,i,pl)*rate;return k;};
   let sportK=0; sportOn.forEach(([a])=>{ sportK+=sportKcal(a); });
-  const climbRate=perMin(ACT.climb.met); let climbK=0; for(let i=0;i<cl;i++) climbK+=75*climbRate*slotEffort("climb",i);
-  const pilK=sess(sessN("pilates"),wk[actKey("pilates")],plannedMin("pilates"),perMin(pilMet()));
-  const yogaK=sess(yg,wk.yAct,num(wk.ymin,60),perMin(yogaMet()));
-  const spinK=sess(sp,wk.sAct,SPIN_MIN,perMin(SPIN_MET[wk.spint]||8.5));
+  const climbRate=perMin(ACT.climb.met); let climbK=0; for(let i=0;i<cl;i++) if(i<cnt("climb")||slotMin("climb",i,0)>0) climbK+=75*climbRate*slotEffort("climb",i);
+  const pilK=sess("pilates",plannedMin("pilates"),perMin(pilMet()));
+  const yogaK=sess("yoga",num(wk.ymin,60),perMin(yogaMet()));
+  const spinK=sess("spin",SPIN_MIN,perMin(SPIN_MET[wk.spint]||8.5));
   const zoneK=ramp?num((wk.zAct||[])[0],45)*perMin(CARDIO["Bike (steady)"].met)*slotEffort("zone2",0):0;
   let doneK=0; const cand=[];
   DAYS.forEach(d=>{ d.slots.forEach((s,i)=>{ const A=P.days[d.id].slots[i]; if(!s.cardio) return;
@@ -873,7 +876,7 @@ function resyncDone(dayId){
 function newWeek(start){
   const P=plan(), done=wk.done||{};
   const missed=DAYS.filter(d=>!done[d.id]);
-  let sm=0; SPORTS.forEach(a=>{ if(ACT[a].noMin) return; for(let i=0;i<sessN(a);i++) sm+=num((wk[actKey(a)]||[])[i],plannedMin(a)); });
+  let sm=0; SPORTS.forEach(a=>{ if(ACT[a].noMin) return; for(let i=0;i<sessN(a);i++) sm+=slotMin(a,i,plannedMin(a)); });
   const w=num(wk.wAvg,0)||null;
   const closed=wk.weekStart||Date.now();
   const nextDay=missed.length&&missed.length<DAYS.length?missed[0]:(DAYS[0]||null);
