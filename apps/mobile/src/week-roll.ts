@@ -9,5 +9,8 @@ export function rollWeekIfDue(): boolean {
 /** New day while the app is open: roll the week if it's due, and redraw every screen for the new date. */
 export function onNewDay() {
   rollWeekIfDue();
-  useEngineStore.setState((state) => ({ version: state.version + 1 }));
+  // After midnight the store bump redraws every tab; defer so we never paint during another update.
+  queueMicrotask(() => {
+    useEngineStore.setState((state) => ({ version: state.version + 1 }));
+  });
 }
