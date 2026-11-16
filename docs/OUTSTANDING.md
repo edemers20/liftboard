@@ -42,6 +42,7 @@ These exist in code but haven't been confirmed working. Go through them with Emm
 - The rest timer reads Done at zero and stops.
 - "Added (Main Glute)" and "Day 4: Push" have no bullets.
 - You can swipe to delete a set and an exercise, and Undo works.
+  - Fixed Nov 16: Start workout crashed the dev app ("GestureDetector must be used as a descendant of GestureHandlerRootView"). The root layout now wraps the app in `GestureHandlerRootView`; JS only, no native rebuild. A release build would not crash, but swipe would not work.
 - Marking Rough mid-workout keeps finished exercises and their sets.
 - Opening a second workout from Plan doesn't make it live. The live pill goes away when the workout ends, and long-press offers End workout.
 - The rest bar appears without a stutter, with its text centred in the glass.

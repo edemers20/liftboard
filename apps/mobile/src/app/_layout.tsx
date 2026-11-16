@@ -11,6 +11,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState, type ReactNode } from "react";
 import { AppState, Platform, View } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SharedTransitionBoundary } from "react-native-reanimated";
 
 import { LaunchSplash, claimLaunchSplash } from "@/components/launch-splash";
@@ -84,7 +85,7 @@ export default function RootLayout() {
 
   return (
     <LiveWorkoutState live={live}>
-    <View style={{ flex: 1, backgroundColor: theme.orange.background }}>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: theme.orange.background }}>
       <StatusBar style="light" />
       {appReady ? (
         <>
@@ -149,7 +150,7 @@ export default function RootLayout() {
         </>
       ) : null}
       {showSplash ? <LaunchSplash appReady={appReady} onDone={() => setShowSplash(false)} /> : null}
-    </View>
+    </GestureHandlerRootView>
     </LiveWorkoutState>
   );
 }
