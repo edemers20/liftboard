@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PressableScale } from "@/components/pressable-scale";
-import { AccessibilityInfo, StyleSheet, type LayoutChangeEvent } from "react-native";
+import { AccessibilityInfo, Platform, StyleSheet, type LayoutChangeEvent } from "react-native";
 import Animated, {
   Easing,
   runOnJS,
@@ -52,6 +52,12 @@ const splashWaiters: Array<() => void> = [];
 
 /** True once per JS cold start. Backgrounding does not arm it again. */
 export function claimLaunchSplash() {
+  // Animated SVG plates pass translateY as a DOM prop on web and crash the splash,
+  // which can leave a full-screen press layer over onboarding. Skip the splash on web.
+  if (Platform.OS === "web") {
+    launchSplashArmed = false;
+    return false;
+  }
   const show = launchSplashArmed;
   launchSplashArmed = false;
   if (show) splashShowing = true;
