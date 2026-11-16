@@ -2,6 +2,8 @@ export const theme = {
   text: "#edeae8",
   muted: "#a8a09c",
   fuel: "#fea06a",
+  /** Personal records: the week card's PRs tile, on screen and in the shared image. */
+  record: "#b79cf0",
   green: {
     background: "#131615",
     surface: "#1d2220",

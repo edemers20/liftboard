@@ -1022,7 +1022,7 @@ export const copy = {
     label: "Weekly report",
     goingUp: "Going up next week",
     records: "Personal Records",
-    activityTile: "Activity minutes",
+    activityTile: "Activity",
     exerciseCalories: "Exercise calories",
     was: "was {…}",
     activity: (name: string, n: number) => `${name} × ${n}`,

@@ -24,11 +24,11 @@ const PR_CARD = "#2a211c";
 const LINE = "#2f2a27";
 const INK = "#2a1a12";
 const SECONDARY = "#2f2a27";
-/** Week card tiles: the accent is the tile, the text is dark. PRs yellow is a proposal. */
+/** Week card tiles, on screen and in the shared image: the accent is the tile, the text is dark. */
 const TILE_LIFTS = theme.green.accent;
 const TILE_ACTIVITY = theme.pink.accent;
 const TILE_KCAL = theme.fuel;
-const TILE_PRS = SHORT;
+const TILE_PRS = theme.record;
 
 type Muscle = { name: string; done: number; planned: number };
 type PR = { n: string; kind: "top" | "reps"; w: number; r: number; wasW: number | null; wasR: number | null };
@@ -105,32 +105,51 @@ function CountValue({
   );
 }
 
+/** The shared image, in the workout share card's style. 1080 wide; the height follows the content. */
 function ReportShare({ report }: { report: Report }) {
-  const range = rangeLabel(report.start);
+  const tiles = [
+    { label: copy.you.lifts, value: String(report.lifts), unit: ` / ${report.planned}`, color: TILE_LIFTS },
+    { label: copy.workout.sharePrs, value: String(report.prs.length), unit: "", color: TILE_PRS },
+    { label: copy.report.activityTile, value: report.sport.toLocaleString("en-US"), unit: ` ${copy.you.min}`, color: TILE_ACTIVITY },
+    { label: copy.report.exerciseCalories, value: report.burn.toLocaleString("en-US"), unit: ` ${copy.report.kcal}`, color: TILE_KCAL },
+  ];
   return (
     <View style={styles.shareCard}>
       <Text style={styles.shareBrand}>{copy.workout.liftBoard}</Text>
-      <Text style={styles.shareTitle}>{range}</Text>
-      <Text style={styles.shareLine}>
-        {report.completed ? copy.workouts.completed : copy.history.liftsOf(report.lifts, report.planned)}
-      </Text>
-      <Text style={styles.shareStat}>
-        {copy.you.lifts} {report.lifts}/{report.planned}
-      </Text>
-      <Text style={styles.shareStat}>
-        {copy.workout.sharePrs} {report.prs.length}
-      </Text>
-      <Text style={styles.shareStat}>
-        {copy.report.activityTile} {report.sport} {copy.you.min}
-      </Text>
-      <Text style={styles.shareStat}>
-        {copy.report.exerciseCalories} {report.burn.toLocaleString("en-US")} {copy.report.kcal}
-      </Text>
-      {report.ups.map((row) => (
-        <Text key={row.n} style={styles.shareStat}>
-          {row.n} {setLine(row.n, row.fromW, row.fromR)} → {setLine(row.n, row.toW, row.toR)}
-        </Text>
-      ))}
+      <Text style={styles.shareTitle}>{rangeLabel(report.start)}</Text>
+      <View style={styles.shareTiles}>
+        {tiles.map((tile) => (
+          <View key={tile.label} style={[styles.shareTile, { backgroundColor: tile.color }]}>
+            <Text style={styles.shareTileLabel}>{tile.label}</Text>
+            <Text style={styles.shareTileValue}>
+              {tile.value}
+              {tile.unit ? <Text style={styles.shareTileUnit}>{tile.unit}</Text> : null}
+            </Text>
+          </View>
+        ))}
+      </View>
+      {report.prs.length ? (
+        <View style={styles.shareSection}>
+          <Text style={styles.shareSectionTitle}>{copy.report.records}</Text>
+          {report.prs.map((row) => (
+            <View key={row.n} style={styles.shareRow}>
+              <Text numberOfLines={1} style={styles.shareRowName}>{row.n}</Text>
+              <Text style={styles.shareRowValue}>{setLine(row.n, row.w, row.r)}</Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
+      {report.ups.length ? (
+        <View style={styles.shareSection}>
+          <Text style={styles.shareSectionTitle}>{copy.report.goingUp}</Text>
+          {report.ups.map((row) => (
+            <View key={row.n} style={styles.shareRow}>
+              <Text numberOfLines={1} style={styles.shareRowName}>{row.n}</Text>
+              <Text style={[styles.shareRowValue, styles.shareUp]}>{setLine(row.n, row.toW, row.toR)}</Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -457,9 +476,18 @@ const styles = StyleSheet.create({
   nextButtonText: { color: INK, fontFamily: theme.fonts.bodySemi, fontSize: 15 },
   busy: { opacity: 0.5 },
   offscreen: { position: "absolute", left: -4000, top: 0 },
-  shareCard: { width: 1080, backgroundColor: theme.orange.background, padding: 72, gap: 16 },
-  shareBrand: { color: theme.orange.accent, fontFamily: theme.fonts.display, fontSize: 44 },
-  shareTitle: { color: theme.text, fontFamily: theme.fonts.display, fontSize: 88, textTransform: "uppercase" },
-  shareLine: { color: theme.muted, fontFamily: theme.fonts.body, fontSize: 36 },
-  shareStat: { color: theme.text, fontFamily: theme.fonts.monoMedium, fontSize: 40 },
+  shareCard: { width: 1080, backgroundColor: theme.orange.background, padding: 72, paddingBottom: 80, gap: 36 },
+  shareBrand: { color: theme.green.accent, fontFamily: theme.fonts.display, fontSize: 44 },
+  shareTitle: { color: theme.text, fontFamily: theme.fonts.display, fontSize: 104, lineHeight: 108, textTransform: "uppercase" },
+  shareTiles: { flexDirection: "row", flexWrap: "wrap", gap: 24 },
+  shareTile: { width: (1080 - 72 * 2 - 24) / 2, borderRadius: 28, paddingHorizontal: 32, paddingVertical: 28, gap: 8 },
+  shareTileLabel: { color: INK, opacity: 0.75, fontFamily: theme.fonts.bodySemi, fontSize: 28 },
+  shareTileValue: { color: INK, fontFamily: theme.fonts.monoMedium, fontSize: 72 },
+  shareTileUnit: { fontFamily: theme.fonts.mono, fontSize: 32 },
+  shareSection: { backgroundColor: "rgba(255,255,255,0.06)", borderRadius: 28, paddingHorizontal: 36, paddingVertical: 32, gap: 20 },
+  shareSectionTitle: { color: theme.text, fontFamily: theme.fonts.bodySemi, fontSize: 34 },
+  shareRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 24 },
+  shareRowName: { flex: 1, color: theme.text, fontFamily: theme.fonts.bodyMedium, fontSize: 34 },
+  shareRowValue: { color: theme.text, fontFamily: theme.fonts.monoMedium, fontSize: 36 },
+  shareUp: { color: theme.fuel },
 });

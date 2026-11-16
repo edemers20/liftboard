@@ -958,7 +958,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Weekly report | Week done sheet. |
 |  | Going up next week | Week done sheet. |
 |  | Personal Records | Week done sheet. |
-|  | Activity minutes | Week done sheet. |
+|  | Activity (was "Activity minutes"; Emma, Nov 16) | Week done sheet and its shared image. |
 |  | Exercise calories | Week done sheet. |
 |  | Top set | Week done sheet. Same words as History, Lifts. |
 |  | Reps | Week done sheet. Same words as History, Lifts. |
