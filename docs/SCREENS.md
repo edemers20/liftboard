@@ -96,7 +96,7 @@ Calendar · Weeks · Lifts switch (slides between them).
 [`docs/design/Proto_Profile.dc.html`, `Proto_ProfileNew.dc.html`, `Proto_Settings.dc.html`; full spec in `docs/HANDOFF-nov-13-features.md` section 19]
 - **You:** a profile of what you've done: avatar, name, activities; the streak card; Lifts, Activities and Hours moved; Strongest lift; Personal Records; Most played this season; Milestones. A gear at the top right opens Settings. No body stats.
 - **First week:** each empty spot says what fills it, plus "Finish setting up" for what setup skipped.
-- **Settings:** Body (with Edit metrics), Training, Activities, App, Help (FAQ), Your data. Goal, pace and focus live on Plan → Season; lift days and session length on Plan → Week.
+- **Settings:** Body (with Edit metrics), Training, Activities, App, Help (FAQ), Your data. Activities shows "Sports in season" (None, the sports, yoga and pilates; up to two, with a primary), then the other activities you do and Add activity. No sessions-per-week counts here. Goal, pace and focus live on Plan → Season; lift days and session length on Plan → Week.
 
 ---
 

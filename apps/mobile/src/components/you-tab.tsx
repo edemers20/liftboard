@@ -9,7 +9,6 @@ import { applyBackup, parseBackup, type LiftBackup } from "@/backup";
 import { playChime } from "@/chime";
 import { LiveWorkoutBar } from "@/components/live-workout";
 import { SheetFrame } from "@/components/motion";
-import { InfoTip, type TipSection } from "@/components/tip-popover";
 import { ageDial, bodyFatDial, DialValue, heightDial, stepsDial, weightDial, type DialSpec } from "@/components/number-dial";
 import { copy, fill } from "@/copy";
 import { haptic } from "@/haptic";
@@ -22,7 +21,6 @@ import { theme } from "@/theme";
 import { fromDisplay, toDisplay } from "@/units";
 const SESSION_MINUTES = [30, 45, 60, 75] as const;
 const LEVELS = ["new", "some", "years"] as const;
-const FOCUS = ["Lower", "Balanced", "Upper"] as const;
 const SEX = ["Female", "Male", "Other"] as const;
 
 type Draft = {
@@ -292,9 +290,9 @@ function readBackupFile(): Promise<string | null> {
 
 /** Settings, opened from the gear on You. Body edits stay in a draft until saved. */
 export function SettingsScreen({ onReplay, startMetrics = false }: { onReplay: () => void; startMetrics?: boolean }) {
+  "use no memo";
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  "use no memo";
   useEngineStore((state) => state.version);
   const call = useEngineStore((state) => state.call);
   const [editing, setEditing] = useState(startMetrics);
@@ -361,28 +359,29 @@ export function SettingsScreen({ onReplay, startMetrics = false }: { onReplay: (
     setEditing(false);
   }
 
-  function pickSport(id: string) {
-    let main = form.mainSport || "";
-    let second = form.sport2 || "";
-    if (!id) {
-      main = "";
-      second = "";
-    } else if (id === main) {
-      main = second;
-      second = "";
-    } else if (id === second) {
-      second = main;
-      main = id;
-    } else if (!main) main = id;
-    else second = id;
-    const fixed = { acts: form.acts, mainSport: main, sport2: second, season: form.season };
-    engine.fixSports(fixed);
-    stage({ mainSport: fixed.mainSport, sport2: fixed.sport2, season: fixed.season });
+  function saveSport(id: string) {
     call((api) => {
-      api.wk.mainSport = fixed.mainSport;
-      api.wk.sport2 = fixed.sport2;
-      api.wk.season = fixed.season;
+      const mains = new Set([...(api.SPORTS as string[]), "yoga", "pilates"]);
+      let main = api.wk.mainSport || "";
+      let second = api.wk.sport2 || "";
+      if (!id) {
+        main = "";
+        second = "";
+      } else if (mains.has(id)) {
+        if (id === second) {
+          second = main;
+          main = id;
+        } else if (id !== main) {
+          if (!main) main = id;
+          else second = id;
+        }
+        api.wk.acts = { ...(api.wk.acts || {}), [id]: true };
+        if (api.wk[id] == null || api.wk[id] === "") api.wk[id] = 0;
+      }
+      api.wk.mainSport = main;
+      api.wk.sport2 = second;
       api.fixSports(api.wk);
+      api.syncDays();
       api.save();
     });
   }
@@ -449,8 +448,13 @@ export function SettingsScreen({ onReplay, startMetrics = false }: { onReplay: (
   const week = engine.wk;
   const [adding, setAdding] = useState(false);
   const [showAllFaq, setShowAllFaq] = useState(false);
-  const enabledActs = (engine.ACT_IDS as string[]).filter((id) => id !== "lift" && engine.enabled(id));
-  const activityChoices = (engine.ACT_IDS as string[]).filter((id) => id !== "lift");
+  const mainActs = ([...(engine.SPORTS as string[]), "yoga", "pilates"] as string[]).filter(
+    (id, index, all) => all.indexOf(id) === index,
+  );
+  const otherChoices = (engine.ACT_IDS as string[]).filter((id) => id !== "lift" && !mainActs.includes(id));
+  const shownOthers = adding ? otherChoices : otherChoices.filter((id) => engine.enabled(id));
+  const mainNow = String(week.mainSport || "");
+  const secondNow = String(week.sport2 || "");
   const planFaq = copy.faq.findIndex(([question]) => question.startsWith("How is my plan"));
   const fuelFaq = copy.faq.findIndex(([question]) => question.startsWith("How is fuel"));
 
@@ -514,15 +518,10 @@ export function SettingsScreen({ onReplay, startMetrics = false }: { onReplay: (
         <View style={styles.panel}>
           <Text accessibilityRole="header" style={styles.eyebrow}>{copy.you.body}</Text>
           {editing ? (
-            <ProfileForm
-              bodyOnly
+            <BodyForm
               form={form}
               kgMode={kgMode}
               onStage={stage}
-              onSport={pickSport}
-              sports={[...(engine.SPORTS as string[]), "yoga", "pilates"].filter(
-                (id, index, all) => all.indexOf(id) === index && engine.enabled(id),
-              )}
             />
           ) : (
             <View style={styles.metrics}>
@@ -573,17 +572,34 @@ export function SettingsScreen({ onReplay, startMetrics = false }: { onReplay: (
 
         <View style={styles.panel}>
           <Text accessibilityRole="header" style={styles.eyebrow}>{copy.you.activities}</Text>
+          <Text style={styles.sportsLabel}>
+            <Text style={styles.fieldTitle}>{copy.you.sportsInSeason}</Text>
+            <Text style={styles.rowHint}>{copy.you.sportsHint}</Text>
+          </Text>
           <View style={styles.pills}>
-            {(adding ? activityChoices : enabledActs).map((id) => (
-              <PressableScale
+            <Pill label={copy.you.none} selected={!mainNow} tone="pink" onPress={() => saveSport("")} />
+            {mainActs.map((id) => {
+              const picked = mainNow === id || secondNow === id;
+              const primary = mainNow === id && !!secondNow;
+              return (
+                <Pill
+                  key={id}
+                  label={activityName(id)}
+                  badge={primary ? copy.you.primary : undefined}
+                  selected={picked}
+                  tone="pink"
+                  onPress={() => saveSport(id)}
+                />
+              );
+            })}
+            {shownOthers.map((id) => (
+              <Pill
                 key={id}
-                accessibilityRole="button"
-                accessibilityState={{ selected: !!engine.enabled(id) }}
+                label={activityName(id)}
+                selected={engine.enabled(id)}
+                tone="pink"
                 onPress={() => toggleActivity(id)}
-                style={[styles.actPill, engine.enabled(id) ? styles.actPillOn : styles.actPillOff]}
-              >
-                <Text style={[styles.actPillText, engine.enabled(id) ? styles.actPillTextOn : styles.actPillTextOff]}>{activityName(id)}</Text>
-              </PressableScale>
+              />
             ))}
             <PressableScale
               accessibilityRole="button"
@@ -824,23 +840,6 @@ function Stat({ value, label }: { value: string; label: string }) {
   );
 }
 
-function Heading({ title, sections }: { title: string; sections: readonly TipSection[] }) {
-  return (
-    <View style={styles.heading}>
-      <Text accessibilityRole="header" style={styles.eyebrow}>
-        {title}
-      </Text>
-      <InfoTip
-        sections={sections}
-        label={copy.you.whatTheseDo}
-        color="#d4cfcc"
-        activeColor={theme.orange.accent}
-        style={styles.infoButton}
-      />
-    </View>
-  );
-}
-
 function ExperienceSlider({ value, onChange }: { value: string; onChange: (level: string) => void }) {
   return (
     <View accessibilityRole="radiogroup" accessibilityLabel={copy.you.experience} style={styles.slider}>
@@ -962,23 +961,8 @@ function TestSoundButton() {
   );
 }
 
-function ProfileForm({
-  form,
-  kgMode,
-  onStage,
-  onSport,
-  sports,
-  bodyOnly,
-}: {
-  form: Source;
-  kgMode: boolean;
-  onStage: (partial: Draft) => void;
-  onSport: (id: string) => void;
-  sports: string[];
-  bodyOnly?: boolean;
-}) {
-  if (bodyOnly) {
-    return (
+function BodyForm({ form, kgMode, onStage }: { form: Source; kgMode: boolean; onStage: (partial: Draft) => void }) {
+  return (
       <View style={styles.form}>
         <Text style={styles.fieldTitle}>{copy.you.sex}</Text>
         <View accessibilityRole="radiogroup" accessibilityLabel={copy.you.sex} style={styles.pills}>
@@ -1017,143 +1001,6 @@ function ProfileForm({
           />
         </View>
       </View>
-    );
-  }
-  const activityInfo: TipSection[] = [
-    { label: copy.you.activities, body: copy.info.activities },
-    { label: copy.you.mainSport, body: copy.info.mainSport },
-  ];
-  if (form.mainSport && form.acts[form.mainSport]) {
-    activityInfo.push({ label: copy.you.season, body: copy.info.season });
-  }
-
-  return (
-    <View style={styles.form}>
-      <View style={styles.group}>
-        <Heading title={copy.you.activities} sections={activityInfo} />
-        <View style={styles.pills}>
-          {(engine.ACT_IDS as string[]).map((id) => (
-            <Pill
-              key={id}
-              label={activityName(id)}
-              selected={!!form.acts[id]}
-              tone="pink"
-              onPress={() => onStage({ acts: { ...form.acts, [id]: !form.acts[id] } })}
-            />
-          ))}
-        </View>
-      </View>
-      {sports.length ? (
-        <>
-        <View style={styles.groupRule} />
-        <View style={styles.group}>
-          <Text style={styles.sportsLabel}>
-            <Text style={styles.fieldTitle}>{copy.you.sportsInSeason}</Text>
-            <Text style={styles.rowHint}>{copy.you.sportsHint}</Text>
-          </Text>
-          <View style={styles.pills}>
-            <Pill label={copy.you.none} selected={!form.mainSport} tone="pink" onPress={() => onSport("")} />
-            {sports.map((id) => {
-              const primary = form.mainSport === id && !!form.sport2;
-              return (
-                <Pill
-                  key={id}
-                  label={activityName(id)}
-                  badge={primary ? copy.you.primary : undefined}
-                  selected={form.mainSport === id || form.sport2 === id}
-                  tone="pink"
-                  onPress={() => onSport(id)}
-                />
-              );
-            })}
-          </View>
-        </View>
-        </>
-      ) : null}
-      {form.acts.lift ? (
-        <>
-        <View style={styles.groupRule} />
-        <View style={styles.group}>
-          <Heading title={copy.you.lifting} sections={[{ label: copy.you.focus, body: copy.info.focus }]} />
-          {form.days === "0" ? null : (
-            <>
-              <Text style={styles.fieldTitle}>{copy.you.focus}</Text>
-              <View accessibilityRole="radiogroup" accessibilityLabel={copy.you.focus} style={styles.pills}>
-                {FOCUS.map((id) => (
-                  <Pill
-                    key={id}
-                    label={lookup(copy.focus, id) ?? id}
-                    selected={form.focus === id}
-                    tone="pink"
-                    onPress={() => onStage({ focus: id })}
-                  />
-                ))}
-              </View>
-            </>
-          )}
-        </View>
-        </>
-      ) : null}
-      <View style={styles.groupRule} />
-      <View style={styles.group}>
-        <Heading
-          title={copy.you.bioData}
-          sections={[
-            { label: copy.you.sex, body: copy.info.sex },
-            { label: copy.you.age, body: copy.info.restingMetabolism },
-            { label: copy.you.height, body: copy.info.height },
-            { label: copy.you.weight, body: copy.info.weight },
-            { label: copy.you.bodyFat, body: copy.info.bodyFat },
-            { label: copy.you.steps, body: copy.info.steps },
-            { label: copy.you.dailyBurn, body: copy.info.dailyBurn },
-          ]}
-        />
-        <Text style={styles.fieldTitle}>{copy.you.sex}</Text>
-        <View accessibilityRole="radiogroup" accessibilityLabel={copy.you.sex} style={styles.pills}>
-          {SEX.map((id) => (
-            <Pill
-              key={id}
-              label={lookup(copy.sex, id) ?? id}
-              selected={form.sex === id}
-              tone="pink"
-              onPress={() => onStage({ sex: id })}
-            />
-          ))}
-        </View>
-        <View style={styles.fields}>
-          <Field label={copy.you.name} value={form.name} placeholder={copy.onboarding.optional} onChange={(name) => onStage({ name })} />
-          <Field label={copy.you.age} value={form.age} dial={ageDial} onChange={(age) => onStage({ age })} />
-          <Field label={copy.you.heightIn} value={form.height} dial={heightDial} onChange={(height) => onStage({ height })} />
-          <Field
-            label={kgMode ? copy.you.weightLb.replaceAll("lb", copy.you.kg) : copy.you.weightLb}
-            value={weightShown(form.weight, kgMode)}
-            dial={weightDial(kgMode)}
-            onChange={(text) => onStage({ weight: weightStored(text, kgMode) })}
-          />
-          <Field
-            label={copy.you.bodyFatPct}
-            value={form.bf}
-            placeholder={copy.onboarding.optional}
-            dial={bodyFatDial}
-            onChange={(bf) => onStage({ bf })}
-          />
-          <Field
-            label={copy.you.stepsPerDay}
-            value={form.steps}
-            dial={stepsDial}
-            start={form.steps.trim() ? undefined : Number(copy.onboarding.stepsExample.replace(/[^\d]/g, "")) || undefined}
-            onChange={(steps) => onStage({ steps })}
-          />
-          <Field
-            label={copy.you.dailyBurn}
-            value={form.oura}
-            placeholder={copy.onboarding.optional}
-            keyboard="number-pad"
-            onChange={(oura) => onStage({ oura })}
-          />
-        </View>
-      </View>
-    </View>
   );
 }
 
@@ -1179,6 +1026,7 @@ function Pill({
         haptic.selection();
         onPress();
       }}
+      brighten={selected}
       style={[styles.pill, selected && (tone === "pink" ? styles.pillPink : styles.pillGreen)]}
     >
       <Text style={[styles.pillText, selected && (tone === "pink" ? styles.pillTextPink : styles.pillTextGreen)]}>
@@ -1266,10 +1114,7 @@ const styles = StyleSheet.create({
     borderTopColor: theme.pink.line,
   },
   actPill: { minHeight: 44, paddingHorizontal: 12, borderRadius: theme.radii.pill, alignItems: "center", justifyContent: "center" },
-  actPillOn: { backgroundColor: "#3a2430" },
   actPillOff: { backgroundColor: theme.pink.background },
-  actPillText: { fontFamily: theme.fonts.bodySemi, fontSize: 13 },
-  actPillTextOn: { color: theme.pink.accent },
   actPillTextOff: { color: theme.muted },
   helpRow: { paddingVertical: 12, gap: 4 },
   helpLine: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
@@ -1348,8 +1193,6 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     color: theme.pink.accent,
   },
-  heading: { flexDirection: "row", alignItems: "center" },
-  infoButton: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   secondary: {
     minHeight: 44,
     borderRadius: theme.radii.tile,
@@ -1374,18 +1217,18 @@ const styles = StyleSheet.create({
   note: { fontFamily: theme.fonts.body, fontSize: 13, lineHeight: 18, color: theme.muted },
   notice: { fontFamily: theme.fonts.body, fontSize: 13, lineHeight: 18, color: theme.fuel },
   form: { gap: 0 },
-  group: { gap: 10 },
-  groupRule: { height: 1, backgroundColor: "#433d39", marginVertical: 16 },
   pills: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   pill: {
     minHeight: 44,
     paddingHorizontal: 14,
     borderRadius: theme.radii.pill,
     backgroundColor: theme.pink.background,
+    borderWidth: 1,
+    borderColor: "transparent",
     alignItems: "center",
     justifyContent: "center",
   },
-  pillPink: { backgroundColor: "rgba(252,150,191,0.18)" },
+  pillPink: { backgroundColor: "rgba(252,150,191,0.18)", borderColor: theme.pink.accent },
   pillGreen: { backgroundColor: "rgba(111,208,180,0.16)" },
   pillText: { fontFamily: theme.fonts.bodySemi, fontSize: 14, color: theme.text },
   pillTextPink: { color: theme.pink.accent },
