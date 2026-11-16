@@ -38,11 +38,12 @@ function capSports() {
 }
 
 export const useEngineStore = create<EngineState>((set) => {
+  // Before the save hook: the store has no state until this function returns.
+  engine.init(storage);
+  capSports();
   engine.setSaveHook(() => {
     set((state) => ({ version: state.version + 1 }));
   });
-  engine.init(storage);
-  capSports();
 
   return {
     version: 0,
