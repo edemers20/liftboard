@@ -1,6 +1,7 @@
 "use no memo";
 
 import { createContext, useContext, useRef, useState, type ReactNode } from "react";
+import { GlassSheet } from "@/components/glass-sheet";
 import { PressableScale } from "@/components/pressable-scale";
 import { FlatList, StyleSheet, Text, View, type StyleProp, type TextStyle, type ViewStyle } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -171,7 +172,7 @@ function NumberDial({ request, onClose }: { request: Request; onClose: () => voi
 
   return (
     <SheetFrame visible onClose={onClose} label={copy.you.cancel}>
-        <View style={[styles.sheet, greenDial(request.accent) && styles.sheetGreen, { marginBottom: insets.bottom + 12 }]}>
+        <GlassSheet style={[styles.sheet, greenDial(request.accent) && styles.sheetGreen, { marginBottom: insets.bottom + 12 }]}>
           <View style={styles.top}>
             <Text style={[styles.label, greenDial(request.accent) && styles.labelGreen]}>{request.label}</Text>
             <PressableScale accessibilityRole="button" accessibilityLabel={copy.you.cancel} onPress={onClose} style={styles.close}>
@@ -231,7 +232,7 @@ function NumberDial({ request, onClose }: { request: Request; onClose: () => voi
           >
             <Text style={styles.doneText}>{copy.workout.done}</Text>
           </PressableScale>
-        </View>
+        </GlassSheet>
     </SheetFrame>
   );
 }

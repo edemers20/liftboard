@@ -1,6 +1,7 @@
 "use no memo";
 
 import { useEffect, useRef, useState } from "react";
+import { GlassSheet } from "@/components/glass-sheet";
 import { PressableScale } from "@/components/pressable-scale";
 import { AppState, Platform, ScrollView, StyleSheet, type ScrollViewInstance, Text, TextInput, View } from "react-native";
 import { router, useNavigation, Link } from "expo-router";
@@ -1041,7 +1042,7 @@ export function WorkoutScreen({ id }: { id: string }) {
       ) : null}
 
       <SheetFrame visible={resetAsk} onClose={() => setResetAsk(false)} label={copy.you.cancel}>
-          <View style={[styles.sheet, { marginBottom: insets.bottom + 12 }]}>
+          <GlassSheet style={[styles.sheet, { marginBottom: insets.bottom + 12 }]}>
             <Text accessibilityRole="header" style={styles.confirmTitle}>
               {fill(copy.workout.resetTitle, day.tab || copy.workout.thisDay)}
             </Text>
@@ -1054,11 +1055,11 @@ export function WorkoutScreen({ id }: { id: string }) {
                 <Text style={styles.primaryText}>{copy.workout.resetDay}</Text>
               </PressableScale>
             </View>
-          </View>
+          </GlassSheet>
       </SheetFrame>
 
       <SheetFrame visible={!!switchAsk} onClose={() => { pendingLive.current = null; setSwitchAsk(null); }} label={copy.you.cancel}>
-        <View style={[styles.sheet, { marginBottom: insets.bottom + 12 }]}>
+        <GlassSheet style={[styles.sheet, { marginBottom: insets.bottom + 12 }]}>
           <Text accessibilityRole="header" style={styles.confirmTitle}>
             {fill(copy.workout.finishFirst, (engine.DAYS as { id: string; title: string }[]).find((item) => item.id === switchAsk)?.title || "")}
           </Text>
@@ -1090,11 +1091,11 @@ export function WorkoutScreen({ id }: { id: string }) {
               <Text style={styles.primaryText}>{copy.workout.switchWorkout}</Text>
             </PressableScale>
           </View>
-        </View>
+        </GlassSheet>
       </SheetFrame>
 
       <SheetFrame visible={!!deleteAsk} onClose={() => setDeleteAsk(null)} label={copy.you.cancel}>
-        <View style={[styles.sheet, { marginBottom: insets.bottom + 12 }]}>
+        <GlassSheet style={[styles.sheet, { marginBottom: insets.bottom + 12 }]}>
           <Text accessibilityRole="header" style={styles.confirmTitle}>
             {deleteAsk ? fill(copy.workout.deleteSets, deleteAsk.name, deleteAsk.sets) : ""}
           </Text>
@@ -1114,11 +1115,11 @@ export function WorkoutScreen({ id }: { id: string }) {
               <Text style={styles.primaryText}>{copy.workout.delete}</Text>
             </PressableScale>
           </View>
-        </View>
+        </GlassSheet>
       </SheetFrame>
 
       <SheetFrame visible={sheet != null} onClose={() => setSheet(null)}>
-          <View style={[styles.sheet, { marginBottom: insets.bottom + 12 }]}>
+          <GlassSheet solid={sheet === "done"} style={[styles.sheet, { marginBottom: insets.bottom + 12 }]}>
             {sheet === "done" ? (
               <>
                 <View style={styles.sheetTop}>
@@ -1206,7 +1207,7 @@ export function WorkoutScreen({ id }: { id: string }) {
                 ) : null}
               </>
             )}
-          </View>
+          </GlassSheet>
       </SheetFrame>
 
       <PickerModal
@@ -1683,7 +1684,7 @@ function PickerModal({
 }) {
   return (
     <SheetFrame visible={open} onClose={onClose}>
-        <View style={styles.pickerSheet}>
+        <GlassSheet style={styles.pickerSheet}>
           <Text style={styles.section}>{title}</Text>
           <ScrollView style={styles.pickerList} keyboardShouldPersistTaps="handled">
             {groups.map((group) => (
@@ -1703,7 +1704,7 @@ function PickerModal({
               </View>
             ))}
           </ScrollView>
-        </View>
+        </GlassSheet>
     </SheetFrame>
   );
 }

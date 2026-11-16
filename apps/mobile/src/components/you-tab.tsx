@@ -1,6 +1,7 @@
 "use no memo";
 
 import { useEffect, useRef, useState } from "react";
+import { GlassSheet } from "@/components/glass-sheet";
 import { PressableScale } from "@/components/pressable-scale";
 import { File, Paths } from "expo-file-system";
 import { usePathname, useRouter } from "expo-router";
@@ -773,7 +774,7 @@ export function SettingsScreen({ onReplay, startMetrics = false }: { onReplay: (
           setPending(null);
         }}
       >
-          <View style={styles.sheet}>
+          <GlassSheet style={styles.sheet}>
             <Text accessibilityRole="header" style={styles.confirmTitle}>
               {confirm === "restore"
                 ? copy.you.restoreTitle
@@ -811,7 +812,7 @@ export function SettingsScreen({ onReplay, startMetrics = false }: { onReplay: (
                 </Text>
               </PressableScale>
             </View>
-          </View>
+          </GlassSheet>
       </SheetFrame>
       <LiveWorkoutBar />
     </View>

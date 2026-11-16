@@ -1,6 +1,7 @@
 "use no memo";
 
 import { useFocusEffect } from "expo-router";
+import { GlassSheet } from "@/components/glass-sheet";
 import { PressableScale } from "@/components/pressable-scale";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Animated, ScrollView, StyleSheet, Text, TextInput, View, type NativeScrollEvent, type NativeSyntheticEvent, type ScrollViewInstance } from "react-native";
@@ -1186,7 +1187,7 @@ function ActivityDetails({ session, onClose }: { session: ActSession; onClose: (
         <Text style={styles.deleteText}>{copy.workouts.delete}</Text>
       </PressableScale>
       <SheetFrame visible={askDelete} onClose={() => setAskDelete(false)} label={copy.you.cancel}>
-        <View style={[styles.sheet, { marginBottom: insets.bottom + 12 }]}>
+        <GlassSheet style={[styles.sheet, { marginBottom: insets.bottom + 12 }]}>
           <View style={styles.sheetButtons}>
             <PressableScale accessibilityRole="button" onPress={() => setAskDelete(false)} style={styles.sheetCancel}>
               <Text style={styles.sheetCancelText}>{copy.you.cancel}</Text>
@@ -1195,7 +1196,7 @@ function ActivityDetails({ session, onClose }: { session: ActSession; onClose: (
               <Text style={styles.sheetDeleteText}>{copy.workouts.delete}</Text>
             </PressableScale>
           </View>
-        </View>
+        </GlassSheet>
       </SheetFrame>
     </View>
   );
