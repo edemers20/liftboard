@@ -571,7 +571,7 @@ select,input,textarea,.setrow.now input,.nums input,.field input{border-color:tr
 .optlab{margin:14px 0 2px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .disclaimer{margin:4px 2px 12px;line-height:1.45}
 
-/* ---------- Bottom nav: Workouts · Plan · History · You ---------- */
+/* ---------- Bottom nav: Workouts, Plan, History, You ---------- */
 .bnav{position:fixed;left:0;right:0;bottom:0;z-index:15;display:grid;grid-template-columns:repeat(4,1fr);background:var(--bg);border-top:1px solid var(--line);padding:6px max(8px,env(safe-area-inset-left,0px)) calc(8px + env(safe-area-inset-bottom,0px))}
 .bnav button{min-height:48px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;border:0;background:none;color:var(--muted);font:600 11px var(--body);cursor:pointer}
 .navav{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;padding-top:3px;font:400 18px var(--display);line-height:1;color:#181513;background:linear-gradient(135deg,#6fd0b4,#e9b69b)}
@@ -1109,10 +1109,10 @@ html[data-vt^="day"] .wpager{view-transition-name:lbcards}
 /* History → Lifts */
 .prcards{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:0 16px}
 .prcards::-webkit-scrollbar{display:none}
-.prc{flex:0 0 auto;width:140px;background:#33284f;border:1px solid rgba(183,156,240,.45);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:2px}
+.prc{flex:0 0 auto;width:140px;background:#3a2f55;border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:2px}
 .prk{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--record)}
 .prn{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.prc b{font:500 20px var(--mono);color:#f4efff} .prc small{font-size:12px;color:rgba(237,234,232,.72)}
+.prc b{font:500 20px var(--mono)} .prc small{font-size:12px;color:rgba(237,234,232,.65)}
 h3.lhead{display:flex;align-items:center;gap:4px;justify-content:flex-start}
 .lrow{border-top:1px solid var(--line)} .lrow:first-of-type{border-top:0}
 .lbtn{width:100%;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer;padding:12px 0;display:grid;grid-template-columns:minmax(0,1fr) 96px;gap:12px;align-items:center}
@@ -1139,7 +1139,7 @@ h3.lhead{display:flex;align-items:center;gap:4px;justify-content:flex-start}
 .rtiles div span,.rtiles div b,.rtiles div small{color:var(--ink)} .rtiles div span{opacity:.75} .rtiles div small{opacity:.7}
 .rsec{background:var(--surface);border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:9px}
 .rsec h3{margin:0;font:600 15px var(--body);text-transform:none;letter-spacing:0;color:var(--fg)}
-.rsec.rpr{background:#2a211c} .rsec.rpr h3{color:var(--record)}
+.rsec.rpr{background:#3a2f55} .rsec.rpr h3{color:var(--record)}
 .rrow{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:14px}
 .rrow > span{display:flex;flex-direction:column} .rrow > span:last-child{text-align:right;align-items:flex-end}
 .rrow small{font-size:12px;color:var(--muted);font-family:var(--body)} .rrow em{font-style:normal;color:#fea06a}
@@ -1280,7 +1280,7 @@ button,a,[role="button"],summary,label.sw,.wcbtn,.chip,.seg button{transition:tr
 .yprs{margin:0 -16px;padding:0 16px}
 .yempty{background:#2a211c;border-radius:14px;padding:12px;display:flex;align-items:center;gap:12px;font-size:13px}
 .ybadge{width:40px;height:40px;flex:none;border-radius:999px;background:#2a211c;color:#fea06a;display:grid;place-items:center;font:400 18px var(--display)}
-.yempty .ybadge{background:#2c2533;color:var(--record)}
+.yempty .ybadge{background:#3a2f55;color:var(--record)}
 .ymp{font:400 30px/1 var(--display);color:#fc96bf;text-transform:uppercase}
 .ympl{font-size:14px}
 .ymix{display:flex;flex-direction:column;gap:6px}
@@ -1307,7 +1307,7 @@ button,a,[role="button"],summary,label.sw,.wcbtn,.chip,.seg button{transition:tr
 @media (prefers-reduced-motion:reduce){.yshine,.ymiles div,.ysflame.wig{animation:none}}
 .ysl.one{grid-template-columns:1fr}
 /* Day done: records set today */
-.dpr{background:linear-gradient(135deg,rgba(183,156,240,.22),rgba(252,150,191,.14)),#2a211c;border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;box-shadow:inset 0 0 0 1px rgba(183,156,240,.35)}
+.dpr{background:#3a2f55;border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
 .dprh{display:flex;align-items:center;gap:10px}
 .dprh b{font-size:15px;color:var(--record)}
 .dprb{width:32px;height:32px;border-radius:999px;background:var(--record);color:var(--ink);display:grid;place-items:center;font:400 15px var(--display);animation:yPop .5s .25s both}

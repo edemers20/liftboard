@@ -251,7 +251,7 @@ function spoken(live: LiveWorkout, inline: boolean): string {
   if (live.done) return live.detail;
   if (inline) return live.compact;
   if (!live.detail) return live.title;
-  return `${live.title} · ${live.detail}`;
+  return `${live.title}: ${live.detail}`;
 }
 
 function Label({ live, inline }: { live: LiveWorkout; inline: boolean }) {
@@ -272,7 +272,7 @@ function Label({ live, inline }: { live: LiveWorkout; inline: boolean }) {
   return (
     <Text numberOfLines={1} style={styles.label}>
       {live.title}
-      <Text style={styles.time}>{` · ${live.detail}`}</Text>
+      <Text style={styles.time}>{`: ${live.detail}`}</Text>
     </Text>
   );
 }

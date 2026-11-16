@@ -143,7 +143,7 @@ function planHTML(P,o={}){
 
 const TAGICON={up:"↑",hold:"",down:"↓",collapse:"!"};
 /* "Overhead Press (Barbell): 30lb x 8": the weight and rep target for next time; only notes that change what you do are kept */
-const nextLine=r=>{ const U=KG()?"kg":"lb", w=r.bw?(+r.w>0?`BW+${toU(r.w)}${U}`:"BW"):`${toU(r.w)}${U}`, note=/^(hold|~?\d+ reps|\+5 lb|add a rep|same weight)/.test(r.why||"")?"":String(r.why||"").replace(/ · \d+\/\d+ sets$/,"");
+const nextLine=r=>{ const U=KG()?"kg":"lb", w=r.bw?(+r.w>0?`BW+${toU(r.w)}${U}`:"BW"):`${toU(r.w)}${U}`, note=/^(hold|~?\d+ reps|\+5 lb|add a rep|same weight)/.test(r.why||"")?"":String(r.why||"").replace(/ \(\d+\/\d+ sets\)$/,"");
   return `<b>${esc(r.n)}</b>: <span class="mono">${w}${r.r?` x ${r.r}`:""}</span>${note?` <small>${esc(note)}</small>`:""}`; };
 const tagH=t=>`<span class="tag ${t}" role="img" aria-label="${TAGTXT[t]}">${TAGICON[t]}</span>`;
 /* ---------- Number wheels: which inputs get one, and their ranges ---------- */
@@ -174,7 +174,7 @@ function dialCfg(el){
   if(/min$/.test(k)) return {label:"Planned minutes",min:15,max:360,step:5,unit:"min",start:el.placeholder};
   return null;
 }
-/* ---------- Navigation: Workouts · Plan · History · You ----------
+/* ---------- Navigation: Workouts, Plan, History, You ----------
    Workouts is home (a week strip and the selected day). Lift days and activity screens open
    on top of it with a back link; the bottom nav hides there so the rest timer has the space. */
 const NAV=[["workouts","Workouts",`<path d="M3 9v6M6 7v10M18 7v10M21 9v6M6 12h12"/>`],["plan","Plan",`<rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/>`],["history","History",`<path d="M4 19V11M10 19V5M16 19v-6M22 19H2"/>`],["you","You",`<circle cx="12" cy="8" r="4"/><path d="M4.5 20c1.2-3.6 4-5.5 7.5-5.5s6.3 1.9 7.5 5.5"/>`]];
@@ -334,7 +334,7 @@ const fmtDate=d=>d.toLocaleDateString("en-US",{weekday:"long",month:"short",day:
 function exPreview(id){ const d=dayById(id); if(!d) return ""; const P=plan(), D=P.days[id];
   const rows=slotOrder(d).filter(i=>!D.slots[i].skip&&!d.slots[i].optional).map(i=>{ const sl=d.slots[i], A=D.slots[i], n=exName(d,sl,i);
     if(sl.cardio) return [n,A.min?`${A.min} min`:""];
-    const t=suggest(d,sl,i,false,P); return [n,`${A.sets} × ${sl.reps}${t&&t.w?` · ${isBW(n)?"BW":toU(t.w)}`:""}`]; });
+    const t=suggest(d,sl,i,false,P); return [n,`${A.sets} × ${sl.reps}${t&&t.w?` (${isBW(n)?"BW":toU(t.w)})`:""}`]; });
   return rows.length?`<div class="wex">${rows.map(([n,v])=>`<div><span>${esc(n)}</span><b>${esc(v)}</b></div>`).join("")}</div>`:""; }
 function liftCard(eyebrow,id,body,kind){ const d=dayById(id); if(!d) return "";
   const canSwap=canSwapDay(id);
@@ -498,12 +498,12 @@ function planWeek(P){
   <div class="panel plist"><h3>${E?"Next week's plan":"This week's plan"}</h3><div class="prows">${rowsH||`<p class="small">Nothing planned yet. Pick your usual lift days below.</p>`}</div>${daysH}${adH}</div>
   ${food}
   ${changesHTML(P)}${watchHTML(P)}
-  ${wk.ckDone?`<div class="ckline"><span><b>Check-in</b> · ${esc(ckSummary())}</span><button type="button" class="wlink ckedit" id="ckEdit" aria-label="Edit check-in"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4Z"/><path d="M13.5 6.5l4 4"/></svg></button></div>`:""}
+  ${wk.ckDone?`<div class="ckline"><span><b>Check-in:</b> ${esc(ckSummary())}</span><button type="button" class="wlink ckedit" id="ckEdit" aria-label="Edit check-in"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4Z"/><path d="M13.5 6.5l4 4"/></svg></button></div>`:""}
   ${E?"":`<button type="button" class="btn" id="finishWeek">Mark week as finished</button>`}`;
 }
 /* pace choices are a share of body weight; the lb figure follows your current weight */
 const PACES={"Deficit only":[0.5,0.75,1],Recomp:[0.25,0.5,0.7]};
-const paceOpts=m=>(PACES[m]||[]).map(p=>{ const lb=Math.round(p/100*num(wk.weight,150)*10)/10; return [String(p),`${p}% · ${KG()?Math.round(lb/L2K*10)/10+" kg":lb+" lb"}`]; });
+const paceOpts=m=>(PACES[m]||[]).map(p=>{ const lb=Math.round(p/100*num(wk.weight,150)*10)/10; return [String(p),`${p}% (${KG()?Math.round(lb/L2K*10)/10+" kg":lb+" lb"})`]; });
 function fitPace(){ const o=PACES[wk.mode]; if(!o) return; const p=+wk.ratePct, max=o[o.length-1]; if(!(p>0)) wk.ratePct=String(o[1]); else if(p>max) wk.ratePct=String(max); }
 /* Pace is a scrolling picker in lb (or kg) a week, up to the goal's cap (1% or 0.7% of your weight). Stored as % of body weight. */
 function paceField(){ const w=num(wk.weight,150), kg=KG(), shown=(+wk.ratePct||0.5)/100*w/(kg?L2K:1);
@@ -532,7 +532,7 @@ function planSeason(P){
   return `${planHTML(P)}
   <div class="panel">${hdr("Season",["season","ramp","deload"])}
     ${hasSport()&&SEASONAL(wk.mainSport)?`${toggle("season","In-season",undefined,"In-season","Off-season")}${inS?"":toggle("ramp","Season starts in ≤6 weeks")}`:`<p class="note">${hasSport()?`${esc(ACT[wk.mainSport].name)} doesn't have a season, so lifting stays the same all year.`:"Pick a main sport under You to use seasons."}</p>`}
-    ${DAYS.length?`${dl.length&&wk.deload!=="Yes"?`<p class="flag">Deload suggested · ${dl.join(", ")}</p>`:""}${toggle("deload","Deload this week")}`:""}</div>
+    ${DAYS.length?`${dl.length&&wk.deload!=="Yes"?`<p class="flag">Deload suggested: ${dl.join(", ")}</p>`:""}${toggle("deload","Deload this week")}`:""}</div>
   <div class="panel">${hdr("Goal",["mode","rate","share"])}
     <div class="seg two" data-key="mode">${GOALS.map(([v,l])=>`<button type="button" data-v="${v}" aria-pressed="${wk.mode===v}">${l}</button>`).join("")}</div>
     <details class="fmath"><summary>Goal definitions</summary>${GOALS.map(([v,l])=>`<p class="small"><b>${l}.</b> ${GOAL_SUB[v]}</p>`).join("")}</details>
@@ -555,7 +555,7 @@ function profileHero(){
   return `<section class="phero" aria-label="Your profile">
     <div class="pav" aria-hidden="true">${esc(initial)}</div>
     <div class="pwho"><h2>${esc(name||"Profile")}</h2><p>Member since ${since}</p></div>
-    ${mine.length?`<div class="ptags" aria-label="Your sports and activities">${mine.map(a=>tag(`${ACT[a].name}${a===wk.mainSport&&inSeason()?" · in-season":""}`,"sp")).join("")}</div>`:""}
+    ${mine.length?`<div class="ptags" aria-label="Your sports and activities">${mine.map(a=>tag(`${ACT[a].name}${a===wk.mainSport&&inSeason()?" (in-season)":""}`,"sp")).join("")}</div>`:""}
     <div class="pstats"><div><b>${lifts}</b><span>Lifts</span></div><div><b>${acts}</b><span>Activities</span></div><div><b>${weeks}</b><span>Weeks active</span></div></div>
   </section>`;
 }
@@ -785,7 +785,7 @@ function renderSeason(P){
   ${planHTML(P)}
   <div class="panel">${hdr("Season",["season","ramp","deload"])}
     ${seasonBox}
-    ${DAYS.length?`${dl.length&&wk.deload!=="Yes"?`<p class="flag">Deload suggested · ${dl.join(", ")}</p>`:""}${toggle("deload","Deload this week")}`:""}
+    ${DAYS.length?`${dl.length&&wk.deload!=="Yes"?`<p class="flag">Deload suggested: ${dl.join(", ")}</p>`:""}${toggle("deload","Deload this week")}`:""}
   </div>
   ${(INFO.rate=RATE_INFO+(build?"":paceNote(P)),"")}<div class="panel">${hdr("Goal",["mode","rate","share"])}
     ${seg("mode","Goal",GOALS)}
@@ -822,7 +822,7 @@ function freqHTML(S){
   const done=weeks.slice(0,-1).filter(w=>w.tot), avg=done.length?done.reduce((a,w)=>a+w.tot,0)/done.length:0;
   const used=MIX.filter(([k])=>weeks.some(w=>w.m[k]));
   return `<div class="panel">${hdr("Avg week breakdown",["freq"])}
-    <p class="note">Hours a week by kind of training${avg?` · about ${hrs(avg)} a week`:""}</p>
+    <p class="note">Hours a week by kind of training${avg?` (about ${hrs(avg)} a week)`:""}</p>
     <div class="mix" role="img" aria-label="${weeks.map(w=>`Week of ${w.W.toLocaleDateString("en-US",{month:"short",day:"numeric"})}: ${MIX.filter(([k])=>w.m[k]).map(([k,l])=>`${l} ${Math.round(w.m[k])} min`).join(", ")||"nothing logged"}`).join(". ")}">
     ${weeks.map((w,i)=>`<div class="mixc${i===N-1?" now":""}"><span class="mixt">${w.tot?hrs(w.tot):""}</span><div class="mixb" style="height:${w.tot/max*112}px">${MIX.map(([k,,c])=>w.m[k]?`<i style="flex:${w.m[k]} 1 0;background:${c}"></i>`:"").join("")}</div><span class="mixl">${i===N-1?"Now":w.W.toLocaleDateString("en-US",{month:"numeric",day:"numeric"})}</span></div>`).join("")}</div>
     ${used.length?`<div class="legend">${used.map(([,l,c])=>`<span style="--c:${c}">${l}</span>`).join("")}</div>`:""}
@@ -852,7 +852,7 @@ function calHTML(){
   <div class="panel">
     <div class="calhead"><button type="button" class="btn sm calnav" data-cal="-1" aria-label="Previous month">‹</button><h3>${m0.toLocaleDateString(undefined,{month:"long",year:"numeric"})}</h3><button type="button" class="btn sm calnav" data-cal="1" aria-label="Next month"${calOff>=0?" disabled":""}>›</button></div>
     <div class="cal"><span class="cw">M</span><span class="cw">T</span><span class="cw">W</span><span class="cw">T</span><span class="cw">F</span><span class="cw">S</span><span class="cw">S</span>${cells}</div>
-    ${sel?`<div class="calsel" id="calsel"><span class="plab">${selD}</span><h3>${esc(selT)}</h3>${sel.map(x=>`<div class="csx">${x.k!=="lift"&&(sel.length>1||x.min)?`<span class="cs ${x.k==="lift"?"l":"a"}">${esc(sessName(x))}${x.min?` · ${x.min} min`:""}</span>`:""}${x.k==="lift"?workoutRows(sessEx(x)):""}</div>`).join("")}</div>`:""}
+    ${sel?`<div class="calsel" id="calsel"><span class="plab">${selD}</span><h3>${esc(selT)}</h3>${sel.map(x=>`<div class="csx">${x.k!=="lift"&&(sel.length>1||x.min)?`<span class="cs ${x.k==="lift"?"l":"a"}">${esc(sessName(x))}${x.min?` (${x.min} min)`:""}</span>`:""}${x.k==="lift"?workoutRows(sessEx(x)):""}</div>`).join("")}</div>`:""}
     ${S.length?"":`<p class="note">Sessions show up here when you finish a lift day or enter minutes for an activity.</p>`}
   </div>`;
 }
@@ -903,7 +903,7 @@ function weeksHTML(){
        <span class="wn3"><span><small>Lifts</small><b>${w.lifts}/${w.planned}</b></span><span><small>Sets</small><b>${w.sets??"–"}</b></span><span><small>Exercise kcal</small><b>${bn?Number(bn).toLocaleString():"–"}</b></span></span></button>
        ${open?`<div class="wmore">${w.muscles&&w.muscles.length?`<span class="plab">Sets by muscle</span>${musclesHTML(w.muscles)}`:""}
          ${!(w.planned>0&&w.lifts>=w.planned)?`<div class="wmiss"><span>${w.missed&&w.missed.length?`Missed ${esc(w.missed.join(" and "))}`:"Not every lift got done"}</span><button type="button" class="chip" data-wc="${w.start}">${w.counted?"Undo":"Count as completed"}</button></div>`:""}
-         <p class="small">${w.season==="In-season"?"In-season":"Off-season"}${w.ramp?" · ramp":""}${w.deload?" · deload":""} · ${esc(goalName(w.mode))}${w.focus?` · ${esc(w.focus)} focus`:""}${w.w?` · ${w.w} lb`:""}</p></div>`:""}</div>`; }).join("")}</div>`:""}
+         <p class="small">${w.season==="In-season"?"In-season":"Off-season"}${w.ramp?", ramp":""}${w.deload?", deload":""}, ${esc(goalName(w.mode))}${w.focus?`, ${esc(w.focus)} focus`:""}${w.w?`, ${w.w} lb`:""}</p></div>`:""}</div>`; }).join("")}</div>`:""}
   </div>`;
 }
 function renderHistory(){
@@ -938,7 +938,7 @@ function renderWeek(P){
     <div class="inset">
       <div class="k label">Fuel today</div>
       <p class="burn"><strong>${r5(M.intake).toLocaleString()}</strong> kcal</p>
-      <p class="burn" style="font-size:14px">Your base is <strong style="font-size:inherit">${r5(M.everyday).toLocaleString()}</strong> kcal${M.useOura?" · wearable":wk.calibN?" · calibrated":" · estimated"}</p>
+      <p class="burn" style="font-size:14px">Your base is <strong style="font-size:inherit">${r5(M.everyday).toLocaleString()}</strong> kcal${M.useOura?" (wearable)":wk.calibN?" (calibrated)":" (estimated)"}</p>
       ${M.vsLast!=null&&Math.abs(M.vsLast)>=20?`<p class="burn" style="font-size:13px"><strong style="font-size:inherit">${M.vsLast>0?"+":"−"}${Math.abs(M.vsLast)} a day vs last week</strong> (${M.vsLast>0?"+":"−"}${Math.abs(M.vsLast)*7} this week)</p>`:""}
     </div>
     ${build?"":`<div class="stats">
@@ -961,11 +961,11 @@ const exCands=(d,D)=>slotOrder(d).filter(i=>!D.slots[i].skip);
 function skipWhy(A){
   const k=A.skip||"";
   if(A.flag) return A.flag;
-  if(k==="Trimmed · no supersets") return "Cut to fit without supersets. Turn supersets on or pick 75 min to keep it.";
+  if(k==="Trimmed: no supersets") return "Cut to fit without supersets. Turn supersets on or pick 75 min to keep it.";
   if(k.startsWith("Trimmed for a 45")) return "Cut to fit 45 min. Pick 60 min or more to keep it.";
   if(k.startsWith("Trimmed for a 30")) return "Cut to fit 30 min. Pick 45 min or more to keep it.";
   if(k==="Not needed this week") return "Your cardio target is already covered.";
-  if(k.startsWith("Skipped · ")) return `Skipped for ${k.slice(10)}.`;
+  if(k.startsWith("Skipped: ")) return `Skipped for ${k.slice(9)}.`;
   return k;
 }
 function activeIdx(d,D){
@@ -975,7 +975,7 @@ function activeIdx(d,D){
   return c.find(i=>!exDone(d,D,i)) ?? c[c.length-1];
 }
 const nextIdx=(d,D,i)=>{ const c=exCands(d,D), p=c.indexOf(i); return c.slice(p+1).find(j=>!exDone(d,D,j)) ?? c.find(j=>!exDone(d,D,j)&&j!==i); };
-const whyTxt=A=>{ const w=A.why.filter(x=>!x.includes("focus")&&!x.includes("feeling good")); return w.length?[...new Set(w.map(x=>x.split(" · ")[1]))].join(", "):""; };
+const whyTxt=A=>{ const w=A.why.filter(x=>!x.includes("focus")&&!x.includes("feeling good")); return w.length?[...new Set(w.map(x=>x.split(": ")[1]))].join(", "):""; };
 /* First-time starting weight, by equipment, when an exercise has no history yet */
 /* Guess a first weight from a related exercise you've logged: same movement list, same equipment.
    One-arm/one-leg ≈ 55% of two. Rounded down a step to start conservative. */
@@ -1005,7 +1005,7 @@ function startW(name,s){
   if(/machine|press|leg press|hack|pendulum|abductor|adductor|leg curl|pec deck/.test(n)) return main?90:60;
   return 20;
 }
-const CSET=[[/incline walk|treadmill hike/i,"Incline · speed","12% · 3.0 mph"],[/stair/i,"Level","8"],[/bike/i,"Resistance","10"],[/rower/i,"Damper","5"],[/elliptical/i,"Resistance","8"],[/sled/i,"Load","90 lb"],[/outdoor walk/i,"",""]];
+const CSET=[[/incline walk|treadmill hike/i,"Incline, speed","12%, 3.0 mph"],[/stair/i,"Level","8"],[/bike/i,"Resistance","10"],[/rower/i,"Damper","5"],[/elliptical/i,"Resistance","8"],[/sled/i,"Load","90 lb"],[/outdoor walk/i,"",""]];
 const cardioSetting=n=>{ const m=CSET.find(([re])=>re.test(n)); return m?{label:m[1],ph:m[2]}:{label:"Setting",ph:""}; };
 const UNI=/single|bulgarian|split squat|lunge|step-up|copenhagen|side plank|suitcase|cossack|single-arm|one-arm|side-lying|kneeling single/i;
 const lastSide=n=>{ const h=(exHist[n]||[]).slice().reverse().find(x=>x.side); return h?h.side:""; };
@@ -1033,8 +1033,8 @@ function renderDayHTML(d,P){
   let html=`<div class="dayhead"><h2>${d.tab?`${esc(d.tab)}: ${esc(d.title)}`:esc(d.title)}</h2>${WT&&WT.start?`<p class="wtime" id="wtime" data-day="${d.id}"></p>`:""}${canSwap?`<button type="button" class="swapbtn" data-swap="${d.id}"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13l-3-3M20 16H7l3 3"/></svg>Swap workout</button>`:""}</div>`;
   html+=`<div class="panel today"><div class="q"><span id="todayLbl">How do you feel today?${ib("today")}</span>
     <div class="seg slider" data-key="today" role="radiogroup" aria-labelledby="todayLbl">${["Good","Normal","Rough"].map(o=>`<button type="button" role="radio" data-v="${o}" aria-checked="${D.today===o}" aria-pressed="${D.today===o}"><i aria-hidden="true"></i><span>${o==="Good"?"Thriving":o}</span></button>`).join("")}</div></div>
-    ${D.restSuggest?`<p class="flag">Reps dropped two sessions in a row. Rest a day first if you can.</p>`:D.autoRough?`<p class="adj"><b>Shortened</b> · reps dropped last session</p>`:""}
-    ${d.id===P.nextId&&wk.upNext===d.id&&wk.missedNote?`<p class="adj"><b>Up next</b> · ${esc(wk.missedNote.why)}</p>`:""}
+    ${D.restSuggest?`<p class="flag">Reps dropped two sessions in a row. Rest a day first if you can.</p>`:D.autoRough?`<p class="adj"><b>Shortened</b> (reps dropped last session)</p>`:""}
+    ${d.id===P.nextId&&wk.upNext===d.id&&wk.missedNote?`<p class="adj"><b>Up next:</b> ${esc(wk.missedNote.why)}</p>`:""}
     </div>`;
   const rv=D.done&&(wk.review||{})[d.id];
   if(rv&&rv.items.length) html+=`<div class="panel"><h3>Next time</h3><div class="rev">${rv.items.map(r=>`<p>${nextLine(r)}</p>`).join("")}</div>${rv.note?`<p class="adj">${esc(rv.note)}</p>`:""}</div>`;
@@ -1050,21 +1050,21 @@ function renderDayHTML(d,P){
     if(A.skip&&i!==act){ const lg=(st.log||[]).filter(x=>x.d).length, dn=s.cardio?!!st.cdone:lg>=(A.sets||1);
       html+=`<button type="button" class="exrow opt${dn?" done":""}" data-ex="${i}" aria-label="Optional: ${esc(exName(d,s,i))}${dn?", done":""}"><span class="label">${s.label}</span><span class="mk" aria-hidden="true">${dn?"✓":""}</span><span class="exname">${esc(exName(d,s,i))}</span></button>`; return; }
     if(i!==act){ const dn=exDone(d,D,i);
-      html+=`<button type="button" class="exrow${dn?" done":""}" data-ex="${i}" aria-label="${dn?"Done":"Start"} ${esc(exName(d,s,i))}"><span class="label">${s.extra?`Added (${esc(s.label)})`:esc(s.label)}${s.ss&&wk.ss!=="No"?` · ${s.ss}`:""}</span><span class="mk" aria-hidden="true">${dn?"✓":""}</span><span class="exname">${esc(exName(d,s,i))}</span></button>`; return; }
+      html+=`<button type="button" class="exrow${dn?" done":""}" data-ex="${i}" aria-label="${dn?"Done":"Start"} ${esc(exName(d,s,i))}"><span class="label">${s.extra?`Added (${esc(s.label)})`:esc(s.label)}${s.ss&&wk.ss!=="No"?` (${s.ss})`:""}</span><span class="mk" aria-hidden="true">${dn?"✓":""}</span><span class="exname">${esc(exName(d,s,i))}</span></button>`; return; }
     const choice=st.choice ?? defChoice(d,s,i), isCustom=choice===CUSTOM;
     const opts=[...s.opts,CUSTOM].map(o=>`<option${o===choice?" selected":""}>${esc(o)}</option>`).join("");
     const log=st.log||[], ticks=log.filter(x=>x.d).length, fin=s.cardio?!!st.cdone||D.done:ticks>=A.sets;
     const nRows=Math.max(A.sets||0,log.length);
     const pill=s.cardio?(D.done?`~${r5(A.doneK||0)} kcal`:A.min?`${A.min} min`:"Optional"):fin?"Done":`Set ${Math.min(ticks+1,A.sets)} of ${A.sets}`;
     html+=`<section class="slot cur${s.ss&&wk.ss!=="No"?" ss":""}${fxOnce.slot===base?" justdone":""}" aria-current="step">
-      <div class="row1" role="button" tabindex="0" data-collapse aria-expanded="true" aria-label="Collapse ${esc(exName(d,s,i))}"><span class="label hdr">${s.extra?`Added (${esc(s.label)})`:esc(s.label)}${s.ss&&wk.ss!=="No"?` · Superset ${s.ss}`:""}</span><span class="pill">${pill}</span>${D.done?"":`<button type="button" class="btn mini xdel" data-xdel="${i}">Delete</button>`}</div>
+      <div class="row1" role="button" tabindex="0" data-collapse aria-expanded="true" aria-label="Collapse ${esc(exName(d,s,i))}"><span class="label hdr">${s.extra?`Added (${esc(s.label)})`:esc(s.label)}${s.ss&&wk.ss!=="No"?` (Superset ${s.ss})`:""}</span><span class="pill">${pill}</span>${D.done?"":`<button type="button" class="btn mini xdel" data-xdel="${i}">Delete</button>`}</div>
       ${s.cardio?"":`<div class="bars" style="--n:${nRows}" aria-hidden="true">${Array.from({length:nRows},(_,k)=>`<i class="${k<ticks?"on":k===ticks&&!fin?"now":""}"></i>`).join("")}</div>`}
       ${s.extra?`<div class="xname"><b>${esc(exName(d,s,i))}</b>${(st.log||[]).some(x=>x.d)?"":`<button type="button" class="btn mini" data-xrm="${i-(d.slots.length-((wk.extra||{})[d.id]||[]).length)}">Remove</button>`}</div>`:`<select id="sel-${base}" data-i="${i}" aria-label="${esc(s.label)} exercise">${opts}</select>
       <input id="cus-${base}" class="custom${isCustom?" on":""}" data-i="${i}" placeholder="Exercise name" value="${esc(st.custom||"")}">`}`;
     if(s.cardio){
       const cn=exName(d,s,i), cs=cardioSetting(cn), isInt=INTERVAL.includes(cn)&&!A.steady;
-      const planLine=A.min?`${A.min} min ${isInt?"· rounds of 30s hard, 90s easy":"at a steady, talkable pace"}${A.kcal?` · ~${r5(A.kcal)} kcal`:""}`:"";
-      html+=`${A.flag?`<p class="adj"><b>Lowered</b> · ${A.flag}</p>`:""}${A.steady?`<p class="adj"><b>Easy pace, no intervals</b> · ${A.steady}</p>`:""}
+      const planLine=A.min?`${A.min} min ${isInt?"(rounds of 30s hard, 90s easy)":"at a steady, talkable pace"}${A.kcal?` (~${r5(A.kcal)} kcal)`:""}`:"";
+      html+=`${A.flag?`<p class="adj"><b>Lowered:</b> ${A.flag}</p>`:""}${A.steady?`<p class="adj"><b>Easy pace, no intervals:</b> ${A.steady}</p>`:""}
       ${planLine?`<p class="cplan">${planLine}</p>`:""}
       <div class="nums ${cs.label?"two":"one"}"><label class="field" for="act-${base}"><span>Minutes done</span><input id="act-${base}" data-i="${i}" data-k="act" inputmode="numeric" placeholder="${A.min||""}" value="${esc(st.act||"")}"></label>${cs.label?`<label class="field" for="load-${base}"><span>${cs.label}</span><input id="load-${base}" data-i="${i}" data-k="load" placeholder="${esc(cs.ph)}" value="${esc(st.load||"")}"></label>`:""}</div>
       ${D.done||st.cdone?"":`<button type="button" class="btn primary cdone wide" data-i="${i}">Finish cardio</button>`}`;
@@ -1112,7 +1112,7 @@ function addExHTML(d){
   return `<section class="slot addpanel"><div class="row1"><span class="label hdr">Add exercise</span><button type="button" class="nx" data-addex="close" aria-label="Close">×</button></div>
     <select id="addPick" aria-label="Exercise"><option value=""${addPick?"":" selected"}>Choose an exercise…</option>${groups}<option${isC?" selected":""}>${CUSTOM}</option></select>
     ${isC?`<input id="addCustom" placeholder="Exercise name" value="${esc(addCustom)}"><label class="field" for="addCat"><span>Counts as</span><select id="addCat"><option value="">Choose…</option>${cats}</select></label>`:""}
-    ${cat?`<p class="small">Counts as ${XCAT[cat][0].toLowerCase()} · ${XCAT[cat][1]} reps. It goes into this week's muscle totals.</p>`:""}
+    ${cat?`<p class="small">Counts as ${XCAT[cat][0].toLowerCase()} (${XCAT[cat][1]} reps). It goes into this week's muscle totals.</p>`:""}
     <button type="button" class="btn primary wide" data-addex="add"${(isC?addCustom.trim()&&cat:addPick)?"":" disabled"}>Add to ${esc(d.tab)}</button></section>`;
 }
 /* ---------- Small sheets: today's plan for an exercise, and next time after it ---------- */
@@ -1134,7 +1134,7 @@ const canSwapDay=id=>!(wk.done||{})[id]&&!dayHasSets(id)&&(swapOptions(id).lengt
 function swapSheet(id){
   const fam=swapOptions(id).filter(t=>t.id!==id), others=plannedOthers(id).map(dayById).filter(Boolean);
   if(!fam.length&&!others.length) return;
-  const ex=t=>t.slots.map((sl,i)=>[sl,i]).filter(([sl])=>!sl.cardio).slice(0,3).map(([sl,i])=>exName(t,sl,i)).join(" · ");
+  const ex=t=>t.slots.map((sl,i)=>[sl,i]).filter(([sl])=>!sl.cardio).slice(0,3).map(([sl,i])=>exName(t,sl,i)).join(", ");
   const opt=(t,attr)=>`<button type="button" class="swapopt" ${attr}="${t.id}"><b>${esc(t.tab?`${t.tab}: ${t.title}`:t.title)}</b><small>${esc(ex(t))}</small></button>`;
   showSheet(`<div class="swapsheet"><div class="shtop"><h3 class="swapt">Swap workout</h3>${XBTN}</div>
     <p class="small">The week will adjust to any swaps.</p>
@@ -1148,15 +1148,15 @@ const XBTN=`<button type="button" class="dx" data-x aria-label="Close"><svg widt
 function planSheet(id,i){
   const d=DAYS.find(x=>x.id===id); if(!d) return;
   const P=plan(), s=d.slots[i], A=P.days[id].slots[i]; if(A.skip&&s.cardio) return;
-  const t=s.cardio?null:suggest(d,s,i,false,P), why=s.cardio?(A.steady?`Easy pace · ${A.steady}`:A.flag||""):wk.guide==="Less"?"":whyTxt(A);
-  const main=s.cardio?`${A.min} min · ~${r5(A.kcal||0)} kcal`:`${A.sets} × ${esc(s.reps)}${t?` · start ${t.w} lb`:""}`;
-  showSheet(`<div class="shgrid"><span class="plab">Today's plan · ${esc(s.label)}</span><button type="button" class="shbtn" data-x>Begin</button><span class="shmain">${main}</span>${why?`<span class="shsub">${esc(why)}</span>`:""}</div>`);
+  const t=s.cardio?null:suggest(d,s,i,false,P), why=s.cardio?(A.steady?`Easy pace: ${A.steady}`:A.flag||""):wk.guide==="Less"?"":whyTxt(A);
+  const main=s.cardio?`${A.min} min (~${r5(A.kcal||0)} kcal)`:`${A.sets} × ${esc(s.reps)}${t?` (start ${t.w} lb)`:""}`;
+  showSheet(`<div class="shgrid"><span class="plab">Today's plan: ${esc(s.label)}</span><button type="button" class="shbtn" data-x>Begin</button><span class="shmain">${main}</span>${why?`<span class="shsub">${esc(why)}</span>`:""}</div>`);
 }
 function nextSheet(id,i){
   const d=DAYS.find(x=>x.id===id); if(!d) return;
   const P=plan(), D=P.days[id], s=d.slots[i], g=review(d,s,i,P), n=nextIdx(d,D,i);
-  showSheet(`<div class="shtop"><span class="plab">${esc(exName(d,s,i))} · done</span>${XBTN}</div>
-    ${g?`<p class="shline"><span>Next time · ${nextLine(g)}</span></p>`:""}
+  showSheet(`<div class="shtop"><span class="plab">${esc(exName(d,s,i))}: done</span>${XBTN}</div>
+    ${g?`<p class="shline"><span>Next time: ${nextLine(g)}</span></p>`:""}
     ${n!=null?`<button type="button" class="shbtn wide" id="upNext">Up next: ${esc(exName(d,d.slots[n],n))}</button>`:""}`,
     el=>{ const b=el.querySelector("#upNext"); if(b) b.onclick=()=>{ closeSheet(); wk.active={...(wk.active||{}),[id]:n}; save(); render(); const c=document.querySelector(".slot.cur"); if(c) c.scrollIntoView({block:"start",behavior:"smooth"}); }; });
 }
@@ -1411,7 +1411,7 @@ function restPlan(s,name,k,d){
   /* Context levers: heavier recovery demand gets longer rest on compound lifts (never shorter), capped at +30s */
   const ctx=[]; if(!iso){ if(cutting()) ctx.push("cut"); if(inSeason()) ctx.push("in-season");
     const feel=d?(wk.today||{})[d.id]:""; if(feel==="Rough"||wk.ready==="Low"||wk.sore==="Everything") ctx.push("recovery"); }
-  return {base:base+uni,bump:(k===0&&!iso?30:0)+Math.min(30,ctx.length*15),why:ctx.length?`+${Math.min(30,ctx.length*15)}s · ${ctx.join(", ")}`:""};
+  return {base:base+uni,bump:(k===0&&!iso?30:0)+Math.min(30,ctx.length*15),why:ctx.length?`+${Math.min(30,ctx.length*15)}s (${ctx.join(", ")})`:""};
 }
 const restFor=(name,p)=>((wk.restFor||{})[name])||p.base;
 function startRest(name,s,k,d){ const p=restPlan(s,name,k,d), secs=p.fixed?p.base:restFor(name,p)+p.bump;
@@ -1581,7 +1581,7 @@ function dayDone(id,sets){
   const ease=c("down")+c("collapse"), nxt=DAYS.find(x=>!(wk.done||{})[x.id]);
   const T=(wk.wt||{})[id];
   const S=daySummary(id), mins=T&&T.start&&T.end?Math.max(1,Math.round((T.end-T.start)/60000)):0;
-  showDone({eyebrow:`${d.tab}: ${d.title}${mins?` · ${mins} min`:""}`,title:"Day done",
+  showDone({eyebrow:`${d.tab}: ${d.title}${mins?` (${mins} min)`:""}`,title:"Day done",
     body:prHighlight(S,T&&T.start)+workoutRows(S,rv.items,(T&&T.start)||0)+(rv.note?`<p class="dnote">${esc(rv.note)}</p>`:""),
     cta:"Finish & close",onCta:()=>goTab("workouts"),shareId:id});
 }
@@ -1802,7 +1802,7 @@ function renderTour(focus){
       +card("How you're doing",rowsH([["Readiness, soreness, drinks","Asked each week"]]))},
    {tab:"Day 1",page:"Day 1",name:"Lifting goals",title:"Specify lifting goals",
     text:"Hit the top or miss the bottom of your rep range to see future lifts adjust based on your goals.",
-    body:card("Lifting focus",`${tchips("focus",[["Lower","Lower body"],["Balanced","Balanced"],["Upper","Upper body"]],wk.focus)}${rowsH([["Hip thrust · 4 × 6–10","140 lb × 10"],["Next time",inS?"140 lb · Hold":`${140+inc} lb · Up`,1]])}`,1)},
+    body:card("Lifting focus",`${tchips("focus",[["Lower","Lower body"],["Balanced","Balanced"],["Upper","Upper body"]],wk.focus)}${rowsH([["Hip thrust: 4 × 6–10","140 lb × 10"],["Next time",inS?"140 lb (Hold)":`${140+inc} lb (Up)`,1]])}`,1)},
    {tab:"Season",page:"Profile",name:"Bio Data",title:"Tailor to your biometrics",
     text:"Set your bio data to see how things affect your metabolism, protein target & progressive overload.",
     body:card("Bio Data",`${tchips("sex",[["Female","Female"],["Male","Male"],["Other","Other"]],wk.sex)}<div class="nums two">${tin("height","Height (in)")}${tin("weight","Weight (lb)")}</div>`,1)}
@@ -1826,13 +1826,13 @@ function renderTour(focus){
     /* plain-language overview: four swipeable pictures of what the app does */
     const chips=(o,on)=>`<div class="achips">${o.map(x=>`<span${x===on?' class="on"':""}>${x}</span>`).join("")}</div>`;
     const A=[
-      [`<div class="acard">${chips(["Off-season","In-season"],"In-season")}</div><div class="aarrow">↓</div><div class="acard dark"><span class="plab">Your days now</span><b>Full Body A · Full Body B</b><small>2 sets each · extra work for your sport</small></div>`,
+      [`<div class="acard">${chips(["Off-season","In-season"],"In-season")}</div><div class="aarrow">↓</div><div class="acard dark"><span class="plab">Your days now</span><b>Full Body A, Full Body B</b><small>2 sets each, extra work for your sport</small></div>`,
        "Train for your season","Build strength when you're not playing much. When your season begins, the plan keeps you strong without wearing you out."],
       [`<div class="acard">${chips(["Lose fat","Maintain","Build muscle"],"Lose fat")}</div><div class="acard"><p class="abig"><b>1,595</b> calories a day</p><div class="abar"><i style="width:32%"></i><i style="width:68%"></i></div><small class="aacc">+85 a day from your extra games</small></div>`,
        "Know how to fuel","Choose your goal. Your fuel target moves with whatever else you did this week."],
-      [`<div class="acard">${chips(["Lower body","Balanced","Upper body"],"Lower body")}</div><div class="acard alist"><div><b>Day 1 · Lower</b><small class="aacc">+1 set</small></div><div><b>Day 2 · Upper</b><small>shorter</small></div><div><b>Day 3 · Lower</b><small class="aacc">+1 set</small></div></div>`,
+      [`<div class="acard">${chips(["Lower body","Balanced","Upper body"],"Lower body")}</div><div class="acard alist"><div><b>Day 1: Lower</b><small class="aacc">+1 set</small></div><div><b>Day 2: Upper</b><small>shorter</small></div><div><b>Day 3: Lower</b><small class="aacc">+1 set</small></div></div>`,
        "Your focus, your extra sets","Specify what you want to grow and any bonus work lands there."],
-      [`<div class="acard">${chips(["Female","Male","Other"],"Female")}</div><div class="acard"><p class="abig"><span class="atag">↑</span>Next time <b class="aacc">140 lb</b></p><small>Protein 110–140 g a day · Maintenance 1,845</small></div>`,
+      [`<div class="acard">${chips(["Female","Male","Other"],"Female")}</div><div class="acard"><p class="abig"><span class="atag">↑</span>Next time <b class="aacc">140 lb</b></p><small>Protein 110–140 g a day, maintenance 1,845</small></div>`,
        "Numbers that power your plan.","Sex, size and body fat set your metabolism, protein and progressive overload."]];
     el.innerHTML=`<div class="twelcome tabout" role="dialog" aria-modal="true" aria-labelledby="tTitle">
       <span class="plab">What this does</span>
@@ -1876,7 +1876,7 @@ function renderTour(focus){
   </div></div>
   <div class="tdim" aria-hidden="true"></div>
   <div class="tpop" role="dialog" aria-modal="true" aria-labelledby="tTitle">
-    <div class="ttop"><span class="plab">${i+1} of ${S.length} · ${s.name}</span><button type="button" class="tskip" id="tSkip">${tour.snap?"Close":"Skip tour"}</button></div>
+    <div class="ttop"><span class="plab">${i+1} of ${S.length}: ${s.name}</span><button type="button" class="tskip" id="tSkip">${tour.snap?"Close":"Skip tour"}</button></div>
     <p class="ttitle" id="tTitle" tabindex="-1">${s.title}</p>
     <p class="ttext">${s.text}</p>
     <div class="tbtns two"><button type="button" class="tb ghost" id="tBack">Back</button><button type="button" class="tb" id="tNext">Next</button></div>
@@ -1896,7 +1896,7 @@ function renderTour(focus){
    Shows once (wk.onbDone); Replay tour on You opens it again. Answers start from your current settings; Skip leaves them as they are. */
 let onb=null, onbDemo=0;
 const LV_NAME=["Beginner","Some Experience","Advanced"];
-const LV={mode:["Guided","Standard","Flexible"],s1:["3 × 10 · 65 lb","4 × 8 · 135 lb","4 × 6–10 · 155"],s2:["3 × 10 · 45 lb","3 × 8 · 95 lb","3 × 8–12 · 105"],
+const LV={mode:["Guided","Standard","Flexible"],s1:["3 × 10 (65 lb)","4 × 8 (135 lb)","4 × 6–10 (155)"],s2:["3 × 10 (45 lb)","3 × 8 (95 lb)","3 × 8–12 (105)"],
   p:[["Tips on every screen","The reason for each exercise","A fixed plan to follow"],["Tips the first time you see each screen","Rest timer and next-time targets","Swap exercises when you want to"],["No tips; explanations only if you tap (i)","Swap, add and skip exercises freely","Assumes you know form and your numbers"]]};
 function paintLvl(el,v){ const r=el.querySelector(".lvlp"); if(!r) return; r.dataset.v=v;
   const set=(f,t)=>{ const x=r.querySelector(`[data-f="${f}"]`); if(x) x.textContent=t; };
@@ -1976,7 +1976,7 @@ function renderOnb(focus){
     <div class="lvwrap"><input class="olvl" type="range" min="0" max="2" step="0.01" value="${v}" aria-label="Experience level" aria-valuetext="${LV_NAME[v]}">
     <div class="olvls">${LV_NAME.map((n,k)=>`<button type="button" data-lvl="${k}" aria-pressed="${k===v}">${n}</button>`).join("")}</div></div>
     <section class="odemo" aria-live="polite">
-      <div class="orow"><span class="weye">Day 1 · Lower</span><span class="omode" data-f="mode"></span></div>
+      <div class="orow"><span class="weye">Day 1: Lower</span><span class="omode" data-f="mode"></span></div>
       <div class="lvx tip"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#6fd0b4" stroke-width="1.6"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.2v4M8 4.8v.2"/></svg><span>Start light. The app finds your working weight over the first two weeks.</span></div>
       <div class="orow"><b>Hip Thrust (Barbell)</b><span class="mono" data-f="s1"></span></div>
       <div class="lvx why">Why: hip thrusts build glutes with less strain on your back than squats.</div>
@@ -1993,7 +1993,7 @@ function renderOnb(focus){
     if(n===2) body=`<div class="ogoals">${ONB_GOALS.map(([v,l,d])=>`<button type="button" data-og="${v}" aria-pressed="${o.goal===v}"><b>${l}</b><span>${d}</span></button>`).join("")}</div>`;
     if(n===3){ const acts=[...(o.sport?[[o.sport,"pb",ACT[o.sport].name]]:[]),...ONB_ACTS(o).map(a=>[a,"ac:"+a,ACT[a].name])], val=k=>k.startsWith("ac:")?(o.ac[k.slice(3)]||0):o[k];
       body=`<span class="plab">Lift days</span><div class="ldgrid">${"MTWTFSS".split("").map((c,k)=>`<button type="button" data-od="${k}" aria-pressed="${o.days.includes(k)}" aria-label="${WD[k]}">${c}</button>`).join("")}</div>
-      <span class="plab">Other activities · per week, any day</span>${acts.map(([a,k,l])=>`<div class="ostep"><span>${l}</span><span><button type="button" data-oc="${k}" data-d="-1" aria-label="Fewer ${l}">−</button><output>${val(k)}</output><button type="button" data-oc="${k}" data-d="1" aria-label="More ${l}">+</button></span></div>`).join("")}`; }
+      <span class="plab">Other activities (per week, any day)</span>${acts.map(([a,k,l])=>`<div class="ostep"><span>${l}</span><span><button type="button" data-oc="${k}" data-d="-1" aria-label="Fewer ${l}">−</button><output>${val(k)}</output><button type="button" data-oc="${k}" data-d="1" aria-label="More ${l}">+</button></span></div>`).join("")}`; }
     if(n===4) body=`<div class="ogrid three">${[["Lower","Lower body"],["Balanced","Balanced"],["Upper","Upper body"]].map(([v,l])=>chip(o.focus===v,`data-of="${v}"`,l)).join("")}</div>`;
     if(n===5) body=`<div class="ogoals">${LEVELS.map(([v,l,d])=>`<button type="button" data-olv="${v}" aria-pressed="${o.level===v}"><b>${l}</b><span>${d}</span></button>`).join("")}</div>`;
     if(n===6) body=`<div class="ogrid three">${["Female","Male","Other"].map(v=>chip(o.sex===v,`data-ox="${v}"`,v)).join("")}</div>
@@ -2002,10 +2002,10 @@ function renderOnb(focus){
     if(n===7){ const D=pv.days, today=monIdx(new Date()), ds=o.days.slice().sort(), nextD=ds.find(d=>d>=today)??ds[0];
       const order=ds.filter(d=>d>=today).concat(ds.filter(d=>d<today));
       const rest=order.slice(1).map((d,i)=>({t:(D[(i+1)%D.length]||{}).title||"Lift",d:WD[d],a:0})).concat([[o.sport,o.pb],...onbShown(o)].filter(([a,c])=>a&&c).map(([a,c])=>({t:ACT[a].name+(c>1?` ×${c}`:""),d:"Any day",a:1})));
-      body=`<section class="ofirst"><span class="weye">First workout · ${D.length?(nextD===today?"Today":WD[nextD]):"whenever you like"}</span><h3>${esc(D.length?D[0].title:"Log an activity")}</h3><p>Starting weights are a guess. Log your first sets and the app adjusts from there.</p></section>
+      body=`<section class="ofirst"><span class="weye">First workout: ${D.length?(nextD===today?"Today":WD[nextD]):"whenever you like"}</span><h3>${esc(D.length?D[0].title:"Log an activity")}</h3><p>Starting weights are a guess. Log your first sets and the app adjusts from there.</p></section>
       <div class="orest2">${rest.map((r,i)=>`<div class="${r.a?"a":""}" style="animation-delay:${300+i*120}ms"><b>${esc(r.t)}</b><span>${r.d}</span></div>`).join("")}</div>`; }
     const gName=(ONB_GOALS.find(g=>g[0]===o.goal)||[])[1], nd=o.days.length;
-    const prev=[[o.sport&&!SEASONAL(o.sport)?"Main activity":"Season",o.sport?`${ACT[o.sport].name}${SEASONAL(o.sport)?` · ${o.inS?"in-season":"off-season"}`:""}`:"No sport"],...(n>=2?[["Goal",gName]]:[]),...(n>=3?[["Week",`${nd} lift${nd===1?"":"s"}${o.sport&&o.pb?` + ${o.pb}× ${ACT[o.sport].name.toLowerCase()}`:""}${onbShown(o).filter(([,c])=>c).map(([a,c])=>` + ${c}× ${ACT[a].name.toLowerCase()}`).join("")}`]]:[]),...(n>=4?[["Focus",o.focus==="Balanced"?"Balanced":o.focus+" body"]]:[]),...(n>=5?[["Guidance",LEVELS.find(x=>x[0]===o.level)[1]]]:[]),...(n>=6?[["Fuel",`${pv.food.toLocaleString()} kcal a day`]]:[])];
+    const prev=[[o.sport&&!SEASONAL(o.sport)?"Main activity":"Season",o.sport?`${ACT[o.sport].name}${SEASONAL(o.sport)?` (${o.inS?"in-season":"off-season"})`:""}`:"No sport"],...(n>=2?[["Goal",gName]]:[]),...(n>=3?[["Week",`${nd} lift${nd===1?"":"s"}${o.sport&&o.pb?` + ${o.pb}× ${ACT[o.sport].name.toLowerCase()}`:""}${onbShown(o).filter(([,c])=>c).map(([a,c])=>` + ${c}× ${ACT[a].name.toLowerCase()}`).join("")}`]]:[]),...(n>=4?[["Focus",o.focus==="Balanced"?"Balanced":o.focus+" body"]]:[]),...(n>=5?[["Guidance",LEVELS.find(x=>x[0]===o.level)[1]]]:[]),...(n>=6?[["Fuel",`${pv.food.toLocaleString()} kcal a day`]]:[])];
     h=`<div class="onb"><div class="otop"><div class="odots" role="progressbar" aria-label="Setup progress" aria-valuemin="1" aria-valuemax="7" aria-valuenow="${n}">${[1,2,3,4,5,6,7].map(i=>`<i class="${i===n?"on":i<n?"past":""}"></i>`).join("")}</div>${skip}</div>
       <div class="ostepbody"><h2 class="oh" tabindex="-1">${Q[0]}</h2><p class="olead sm">${Q[1]}</p>${body}</div>
       ${n<7?`<section class="oprev" aria-label="Plan so far"><span class="weye">Plan so far</span>${prev.map(([k,v])=>`<div><span>${k}</span><b>${esc(v)}</b></div>`).join("")}</section>`:""}

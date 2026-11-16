@@ -362,16 +362,16 @@ function balanceWeek(P,MP,inS,deload){
     Object.keys(L).filter(m=>L[m].target>0&&L[m].missed>0&&proj(m)<L[m].target).sort((a,b)=>L[b].p-L[a].p).forEach(m=>{
       items.filter(it=>!it.dayDone&&it.prim===m&&it.A.skip&&it.A.skip.startsWith("Trimmed")).forEach(it=>{
         if(proj(m)>=L[m].target) return;
-        it.A.skip=""; it.A.why.push(`back in · ${MUSCLES[m].toLowerCase()} behind this week`); it.A.catchUp=1;
+        it.A.skip=""; it.A.why.push(`back in: ${MUSCLES[m].toLowerCase()} behind this week`); it.A.catchUp=1;
         Object.entries(it.mus).forEach(([mm,w])=>{ L[mm].left+=w*Math.max(0,it.A.sets-it.did); });
         changes.push([m,`${it.d.tab}: ${it.s.label.toLowerCase()} back in`]); });
       if(proj(m)<L[m].target){ const it=items.find(x=>!x.dayDone&&x.prim===m&&!x.A.skip&&!x.s.main&&!x.s.extra&&x.did<(x.A.sets||0));
-        if(it){ it.A.sets++; it.A.delta++; it.A.why.push(`+1 · ${MUSCLES[m].toLowerCase()} behind this week`); L[m].left+=1; changes.push([m,`${it.d.tab}: +1 set`]); } }
+        if(it){ it.A.sets++; it.A.delta++; it.A.why.push(`+1: ${MUSCLES[m].toLowerCase()} behind this week`); L[m].left+=1; changes.push([m,`${it.d.tab}: +1 set`]); } }
     });
     /* covered: a low-priority isolation repeat on a later day becomes optional once enough is done or booked */
     items.filter(it=>!it.dayDone&&!it.A.skip&&!it.s.main&&!it.s.extra&&it.did===0&&Object.keys(it.mus).length===1).forEach(it=>{
       const m=it.prim, x=L[m]; if(x.p>2||x.done<=0||!x.target) return;
-      if(proj(m)-(it.A.sets||0)>=x.target*1.25){ it.A.skip=`Covered · ${MUSCLES[m].toLowerCase()} on track this week`; x.left-=it.A.sets||0; changes.push([m,`${it.d.tab}: ${it.s.label.toLowerCase()} optional`]); } });
+      if(proj(m)-(it.A.sets||0)>=x.target*1.25){ it.A.skip=`Covered: ${MUSCLES[m].toLowerCase()} on track this week`; x.left-=it.A.sets||0; changes.push([m,`${it.d.tab}: ${it.s.label.toLowerCase()} optional`]); } });
   }
   P.ledger=Object.entries(L).filter(([m,x])=>x.target>0||x.done>0).map(([m,x])=>({m,name:MUSCLES[m],done:x.done,left:x.left,target:x.target,p:x.p,
     status:x.done>=x.target?"done":(x.missed>0&&proj(m)<x.target)?"behind":"on track"})).sort((a,b)=>b.p-a.p||a.name.localeCompare(b.name));
@@ -471,33 +471,33 @@ function plan(){ buildDefaults(); const cut=cutting();
       const base=s.sets+(d.full&&!inS&&!s.cardio&&!s.support?1:0);
       if(s.support&&!(inS&&seasonSports().some(a=>s.sp.includes(a)))){A.skip="hidden"; D.slots.push(A); return;}
       if(!s.cardio){
-        if(deload){ A.sets=Math.max(1,Math.ceil(base*0.6)); A.why.push(`${A.sets} sets · deload week`); D.slots.push(A); return; }
+        if(deload){ A.sets=Math.max(1,Math.ceil(base*0.6)); A.why.push(`${A.sets} sets: deload week`); D.slots.push(A); return; }
         if(wk.time==30&&!s.main&&i!==keep30){A.skip="Trimmed for a 30-min session";}
         if(wk.time==45&&trimSet.has(i)){A.skip="Trimmed for a 45-min session";}
-        if(wk.ss==="No"&&wk.time<=60&&trimSet.has(i)&&hasSS&&!A.skip){A.skip="Trimmed · no supersets";}
-        if(focus==="Lower"&&s.lower&&!s.main){A.delta++;A.why.push("+1 · lower body focus");}
-        if(focus==="Lower"&&s.upperAcc&&base>2){A.delta--;A.why.push("−1 · lower body focus");}
-        if(focus==="Upper"&&s.upperAcc){A.delta++;A.why.push("+1 · upper body focus");}
-        if(focus==="Upper"&&s.lower&&!s.main&&base>2){A.delta--;A.why.push("−1 · upper body focus");}
-        if(shortD){ if(!s.main&&trimSet.has(i)) A.skip="Skipped · "+dayCause; A.delta--; A.why.push("−1 · "+dayCause); }
+        if(wk.ss==="No"&&wk.time<=60&&trimSet.has(i)&&hasSS&&!A.skip){A.skip="Trimmed: no supersets";}
+        if(focus==="Lower"&&s.lower&&!s.main){A.delta++;A.why.push("+1: lower body focus");}
+        if(focus==="Lower"&&s.upperAcc&&base>2){A.delta--;A.why.push("−1: lower body focus");}
+        if(focus==="Upper"&&s.upperAcc){A.delta++;A.why.push("+1: upper body focus");}
+        if(focus==="Upper"&&s.lower&&!s.main&&base>2){A.delta--;A.why.push("−1: upper body focus");}
+        if(shortD){ if(!s.main&&trimSet.has(i)) A.skip="Skipped: "+dayCause; A.delta--; A.why.push("−1: "+dayCause); }
         else if(cutD&&s.main){
           const loc=dayCause==="recovery load"?wk.sore:"Everything";
           const hit=loc==="Legs"?!s.upperMain:loc==="Upper body"?!!s.upperMain:true;
-          if(hit){A.delta--;A.why.push("−1 · "+dayCause);}
+          if(hit){A.delta--;A.why.push("−1: "+dayCause);}
         }
-        if(DAYS.indexOf(d)>=5){A.delta--;A.why.push(`−1 · ${DAYS.length===6?"day 6":"days 6–7"} of ${DAYS.length}`);}
-        if(wk.time==75&&s.main){A.delta++;A.why.push("+1 · 75-min session");}
-        if(build&&s.main){A.delta++;A.why.push("+1 · build");}
-        if(legMin>=120&&s.uni){A.delta--;A.why.push("−1 · "+sportWhy);}
-        if(legMin>=180&&s.quad){A.delta--;A.why.push("−1 · "+sportWhy);}
-        if(shMin>=120&&s.label==="Rear delts"){A.delta++;A.why.push("+1 · "+sportWhy);}
-        if(shMin>=120&&s.label==="Side delts"&&base>=3){A.delta--;A.why.push("−1 · "+sportWhy);}
-        if(hardSpin&&s.quad){A.delta--;A.why.push("−1 · hard spin");}
-        if(cl>=1&&s.vpull&&!climbCut){climbCut=true;A.delta--;A.why.push(`−1 · ${cl}× climbing`);}
-        if(cl>=1&&s.arms){A.skip=`Skipped · ${cl}× climbing`;}
-        if(cl>=2&&s.lats){A.skip=`Skipped · ${cl}× climbing`;}
-        if(today==="Good"&&s.main&&!cutD){A.why.push("push your top set · feeling good");}
-        if(cut&&!s.main&&!done[d.id]){ const lx=missedLast(exName(d,s,i)); if(lx&&lx.r<range(s.reps)[0]&&base>1){A.delta--;A.why.push("−1 · missed reps last time on a cut");} }
+        if(DAYS.indexOf(d)>=5){A.delta--;A.why.push(`−1: ${DAYS.length===6?"day 6":"days 6–7"} of ${DAYS.length}`);}
+        if(wk.time==75&&s.main){A.delta++;A.why.push("+1: 75-min session");}
+        if(build&&s.main){A.delta++;A.why.push("+1: build");}
+        if(legMin>=120&&s.uni){A.delta--;A.why.push("−1: "+sportWhy);}
+        if(legMin>=180&&s.quad){A.delta--;A.why.push("−1: "+sportWhy);}
+        if(shMin>=120&&s.label==="Rear delts"){A.delta++;A.why.push("+1: "+sportWhy);}
+        if(shMin>=120&&s.label==="Side delts"&&base>=3){A.delta--;A.why.push("−1: "+sportWhy);}
+        if(hardSpin&&s.quad){A.delta--;A.why.push("−1: hard spin");}
+        if(cl>=1&&s.vpull&&!climbCut){climbCut=true;A.delta--;A.why.push(`−1: ${cl}× climbing`);}
+        if(cl>=1&&s.arms){A.skip=`Skipped: ${cl}× climbing`;}
+        if(cl>=2&&s.lats){A.skip=`Skipped: ${cl}× climbing`;}
+        if(today==="Good"&&s.main&&!cutD){A.why.push("push your top set: feeling good");}
+        if(cut&&!s.main&&!done[d.id]){ const lx=missedLast(exName(d,s,i)); if(lx&&lx.r<range(s.reps)[0]&&base>1){A.delta--;A.why.push("−1: missed reps last time on a cut");} }
         A.sets=Math.max(s.main?2:1,base+A.delta);
       }else{
         if(wk.time==30) A.skip="Trimmed for a 30-min session";
@@ -565,7 +565,7 @@ function plan(){ buildDefaults(); const cut=cutting();
   const finK=fins.reduce((a,f)=>a+f.kcal,0);
   const overs=[];
   DAYS.forEach(d=>{ const pl=(wk.donePlan||{})[d.id]; const got=P.days[d.id].done; if(done[d.id]&&pl!=null&&got-pl>Math.max(50,pl*0.25)) overs.push(`${d.tab} cardio +${r5(got-pl)} kcal`); });
-  if(overs.length&&!build&&!maintain) cand.forEach(f=>{ f.flag=(f.skip?"Dropped":`Cut to ${f.min} min`)+" · "+overs.join(", "); f.overWhy=overs.join(", "); });
+  if(overs.length&&!build&&!maintain) cand.forEach(f=>{ f.flag=(f.skip?"Dropped":`Cut to ${f.min} min`)+": "+overs.join(", "); f.overWhy=overs.join(", "); });
   const cardioTotal=otherK+doneK+finK;
   const food=(target-cardioTotal)/7;
   /* Maintenance */
@@ -632,11 +632,11 @@ function plan(){ buildDefaults(); const cut=cutting();
   DAYS.forEach(d=>{ d.slots.forEach((s,i)=>{ const A=P.days[d.id].slots[i];
     if(A.skip==="hidden") return;
     const daily=c=>c==="rough day"||c==="reps dropped last session"||c==="feeling good";
-    if(A.skip&&A.skip.startsWith("Skipped · ")){ const c=A.skip.slice(10); if(!daily(c)) add(causeOf(c),"some accessories skipped"); }
-    if(A.skip&&A.skip.startsWith("Covered · ")) add("Muscle balance",`${d.tab} ${s.label.toLowerCase()} optional (${A.skip.slice(10).replace(" on track this week","")} covered)`);
-    if(A.skip==="Trimmed · no supersets") add("No supersets","optional accessories cut to fit");
+    if(A.skip&&A.skip.startsWith("Skipped: ")){ const c=A.skip.slice(9); if(!daily(c)) add(causeOf(c),"some accessories skipped"); }
+    if(A.skip&&A.skip.startsWith("Covered: ")) add("Muscle balance",`${d.tab} ${s.label.toLowerCase()} optional (${A.skip.slice(9).replace(" on track this week","")} covered)`);
+    if(A.skip==="Trimmed: no supersets") add("No supersets","optional accessories cut to fit");
     else if(A.skip&&A.skip.startsWith("Trimmed")) add(wk.time+"-min sessions",wk.time==30?"main lifts + 1 accessory, no finisher":"optional accessories cut");
-    if(!A.skip) A.why.forEach(w=>{const [e,c]=w.split(" · "); if(!c||daily(c)) return;
+    if(!A.skip) A.why.forEach(w=>{const [e,c]=w.split(": "); if(!c||daily(c)) return;
       if(/^[+−]\d$/.test(e)) add(causeOf(c),`${cat(s)} ${e[0]}1 set`); else if(c==="deload week") add(c,"about 60% of sets"); else add(c,e); });
     if(A.steady&&!A.skip&&!daily(A.steady)) add(causeOf(A.steady),"finishers at easy pace");
     if(A.overWhy) add(A.overWhy,A.skip?"finishers dropped":"finishers shortened"); }); });
@@ -693,7 +693,7 @@ function suggest(d,s,i,useLog,P){
     /* on a cut, missing the range is expected fatigue: keep the load; only ease 5% after three misses in a row */
     const seq=h.slice(); if(now) seq.push(now); let miss=0;
     for(let k=seq.length-1;k>=0&&seq[k].w===last.w&&seq[k].r<lo;k--) miss++;
-    if(miss>=3) return {w:roundW(n,last.w*0.95),r:lo,why:"3 misses · ease 5%"};
+    if(miss>=3) return {w:roundW(n,last.w*0.95),r:lo,why:"3 misses: ease 5%"};
     return {w:last.w,r:lo,why:"hold"};
   }
   if(prev&&prev.w===last.w&&prev.r<lo) return {w:roundW(n,last.w*0.9),r:lo,why:"rebuild"};
@@ -712,7 +712,7 @@ function review(d,s,i,P){
   if(canUp&&last.r>=top+3){ w=last.w+2*incFor(n,s,last.w); r=lo; why="too light, bigger jump"; }
   else if(log.length>=2&&first.w===last.w&&first.r-last.r>=4){ w=last.w; why="reps fell off across sets; rest longer, same weight"; tag="collapse"; }
   else if(last.r<lo&&base.why.startsWith("hold")){ why="hold"; }
-  if(log.length<(A.sets||0)) why+=` · ${log.length}/${A.sets} sets`;
+  if(log.length<(A.sets||0)) why+=` (${log.length}/${A.sets} sets)`;
   tag=tag||(w>last.w?"up":w<last.w?"down":"hold");
   return {n,w,r,why,tag};
 }
@@ -722,7 +722,7 @@ function fx(P){
   Object.entries(P.G).forEach(([c,l])=>{ o["r:"+c.replace(/ \d+ \(.*\)$/,"").replace(/^\d+ min /,"")]=`${c[0].toUpperCase()+c.slice(1)} → ${l.join(", ")}`; });
   o.intake=r5(P.math.intake); o.tdee=r5(P.math.tdee); o.target=r5(P.math.target);
   o.fin=P.math.nLift?(P.math.nFin?`Finishers now ${P.math.m} min × ${P.math.nFin}`:"No finishers needed"):"";
-  o.days=DAYS.length?`Days now: ${DAYS.map(d=>d.title.split(" (")[0]).join(" · ")}`:"No lifting days";
+  o.days=DAYS.length?`Days now: ${DAYS.map(d=>d.title.split(" (")[0]).join(", ")}`:"No lifting days";
   return o;
 }
 function diffFx(a,b){
@@ -753,7 +753,7 @@ function dayDiff(Pa,Pb,id){
   if(B.cutD&&!A.cutD) out.push("Same weights as last time");
   if(!B.cutD&&A.cutD) out.push("Weights can go up again");
   if(B.today==="Good"&&A.today!=="Good") out.push("Push your top set on main lifts");
-  return out.length?[`Today: ${B.today}`,...out]:[`Today: ${B.today} · no change to the plan`];
+  return out.length?[`Today: ${B.today}`,...out]:[`Today: ${B.today} (no change to the plan)`];
 }
 const UNI_RE=/single|bulgarian|split squat|lunge|step-up|copenhagen|side plank|suitcase|cossack|single-arm|one-arm|side-lying|kneeling single/i;
 const sideDefault=n=>{ const h=(exHist[n]||[]).slice().reverse().find(x=>x.side); return h&&h.side==="Left"?"Right":"Left"; };
@@ -1042,4 +1042,4 @@ function capSports(){
 export { LDEF, ldays, onActs, noteAct, orderActs, suggestedAct, trimActivityDays, addWeekly, askedWeekly, markAskedWeekly, sessN, plannedActs, setActivityDay, fitActivityDays, capSports, timeByKind, hoursMoved, mostPlayed, seasonFrom, changeItems, watchItems, keepWeight, rowDone, countsInDay, wTitle, e1rm, prsBetween, weekComplete, weekStreak, countWeek, EFF_MULT, OWN_EFF, sessionKcal, liftKcal, refreshLiftK, LIFT_MET, weekActuals, swapOptions, swapDay, rateLb, isBW, yogaMet, pilMet, YOGA_EFF, PIL_EFF, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, MUSCLES, slotMuscles, musclePriority, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk };
 
 /* workout titles read "Lower (Glute & Hamstring)"; older saved titles used a middle dot */
-const wTitle=t=>String(t||"").replace(/^(Lower|Upper) · (.+)$/,"$1 ($2)");
+const wTitle=t=>String(t||"").replace(/^(Lower|Upper): (.+)$/,"$1 ($2)");

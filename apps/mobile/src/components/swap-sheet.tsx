@@ -27,7 +27,7 @@ function preview(day: Day) {
     .filter((row) => !row.slot.cardio)
     .slice(0, 3)
     .map((row) => engine.exName(day, row.slot, row.index))
-    .join(" · ");
+    .join(", ");
 }
 
 export function swapChoices(id: string) {

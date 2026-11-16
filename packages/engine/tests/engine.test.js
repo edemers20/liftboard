@@ -450,7 +450,7 @@ describe("rest, starting weights and the day queue", () => {
   it("adds 15s on a cut and caps a remembered tweak between 30s and 5:00", () => {
     fresh({ focus: "Lower", mode: "Deficit only" });
     const d = E.DAYS[0];
-    expect(E.restPlan(d.slots[0], "Hip Thrust (Barbell)", 1, d).why).toBe("+15s · cut");
+    expect(E.restPlan(d.slots[0], "Hip Thrust (Barbell)", 1, d).why).toBe("+15s (cut)");
     E.beginRest(d.id, 0, 0);
     for (let n = 0; n < 20; n++) E.adjustRest(-15);
     expect(E.wk.restFor["Hip Thrust (Barbell)"]).toBe(30);

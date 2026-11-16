@@ -25,10 +25,10 @@ To change wording: edit it here first, then update `copy.ts` to match.
 | Step label | Lifting goals | main.js:1358 |
 | Title | Specify lifting goals | main.js:1358 |
 | Body text | Hit the top or miss the bottom of your rep range to see future lifts adjust based on your goals. | main.js:1359 |
-| Sample content | Hip thrust · 4 × 6–10 | main.js:1360 |
+| Sample content | Hip thrust: 4 × 6–10 | main.js:1360 |
 | Sample content | 140 lb × 10 | main.js:1360 |
-| Sample content | 140 lb · Hold | main.js:1360 |
-| Sample content | {…} lb · Up | main.js:1360 |
+| Sample content | 140 lb (Hold) | main.js:1360 |
+| Sample content | {…} lb (Up) | main.js:1360 |
 | Title | Tailor to your biometrics | main.js:1361 |
 | Body text | Set your bio data to see how things affect your metabolism, protein target & progressive overload. | main.js:1362 |
 |  | I don't know you | main.js:1366 |
@@ -38,8 +38,8 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Back | main.js:1366 |
 |  | Finish setup | main.js:1371 |
 |  | Your days now | main.js:1384 |
-|  | Full Body A · Full Body B | main.js:1384 |
-|  | 2 sets each · extra work for your sport | main.js:1384 |
+|  | Full Body A, Full Body B | main.js:1384 |
+|  | 2 sets each, extra work for your sport | main.js:1384 |
 |  | Train for your season | main.js:1385 |
 |  | Build strength when you're not playing much. When your season begins, the plan keeps you strong without wearing you out. | main.js:1385 |
 |  | Lose fat | main.js:1386 |
@@ -47,14 +47,14 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | +85 a day from your extra games | main.js:1386 |
 |  | Know how to fuel | main.js:1387 |
 |  | Choose your goal. Your fuel target moves with whatever else you did this week. | main.js:1387 |
-|  | Day 1 · Lower | main.js:1388 |
+|  | Day 1: Lower | main.js:1388 |
 |  | +1 set | main.js:1388 |
-|  | Day 2 · Upper | main.js:1388 |
-|  | Day 3 · Lower | main.js:1388 |
+|  | Day 2: Upper | main.js:1388 |
+|  | Day 3: Lower | main.js:1388 |
 |  | Your focus, your extra sets | main.js:1389 |
 |  | Specify what you want to grow and any bonus work lands there. | main.js:1389 |
 |  | 140 lb | main.js:1390 |
-|  | Protein 110–140 g a day · Maintenance 1,845 | main.js:1390 |
+|  | Protein 110–140 g a day, maintenance 1,845 | main.js:1390 |
 |  | Numbers that power your plan. | main.js:1391 |
 |  | Sex, size and body fat set your metabolism, protein and progressive overload. | main.js:1391 |
 |  | What this does | main.js:1392 |
@@ -66,7 +66,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Take the tour | main.js:1410 |
 |  | Close | main.js:1416 |
 |  | Skip tour | main.js:1416 |
-|  | {…} of {…} · {…} | main.js:1427 |
+|  | {…} of {…}: {…} | main.js:1427 |
 |  | Next | main.js:1427 |
 |  | Beginner | main.js:1453 |
 |  | Some Experience | main.js:1453 |
@@ -74,12 +74,12 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Guided | main.js:1454 |
 |  | Standard | main.js:1454 |
 |  | Flexible | main.js:1454 |
-|  | 3 × 10 · 65 lb | main.js:1454 |
-|  | 4 × 8 · 135 lb | main.js:1454 |
-|  | 4 × 6–10 · 155 | main.js:1454 |
-|  | 3 × 10 · 45 lb | main.js:1454 |
-|  | 3 × 8 · 95 lb | main.js:1454 |
-|  | 3 × 8–12 · 105 | main.js:1454 |
+|  | 3 × 10 (65 lb) | main.js:1454 |
+|  | 4 × 8 (135 lb) | main.js:1454 |
+|  | 4 × 6–10 (155) | main.js:1454 |
+|  | 3 × 10 (45 lb) | main.js:1454 |
+|  | 3 × 8 (95 lb) | main.js:1454 |
+|  | 3 × 8–12 (105) | main.js:1454 |
 |  | Tips on every screen | main.js:1455 |
 |  | The reason for each exercise | main.js:1455 |
 |  | A fixed plan to follow | main.js:1455 |
@@ -155,14 +155,14 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | In-season now | main.js:1532 |
 |  | In-season | onboarding plan summary |
 |  | Off-season | onboarding plan summary |
-|  | Other activities · per week, any day | main.js:1535 |
+|  | Other activities (per week, any day) | main.js:1535 |
 |  | Weight ({…}) | main.js:1540 |
 |  | Daily steps | main.js:1540 |
 | Placeholder | optional | main.js:1540 |
 | Placeholder | e.g. 8000 | main.js:1540 |
 |  | whenever you like | main.js:1545 |
 |  | Log an activity | main.js:1545 |
-|  | First workout · {…} | main.js:1545 |
+|  | First workout: {…} | main.js:1545 |
 |  | Starting weights are a guess. Log your first sets and the app adjusts from there. | main.js:1545 |
 |  | Plan so far | main.js:1551 |
 |  | Go to Workouts | main.js:1552 |
@@ -260,9 +260,9 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | {…} of {…} (web only; native chips show no count) | main.js:336 |
 |  | Other | main.js:336 |
 |  | Lift Board | main.js:339 |
-|  | · rounds of 30s hard, 90s easy | main.js:813 |
+|  | (rounds of 30s hard, 90s easy) | main.js:813 |
 |  | at a steady, talkable pace | main.js:813 |
-|  | · ~{…} kcal | main.js:813 |
+|  | (~{…} kcal) | main.js:813 |
 |  | {…} min {…}{…} | main.js:813 |
 
 ## Lift day
@@ -276,8 +276,8 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Cut to fit 30 min. Pick 45 min or more to keep it. | main.js:724 |
 |  | Your cardio target is already covered. | main.js:725 |
 |  | Skipped for {…}. | main.js:726 |
-|  | Incline · speed | main.js:766 |
-|  | 12% · 3.0 mph | main.js:766 |
+|  | Incline, speed | main.js:766 |
+|  | 12%, 3.0 mph | main.js:766 |
 |  | Level | main.js:766 |
 |  | Resistance | main.js:766 |
 |  | Damper | main.js:766 |
@@ -302,17 +302,17 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Thriving | main.js:782 |
 |  | Reps dropped two sessions in a row. Rest a day first if you can. | main.js:783 |
 |  | Shortened | main.js:783 |
-|  | · reps dropped last session | main.js:783 |
+|  | (reps dropped last session) | main.js:783 |
 |  | Up next | main.js:784 |
-|  | · {…} lb · {…} | main.js:787 |
+|  | {…} lb ({…}) | main.js:787 |
 |  | Next time | main.js:787 |
 |  | Optional | main.js:794 |
-|  | {…} · optional | main.js:798 |
+|  | {…} (optional) | main.js:798 |
 |  | Start | main.js:800 |
 |  | Added ({…}) | main.js:800 |
 |  | ~{…} kcal | main.js:805 |
 |  | Set {…} of {…} | main.js:805 |
-|  | · Superset {…} | main.js:807 |
+|  | (Superset {…}) | main.js:807 |
 |  | Remove | main.js:809 |
 |  | Lowered | main.js:814 |
 |  | Easy pace, no intervals | main.js:814 |
@@ -333,8 +333,8 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Ease to | main.js:822 |
 |  | Stay at | main.js:822 |
 |  | BW+{…} lb | main.js:822 |
-|  | <b>Up</b> · | main.js:822 |
-|  | <b>Same</b> · | main.js:822 |
+|  | <b>Up</b> | main.js:822 |
+|  | <b>Same</b> | main.js:822 |
 |  | That looked easy | Weight suggestion title |
 |  | {…} reps on {…}. Go up to | main.js:827 |
 |  | for the rest of the sets? | main.js:827 |
@@ -363,8 +363,8 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Add to {…} | main.js:856 |
 |  | Counts as | main.js:858 |
 |  | Choose… | main.js:858 |
-|  | Counts as {…} · {…} reps. It goes into this week's muscle totals. | main.js:859 |
-|  | {…} · done | main.js:881 |
+|  | Counts as {…} ({…} reps). It goes into this week's muscle totals. | main.js:859 |
+|  | {…}: done | main.js:881 |
 |  | Up next: {…} | main.js:883 |
 
 ## Lift day (timers)
@@ -372,7 +372,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 | Where | Copy | Ref |
 | --- | --- | --- |
 |  | Skip | main.js:1129 |
-|  | Go · {…} over | main.js:1132 |
+|  | Go: {…} over | main.js:1132 |
 |  | Rest {…} | main.js:1132 |
 
 ## Activities
@@ -494,7 +494,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Goal definitions | main.js:417 |
 |  | {…} doesn't have a season, so lifting stays the same all year. | main.js:419 |
 |  | Pick a main sport under You to use seasons. | main.js:419 |
-|  | Deload suggested · {…} | main.js:420 |
+|  | Deload suggested: {…} | main.js:420 |
 |  | ratePct | main.js:424 |
 |  | {…}% of your weight a week | main.js:444 |
 |  | lb / week | main.js:444 |
@@ -526,9 +526,9 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Time per session | main.js:686 |
 |  | How you're doing | main.js:687 |
 |  | Other activity | main.js:693 |
-|  | · wearable | main.js:698 |
-|  | · calibrated | main.js:698 |
-|  | · estimated | main.js:698 |
+|  | (wearable) | main.js:698 |
+|  | (calibrated) | main.js:698 |
+|  | (estimated) | main.js:698 |
 |  | {…}{…} a day vs last week | main.js:699 |
 |  | ({…}{…} this week) | main.js:699 |
 |  | Food | main.js:701 |
@@ -552,7 +552,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Next month | main.js:645 |
 |  | added | main.js:1190 |
 |  | Hours a week by kind of training{…} | main.js:616 |
-|  | · about {…} a week | main.js:617 |
+|  | (about {…} a week) | main.js:617 |
 |  | {…} {…} min | main.js:618 |
 |  | nothing logged | main.js:618 |
 |  | Week of {…}: {…} | main.js:618 |
@@ -560,9 +560,9 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Week of {…} | main.js:661 |
 |  | min sport | main.js:662 |
 |  | exercise kcal | main.js:662 |
-|  | · ramp | main.js:663 |
-|  | · deload | main.js:663 |
-|  | · {…} focus | main.js:663 |
+|  | , ramp | main.js:663 |
+|  | , deload | main.js:663 |
+|  | , {…} focus | main.js:663 |
 |  | Main activity | main.js:1548 |
 |  | No sport | main.js:1548 |
 |  | {…} lift{…}{…}{…} | main.js:1548 |
@@ -577,7 +577,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Member since {…} | main.js:441 |
 |  | Lifts | main.js:441 |
 |  | Weeks active | main.js:441 |
-|  | · in-season | main.js:444 |
+|  | (in-season) | main.js:444 |
 |  | Edit profile | main.js:463 |
 |  | View preferences | You tab |
 |  | Save changes | main.js:463 |
@@ -606,7 +606,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Next-morning check | main.js:477 |
 |  | Off | main.js:477 |
 |  | Sports in season | main.js:546 |
-|  | · up to two. Tap a picked sport again to make it primary. (Native, Emma Nov 16: ": up to two. Tap a picked sport again to make it primary.") | main.js:546 |
+|  | : up to two. Tap a picked sport again to make it primary. | main.js:546 |
 |  | Lifting | main.js:549 |
 |  | Bio Data | main.js:551 |
 |  | Female | main.js:552 |
@@ -819,11 +819,11 @@ To change wording: edit it here first, then update `copy.ts` to match.
 
 | Where | Copy | Ref |
 | --- | --- | --- |
-|  | back in · {…} behind this week | engine.js:344 |
+|  | back in: {…} behind this week | engine.js:344 |
 |  | {…}: {…} back in | engine.js:346 |
-|  | +1 · {…} behind this week | engine.js:348 |
+|  | +1: {…} behind this week | engine.js:348 |
 |  | {…}: +1 set | engine.js:348 |
-|  | Covered · {…} on track this week | engine.js:353 |
+|  | Covered: {…} on track this week | engine.js:353 |
 |  | {…}: {…} optional | engine.js:353 |
 |  | on track | engine.js:356 |
 |  | lower body focus | engine.js:362 |
@@ -841,25 +841,25 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | reps dropped last session | engine.js:416 |
 |  | recovery load | engine.js:416 |
 |  | added by you | engine.js:429 |
-|  | {…} sets · deload week | engine.js:433 |
+|  | {…} sets: deload week | engine.js:433 |
 |  | Trimmed for a 30-min session | engine.js:434 |
 |  | Trimmed for a 45-min session | engine.js:435 |
-|  | Trimmed · no supersets | engine.js:436 |
-|  | +1 · lower body focus | engine.js:437 |
-|  | −1 · lower body focus | engine.js:438 |
-|  | +1 · upper body focus | engine.js:439 |
-|  | −1 · upper body focus | engine.js:440 |
-|  | Skipped · | engine.js:441 |
+|  | Trimmed: no supersets | engine.js:436 |
+|  | +1: lower body focus | engine.js:437 |
+|  | −1: lower body focus | engine.js:438 |
+|  | +1: upper body focus | engine.js:439 |
+|  | −1: upper body focus | engine.js:440 |
+|  | Skipped: | engine.js:441 |
 |  | day 6 | engine.js:447 |
 |  | days 6–7 | engine.js:447 |
-|  | −1 · {…} of {…} | engine.js:447 |
-|  | +1 · 75-min session | engine.js:448 |
-|  | +1 · build | engine.js:449 |
-|  | −1 · hard spin | engine.js:454 |
-|  | −1 · {…}× climbing | engine.js:455 |
-|  | Skipped · {…}× climbing | engine.js:456 |
-|  | push your top set · feeling good | engine.js:458 |
-|  | −1 · missed reps last time on a cut | engine.js:459 |
+|  | −1: {…} of {…} | engine.js:447 |
+|  | +1: 75-min session | engine.js:448 |
+|  | +1: build | engine.js:449 |
+|  | −1: hard spin | engine.js:454 |
+|  | −1: {…}× climbing | engine.js:455 |
+|  | Skipped: {…}× climbing | engine.js:456 |
+|  | push your top set: feeling good | engine.js:458 |
+|  | −1: missed reps last time on a cut | engine.js:459 |
 |  | build phase | engine.js:464 |
 |  | Not needed this week | engine.js:506 |
 |  | {…} cardio +{…} kcal | engine.js:512 |
@@ -909,10 +909,10 @@ To change wording: edit it here first, then update `copy.ts` to match.
 | Reason | deload, easy reps | engine.js:630 |
 | Reason | same weight, | engine.js:631 |
 | Reason | ~{…} reps | engine.js:631 |
-| Reason | 3 misses · ease 5% | engine.js:637 |
+| Reason | 3 misses: ease 5% | engine.js:637 |
 |  | too light, bigger jump | engine.js:653 |
 |  | reps fell off across sets; rest longer, same weight | engine.js:654 |
-|  | · {…}/{…} sets | engine.js:656 |
+|  | ({…}/{…} sets) | engine.js:656 |
 |  | Up | engine.js:660 |
 |  | Down | engine.js:660 |
 |  | Held | engine.js:660 |
@@ -990,7 +990,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Weights can go up again | engine.js:695 |
 |  | Push your top set on main lifts | engine.js:696 |
 |  | Today: {…} | engine.js:697 |
-|  | Today: {…} · no change to the plan | engine.js:697 |
+|  | Today: {…} (no change to the plan) | engine.js:697 |
 | Reason | {…} didn't fit last week | engine.js:777 |
 | Note | start with {…}, then continue in order | engine.js:777 |
 |  | New week started. Check-in reset to normal. | engine.js:792 |
@@ -1059,7 +1059,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Aggressive pace: strength will likely slip. Best kept short. | main.js:566 |
 |  | Your pace: | main.js:567 |
 |  | {…} lb/week is {…}% of your weight. {…} | main.js:567 |
-|  | · {…} min | main.js:647 |
+|  | ({…} min) | main.js:647 |
 |  | Sessions show up here when you finish a lift day or enter minutes for an activity. | main.js:648 |
 |  | Appears after you finish a lift day. | main.js:654 |
 |  | {…} weeks in a row | History, Weeks. One week uses the singular. |

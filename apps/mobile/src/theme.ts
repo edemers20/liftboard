@@ -33,12 +33,10 @@ export const theme = {
     /** Black at 30% over the pink surface. */
     secondary: "#191617",
   },
-  /** Personal records: solid purple cards (`record` is the accent). */
+  /** Personal records: a deep purple card, no outline (`record` is the accent). */
   purple: {
-    card: "#33284f",
-    border: "rgba(183, 156, 240, 0.45)",
-    value: "#f4efff",
-    muted: "rgba(237, 234, 232, 0.72)",
+    card: "#3a2f55",
+    muted: "rgba(237, 234, 232, 0.65)",
     tint: "rgba(183, 156, 240, 0.14)",
   },
   banner: "#3a3018",

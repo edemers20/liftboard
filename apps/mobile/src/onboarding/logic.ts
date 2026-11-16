@@ -224,7 +224,7 @@ function seasonRow(draft: Draft): PlanRow {
   if (!draft.sport) return { label, value: copy.onboarding.noSport };
   const name = activityLabel(draft.sport);
   const value = seasonal
-    ? `${name} · ${draft.inSeason ? copy.onboarding.inSeasonWord : copy.onboarding.offSeasonWord}`
+    ? `${name} (${draft.inSeason ? copy.onboarding.inSeasonWord : copy.onboarding.offSeasonWord})`
     : name;
   return { label, value };
 }

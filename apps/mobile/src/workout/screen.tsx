@@ -60,7 +60,7 @@ const TAG_NAME: Record<string, string> = {
 function nextNote(why: string): string {
   const text = String(why || "");
   if (/^(hold|~?\d+ reps|\+5 lb|add a rep|same weight)/.test(text)) return "";
-  return text.replace(/ · \d+\/\d+ sets$/, "");
+  return text.replace(/ \(\d+\/\d+ sets\)$/, "");
 }
 
 function nextTarget(item: { n: string; w?: number; r?: number; bw?: number }): string {
@@ -117,11 +117,11 @@ const STRETCH: Record<string, [string, string][]> = {
 function skipNote(slot: { skip?: string; flag?: string }): string {
   const k = slot.skip || "";
   if (slot.flag) return slot.flag;
-  if (k === "Trimmed · no supersets") return copy.workout.cutSupersets;
+  if (k === "Trimmed: no supersets") return copy.workout.cutSupersets;
   if (k.startsWith("Trimmed for a 45")) return copy.workout.cut45;
   if (k.startsWith("Trimmed for a 30")) return copy.workout.cut30;
   if (k === "Not needed this week") return copy.workout.cardioCovered;
-  if (k.startsWith("Skipped · ")) return fill(copy.workout.skippedFor, k.slice(10));
+  if (k.startsWith("Skipped: ")) return fill(copy.workout.skippedFor, k.slice(9));
   return k;
 }
 
@@ -729,7 +729,7 @@ export function WorkoutScreen({ id }: { id: string }) {
           {day.id === plan.nextId && engine.wk.upNext === day.id && engine.wk.missedNote ? (
             <Text style={styles.note}>
               <Text style={styles.noteStrong}>{copy.workout.upNext}</Text>
-              {` · ${engine.wk.missedNote.why}`}
+              {`: ${engine.wk.missedNote.why}`}
             </Text>
           ) : null}
         </View>
@@ -765,7 +765,7 @@ export function WorkoutScreen({ id }: { id: string }) {
           const label = slot.extra
             ? fill(copy.workout.added, slot.label)
             : slot.ss && engine.wk.ss !== "No"
-              ? `${slot.label} · ${slot.ss}`
+              ? `${slot.label} (${slot.ss})`
               : slot.label;
           if (index === firstOptional) {
             return (
@@ -1193,7 +1193,7 @@ export function WorkoutScreen({ id }: { id: string }) {
                     <Close />
                   </PressableScale>
                 </View>
-                {upReview ? <NextLine item={upReview} lead={`${copy.workout.nextTime} ·`} /> : null}
+                {upReview ? <NextLine item={upReview} lead={`${copy.workout.nextTime}:`} /> : null}
                 {upFollowing != null ? (
                   <PressableScale
                     accessibilityRole="button"
@@ -1420,13 +1420,13 @@ function ExerciseCard(props: {
           {planSlot.flag ? (
             <Text style={styles.note}>
               <Text style={styles.noteStrong}>{copy.workout.lowered}</Text>
-              {` · ${planSlot.flag}`}
+              {`: ${planSlot.flag}`}
             </Text>
           ) : null}
           {planSlot.steady ? (
             <Text style={styles.note}>
               <Text style={styles.noteStrong}>{copy.workout.easyPace}</Text>
-              {` · ${planSlot.steady}`}
+              {`: ${planSlot.steady}`}
             </Text>
           ) : null}
           {planSlot.min ? (

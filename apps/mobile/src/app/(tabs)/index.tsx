@@ -793,7 +793,7 @@ function previewRows(id: string): { name: string; detail: string }[] {
       const name = engine.exName(day, slot, index);
       const suggested = engine.suggest(day, slot, index, false, plan);
       const weight = suggested?.w ? (engine.isBW(name) ? "BW" : String(toDisplay(suggested.w))) : "";
-      return { name, detail: `${target.sets} × ${slot.reps}${weight ? ` · ${weight}` : ""}` };
+      return { name, detail: `${target.sets} × ${slot.reps}${weight ? ` (${weight})` : ""}` };
     });
 }
 
