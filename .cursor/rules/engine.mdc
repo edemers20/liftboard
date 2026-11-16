@@ -10,7 +10,7 @@ alwaysApply: false
 
 ## Rules
 - Never change engine behaviour without first adding or updating a test in `packages/engine/tests` that fails before the change and passes after.
-- Run the tests after every engine edit: `npm test` in `packages/engine`. All 67 existing tests must keep passing.
+- Run the tests after every engine edit: `npm test` in `packages/engine`. All existing tests must keep passing (110 in `packages/engine`, 86 for the web engine in `tests/`). A rule change goes into both engines with a test in both.
 - Never copy rules into React components or hooks. Screens call engine functions and display the result.
 - The engine reads and writes storage synchronously through `init(storage)` with `{getItem, setItem}`. In the app, pass a react-native-mmkv instance wrapped to that shape. Do not switch to AsyncStorage.
 - Keep the storage keys and data shape (`liftboard.week.v2` and the others) so a web backup imports unchanged.

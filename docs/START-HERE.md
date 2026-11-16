@@ -1,5 +1,7 @@
 # Start here: building Lift Board in Cursor
 
+> **Picking up the work now?** The setup below is done. Read `docs/CONTEXT.md` (why things are the way they are) and `docs/OUTSTANDING.md` (what's left, in order), then start with section A of OUTSTANDING.
+
 Everything Cursor needs is already in this repo:
 
 - `.cursor/rules/` — four rules files Cursor applies to every request (product, engine, design, copy)

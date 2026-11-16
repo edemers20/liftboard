@@ -18,16 +18,18 @@ Lift Board plans a person's training week from three inputs: their goal, the act
 - Sign-in is email + a 6-digit one-time code (Supabase Auth). No passwords, no social sign-in.
 - Backend is Supabase (Postgres + row-level security + Edge Functions). See `docs/BACKEND-SUPABASE.md`.
 - React Native with Expo, Expo Router and TypeScript. iOS first.
-- Bottom navigation has four tabs: Workouts (home), Plan, History, You.
+- Bottom navigation has four tabs: Workouts (home), Plan, History, You. You is a profile; its gear opens Settings.
 - Lifts are an ordered queue placed on the person's usual lift days; future dates are projected, never stored. Activities are logged whenever they happen and are not tied to a day.
 - New weeks start on their own (Monday or Sunday, a setting).
 - Not building yet: blank/empty workouts, "injured" and "feeling sick" check-ins, HealthKit, Android.
 
 ## Where the truth lives
+- Why the product works the way it does, and what's been decided against: `docs/CONTEXT.md`
+- What's left to build, and what's waiting on Emma: `docs/OUTSTANDING.md`
 - How every rule works: `docs/LOGIC.md`
 - Every screen, its states and navigation: `docs/SCREENS.md` and the pictures in `docs/screens/`
 - All user-facing words: `docs/COPY.md` (source for `copy.ts`)
 - The web app in `src/` is the working reference. When a behaviour is unclear, match what `src/main.js` does.
 
 ## Health and privacy
-Weight, body fat, cycle notes and workouts are health data. Never log them to the console, analytics or error reports. The "not medical advice" line stays visible on You.
+Weight, body fat, cycle notes and workouts are health data. Never log them to the console, analytics or error reports. The "not medical advice" line stays visible in Settings.
