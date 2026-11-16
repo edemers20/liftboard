@@ -50,7 +50,8 @@ These exist in code but haven't been confirmed working. Go through them with Emm
 - The sets picker is green.
 - Workouts and Plan → Week update straight away after finishing a workout and after marking a week done.
 - Supersets and lower-body focus don't repeat in the next week's changes.
-- Sports can be picked in Settings → Activities. **Built on `outstanding-a-b`** from Emma's `wip/you-tab-sports-picker`, without the sessions-per-week −/+ rows; the old unreachable picker and the full profile form it lived in are removed. Check on the phone. Web: none needed (the web already picks sports in its Activities form).
+- Sports can be picked in Settings → Activities. **Built on `outstanding-a-b`**, matching the web: the activities row turns activities on and off; "Sports in season" lists None plus only the sports, yoga and pilates that are on; tapping the primary sport again unpicks it. No sessions-per-week −/+ rows. Turning an activity off also clears its weekly count. Onboarding offers at most two sports (the main one plus the second from Settings), and a one-time cleanup at launch turns off any third sport with nothing logged this week. Check on the phone.
+  - Web changes needed: clear the weekly count when an activity is turned off in Settings; limit onboarding's other activities to classes plus the second sport; the same one-time third-sport cleanup.
 - The first lift of a new week can be swapped with any other unstarted lift that week.
 - The notification icon is the new one. This needs a fresh dev build: `npx expo prebuild --clean`, then build again.
 

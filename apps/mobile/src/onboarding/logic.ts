@@ -52,11 +52,24 @@ function currentDays(wk: { ldays?: number[]; days?: number }): number[] {
   return (LDEF[count] || []).slice();
 }
 
-/** Classes always, plus anything else already on, except the sport being chosen. */
-export function activityIds(sport: string): string[] {
+/**
+ * Classes always, plus anything else already on, except the sport being chosen.
+ * The only other sport offered is the second sport from Settings, so there are never more than two.
+ */
+export function activityIds(sport: string, sport2 = ""): string[] {
   return engine.ACT_IDS.filter(
-    (id: string) => id !== "lift" && id !== sport && (engine.ACT[id].cls || engine.enabled(id)),
+    (id: string) =>
+      id !== "lift" &&
+      id !== sport &&
+      (engine.ACT[id].cls || (engine.enabled(id) && (!isSeasonal(id) || (!!sport && id === sport2)))),
   );
+}
+
+/** Weekly counts for the activities onboarding shows. Counts left from a sport that is no longer offered are ignored. */
+function shownActivities(draft: Draft): [string, number][] {
+  const shown = new Set(activityIds(draft.sport, draft.sport2));
+  if (draft.sport && draft.sport2 && draft.sport2 !== draft.sport) shown.add(draft.sport2);
+  return Object.entries(draft.activities).filter(([id]) => shown.has(id));
 }
 
 export function activityLabel(id: string): string {
@@ -99,7 +112,7 @@ export function createDraft(): Draft {
   const sport2 = mains.includes(wk.sport2) && wk.sport2 !== sport ? String(wk.sport2) : "";
   const setupDone = !!wk.setupDone;
   const activities: Record<string, number> = {};
-  for (const id of activityIds(sport)) {
+  for (const id of activityIds(sport, sport2)) {
     activities[id] = engine.enabled(id) ? engine.cnt(id) : 0;
   }
   if (sport2) {
@@ -167,7 +180,7 @@ export function stepperRows(draft: Draft): StepperRow[] {
   if (draft.sport) {
     rows.push({ id: draft.sport, name: activityLabel(draft.sport), value: draft.sportCount, kind: "sport" });
   }
-  for (const id of activityIds(draft.sport)) {
+  for (const id of activityIds(draft.sport, draft.sport2)) {
     rows.push({ id, name: activityLabel(id), value: draft.activities[id] || 0, kind: "other" });
   }
   return rows;
@@ -192,7 +205,7 @@ export function weekSummary(draft: Draft): string {
   if (draft.sport && draft.sportCount) {
     line += ` + ${draft.sportCount}× ${activityLabel(draft.sport).toLowerCase()}`;
   }
-  for (const [id, count] of Object.entries(draft.activities)) {
+  for (const [id, count] of shownActivities(draft)) {
     if (!count || id === draft.sport) continue;
     line += ` + ${count}× ${activityLabel(id).toLowerCase()}`;
   }
@@ -251,7 +264,7 @@ export function firstWorkout(draft: Draft, preview: PlanPreview): { eyebrow: str
     });
   };
   add(draft.sport, draft.sportCount);
-  for (const [id, count] of Object.entries(draft.activities)) {
+  for (const [id, count] of shownActivities(draft)) {
     if (id !== draft.sport) add(id, count);
   }
   const when = titles.length && next != null
@@ -292,7 +305,7 @@ function writeAnswers(wk: Record<string, any>, draft: Draft, real: boolean) {
   }
   wk.mainSport = draft.sport;
   wk.season = draft.sport && draft.inSeason && isSeasonal(draft.sport) ? "In-season" : "Off-season";
-  for (const [id, count] of Object.entries(draft.activities)) {
+  for (const [id, count] of shownActivities(draft)) {
     if (id === draft.sport) continue;
     if (count > 0) {
       wk.acts[id] = true;

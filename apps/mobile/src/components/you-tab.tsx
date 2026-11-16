@@ -22,6 +22,7 @@ import { fromDisplay, toDisplay } from "@/units";
 const SESSION_MINUTES = [30, 45, 60, 75] as const;
 const LEVELS = ["new", "some", "years"] as const;
 const SEX = ["Female", "Male", "Other"] as const;
+const MAINS = [...(engine.SPORTS as string[]), "yoga", "pilates"];
 
 type Draft = {
   acts?: Record<string, boolean>;
@@ -359,29 +360,24 @@ export function SettingsScreen({ onReplay, startMetrics = false }: { onReplay: (
     setEditing(false);
   }
 
-  function saveSport(id: string) {
+  function pickSport(id: string) {
     call((api) => {
-      const mains = new Set([...(api.SPORTS as string[]), "yoga", "pilates"]);
       let main = api.wk.mainSport || "";
       let second = api.wk.sport2 || "";
       if (!id) {
         main = "";
         second = "";
-      } else if (mains.has(id)) {
-        if (id === second) {
-          second = main;
-          main = id;
-        } else if (id !== main) {
-          if (!main) main = id;
-          else second = id;
-        }
-        api.wk.acts = { ...(api.wk.acts || {}), [id]: true };
-        if (api.wk[id] == null || api.wk[id] === "") api.wk[id] = 0;
-      }
+      } else if (id === main) {
+        main = second;
+        second = "";
+      } else if (id === second) {
+        second = main;
+        main = id;
+      } else if (!main) main = id;
+      else second = id;
       api.wk.mainSport = main;
       api.wk.sport2 = second;
       api.fixSports(api.wk);
-      api.syncDays();
       api.save();
     });
   }
@@ -448,23 +444,24 @@ export function SettingsScreen({ onReplay, startMetrics = false }: { onReplay: (
   const week = engine.wk;
   const [adding, setAdding] = useState(false);
   const [showAllFaq, setShowAllFaq] = useState(false);
-  const mainActs = ([...(engine.SPORTS as string[]), "yoga", "pilates"] as string[]).filter(
-    (id, index, all) => all.indexOf(id) === index,
-  );
-  const otherChoices = (engine.ACT_IDS as string[]).filter((id) => id !== "lift" && !mainActs.includes(id));
-  const shownOthers = adding ? otherChoices : otherChoices.filter((id) => engine.enabled(id));
+  const activityChoices = (engine.ACT_IDS as string[]).filter((id) => id !== "lift");
+  const shownActs = adding ? activityChoices : activityChoices.filter((id) => engine.enabled(id));
+  const sports = MAINS.filter((id) => engine.enabled(id));
   const mainNow = String(week.mainSport || "");
   const secondNow = String(week.sport2 || "");
   const planFaq = copy.faq.findIndex(([question]) => question.startsWith("How is my plan"));
   const fuelFaq = copy.faq.findIndex(([question]) => question.startsWith("How is fuel"));
 
+  /** Turning an activity off clears its weekly count, so turning it back on doesn't bring back sessions you can't see. */
   function toggleActivity(id: string) {
     call((api) => {
       const on = !api.wk.acts?.[id];
       api.wk.acts = { ...(api.wk.acts || {}), [id]: on };
-      if (on && (api.SPORTS as string[]).includes(id)) {
-        if (!api.wk.mainSport) api.wk.mainSport = id;
-        else if (!api.wk.sport2 && api.wk.mainSport !== id) api.wk.sport2 = id;
+      if (!on) api.wk[id] = "0";
+      if (api.wk.adhoc?.[id]) {
+        const adhoc = { ...api.wk.adhoc };
+        delete adhoc[id];
+        api.wk.adhoc = adhoc;
       }
       api.fixSports(api.wk);
       api.syncDays();
@@ -572,27 +569,8 @@ export function SettingsScreen({ onReplay, startMetrics = false }: { onReplay: (
 
         <View style={styles.panel}>
           <Text accessibilityRole="header" style={styles.eyebrow}>{copy.you.activities}</Text>
-          <Text style={styles.sportsLabel}>
-            <Text style={styles.fieldTitle}>{copy.you.sportsInSeason}</Text>
-            <Text style={styles.rowHint}>{copy.you.sportsHint}</Text>
-          </Text>
           <View style={styles.pills}>
-            <Pill label={copy.you.none} selected={!mainNow} tone="pink" onPress={() => saveSport("")} />
-            {mainActs.map((id) => {
-              const picked = mainNow === id || secondNow === id;
-              const primary = mainNow === id && !!secondNow;
-              return (
-                <Pill
-                  key={id}
-                  label={activityName(id)}
-                  badge={primary ? copy.you.primary : undefined}
-                  selected={picked}
-                  tone="pink"
-                  onPress={() => saveSport(id)}
-                />
-              );
-            })}
-            {shownOthers.map((id) => (
+            {shownActs.map((id) => (
               <Pill
                 key={id}
                 label={activityName(id)}
@@ -610,6 +588,27 @@ export function SettingsScreen({ onReplay, startMetrics = false }: { onReplay: (
               <Text style={styles.actPillTextOff}>{copy.you.addActivity}</Text>
             </PressableScale>
           </View>
+          {sports.length ? (
+            <>
+              <Text style={styles.sportsLabel}>
+                <Text style={styles.fieldTitle}>{copy.you.sportsInSeason}</Text>
+                <Text style={styles.rowHint}>{copy.you.sportsHint}</Text>
+              </Text>
+              <View style={styles.pills}>
+                <Pill label={copy.you.none} selected={!mainNow} tone="pink" onPress={() => pickSport("")} />
+                {sports.map((id) => (
+                  <Pill
+                    key={id}
+                    label={activityName(id)}
+                    badge={mainNow === id && secondNow ? copy.you.primary : undefined}
+                    selected={mainNow === id || secondNow === id}
+                    tone="pink"
+                    onPress={() => pickSport(id)}
+                  />
+                ))}
+              </View>
+            </>
+          ) : null}
         </View>
 
         <View style={styles.panel}>
