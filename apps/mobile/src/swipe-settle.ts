@@ -1,24 +1,32 @@
 /** Width of the Delete button behind a row. */
 export const SWIPE_WIDTH = 88;
 
+/*
+ * These run on the UI thread. A worklet's captured constants are unpacked inside its body, after
+ * default parameters are evaluated, so a default like `width = SWIPE_WIDTH` is undefined there.
+ * Read module constants in the body instead (swipe-settle.test.ts runs them the UI-thread way).
+ */
+
 /** Where the row sits while dragging: never right of closed, never past fully open. */
-export function swipeDrag(start: number, dx: number, width = SWIPE_WIDTH): number {
+export function swipeDrag(start: number, dx: number, width?: number): number {
   "worklet";
+  const w = width ?? SWIPE_WIDTH;
   const x = start + (Number.isFinite(dx) ? dx : 0);
-  return Math.min(0, Math.max(-width, x));
+  return Math.min(0, Math.max(-w, x));
 }
 
 /**
  * Where the row comes to rest when the finger lifts or the gesture is cancelled: fully closed (0)
  * or fully open (-width), never in between. A flick carries it the way it was going.
  */
-export function swipeSettle(x: number, vx: number, width = SWIPE_WIDTH): number {
+export function swipeSettle(x: number, vx: number, width?: number): number {
   "worklet";
+  const w = width ?? SWIPE_WIDTH;
   const at = Number.isFinite(x) ? x : 0;
   const velocity = Number.isFinite(vx) ? vx : 0;
-  if (velocity < -500) return -width;
+  if (velocity < -500) return -w;
   if (velocity > 500) return 0;
-  return at + velocity * 0.1 <= -width / 2 ? -width : 0;
+  return at + velocity * 0.1 <= -w / 2 ? -w : 0;
 }
 
 /** Delete shows only while the row is moved off its resting place. */
