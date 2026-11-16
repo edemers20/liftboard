@@ -1,36 +1,32 @@
-import { useRef, type ReactNode } from "react";
-import { StyleSheet, Text } from "react-native";
-import { Touchable } from "react-native-gesture-handler";
-import ReanimatedSwipeable, { type SwipeableMethods } from "react-native-gesture-handler/ReanimatedSwipeable";
-import Animated, { useAnimatedStyle, type SharedValue } from "react-native-reanimated";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { type GestureResponderEvent, StyleSheet, Text, View } from "react-native";
+import { GestureDetector, Touchable, usePanGesture } from "react-native-gesture-handler";
+import Animated, { cancelAnimation, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
 import { haptic } from "@/haptic";
+import { createSwipeRegistry, SWIPE_WIDTH, swipeActionShown, swipeDrag, swipeSettle } from "@/swipe-settle";
 import { theme } from "@/theme";
 
-/**
- * Hidden until the row moves: rows without their own fill would otherwise show it at rest.
- * A gesture-handler button, so the swipe can't swallow the tap.
- */
-function DeleteAction({
-  progress,
-  label,
-  onPress,
-}: {
-  progress: SharedValue<number>;
-  label: string;
-  onPress: () => void;
-}) {
-  const shown = useAnimatedStyle(() => ({ opacity: progress.value > 0.02 ? 1 : 0 }));
-  return (
-    <Animated.View style={[styles.action, shown]}>
-      <Touchable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={styles.delete}>
-        <Text style={styles.deleteText}>{label}</Text>
-      </Touchable>
-    </Animated.View>
-  );
+const rows = createSwipeRegistry();
+const SETTLE_MS = 180;
+
+/** Put on the screen's root view: a touch anywhere but the open row's Delete closes that row. */
+export const swipeCloseCapture = {
+  onStartShouldSetResponderCapture(event: GestureResponderEvent) {
+    rows.touch(event.nativeEvent.pageX, event.nativeEvent.pageY);
+    return false;
+  },
+};
+
+/** Closes any open row, e.g. when the list starts scrolling. */
+export function closeOpenSwipe() {
+  rows.closeAll();
 }
 
-/** Swipe left to reveal Delete. A haptic fires when the button is revealed. Delete closes the row first. */
+/**
+ * Swipe left to reveal Delete. The row always comes to rest fully closed or fully open,
+ * including when the swipe is interrupted or the list takes over to scroll.
+ */
 export function SwipeDelete({
   children,
   label,
@@ -40,39 +36,99 @@ export function SwipeDelete({
   label: string;
   onDelete: () => void;
 }) {
-  const revealed = useRef(false);
+  const key = useRef({}).current;
+  const x = useSharedValue(0);
+  const start = useSharedValue(0);
+  const velocity = useSharedValue(0);
+  const dragging = useSharedValue(false);
+  const [open, setOpen] = useState(false);
+  const action = useRef<{ measureInWindow(callback: (x: number, y: number, width: number, height: number) => void): void } | null>(null);
+
+  function close() {
+    cancelAnimation(x);
+    x.value = withTiming(0, { duration: SETTLE_MS });
+    setOpen(false);
+  }
+
+  function dragStarted() {
+    rows.claim(key, close);
+  }
+
+  function settled(to: number) {
+    if (to === 0) {
+      rows.release(key);
+      setOpen(false);
+      return;
+    }
+    if (!rows.isOpen(key)) haptic.medium();
+    rows.claim(key, close);
+    setOpen(true);
+    action.current?.measureInWindow((left, top, width, height) => rows.setRect(key, { x: left, y: top, width, height }));
+  }
+
+  useEffect(() => () => rows.release(key), [key]);
+
+  const pan = usePanGesture({
+    activeOffsetX: [-12, 12],
+    failOffsetY: [-10, 10],
+    onActivate: () => {
+      "worklet";
+      cancelAnimation(x);
+      start.value = x.value;
+      velocity.value = 0;
+      dragging.value = true;
+      runOnJS(dragStarted)();
+    },
+    onUpdate: (event) => {
+      "worklet";
+      x.value = swipeDrag(start.value, event.translationX);
+      velocity.value = event.velocityX;
+    },
+    onFinalize: () => {
+      "worklet";
+      if (!dragging.value) return;
+      dragging.value = false;
+      const to = swipeSettle(x.value, velocity.value);
+      velocity.value = 0;
+      x.value = withTiming(to, { duration: SETTLE_MS });
+      runOnJS(settled)(to);
+    },
+  });
+
+  const rowStyle = useAnimatedStyle(() => ({ transform: [{ translateX: x.value }] }));
+  const actionStyle = useAnimatedStyle(() => ({ opacity: swipeActionShown(x.value) ? 1 : 0 }));
+
   return (
-    <ReanimatedSwipeable
-      friction={2}
-      rightThreshold={40}
-      overshootRight={false}
-      onSwipeableWillOpen={() => {
-        if (revealed.current) return;
-        revealed.current = true;
-        haptic.medium();
-      }}
-      onSwipeableClose={() => {
-        revealed.current = false;
-      }}
-      renderRightActions={(progress: SharedValue<number>, _translation: SharedValue<number>, methods: SwipeableMethods) => (
-        <DeleteAction
-          progress={progress}
-          label={label}
+    <View style={styles.wrap}>
+      <Animated.View ref={action as never} style={[styles.action, actionStyle]} pointerEvents={open ? "auto" : "none"}>
+        <Touchable
+          accessibilityRole="button"
+          accessibilityLabel={label}
           onPress={() => {
-            methods.close();
-            revealed.current = false;
+            cancelAnimation(x);
+            x.value = 0;
+            rows.release(key);
+            setOpen(false);
             onDelete();
           }}
-        />
-      )}
-    >
-      {children}
-    </ReanimatedSwipeable>
+          style={styles.delete}
+        >
+          <Text style={styles.deleteText}>{label}</Text>
+        </Touchable>
+      </Animated.View>
+      <GestureDetector gesture={pan} touchAction="pan-y">
+        <Animated.View style={rowStyle}>
+          {children}
+          {open ? <View style={StyleSheet.absoluteFill} onStartShouldSetResponder={() => true} onResponderRelease={close} /> : null}
+        </Animated.View>
+      </GestureDetector>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  action: { width: 88 },
+  wrap: { overflow: "hidden" },
+  action: { position: "absolute", top: 0, right: 0, bottom: 0, width: SWIPE_WIDTH },
   delete: {
     flex: 1,
     backgroundColor: "#8f3a32",

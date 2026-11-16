@@ -764,8 +764,6 @@ export const copy = {
     liftDays: "Lift days",
     sessionLength: "Session length",
     activityDays: "Activity days",
-    // TODO copy: label over activities that are on with 0 sessions a week. Not in docs/COPY.md yet.
-    addToWeek: "Add to your week",
     fuelRecovery: "Fuel/Recover",
     fuelToday: "Fuel today",
     startNewWeek: "Start new week",

@@ -257,16 +257,15 @@ function rampOn(): boolean {
   return engine.hasSport() && !engine.inSeason() && engine.wk.ramp === "Yes";
 }
 
-/** Planned activities (at least one a week) in suggestion order, so the first pill is the suggestion; then one-offs. */
+/** Every activity on in Settings, 0 a week included, in activity order (main sport, second sport, the rest); then one-offs. */
 export function chipIds(): string[] {
   const oneOffs = (engine.ACT_IDS as string[]).filter((id) => id !== "lift" && engine.enabled(id) && engine.wk.adhoc?.[id]);
-  const ids = [...(engine.plannedActs() as string[]), ...oneOffs];
+  const ids = [...(engine.onActs() as string[]), ...oneOffs];
   if (rampOn()) ids.push("zone2");
   return ids;
 }
 
-/** Every activity that is not already turned on. */
-/** Activities that are off, and ones that are on with 0 a week (not planned). Logging one never changes its count. */
+/** Activities that are off. */
 export function otherIds(): string[] {
   const shown = chipIds();
   return (engine.ACT_IDS as string[]).filter((id) => id !== "lift" && !shown.includes(id));
