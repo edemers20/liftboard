@@ -52,6 +52,11 @@ These exist in code but haven't been confirmed working. Go through them with Emm
 - Supersets and lower-body focus don't repeat in the next week's changes.
 - Sports can be picked in Settings → Activities. **Built on `outstanding-a-b`**, matching the web: the activities row turns activities on and off; "Sports in season" lists None plus only the sports, yoga and pilates that are on; tapping the primary sport again unpicks it. No sessions-per-week −/+ rows. Turning an activity off also clears its weekly count. Onboarding offers at most two sports (the main one plus the second from Settings), and a one-time cleanup at launch turns off any third sport with nothing logged this week. Check on the phone.
   - Web changes needed: clear the weekly count when an activity is turned off in Settings; limit onboarding's other activities to classes plus the second sport; the same one-time third-sport cleanup.
+- **Phantom pickleball (3 a week she didn't choose).** No default of 3 exists (engine default is 0). The count is `wk.pickle`, the one saved place onboarding, Plan and Workouts all read through `cnt()`.
+  - Cause: logging more sessions than planned raises the saved count (`apps/mobile/src/activity-log.ts` lines 314–317; web `src/main.js` line 280; documented in `docs/LOGIC.md` "Logging past the planned count raises the count"), and `newWeek` clears the logs but keeps the count (`packages/engine/engine.js` lines 899–901). One week with 3 pickleball logs leaves 3 planned every week after.
+  - Fixed: onboarding now shows the saved count, including 0. Before, a saved 0 showed as 2 (`cnt(sport) || 2`), and switching main sport carried the previous sport's count over. Engine tests pin the count rules.
+  - **Waiting on Emma:** (1) should logging extra sessions raise the count for this week only, then go back? (2) linking onboarding counts to Plan's Activity days, which are shared by every activity and have no count today; (3) Workouts has no way to plan or log an activity on a future day.
+  - Web changes needed: the same onboarding count fixes in `openOnb` and the sport choice (`src/main.js` lines 1907 and 2000).
 - The first lift of a new week can be swapped with any other unstarted lift that week.
 - The notification icon is the new one. This needs a fresh dev build: `npx expo prebuild --clean`, then build again.
 

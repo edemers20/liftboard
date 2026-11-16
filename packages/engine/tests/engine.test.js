@@ -983,3 +983,27 @@ describe("time moved", () => {
     expect(top).toMatchObject({ k: "pickle", n: 2, hours: 3 }); // 165 min
   });
 });
+
+describe("weekly activity counts", () => {
+  it("a sport's weekly count defaults to 0, not 3", () => {
+    expect(E.DEF.pickle).toBe("0");
+    fresh({ acts: { lift: true, pickle: true }, mainSport: "pickle" });
+    expect(E.cnt("pickle")).toBe(0);
+  });
+  it("a sport that is turned off counts 0 even with a saved count", () => {
+    fresh({ acts: { lift: true, pickle: false }, pickle: "3" });
+    expect(E.cnt("pickle")).toBe(0);
+  });
+  it("the plan counts each planned session of a sport that is on", () => {
+    const on = fresh({ days: 3, acts: { lift: true, pickle: true }, mainSport: "pickle", pickle: "3" });
+    expect(on.sessions).toBe(6);
+    const off = fresh({ days: 3, acts: { lift: true, pickle: false }, pickle: "3" });
+    expect(off.sessions).toBe(3);
+  });
+  it("a new week keeps the weekly count and clears the logged sessions", () => {
+    fresh({ acts: { lift: true, pickle: true }, mainSport: "pickle", pickle: "3", pAct: ["75", "75", "75"] });
+    E.newWeek();
+    expect(E.cnt("pickle")).toBe(3);
+    expect(E.wk.pAct).toEqual([]);
+  });
+});

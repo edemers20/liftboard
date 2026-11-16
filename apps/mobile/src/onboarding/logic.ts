@@ -132,7 +132,7 @@ export function createDraft(): Draft {
     inSeason: wk.season === "In-season",
     goal: wk.mode || "Recomp",
     days: setupDone ? currentDays(wk) : [0, 2, 4],
-    sportCount: sport ? engine.cnt(sport) || 2 : 0,
+    sportCount: sport ? savedCount(sport) : 0,
     activities,
     focus: wk.focus || "Balanced",
     level,
@@ -145,12 +145,18 @@ export function createDraft(): Draft {
   };
 }
 
+/** The saved weekly count for a sport that is on, including 0. A sport not on yet starts at 2. */
+function savedCount(sport: string): number {
+  return engine.enabled(sport) ? engine.cnt(sport) : 2;
+}
+
+/** The count follows the sport picked: what this draft already has for it, else what's saved. Never the previous sport's count. */
 export function chooseSport(draft: Draft, sport: string): Draft {
-  let sportCount = draft.sportCount;
   let inSeason = draft.inSeason;
   if (!sport) inSeason = false;
-  if (sport && draft.activities[sport]) sportCount = draft.activities[sport];
-  if (sport && !sportCount) sportCount = engine.cnt(sport) || 2;
+  let sportCount = 0;
+  if (sport === draft.sport) sportCount = draft.sportCount;
+  else if (sport) sportCount = draft.activities[sport] || savedCount(sport);
   const sport2 = sport && sport === draft.sport2 ? "" : draft.sport2;
   return { ...draft, sport, sport2, inSeason, sportCount };
 }
