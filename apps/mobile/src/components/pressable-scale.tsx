@@ -6,7 +6,7 @@ import { useReduceMotion } from "@/use-reduce-motion";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 /** Reanimated's animated Pressable drops clicks on web; plain Pressable keeps buttons usable. */
-const WebSafePressable = Platform.OS === "web" ? Pressable : AnimatedPressable;
+const WebSafePressable = (Platform.OS === "web" ? Pressable : AnimatedPressable) as typeof AnimatedPressable;
 
 export type PressKind = "button" | "surface" | "text" | "tab" | "plain";
 
