@@ -459,10 +459,9 @@ export function SettingsScreen({ onReplay, startMetrics = false }: { onReplay: (
       const on = !api.wk.acts?.[id];
       api.wk.acts = { ...(api.wk.acts || {}), [id]: on };
       api.noteAct(id, on);
-      if (!on) {
-        api.wk[id] = "0";
-        api.trimActivityDays();
-      }
+      // A newly turned-on activity starts at 0 a week until it's set; an old saved count never comes back.
+      api.wk[id] = "0";
+      if (!on) api.trimActivityDays();
       if (api.wk.adhoc?.[id]) {
         const adhoc = { ...api.wk.adhoc };
         delete adhoc[id];

@@ -254,9 +254,9 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | You usually play or take a class today. | main.js:334 |
 |  | Activity day | main.js:334 |
 |  | Activity / Activities (one activity planned / more than one; Plan's planned activity rows, native) | Emma, Nov 16 |
-|  | Add {…} to your weekly sessions? It shows up every week. (TODO copy, native) | Workouts, after logging past the plan |
-|  | Add (TODO copy, native) | Workouts, same card |
-|  | Not now (TODO copy, native) | Workouts, same card |
+|  | Add {…} to your weekly sessions? It shows up every week. | Workouts, after logging past the plan (Emma approved, Nov 16) |
+|  | Add | Workouts, same card |
+|  | Not now | Workouts, same card |
 |  | {…} of {…} (web only; native chips show no count) | main.js:336 |
 |  | Other | main.js:336 |
 |  | Lift Board | main.js:339 |
@@ -585,7 +585,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | FAQ | main.js:463 |
 |  | Your data | main.js:463 |
 |  | Everything lives on this phone only. Download a backup now and then; restoring replaces what's here. | main.js:463 |
-|  | Download backup | main.js:463 |
+|  | Export my data | main.js:463 (was "Download backup"; Emma, Nov 16) |
 |  | Restore backup | main.js:463 |
 |  | Lift Board gives general training and nutrition estimates, not medical advice. Check with a doctor before big changes, especially if you're pregnant, injured or managing a health condition. | main.js:463 |
 |  | Replay tour | main.js:463 |
@@ -656,7 +656,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | How is Week Breakdown counted? | native FAQ |
 |  | Lifts use how long the workout took, rounded to 15 minutes. Lifts logged before that was saved count as your session length. Activities use the minutes you logged. | main.js:431 |
 |  | Moving to a new phone? | main.js:431 |
-|  | Settings → Your data → Download backup, then Restore backup on the new phone. With accounts, signing in will do this for you. (TODO copy; was "You → Your data"; the row is called "Export my data") | main.js:431 |
+|  | Settings → Your data → Export my data, then Restore backup on the new phone. With accounts, signing in will do this for you. (Emma, Nov 16) | main.js:431 |
 |  | Is this medical advice? | main.js:431 |
 |  | No. These are general estimates. Check with a doctor before big changes, especially if you're pregnant, injured or managing a health condition. | main.js:431 |
 

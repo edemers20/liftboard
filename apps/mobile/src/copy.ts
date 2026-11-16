@@ -347,11 +347,8 @@ export const copy = {
     minutesDone: "Minutes done",
     other: "Other",
     activityDay: "Activity day",
-    // TODO copy: the ask after logging past your weekly sessions. Not in docs/COPY.md yet.
     addAsk: (name: string) => `Add ${name} to your weekly sessions? It shows up every week.`,
-    // TODO copy
     addYes: "Add",
-    // TODO copy
     addNo: "Not now",
     logBelow: "Played or took a class? Log it below.",
     usually: "You usually play or take a class today.",
@@ -525,8 +522,7 @@ export const copy = {
     ],
     [
       "Moving to a new phone?",
-      // TODO copy: was "You → Your data". Settings names the row "Export my data", not "Download backup".
-      "Settings → Your data → Download backup, then Restore backup on the new phone. With accounts, signing in will do this for you.",
+      "Settings → Your data → Export my data, then Restore backup on the new phone. With accounts, signing in will do this for you.",
     ],
     [
       "Is this medical advice?",

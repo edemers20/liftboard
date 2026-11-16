@@ -1,10 +1,11 @@
 import "./styles.css";
 import { attachDials } from "./dial.js";
-import { timeByKind, hoursMoved, mostPlayed, seasonFrom, changeItems, watchItems, keepWeight, rowDone, countsInDay, wTitle, e1rm, prsBetween, weekComplete, weekStreak, countWeek, EFF_MULT, OWN_EFF, weekActuals, swapOptions, swapDay, isBW, yogaMet, pilMet, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk } from "./engine.js";
+import { LDEF, ldays, onActs, noteAct, plannedActs, trimActivityDays, addWeekly, askedWeekly, markAskedWeekly, setActivityDay, fitActivityDays, capSports, timeByKind, hoursMoved, mostPlayed, seasonFrom, changeItems, watchItems, keepWeight, rowDone, countsInDay, wTitle, e1rm, prsBetween, weekComplete, weekStreak, countWeek, EFF_MULT, OWN_EFF, weekActuals, swapOptions, swapDay, isBW, yogaMet, pilMet, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk } from "./engine.js";
 
 const storage=(()=>{ try{ const k="__t"; localStorage.setItem(k,"1"); localStorage.removeItem(k); return localStorage; }catch(e){ const m=new Map(); return {getItem:k=>m.get(k)??null,setItem:(k,v)=>m.set(k,String(v))}; } })();
 init(storage);
 setSaveHook(ok=>{ document.getElementById("saved").textContent= ok?"Saved":"Not saved (storage blocked)"; });
+capSports();
 /* nav: the bottom tab. cur: "home", or the lift day / activity opened from Workouts */
 const NAVS=["workouts","plan","history","you"];
 let vtOpen=false, profOpen=false;
@@ -194,11 +195,9 @@ const DAY0=t=>{ const d=new Date(t); d.setHours(0,0,0,0); return d; };
 const addD=(d,n)=>{ const x=new Date(d); x.setDate(x.getDate()+n); return x; };
 const monIdx=d=>(d.getDay()+6)%7;
 function weekStartOf(t){ const d=DAY0(t); return addD(d,-(wk.wkStart==="Sun"?d.getDay():monIdx(d))); }
-const LDEF={0:[],1:[0],2:[0,3],3:[0,2,4],4:[0,2,4,6],5:[0,1,3,4,6],6:[0,1,2,3,4,5],7:[0,1,2,3,4,5,6]};
 /* "Mark week as finished": the plan's week (wk.weekStart) moves to next week while the calendar week is still running */
 const earlyDone=()=>!!wk.weekStart&&wk.weekStart>weekStartOf(Date.now()).getTime();
 const planOff=()=>earlyDone()?1:0;
-function ldays(){ const n=DAYS.length, L=Array.isArray(wk.ldays)?wk.ldays:null; return L&&L.length===n?L.slice().sort():(LDEF[n]||[]).slice(); }
 /* days you usually play or take a class (Monday = 0); which activity is up to you */
 const adays=()=>Array.isArray(wk.adays)?wk.adays.slice().sort():[];
 const WD=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
@@ -272,14 +271,20 @@ const keyOfAct=a=>a==="zone2"?"zAct":actKey(a);
 const plannedOf=a=>a==="zone2"?1:cnt(a);
 const loggedOf=a=>(wk[keyOfAct(a)]||[]).filter(x=>String(x??"").trim()!=="").length;
 const actList=()=>[...actTabs(),...(rampOn()?["zone2"]:[])];
-/* log an activity on a date: fills the next open session; a session beyond the plan raises the count */
+/* Workouts chips: every activity on in Settings, 0 a week included, in activity order (main sport, second sport,
+   the rest); then one-offs. Other lists only the activities that are off. */
+const chipIds=()=>[...onActs(),...ACT_IDS.filter(a=>a!=="lift"&&enabled(a)&&(wk.adhoc||{})[a]),...(rampOn()?["zone2"]:[])];
+const otherIds=()=>{ const c=chipIds(); return ACT_IDS.filter(a=>a!=="lift"&&!c.includes(a)); };
+/* log an activity on a date: fills the next open planned session, else goes past the plan. The saved count never changes. */
 function logActOn(a,t){
   const key=keyOfAct(a), arr=wk[key]||[], P=plannedOf(a); let n=-1, used=0;
   for(let i=0;i<P;i++) if(String(arr[i]??"").trim()===""){ n=i; break; }
   arr.forEach((v,i)=>{ if(String(v??"").trim()!=="") used=i+1; });
-  change(()=>{ if(n<0){ n=Math.max(P,used); if(a!=="zone2") wk[a]=n+1; }
+  change(()=>{ if(n<0) n=Math.max(P,used);
     logAct(key,n,String(a==="zone2"?45:plannedMin(a)),t); });
 }
+/* after logging past the weekly sessions: offer to make it weekly, once per activity per week */
+const addAskId=()=>ACT_IDS.find(a=>a!=="lift"&&enabled(a)&&loggedOf(a)>cnt(a)&&!askedWeekly(a))||null;
 /* weeks start on their own: the first open after Monday (or Sunday) closes out last week */
 /* lifts logged since the week started count as done, even if a week rollover cleared the flags */
 function syncDoneFromSessions(){
@@ -396,7 +401,7 @@ function dayBody(P,o){
   const banners=[];
   if(isToday){
     /* forgot to log yesterday? one tap fixes it */
-    const y=i-1, yk=dayKey(addD(today,-1).getTime()), open=actList().filter(a=>loggedOf(a)<plannedOf(a));
+    const y=i-1, yk=dayKey(addD(today,-1).getTime()), open=chipIds().filter(a=>loggedOf(a)<plannedOf(a));
     if((wk.remind||"On")==="On"&&y>=0&&!M.byDay[y].length&&open.length&&wk.remindSeen!==yk)
       banners.push(`<div class="wban"><p>Did you play or train yesterday?</p><div class="chips">${open.map(a=>`<button type="button" class="chip" data-yday="${a}">${esc(actName(a))}</button>`).join("")}<button type="button" class="chip ghost" data-yday="">No</button></div></div>`);
     /* the "swap for an upper day" offer is a sheet shown right after logging (offerLegSwap), not a banner that pushes the page down */
@@ -419,9 +424,11 @@ function dayBody(P,o){
     else if(past&&!ss.length) cards.push(`<section class="wcard open"><span class="weye">Rest</span><h3>Nothing logged</h3></section>`);
   }
   ss.filter(s=>s.k!=="lift").forEach(s=>cards.push(sessCard(s)));
-  if(!past&&adays().includes(monIdx(sel))&&!ss.some(s=>s.k!=="lift")) cards.push(`<section class="wcard act plan"><span class="weye">Activity day</span><p class="wsub">${isToday?"Played or took a class? Log it below.":"You usually play or take a class today."}</p></section>`);
-  const canLog=wOff===0&&!(sel>today), acts=actList(), others=ACT_IDS.filter(a=>a!=="lift"&&!enabled(a));
-  const logH=canLog&&(acts.length||others.length)?`<div class="wlog"><div class="chips" role="group" aria-label="Log activity">${acts.map(a=>`<button type="button" class="chip act" data-log="${a}"><i aria-hidden="true">+</i>${esc(actName(a))} ${plannedOf(a)>0?`<small>${loggedOf(a)} of ${plannedOf(a)}</small>`:loggedOf(a)?`<small>${loggedOf(a)}</small>`:""}</button>`).join("")}${others.length?`<button type="button" class="chip act ghost2" data-logmore aria-expanded="${logMore}"><i aria-hidden="true">${logMore?"−":"+"}</i>Other</button>`:""}</div>
+  const ask=isToday?addAskId():null;
+  if(ask) cards.push(`<section class="wcard act plan ask"><p class="wsub">Add ${esc(actName(ask))} to your weekly sessions? It shows up every week.</p><div class="askrow"><button type="button" class="btn askyes" data-ask="${ask}" data-v="1">Add</button><button type="button" class="wlink" data-ask="${ask}" data-v="0">Not now</button></div></section>`);
+  if(!past&&adays().includes(monIdx(sel))&&plannedActs().length&&!ss.some(s=>s.k!=="lift")) cards.push(`<section class="wcard act plan"><span class="weye">Activity day</span><p class="wsub">${isToday?"Played or took a class? Log it below.":"You usually play or take a class today."}</p></section>`);
+  const canLog=wOff===0&&!(sel>today), acts=chipIds(), others=otherIds();
+  const logH=canLog&&(acts.length||others.length)?`<div class="wlog"><div class="chips" role="group" aria-label="Log activity">${acts.map(a=>`<button type="button" class="chip act" data-log="${a}"><i aria-hidden="true">+</i>${esc(actName(a))}</button>`).join("")}${others.length?`<button type="button" class="chip act ghost2" data-logmore aria-expanded="${logMore}"><i aria-hidden="true">${logMore?"−":"+"}</i>Other</button>`:""}</div>
     ${logMore&&others.length?`<div class="chips more">${others.map(a=>`<button type="button" class="chip act" data-logx="${a}"><i aria-hidden="true">+</i>${esc(ACT[a].name)}</button>`).join("")}</div>`:""}</div>`:"";
   const Mth=P.math, food=isToday&&wk.setupDone?`<button type="button" class="wfood" data-nav2="plan" aria-label="Fuel and recovery: open Plan"><div class="fr"><span class="frl">Fuel today</span><b>${r5(Mth.intake).toLocaleString()}<small>kcal</small></b></div>${recovHTML()}</button>`:"";
   return `${banners.join("")}<div class="wcards">${cards.join("")}</div>${logH}${food}`;
@@ -441,7 +448,8 @@ function planRows(){
     R.push({o:k!=null?M.dates[k].getTime()+1:9e15+j,k:"lift",id,title:d.title,sub:k!=null?wdShort(M.dates[k]):"Doesn't fit this week",st:j===0?"next":"open"}); });
   sessW.filter(s=>s.k!=="lift").forEach(s=>R.push({o:s.t,k:"act",id:s.k,title:actName(s.k),sub:wdShort(new Date(s.t)),st:"done"}));
   const AD=adays(), freeAD=M.dates.map((d,i)=>i).filter(i=>i>=M.tIdx&&AD.includes(monIdx(M.dates[i]))&&!M.byDay[i].some(s=>s.k!=="lift"));
-  let q=0; actList().forEach(a=>{ for(let i=loggedOf(a);i<plannedOf(a);i++){ const k=freeAD[q++]; R.push({o:k!=null?M.dates[k].getTime()+2:9.5e15,k:"act",id:a,title:actName(a),sub:k!=null?wdShort(M.dates[k]):"Any day",st:"open"}); } });
+  const word=plannedActs().length===1?"Activity":"Activities";
+  let q=0; actList().forEach(a=>{ for(let i=loggedOf(a);i<plannedOf(a);i++){ const k=freeAD[q++]; R.push({o:k!=null?M.dates[k].getTime()+2:9.5e15,k:"act",id:a,title:a==="zone2"?actName(a):word,sub:k!=null?wdShort(M.dates[k]):"Any day",st:"open"}); } });
   return R.sort((a,b)=>a.o-b.o);
 }
 /* Recovery: hours until each half of the body has had its usual break.
@@ -534,7 +542,7 @@ function planSeason(P){
 
 /* ---------- You: profile, preferences, app settings, data ---------- */
 /* FAQ (mirrors the launch plan doc) */
-const HOW=[["How is my plan built?", "You pick a goal, a focus, your usual lift days and the activities you do. Lift Board picks a split (which days train what), then adjusts sets each week for your sports and classes, your check-in and what you already trained that week."], ["How does my week get scheduled?", "Lifts line up in order on your usual lift days. Miss one and the rest slide forward. Anything that doesn't fit carries into next week, which starts where you left off. Move to today pulls a planned lift onto today. Activities aren't tied to a day: log them from Workouts whenever you do them. Usual activity days only mark when you tend to play."], ["When does a new week start?", "On its own, on Monday or Sunday (You → App → Week starts on). Your weekly check-in reopens at the top of Plan."], ["Forgot to log something?", "Tap that day on Workouts and log it there. If the next-morning check is on, Workouts also asks \"Did you play or train yesterday?\" when the day before is empty. Tap a logged activity to change its minutes or delete it."], ["Which goal should I pick?", "Lose weight fast: up to 1% of your weight a week, and your lifts may slip. Lose fat, keep strength: up to 0.7% a week while you hold your lifts, with no more than a quarter of the deficit from cardio. Maintain: eat what you burn. Build muscle: eat a little more, with extra sets on your focus. Pace is a share of your body weight, so the pounds follow your weight."], ["Why did my weights change?", "Hit the top of your rep range and the weight goes up next time. Land inside the range and you aim for one more rep. Miss the range and you hold the weight. Miss twice when you're not on a cut and it drops about 10% so you can build back up. A new exercise starts from a guess based on a similar one you've done."], ["What does \"hold\" mean on a cut?", "When you're losing more than about 0.5% of your body weight a week, keeping your numbers is the win. A missed rep keeps the weight. It only eases 5% after three misses in a row, and accessories lose a set before any weight comes off."], ["How is fuel calculated?", "Your base is what you'd burn on a day with no training: resting burn, light movement, steps and digestion. Fuel today is your base plus this week's training, minus the gap your goal sets. After three weigh-ins the app checks its estimate against how your weight is actually moving. Food never drops so low that there isn't energy left for training."], ["How is recovery counted?", "Each half of your body gets a countdown. A Lower or Upper lift needs 48 hours for what it trained, and full-body days need 36 for both. Sports count against your legs (up to 48 hours for running or soccer); racquet sports and climbing also tire your upper body for a day. A Low readiness check-in adds 12 hours. It's a guide; it doesn't move your plan."], ["How long should I rest?", "Main lifts 2:30 (3:00 at 5 reps or fewer), other compound lifts 1:30, isolation 1:15. One side at a time adds 15 seconds and the first set adds 30. A cut, in-season or a rough day each add 15 seconds to compound lifts, up to 30. Tap the left or right side of the rest bar to take off or add 15 seconds; it remembers for that exercise. The chime may not play with the phone locked."], ["What does experience change?", "How many tips you see. Beginner and Some Experience show tips; Advanced hides them, and (i) explanations stay either way. Change it in You → Training preferences."], ["Bodyweight exercises?", "Leave the weight blank. Add a number only if you hold extra weight. Progress comes from reps, slower lowering or added weight."], ["How is Avg week breakdown counted?", "Lifts use how long the workout took, rounded to 15 minutes. Lifts logged before that was saved count as your session length. Activities use the minutes you logged."], ["Moving to a new phone?", "You → Your data → Download backup, then Restore backup on the new phone. With accounts, signing in will do this for you."], ["Is this medical advice?", "No. These are general estimates. Check with a doctor before big changes, especially if you're pregnant, injured or managing a health condition."]];
+const HOW=[["How is my plan built?", "You pick a goal, a focus, your usual lift days and the activities you do. Lift Board picks a split (which days train what), then adjusts sets each week for your sports and classes, your check-in and what you already trained that week."], ["How does my week get scheduled?", "Lifts line up in order on your usual lift days. Miss one and the rest slide forward. Anything that doesn't fit carries into next week, which starts where you left off. Move to today pulls a planned lift onto today. Activities aren't tied to a day: log them from Workouts whenever you do them. Usual activity days only mark when you tend to play."], ["When does a new week start?", "On its own, on Monday or Sunday (Settings → App → Week starts on). Your weekly check-in reopens at the top of Plan."], ["Forgot to log something?", "Tap that day on Workouts and log it there. If the next-morning check is on, Workouts also asks \"Did you play or train yesterday?\" when the day before is empty. Tap a logged activity to change its minutes or delete it."], ["Which goal should I pick?", "Lose weight fast: up to 1% of your weight a week, and your lifts may slip. Lose fat, keep strength: up to 0.7% a week while you hold your lifts, with no more than a quarter of the deficit from cardio. Maintain: eat what you burn. Build muscle: eat a little more, with extra sets on your focus. Pace is a share of your body weight, so the pounds follow your weight."], ["Why did my weights change?", "Hit the top of your rep range and the weight goes up next time. Land inside the range and you aim for one more rep. Miss the range and you hold the weight. Miss twice when you're not on a cut and it drops about 10% so you can build back up. A new exercise starts from a guess based on a similar one you've done."], ["What does \"hold\" mean on a cut?", "When you're losing more than about 0.5% of your body weight a week, keeping your numbers is the win. A missed rep keeps the weight. It only eases 5% after three misses in a row, and accessories lose a set before any weight comes off."], ["How is fuel calculated?", "Your base is what you'd burn on a day with no training: resting burn, light movement, steps and digestion. Fuel today is your base plus this week's training, minus the gap your goal sets. After three weigh-ins the app checks its estimate against how your weight is actually moving. Food never drops so low that there isn't energy left for training."], ["How is recovery counted?", "Each half of your body gets a countdown. A Lower or Upper lift needs 48 hours for what it trained, and full-body days need 36 for both. Sports count against your legs (up to 48 hours for running or soccer); racquet sports and climbing also tire your upper body for a day. A Low readiness check-in adds 12 hours. It's a guide; it doesn't move your plan."], ["How long should I rest?", "Main lifts 2:30 (3:00 at 5 reps or fewer), other compound lifts 1:30, isolation 1:15. One side at a time adds 15 seconds and the first set adds 30. A cut, in-season or a rough day each add 15 seconds to compound lifts, up to 30. Tap the left or right side of the rest bar to take off or add 15 seconds; it remembers for that exercise. The chime may not play with the phone locked."], ["What does experience change?", "How many tips you see. Beginner and Some Experience show tips; Advanced hides them, and (i) explanations stay either way. Change it in Settings → Training."], ["Bodyweight exercises?", "Leave the weight blank. Add a number only if you hold extra weight. Progress comes from reps, slower lowering or added weight."], ["How is Avg week breakdown counted?", "Lifts use how long the workout took, rounded to 15 minutes. Lifts logged before that was saved count as your session length. Activities use the minutes you logged."], ["Moving to a new phone?", "Settings → Your data → Export my data, then Restore backup on the new phone. With accounts, signing in will do this for you."], ["Is this medical advice?", "No. These are general estimates. Check with a doctor before big changes, especially if you're pregnant, injured or managing a health condition."]];
 /* the top of You reads like a profile: who you are, since when, what you've done */
 function profileHero(){
   const S=wk.sessions||[], lifts=S.filter(x=>x.k==="lift").length, acts=S.length-lifts;
@@ -577,12 +585,12 @@ function strongest(){ let best=null;
     if(!best||c.dw>best.dw||(c.dw===best.dw&&c.last.w>best.last.w)) best=c; });
   return best; }
 /* earned milestones only, newest first */
-function milestones(){ const out=[], S=(wk.sessions||[]).filter(x=>x&&x.t).sort((a,b)=>a.t-b.t), O=["#2a211c","#fea06a"], P=["#3a2430","#fc96bf"], G=["#1f3029","#6fd0b4"];
+function milestones(){ const out=[], S=(wk.sessions||[]).filter(x=>x&&x.t).sort((a,b)=>a.t-b.t), O="#fea06a", P="#fc96bf", G="#6fd0b4", R="#b79cf0";
   const lifts=S.filter(x=>x.k==="lift"); [10,25,50,100,200].forEach(n=>{ if(lifts.length>=n) out.push({i:String(n),t:`${n} lifts`,d:lifts[n-1].t,c:G}); });
   let m=0; const H=[10,50,100,250,500]; let h=0; S.forEach(x=>{ m+=x.k==="lift"?(num(x.min,0)>0?num(x.min,0):num(wk.time,60)):num(x.min,0); while(h<H.length&&m>=H[h]*60){ out.push({i:String(H[h]),t:`${H[h]} hours moved`,d:x.t,c:O}); h++; } });
   const W=wk.weeks||[]; let run=0, first=false; const ST=[3,6,10,16,26,52], got={};
   W.forEach(w=>{ const end=w.start+7*864e5; if(weekComplete(w)){ run++; if(!first){ first=true; out.push({i:"1",t:"First full week",d:end,c:P}); } ST.forEach(s=>{ if(run===s&&!got[s]){ got[s]=1; out.push({i:String(s),t:`${s}-week streak`,d:end,c:P}); } }); } else run=0; });
-  const pr=prsBetween(0,Date.now()+864e5).map(x=>x.t).sort((a,b)=>a-b)[0]; if(pr) out.push({i:"PR",t:"First PR",d:pr,c:O});
+  const pr=prsBetween(0,Date.now()+864e5).map(x=>x.t).sort((a,b)=>a-b)[0]; if(pr) out.push({i:"PR",t:"First PR",d:pr,c:R});
   return out.sort((a,b)=>b.d-a.d); }
 function renderYou(P){ return youView==="settings"?renderSettings():renderProfile(); }
 function renderProfile(){
@@ -636,7 +644,7 @@ function renderProfile(){
       <div class="ymix">${mix.map(c=>{ const h=Math.round(c.min/60); return `<div><span>${esc(ACT[c.k]?ACT[c.k].name:c.k)}</span><i><b style="width:${Math.round(c.min/top*100)}%;background:${col(c.k)}"></b></i><span class="mono">${h}h</span></div>`; }).join("")}</div></section>`; }
   /* milestones: earned ones only */
   const M=milestones().slice(0,6);
-  const msH=`<section class="ysec"><div class="yh"><h3>Milestones</h3></div>${M.length?`<div class="ymiles">${M.map(m=>`<div><span class="ybadge" style="background:${m.c[0]};color:${m.c[1]}">${m.i}</span><b>${esc(m.t)}</b><small>${MDAY(m.d)}</small></div>`).join("")}</div>`
+  const msH=`<section class="ysec"><div class="yh"><h3>Milestones</h3></div>${M.length?`<div class="ymiles">${M.map(m=>`<div class="ymf" style="background:${m.c}"><span class="ybadge">${m.i}</span><b>${esc(m.t)}</b><small>${MDAY(m.d)}</small></div>`).join("")}</div>`
     :`<p class="small">Milestones show up here as you hit them, like your first full week or your 10th lift.</p>`}</section>`;
   return `<div class="yprof">${gear}${hero}${streak}${tileH}${setup}${slH}${prH}${mpH}${msH}</div>`;
 }
@@ -663,7 +671,7 @@ function renderSettings(){
     ${seg("remind","Next-morning check",[["On","On"],["Off","Off"]],wk.remind||"On",0,"sw2")}</div>
   <div class="panel"><h3>Help</h3>${HOW.map(([q,a])=>`<details class="how"><summary>${esc(q)}</summary><p class="small">${esc(a)}</p></details>`).join("")}</div>
   <div class="panel"><h3>Your data</h3><p class="small">Everything lives on this phone only. Download a backup now and then; restoring replaces what's here.</p>
-    <div class="foot" style="margin:0"><button class="btn" id="bkDown" type="button">Download backup</button><label class="btn" for="bkFile">Restore backup<input id="bkFile" type="file" accept="application/json,.json" hidden></label></div>
+    <div class="foot" style="margin:0"><button class="btn" id="bkDown" type="button">Export my data</button><label class="btn" for="bkFile">Restore backup<input id="bkFile" type="file" accept="application/json,.json" hidden></label></div>
     <div class="foot season-foot"><button class="btn" id="replayTour" type="button">Replay tour</button><button class="btn" id="resetProfile" type="button">Reset profile</button></div></div>
   ${moveHTML()}
   <p class="small disclaimer">Lift Board gives general training and nutrition estimates, not medical advice. Check with a doctor before big changes, especially if you're pregnant, injured or managing a health condition.</p></div>`;
@@ -721,7 +729,8 @@ function bindShell(v){
   v.querySelectorAll("[data-ld]").forEach(b=>b.onclick=()=>{ const k=+b.dataset.ld, L=ldays(), on=L.includes(k), nL=on?L.filter(x=>x!==k):L.concat([k]).sort();
     if(!on&&inSeason()&&nL.length>3){ toast(["In-season","Up to 3 lift days so you stay fresh for games."]); return; }
     change(()=>{ wk.ldays=nL; wk.days=nL.length; syncDays(); }); });
-  v.querySelectorAll("[data-ad]").forEach(b=>b.onclick=()=>{ const k=+b.dataset.ad, A=adays(); wk.adays=A.includes(k)?A.filter(x=>x!==k):A.concat([k]).sort(); save(); render(); });
+  v.querySelectorAll("[data-ad]").forEach(b=>b.onclick=()=>{ const k=+b.dataset.ad; change(()=>setActivityDay(k,!adays().includes(k))); });
+  v.querySelectorAll("[data-ask]").forEach(b=>b.onclick=()=>{ const a=b.dataset.ask; if(b.dataset.v==="1") change(()=>addWeekly(a)); markAskedWeekly(a); render(); });
   v.querySelectorAll("input[data-cnt]").forEach(el=>el.onchange=()=>{ const a=el.dataset.cnt, n=Math.max(0,Math.min(7,parseInt(el.value)||0)); change(()=>{ wk[a]=n; }); });
   const cs=v.querySelector("#ckSave"); if(cs) cs.onclick=()=>{ wk.ckDone=true; save(); render(); toast(["Check-in saved","This week's plan is set."]); };
   const ce=v.querySelector("#ckEdit"); if(ce) ce.onclick=()=>{ wk.ckDone=false; save(); render(); window.scrollTo({top:0,behavior:"smooth"}); };
@@ -739,11 +748,11 @@ function profileHTML(withGoal,src,part){
   const G=h=>`<div class="pgroup">${h}</div>`;
   if(part==="bio") return `<div class="pgroups">${G(`${seg("sex","Sex",["Female","Male","Other"],src.sex)}<div class="nums">${F("name","Name","text","optional")}${F("age","Age")}${F("height","Height (in)","decimal")}${F("weight","Weight (lb)","decimal")}${F("bf","Body fat %","decimal","optional")}${F("steps","Steps / day")}${F("oura","Daily burn","numeric","optional")}</div>`)}</div>`;
   if(part==="acts") return `<div class="seg">${ACT_IDS.map(a=>`<button type="button" class="actt" data-actt="${a}" aria-pressed="${en(a)}">${ACT[a].name}</button>`).join("")}</div>
-  ${sports.length?`<div class="q"><span>Sports in season<small> · up to two. Tap a picked sport again to make it primary.</small></span><div class="seg sportseg">${[["","None"],...sports.map(a=>[a,ACT[a].name])].map(([a,l])=>{ const p=a&&src.mainSport===a, q=a&&src.sport2===a, on=a?p||q:!src.mainSport;
+  ${sports.length?`<div class="q"><span>Sports in season<small>: up to two. Tap a picked sport again to make it primary.</small></span><div class="seg sportseg">${[["","None"],...sports.map(a=>[a,ACT[a].name])].map(([a,l])=>{ const p=a&&src.mainSport===a, q=a&&src.sport2===a, on=a?p||q:!src.mainSport;
     return `<button type="button" data-sp="${a}" aria-pressed="${!!on}">${l}${p&&src.sport2?`<small class="prim">primary</small>`:""}</button>`; }).join("")}</div></div>`:""}`;
   return `<div class="pgroups">${G(`${hdr("Activities",["acts","mainSport",...(hs?["season"]:[])])}
   <div class="seg">${ACT_IDS.map(a=>`<button type="button" class="actt" data-actt="${a}" aria-pressed="${en(a)}">${ACT[a].name}</button>`).join("")}</div>`)}
-  ${sports.length?G(`<div class="q"><span>Sports in season<small> · up to two. Tap a picked sport again to make it primary.</small></span><div class="seg sportseg">${[["","None"],...sports.map(a=>[a,ACT[a].name])].map(([a,l])=>{ const p=a&&src.mainSport===a, q=a&&src.sport2===a, on=a?p||q:!src.mainSport;
+  ${sports.length?G(`<div class="q"><span>Sports in season<small>: up to two. Tap a picked sport again to make it primary.</small></span><div class="seg sportseg">${[["","None"],...sports.map(a=>[a,ACT[a].name])].map(([a,l])=>{ const p=a&&src.mainSport===a, q=a&&src.sport2===a, on=a?p||q:!src.mainSport;
     return `<button type="button" data-sp="${a}" aria-pressed="${!!on}">${l}${p&&src.sport2?`<small class="prim">primary</small>`:""}</button>`; }).join("")}</div></div>
   ${withGoal&&hs?toggle("season","In-season",src.season,"In-season","Off-season"):""}`):""}
   ${en("lift")?G(`${hdr("Lifting",withGoal?["focus","days"]:["focus"])}${withGoal?stepper("days","Lifting days",(src.season==="In-season"&&hs?[0,1,2,3]:[0,1,2,3,4,5,6,7]),"",src.days):""}${String(src.days)==="0"?"":seg("focus","Focus",[["Lower","Lower body"],["Balanced","Balanced"],["Upper","Upper body"]],src.focus)}`):""}
@@ -791,7 +800,7 @@ function renderSeason(P){
   <div class="panel"><h3>Units</h3>${seg("units","",[["lb","Pounds (lb)"],["kg","Kilograms (kg)"]],wk.units||"lb")}</div>
   <div class="panel"><h3>Tips</h3>${seg("guide","",[["More","More guidance"],["Less","Fewer tips"]],wk.guide||"More")}<p class="small">${(wk.guide||"More")==="Less"?"No first-visit tips, shorter change popups and no reasons under exercises. Watch notes and (i) explanations stay.":"First-visit tips on each tab, full change popups and the reason behind each exercise change."}</p></div>
   <div class="panel"><h3>Your data</h3><p class="small">Everything lives on this phone only. Download a backup now and then; restoring replaces what's here.</p>
-    <div class="foot" style="margin:0"><button class="btn" id="bkDown" type="button">Download backup</button><label class="btn" for="bkFile">Restore backup<input id="bkFile" type="file" accept="application/json,.json" hidden></label></div></div>
+    <div class="foot" style="margin:0"><button class="btn" id="bkDown" type="button">Export my data</button><label class="btn" for="bkFile">Restore backup<input id="bkFile" type="file" accept="application/json,.json" hidden></label></div></div>
   <p class="small disclaimer">Lift Board gives general training and nutrition estimates, not medical advice. Check with a doctor before big changes, especially if you're pregnant, injured or managing a health condition.</p>
   <div class="foot season-foot"><button class="btn" id="replayTour" type="button">Replay tour</button><button class="btn" id="resetProfile" type="button">Reset profile</button></div>`;
 }
@@ -809,7 +818,7 @@ function freqHTML(S){
   const W0=weekStartOf(Date.now()), first=S.length?weekStartOf(S[0].t):W0, N=Math.max(1,Math.min(8,Math.round((W0-first)/6048e5)+1));
   const weeks=[...Array(N)].map((_,i)=>{ const W=addD(W0,-7*(N-1-i)), E=addD(W,7), m={lift:0,sport:0,cls:0,cardio:0};
     S.filter(x=>x.t>=W.getTime()&&x.t<E.getTime()).forEach(x=>{ m[mixKind(x)]+=mixMin(x); }); return {W,m,tot:Object.values(m).reduce((a,b)=>a+b,0)}; });
-  const max=Math.max(60,...weeks.map(w=>w.tot)), hrs=n=>{ const h=n/60; return h>=10?Math.round(h)+"h":(Math.round(h*2)/2).toString().replace(/\.5$/,"½").replace(/^0½$/,"½")+"h"; };
+  const max=Math.max(60,...weeks.map(w=>w.tot)), hrs=n=>{ const h=n/60; return h>=10?Math.round(h)+"h":Math.round(h*2)/2+"h"; };
   const done=weeks.slice(0,-1).filter(w=>w.tot), avg=done.length?done.reduce((a,w)=>a+w.tot,0)/done.length:0;
   const used=MIX.filter(([k])=>weeks.some(w=>w.m[k]));
   return `<div class="panel">${hdr("Avg week breakdown",["freq"])}
@@ -1580,7 +1589,7 @@ function dayDone(id,sets){
 function weekDone(){ const ws=wk.weeks||[], a=ws[ws.length-1]; if(!a) return;
   const A=weekActuals(a.start), ok=weekComplete(a), end=a.start+7*864e5, U=KG()?"kg":"lb";
   const acts={}; (wk.sessions||[]).filter(x=>x.k!=="lift"&&x.t>=a.start&&x.t<end).forEach(x=>{ const c=acts[x.k]||(acts[x.k]={n:0,m:0}); c.n++; c.m+=num(x.min,0); });
-  const tiles=[["Lifts",a.lifts,` / ${a.planned}`,"lift"],["Sets",a.sets??0,"",""],["Activity",A.sport,"min","act"],["Exercise calories",A.burn,"kcal","fuel"]];
+  const tiles=[["Lifts",a.lifts,` / ${a.planned}`,"lift"],["PRs",(a.prs||[]).length,"","pr"],["Activity",A.sport,"min","act"],["Exercise calories",A.burn,"kcal","fuel"]];
   const el=document.getElementById("done"); doneCta=()=>goTab("week"); closePop();
   el.innerHTML=`<div class="ddim" data-close></div><section class="dsheet wrep" role="dialog" aria-modal="true" aria-labelledby="dTitle">
     <div class="rhead"><h2 id="dTitle" tabindex="-1">${wkRange(a.start)}</h2><span class="wpill${ok?" ok":""}">${ok?"✓ Completed":`${a.lifts} of ${a.planned} lifts`}</span><button type="button" class="dx" data-close aria-label="Close"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M2 2l10 10M12 2L2 12"/></svg></button></div>
@@ -1649,9 +1658,14 @@ function bind(){
     if(!a){ m=""; s2=""; } else if(a===m){ m=s2; s2=""; } else if(a===s2){ s2=m; m=a; } else if(!m) m=a; else s2=a;
     if(inProf(b)){ draft=draft||{}; draft.mainSport=m; draft.sport2=s2; if(!m) draft.season="Off-season"; render(); return; }
     wk.mainSport=m; wk.sport2=s2; fixSports(wk); save(); render(); });
-  const ps=document.getElementById("profSave"); if(ps) ps.onclick=()=>{ const d=draft; draft=null; profOpen=false; const a=fx(plan()); Object.assign(wk,d); if(d&&"days" in d){ wk.days=+d.days; if(ldays().length!==wk.days) wk.ldays=LDEF[wk.days]||[]; } fixSports(wk); save(); const b=fx(plan()); render(); toast(["Profile saved",...diffFx(a,b)]); };
+  const ps=document.getElementById("profSave"); if(ps) ps.onclick=()=>{ const d=draft; draft=null; profOpen=false; const a=fx(plan()), was={...(wk.acts||{})}; Object.assign(wk,d);
+    if(d&&d.acts) Object.keys(d.acts).forEach(k=>{ if(k!=="lift"&&!!d.acts[k]!==!!was[k]){ wk[k]="0"; noteAct(k,!!d.acts[k]); } }); if(d&&d.acts) trimActivityDays();
+    if(d&&"days" in d){ wk.days=+d.days; if(ldays().length!==wk.days) wk.ldays=LDEF[wk.days]||[]; } fixSports(wk); save(); const b=fx(plan()); render(); toast(["Profile saved",...diffFx(a,b)]); };
   v.querySelectorAll(".actt").forEach(b=>{ if(inProf(b)) b.onclick=()=>{ const a=b.dataset.actt, cur0={...(wk.acts||{}),...((draft&&draft.acts)||{})}; stage("acts",{...cur0,[a]:!cur0[a]}); }; });
-  v.querySelectorAll(".actt").forEach(b=>{ if(!inProf(b)) b.onclick=()=>change(()=>{ const a=b.dataset.actt; wk.acts={...(wk.acts||{}),[a]:!enabled(a)}; if(wk.adhoc&&wk.adhoc[a]){ const h={...wk.adhoc}; delete h[a]; wk.adhoc=h; } fixSports(wk); }); });
+  /* a newly turned-on activity starts at 0 a week until it's set; turning one off clears its count */
+  v.querySelectorAll(".actt").forEach(b=>{ if(!inProf(b)) b.onclick=()=>change(()=>{ const a=b.dataset.actt, on=!enabled(a); wk.acts={...(wk.acts||{}),[a]:on}; noteAct(a,on);
+    if(a!=="lift"){ wk[a]="0"; if(!on) trimActivityDays(); }
+    if(wk.adhoc&&wk.adhoc[a]){ const h={...wk.adhoc}; delete h[a]; wk.adhoc=h; } fixSports(wk); syncDays(); }); });
   const ss=document.getElementById("setupSave"); if(ss) ss.onclick=()=>{ wk.createdAt=wk.createdAt||Date.now(); wk.setupDone=true; wk.weekStart=weekStartOf(Date.now()).getTime(); wk.ldays=LDEF[DAYS.length]||[]; fitPace(); nav="workouts"; cur="home"; keepNav(); save(); render(); window.scrollTo(0,0); setupDone(); };
   v.querySelectorAll("[data-yv]").forEach(b=>b.onclick=()=>{ const to=b.dataset.yv; profOpen=false; draft=null; swapView(to==="settings"?"subfwd":"subback",()=>{ youView=to; render(); window.scrollTo(0,0); }); });
   v.querySelectorAll("[data-yedit]").forEach(b=>b.onclick=()=>{ const f=b.dataset.yedit, go=()=>{ youView="settings"; profOpen=true; render();
@@ -1671,17 +1685,23 @@ function bind(){
     if(!(wk.done||{})[cur]&&dayComplete(cur)){ const id=cur, n=setsLogged(id); markDone(id); render(); dayDone(id,n); return; }
     const d=DAYS.find(x=>x.id===cur), n=nextIdx(d,plan().days[cur],i); if(n!=null){ wk.active={...(wk.active||{}),[cur]:n}; save(); } render(); });
   v.querySelectorAll("input[data-set]").forEach(el=>{ el.oninput=()=>logSet(+el.dataset.i,+el.dataset.set,el.dataset.f,el.dataset.f==="w"?fromU(el.value):el.value); el.onchange=()=>render(); });
-  v.querySelectorAll("[data-zdel]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); const i=+b.dataset.zdel, k=+b.dataset.sk, snap=JSON.parse(JSON.stringify(slots[cur]||{}));
-    const log=(get(cur,i).log||[]).slice(); log.splice(k,1); set(cur,i,"log",log); if((wk.done||{})[cur]) resyncDone(cur); render();
+  const removeEx=(d,i)=>{ const s=d.slots[i], snap={extra:JSON.parse(JSON.stringify((wk.extra||{})[cur]||[])), slots:JSON.parse(JSON.stringify(slots[cur]||{}))};
+    if(s.extra){ const extras=(wk.extra||{})[cur]||[]; removeExtra(cur, i-(d.slots.length-extras.length)); }
+    else { set(cur,i,"cut",true); set(cur,i,"log",[]); set(cur,i,"cdone",false); }
+    if((wk.done||{})[cur]) resyncDone(cur); render();
+    toastUndo(()=>{ wk.extra={...(wk.extra||{}),[cur]:snap.extra}; slots[cur]=snap.slots; syncDays(); save(); if((wk.done||{})[cur]) resyncDone(cur); render(); }); };
+  /* A planned row (even empty) lowers this day's set count through st.drop; the last row removes the exercise. */
+  v.querySelectorAll("[data-zdel]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); const i=+b.dataset.zdel, k=+b.dataset.sk, d=DAYS.find(x=>x.id===cur); if(!d) return;
+    const planned=num(((plan().days[cur]||{}).slots||[])[i]?.sets,0), st=get(cur,i), log=(st.log||[]).slice();
+    if(Math.max(planned,log.length)<=1){ removeEx(d,i); return; }
+    const snap=JSON.parse(JSON.stringify(slots[cur]||{}));
+    if(k<planned) set(cur,i,"drop",num(st.drop,0)+1);
+    if(k<log.length){ log.splice(k,1); set(cur,i,"log",log); }
+    if((wk.done||{})[cur]) resyncDone(cur); render();
     toastUndo(()=>{ slots[cur]=snap; save(); if((wk.done||{})[cur]) resyncDone(cur); render(); }); });
   v.querySelectorAll("[data-xdel]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); const i=+b.dataset.xdel, d=DAYS.find(x=>x.id===cur); if(!d) return;
     const s=d.slots[i], st=get(cur,i), n=(s.cardio?!!st.cdone:(st.log||[]).filter(x=>x.d).length);
-    const go=()=>{ const snap={extra:JSON.parse(JSON.stringify((wk.extra||{})[cur]||[])), slots:JSON.parse(JSON.stringify(slots[cur]||{}))};
-      if(s.extra){ const extras=(wk.extra||{})[cur]||[]; removeExtra(cur, i-(d.slots.length-extras.length)); }
-      else { set(cur,i,"cut",true); set(cur,i,"log",[]); set(cur,i,"cdone",false); }
-      if((wk.done||{})[cur]) resyncDone(cur); render();
-      toastUndo(()=>{ wk.extra={...(wk.extra||{}),[cur]:snap.extra}; slots[cur]=snap.slots; syncDays(); save(); if((wk.done||{})[cur]) resyncDone(cur); render(); }); };
-    if(n>0){ if(window.confirm(`Delete ${exName(d,s,i)} and its ${n} sets?`)) go(); } else go(); });
+    if(n>0){ if(window.confirm(`Delete ${exName(d,s,i)} and its ${n} sets?`)) removeEx(d,i); } else removeEx(d,i); });
   v.querySelectorAll(".chk").forEach(b=>b.onclick=()=>{ const i=+b.dataset.i,k=+b.dataset.set, x=(get(cur,i).log||[])[k]||{};
     if(!x.w){ const ph=document.getElementById(`w-${cur}-${i}-${k}`).placeholder; if(+ph>0) logSet(i,k,"w",ph); }
     if(!x.r){ const ph=document.getElementById(`r-${cur}-${i}-${k}`).placeholder; if(+ph>0) logSet(i,k,"r",ph); }
@@ -1888,8 +1908,14 @@ function slideLvl(rg,to){ cancelAnimationFrame(rg._raf); const from=+rg.value; i
   const D=matchMedia("(prefers-reduced-motion: reduce)").matches?0:450, t0=performance.now();
   const f=now=>{ const k=D?Math.min(1,(now-t0)/D):1, e=1-Math.pow(1-k,3); rg.value=from+(to-from)*e; if(k<1) rg._raf=requestAnimationFrame(f); };
   rg._raf=requestAnimationFrame(f); }
-/* weekly activities on the lift-days step: classes always, plus anything else already switched on (not the main sport) */
-const ONB_ACTS=()=>ACT_IDS.filter(a=>a!=="lift"&&(ACT[a].cls||enabled(a))&&a!==(onb?onb.sport:wk.mainSport));
+/* weekly activities on the lift-days step: classes always, plus anything else already on, except the sport being chosen.
+   The only other sport offered is the second sport from Settings, so there are never more than two. */
+const ONB_ACTS=o=>{ const sp=o?o.sport:wk.mainSport, s2=o?o.sport2:wk.sport2;
+  return ACT_IDS.filter(a=>a!=="lift"&&a!==sp&&(ACT[a].cls||(enabled(a)&&(!SEASONAL(a)||(!!sp&&a===s2))))); };
+/* weekly counts for the activities onboarding shows; counts left from a sport no longer offered are ignored */
+const onbShown=o=>{ const sh=new Set(ONB_ACTS(o)); if(o.sport&&o.sport2&&o.sport2!==o.sport) sh.add(o.sport2); return Object.entries(o.ac||{}).filter(([a])=>sh.has(a)&&a!==o.sport); };
+/* the saved weekly count for a sport that is on, including 0; a sport not on yet starts at 2 */
+const onbCount=a=>enabled(a)?cnt(a):2;
 const ONB_SPORTS=[["pickle","Pickleball"],["tennis","Tennis"],["run","Running"],["bike","Biking"],["soccer","Soccer"],["volleyball","Volleyball"],["climb","Climbing"],["golf","Golf"],["hockey","Hockey"],["rugby","Rugby"],["yoga","Yoga"],["pilates","Pilates"],["","None"]];
 const LEVELS=[["new","Beginner","Tips on every screen"],["some","Some Experience","Tips the first time you see each screen."],["years","Advanced","No tips. Explanations only if you tap (i)."]];
 const guideFor=l=>l==="years"?"Less":"More";
@@ -1898,13 +1924,15 @@ const ONB_Q=[["What do you do?","Your main activity sets the season. In-season, 
   ["What are you training for?","Your goal sets your fuel and how hard you train. You can change it anytime in Plan → Season."],
   ["Which days do you usually lift?","Lifts get queued up according to your plan; you can skip days, move workouts around, and always change preferences later."],
   ["Where do you want extra focus?","Whenever you have the extra energy or time, you’ll see more exercises for your chosen focus."],
-  ["How long have you been lifting?","This sets how much guidance you see. Change it anytime under You → Training preferences."],
+  ["How long have you been lifting?","This sets how much guidance you see. Change it anytime under Settings → Training."],
   ["A bit about you","Your size sets your base burn, protein and starting weights."],
   ["You’re set","Your plan builds itself from here and adapts every week."]];
 function openOnb(){
-  closePop(); const sp=MAINS.includes(wk.mainSport)?wk.mainSport:"";
-  onb={s:wk.setupDone?1:0,lvl:1,sport:sp,inS:wk.season==="In-season",goal:wk.mode||"Recomp",days:wk.setupDone?ldays():(LDEF[3]||[]).slice(),
-    pb:sp?(cnt(sp)||2):0,ac:Object.fromEntries(ONB_ACTS().map(a=>[a,enabled(a)?cnt(a):0])),focus:wk.focus||"Balanced",level:wk.level||(wk.guide==="Less"?"years":"some"),sex:wk.sex||"Female",age:wk.age||"",steps:wk.steps||"",height:wk.height||"",weight:wk.weight||"",bf:wk.bf||""};
+  closePop(); const sp=MAINS.includes(wk.mainSport)?wk.mainSport:"", s2=MAINS.includes(wk.sport2)&&wk.sport2!==sp?wk.sport2:"";
+  const ac=Object.fromEntries(ONB_ACTS({sport:sp,sport2:s2}).map(a=>[a,enabled(a)?cnt(a):0]));
+  if(s2){ const n=parseInt(wk[s2]); if(ac[s2]==null||(!enabled(s2)&&isFinite(n))) ac[s2]=isFinite(n)?n:0; }
+  onb={s:wk.setupDone?1:0,lvl:1,sport:sp,sport2:s2,inS:wk.season==="In-season",goal:wk.mode||"Recomp",days:wk.setupDone?ldays():(LDEF[3]||[]).slice(),
+    pb:sp?onbCount(sp):0,ac,focus:wk.focus||"Balanced",level:wk.level||(wk.guide==="Less"?"years":"some"),sex:wk.sex||"Female",age:wk.age||"",steps:wk.steps||"",height:wk.height||"",weight:wk.weight||"",bf:wk.bf||""};
   renderOnb(true);
 }
 function closeOnb(){ onb=null; const el=document.getElementById("tour"); el.classList.add("out");
@@ -1914,11 +1942,13 @@ function applyOnb(o,real){
   /* rebuild from the answers: anything not picked here is turned off, so old activities don't linger */
   wk.acts={lift:true}; if(o.sport){ wk.acts[o.sport]=true; wk[o.sport]=o.pb; }
   wk.mainSport=o.sport; wk.season=o.sport&&o.inS&&SEASONAL(o.sport)?"In-season":"Off-season";
-  Object.entries(o.ac||{}).forEach(([a,c])=>{ if(a===o.sport) return; if(c>0){ wk.acts[a]=true; wk[a]=c; } });
-  if(wk.sport2&&!wk.acts[wk.sport2]) wk.sport2="";
+  onbShown(o).forEach(([a,c])=>{ if(c>0){ wk.acts[a]=true; wk[a]=c; } });
+  /* the second sport from Settings stays on, including when its weekly count is 0 */
+  const second=o.sport&&o.sport2&&o.sport2!==o.sport?o.sport2:"";
+  if(second){ wk.acts[second]=true; wk[second]=(o.ac||{})[second]??0; wk.sport2=second; } else wk.sport2="";
   wk.level=o.level; wk.guide=guideFor(o.level); wk.mode=o.goal; wk.ldays=o.days.slice().sort(); wk.days=o.days.length; wk.focus=o.focus; wk.sex=o.sex;
   ["age","height","weight","bf","steps"].forEach(k=>{ if(String(o[k]).trim()!=="") wk[k]=String(o[k]); });
-  fixSports(wk); syncDays(); fitPace();
+  fixSports(wk); syncDays(); fitActivityDays(); fitPace();
   if(real){ wk.createdAt=wk.createdAt||Date.now(); if(!wk.setupDone){ wk.setupDone=true; wk.weekStart=weekStartOf(Date.now()).getTime(); } wk.tourDone=true; wk.onbDone=true; save(); }
 }
 /* preview the plan these answers would make, without keeping them */
@@ -1961,7 +1991,7 @@ function renderOnb(focus){
     if(n===1) body=`<div class="ogrid three">${ONB_SPORTS.map(([a,l])=>chip(o.sport===a,`data-os="${a}"`,l)).join("")}</div>
       ${o.sport&&SEASONAL(o.sport)?`<div class="q tgl"><span id="oinS">In-season now</span><div class="seg toggle"><button type="button" role="switch" aria-checked="${o.inS}" aria-labelledby="oinS" data-oin><i aria-hidden="true"></i></button></div></div>`:""}`;
     if(n===2) body=`<div class="ogoals">${ONB_GOALS.map(([v,l,d])=>`<button type="button" data-og="${v}" aria-pressed="${o.goal===v}"><b>${l}</b><span>${d}</span></button>`).join("")}</div>`;
-    if(n===3){ const acts=[...(o.sport?[[o.sport,"pb",ACT[o.sport].name]]:[]),...ONB_ACTS().map(a=>[a,"ac:"+a,ACT[a].name])], val=k=>k.startsWith("ac:")?(o.ac[k.slice(3)]||0):o[k];
+    if(n===3){ const acts=[...(o.sport?[[o.sport,"pb",ACT[o.sport].name]]:[]),...ONB_ACTS(o).map(a=>[a,"ac:"+a,ACT[a].name])], val=k=>k.startsWith("ac:")?(o.ac[k.slice(3)]||0):o[k];
       body=`<span class="plab">Lift days</span><div class="ldgrid">${"MTWTFSS".split("").map((c,k)=>`<button type="button" data-od="${k}" aria-pressed="${o.days.includes(k)}" aria-label="${WD[k]}">${c}</button>`).join("")}</div>
       <span class="plab">Other activities · per week, any day</span>${acts.map(([a,k,l])=>`<div class="ostep"><span>${l}</span><span><button type="button" data-oc="${k}" data-d="-1" aria-label="Fewer ${l}">−</button><output>${val(k)}</output><button type="button" data-oc="${k}" data-d="1" aria-label="More ${l}">+</button></span></div>`).join("")}`; }
     if(n===4) body=`<div class="ogrid three">${[["Lower","Lower body"],["Balanced","Balanced"],["Upper","Upper body"]].map(([v,l])=>chip(o.focus===v,`data-of="${v}"`,l)).join("")}</div>`;
@@ -1971,11 +2001,11 @@ function renderOnb(focus){
     const pv=n>=6?onbPreview(o):null;
     if(n===7){ const D=pv.days, today=monIdx(new Date()), ds=o.days.slice().sort(), nextD=ds.find(d=>d>=today)??ds[0];
       const order=ds.filter(d=>d>=today).concat(ds.filter(d=>d<today));
-      const rest=order.slice(1).map((d,i)=>({t:(D[(i+1)%D.length]||{}).title||"Lift",d:WD[d],a:0})).concat([[o.sport,o.pb],...Object.entries(o.ac||{}).filter(([a])=>a!==o.sport)].filter(([a,c])=>a&&c).map(([a,c])=>({t:ACT[a].name+(c>1?` ×${c}`:""),d:"Any day",a:1})));
+      const rest=order.slice(1).map((d,i)=>({t:(D[(i+1)%D.length]||{}).title||"Lift",d:WD[d],a:0})).concat([[o.sport,o.pb],...onbShown(o)].filter(([a,c])=>a&&c).map(([a,c])=>({t:ACT[a].name+(c>1?` ×${c}`:""),d:"Any day",a:1})));
       body=`<section class="ofirst"><span class="weye">First workout · ${D.length?(nextD===today?"Today":WD[nextD]):"whenever you like"}</span><h3>${esc(D.length?D[0].title:"Log an activity")}</h3><p>Starting weights are a guess. Log your first sets and the app adjusts from there.</p></section>
       <div class="orest2">${rest.map((r,i)=>`<div class="${r.a?"a":""}" style="animation-delay:${300+i*120}ms"><b>${esc(r.t)}</b><span>${r.d}</span></div>`).join("")}</div>`; }
     const gName=(ONB_GOALS.find(g=>g[0]===o.goal)||[])[1], nd=o.days.length;
-    const prev=[[o.sport&&!SEASONAL(o.sport)?"Main activity":"Season",o.sport?`${ACT[o.sport].name}${SEASONAL(o.sport)?` · ${o.inS?"in-season":"off-season"}`:""}`:"No sport"],...(n>=2?[["Goal",gName]]:[]),...(n>=3?[["Week",`${nd} lift${nd===1?"":"s"}${o.sport&&o.pb?` + ${o.pb}× ${ACT[o.sport].name.toLowerCase()}`:""}${Object.entries(o.ac||{}).filter(([a,c])=>c&&a!==o.sport).map(([a,c])=>` + ${c}× ${ACT[a].name.toLowerCase()}`).join("")}`]]:[]),...(n>=4?[["Focus",o.focus==="Balanced"?"Balanced":o.focus+" body"]]:[]),...(n>=5?[["Guidance",LEVELS.find(x=>x[0]===o.level)[1]]]:[]),...(n>=6?[["Fuel",`${pv.food.toLocaleString()} kcal a day`]]:[])];
+    const prev=[[o.sport&&!SEASONAL(o.sport)?"Main activity":"Season",o.sport?`${ACT[o.sport].name}${SEASONAL(o.sport)?` · ${o.inS?"in-season":"off-season"}`:""}`:"No sport"],...(n>=2?[["Goal",gName]]:[]),...(n>=3?[["Week",`${nd} lift${nd===1?"":"s"}${o.sport&&o.pb?` + ${o.pb}× ${ACT[o.sport].name.toLowerCase()}`:""}${onbShown(o).filter(([,c])=>c).map(([a,c])=>` + ${c}× ${ACT[a].name.toLowerCase()}`).join("")}`]]:[]),...(n>=4?[["Focus",o.focus==="Balanced"?"Balanced":o.focus+" body"]]:[]),...(n>=5?[["Guidance",LEVELS.find(x=>x[0]===o.level)[1]]]:[]),...(n>=6?[["Fuel",`${pv.food.toLocaleString()} kcal a day`]]:[])];
     h=`<div class="onb"><div class="otop"><div class="odots" role="progressbar" aria-label="Setup progress" aria-valuemin="1" aria-valuemax="7" aria-valuenow="${n}">${[1,2,3,4,5,6,7].map(i=>`<i class="${i===n?"on":i<n?"past":""}"></i>`).join("")}</div>${skip}</div>
       <div class="ostepbody"><h2 class="oh" tabindex="-1">${Q[0]}</h2><p class="olead sm">${Q[1]}</p>${body}</div>
       ${n<7?`<section class="oprev" aria-label="Plan so far"><span class="weye">Plan so far</span>${prev.map(([k,v])=>`<div><span>${k}</span><b>${esc(v)}</b></div>`).join("")}</section>`:""}
@@ -1997,7 +2027,9 @@ function renderOnb(focus){
   el.querySelectorAll("[data-lvl]").forEach(b=>b.onclick=()=>{ o.touched=true; clearTimeout(onbDemo); lv(+b.dataset.lvl); });
   clearTimeout(onbDemo);
   if(s===2){ paintLvl(el,o.lvl); const tick=()=>{ if(onb===o&&o.s===2&&!o.touched){ lv((o.lvl+1)%3); onbDemo=setTimeout(tick,2600); } }; if(!o.touched) onbDemo=setTimeout(tick,2600); }
-  el.querySelectorAll("[data-os]").forEach(b=>b.onclick=()=>{ const a=b.dataset.os; o.sport=a; if(!a) o.inS=false; if(a&&!o.pb) o.pb=cnt(a)||2; renderOnb(); });
+  /* the count follows the sport picked: what this setup already has for it, else what's saved; never the previous sport's count */
+  el.querySelectorAll("[data-os]").forEach(b=>b.onclick=()=>{ const a=b.dataset.os; if(a!==o.sport) o.pb=a?((o.ac||{})[a]||onbCount(a)):0;
+    if(a&&a===o.sport2) o.sport2=""; o.sport=a; if(!a) o.inS=false; renderOnb(); });
   el.querySelectorAll("[data-oin]").forEach(b=>b.onclick=()=>{ o.inS=!o.inS; if(o.inS&&o.days.length>3) o.days=o.days.slice(0,3); renderOnb(); });
   el.querySelectorAll("[data-og]").forEach(b=>b.onclick=()=>set("goal",b.dataset.og));
   el.querySelectorAll("[data-od]").forEach(b=>b.onclick=()=>{ const k=+b.dataset.od, on=o.days.includes(k);

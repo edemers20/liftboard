@@ -4,7 +4,7 @@ export const SWIPE_WIDTH = 88;
 /*
  * These run on the UI thread. A worklet's captured constants are unpacked inside its body, after
  * default parameters are evaluated, so a default like `width = SWIPE_WIDTH` is undefined there.
- * Read module constants in the body instead (swipe-settle.test.ts runs them the UI-thread way).
+ * Read module constants in the body instead (worklets-ui-thread.test.ts runs them the UI-thread way).
  */
 
 /** Where the row sits while dragging: never right of closed, never past fully open. */
