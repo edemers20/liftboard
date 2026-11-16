@@ -574,7 +574,7 @@ function StreakCard({ n, flames, reduce }: { n: number; flames: boolean[]; reduc
           <Text style={styles.streakNum}>{n}</Text>
         </View>
         <View style={styles.streakUnitSlot}>
-          <Text style={styles.streakUnit}>
+          <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={styles.streakUnit}>
             {copy.you.weekUnit(n)} {copy.you.inARow}
           </Text>
         </View>
@@ -730,15 +730,18 @@ const styles = StyleSheet.create({
     color: theme.fuel,
     transform: [{ translateY: -1.55 }],
   },
+  // Flame height. The 26pt label line centered here spans 15–41 and 27–53 after
+  // the 12pt shift, so it stays inside the slot without overflow or more height.
   streakUnitSlot: { height: 56, flex: 1, justifyContent: "center" },
   streakUnit: {
     fontFamily: theme.fonts.display,
-    fontSize: 22,
-    lineHeight: 24,
+    fontSize: 24,
+    lineHeight: 26,
     color: theme.text,
     textTransform: "uppercase",
-    // Cap center sits on the 28pt box center. Shift up onto the flame ink center.
-    transform: [{ translateY: -1.19 }],
+    // Emma's approved offset: 12pt down from centered. "WEEKS IN A ROW" is
+    // 157pt wide at 24pt, so it fits on one line beside 12 on a 375pt screen.
+    transform: [{ translateY: 12 }],
   },
   flameRow: { flexDirection: "row", justifyContent: "flex-start", gap: 3 },
   shineClip: { ...StyleSheet.absoluteFill, overflow: "hidden" },
