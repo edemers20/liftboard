@@ -73,7 +73,7 @@ These exist in code but haven't been confirmed working. Go through them with Emm
 
 **B1. Records on the Day done card** (handoff section 21). Match the web: `prHighlight()` and `todayPRs()` in `src/main.js`, styles `.dpr`. Use `prsBetween` from `packages/engine` and port the test "a heavier top set today shows as a record for the Day done card". Add a success haptic when the card opens with a record. The share card's PRs tile must use the same list.
 
-**B2. Import a web backup.** Needed before friends move from the web app to TestFlight. Spec in `docs/SCREENS.md` section 8 and `docs/BACKEND-SUPABASE.md`. Add a test with a sample backup that checks the Lifts, Activities and Weeks active counts after import. Settings → Your data is where it lives.
+**B2. Import a web backup.** Needed before friends move from the web app to TestFlight. Spec in `docs/SCREENS.md` section 8 and `docs/BACKEND-SUPABASE.md`. Add a test with a sample backup that checks the Lifts, Activities and Weeks active counts after import. Until the backend exists, there's no sign-in. Put it in Settings → Your data, and skip the upload steps: read the backup file, write it to storage, call `init(storage)`.
 
 **B3. Live Activity** (`docs/HANDOFF-alerts-haptics.md` Part 2). Rest countdown and current exercise on the Lock Screen and Dynamic Island while a workout is live. Ends when the workout ends, the same as the live pill.
 
