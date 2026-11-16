@@ -39,6 +39,13 @@ export const theme = {
     muted: "rgba(237, 234, 232, 0.65)",
     tint: "rgba(183, 156, 240, 0.14)",
   },
+  /** Milestone cards (Emma's kind pairs): 135° gradients, dark text. */
+  milestone: {
+    lifts: ["#6fd0b4", "#c8e86a"],
+    hours: ["#fea06a", "#f5d06a"],
+    streak: ["#fc96bf", "#fea06a"],
+    firstPr: ["#b79cf0", "#fc96bf"],
+  } as const satisfies Record<string, readonly [string, string]>,
   banner: "#3a3018",
   radii: {
     small: 8,

@@ -34,7 +34,7 @@ const HOUR_MARKS = [10, 50, 100];
 const STREAK_MARKS = [6, 12, 16];
 
 type Top = { start: number; w: number; r: number; t: number };
-type Milestone = { key: string; mark: string; title: string; t: number; bg: string };
+type Milestone = { key: string; mark: string; title: string; t: number; bg: readonly [string, string] };
 
 function lookup(id: string) {
   const table = copy.activityNames as Record<string, string>;
@@ -95,7 +95,7 @@ function milestones(): Milestone[] {
           mark: String(lifts),
           title: copy.you.liftsMilestone(lifts),
           t: at,
-          bg: theme.green.accent,
+          bg: theme.milestone.lifts,
         });
       }
     }
@@ -107,7 +107,7 @@ function milestones(): Milestone[] {
           mark: String(mark),
           title: copy.you.hoursMilestone(mark),
           t: at,
-          bg: theme.fuel,
+          bg: theme.milestone.hours,
         });
       }
     });
@@ -133,7 +133,7 @@ function milestones(): Milestone[] {
         mark: "1",
         title: copy.you.firstFullWeek,
         t: at,
-        bg: theme.pink.accent,
+        bg: theme.milestone.streak,
       });
     }
     if (STREAK_MARKS.includes(run)) {
@@ -142,7 +142,7 @@ function milestones(): Milestone[] {
         mark: String(run),
         title: copy.you.streakMilestone(run),
         t: at,
-        bg: theme.pink.accent,
+        bg: theme.milestone.streak,
       });
     }
   });
@@ -155,7 +155,7 @@ function milestones(): Milestone[] {
       mark: "PR",
       title: copy.you.firstPrTitle,
       t: first.t,
-      bg: theme.record,
+      bg: theme.milestone.firstPr,
     });
   }
   return earned.sort((a, b) => b.t - a.t);
@@ -461,7 +461,8 @@ export function ProfileScreen() {
             <View style={styles.mileGrid}>
               {earned.map((item) => (
                 <View key={item.key} style={styles.mileSlot}>
-                  <View style={[styles.mileCard, { backgroundColor: item.bg }]}>
+                  <View style={[styles.mileCard, { backgroundColor: item.bg[0] }]}>
+                    <LinearGradient colors={item.bg} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
                     <View style={styles.mileMark}>
                       <Text style={styles.mileMarkText}>{item.mark}</Text>
                     </View>
@@ -805,7 +806,7 @@ const styles = StyleSheet.create({
   mixHours: { width: 52, textAlign: "right", fontFamily: theme.fonts.mono, fontSize: 12, color: theme.text },
   mileGrid: { flexDirection: "row", flexWrap: "wrap", marginHorizontal: -4 },
   mileSlot: { width: "50%", padding: 4 },
-  mileCard: { borderRadius: 16, padding: 14, gap: 6 },
+  mileCard: { borderRadius: 16, padding: 14, gap: 6, overflow: "hidden" },
   mileMark: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(42,26,18,0.14)" },
   mileMarkText: { fontFamily: theme.fonts.display, fontSize: 18, color: theme.ink },
   mileTitle: { fontFamily: theme.fonts.bodySemi, fontSize: 14, color: theme.ink },

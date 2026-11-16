@@ -585,7 +585,7 @@ function strongest(){ let best=null;
     if(!best||c.dw>best.dw||(c.dw===best.dw&&c.last.w>best.last.w)) best=c; });
   return best; }
 /* earned milestones only, newest first */
-function milestones(){ const out=[], S=(wk.sessions||[]).filter(x=>x&&x.t).sort((a,b)=>a.t-b.t), O="#fea06a", P="#fc96bf", G="#6fd0b4", R="#b79cf0";
+function milestones(){ const out=[], S=(wk.sessions||[]).filter(x=>x&&x.t).sort((a,b)=>a.t-b.t), G="linear-gradient(135deg,#6fd0b4,#c8e86a)", O="linear-gradient(135deg,#fea06a,#f5d06a)", P="linear-gradient(135deg,#fc96bf,#fea06a)", R="linear-gradient(135deg,#b79cf0,#fc96bf)";
   const lifts=S.filter(x=>x.k==="lift"); [10,25,50,100,200].forEach(n=>{ if(lifts.length>=n) out.push({i:String(n),t:`${n} lifts`,d:lifts[n-1].t,c:G}); });
   let m=0; const H=[10,50,100,250,500]; let h=0; S.forEach(x=>{ m+=x.k==="lift"?(num(x.min,0)>0?num(x.min,0):num(wk.time,60)):num(x.min,0); while(h<H.length&&m>=H[h]*60){ out.push({i:String(H[h]),t:`${H[h]} hours moved`,d:x.t,c:O}); h++; } });
   const W=wk.weeks||[]; let run=0, first=false; const ST=[3,6,10,16,26,52], got={};
