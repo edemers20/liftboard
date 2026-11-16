@@ -29,6 +29,7 @@ import {
 import { storage } from "@/storage";
 import { TabBarSpacer, TabScrollMarker } from "@/tab-bar-inset";
 import { engine, useEngineStore } from "@/store";
+import { noCollapse } from "@/no-collapse";
 import { theme } from "@/theme";
 import { useHideOnScroll, type HideOnScroll } from "@/use-hide-on-scroll";
 import { nativeDriver, useReduceMotion } from "@/use-reduce-motion";
@@ -280,7 +281,7 @@ export function HistoryTab({ data }: { data: HistorySnapshot }) {
 
 function SectionHeading({ title, body }: { title: string; body: string }) {
   return (
-    <View style={styles.heading} collapsable={false}>
+    <View style={styles.heading} {...noCollapse}>
       <Text accessibilityRole="header" style={styles.eyebrow}>
         {title}
       </Text>

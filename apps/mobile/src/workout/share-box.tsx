@@ -78,7 +78,12 @@ export function WorkoutLink({
   const flat = StyleSheet.flatten(style);
   if (Platform.OS !== "ios" || reduce) {
     return (
-      <PressableScale kind="surface" accessibilityRole="button" onPress={() => openWorkout(id, reduce ? "plain" : "expand")} style={flat}>
+      <PressableScale
+        kind="surface"
+        accessibilityRole={Platform.OS === "web" ? undefined : "button"}
+        onPress={() => openWorkout(id, reduce ? "plain" : "expand")}
+        style={flat}
+      >
         {children}
       </PressableScale>
     );
