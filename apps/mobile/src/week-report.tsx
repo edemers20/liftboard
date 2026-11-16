@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { captureRef } from "react-native-view-shot";
 
 import { router, usePathname } from "expo-router";
+import { afterLaunchSplash } from "@/components/launch-splash";
 import { Rise, useCountUp } from "@/components/motion";
 import { openReportSheet } from "@/form-sheet";
 import { copy, fill } from "@/copy";
@@ -91,7 +92,7 @@ function CountValue({
   const final = target == null ? "–" : Math.round(target).toLocaleString("en-US");
   const text = target == null ? "–" : Math.round(shown).toLocaleString("en-US");
   return (
-    <Text accessibilityLabel={`${label} ${final}${unit}`} style={[styles.value, { color }]}>
+      <Text accessibilityLabel={`${label} ${final}${unit}`} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.65} style={[styles.value, { color }]}>
       {text}
       {unit ? <Text style={styles.unit}>{unit}</Text> : null}
     </Text>
@@ -129,13 +130,22 @@ function ReportShare({ report }: { report: Report }) {
 }
 
 export function ReportSheet({ report }: { report: Report }) {
-  const { width } = useWindowDimensions();
+  const { width: windowW } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const progress = useCountUp(1);
   const shot = useRef<any>(null);
   const [busy, setBusy] = useState(false);
   const muscles = report.muscles ? shownMuscles(report.muscles) : null;
   const range = rangeLabel(report.start);
+  const width = windowW > 0 ? windowW : 390;
+  const tileW = Math.floor((width - 32 - 8) / 2);
+  const bottom = Math.max(insets.bottom, 16);
+  const [barH, setBarH] = useState(10 + 52 + bottom);
+  const [boxH, setBoxH] = useState(0);
+  // Grabber overlaps the top. The button bar sits on the bottom of the sheet, so the
+  // scroll content keeps a pad at least that tall, including the home-indicator inset.
+  const footerH = Math.max(barH, 10 + 52 + bottom);
+  const scrollH = boxH > footerH ? boxH - footerH : 0;
 
   async function share() {
     if (!shot.current || busy) return;
@@ -150,46 +160,47 @@ export function ReportSheet({ report }: { report: Report }) {
     }
   }
 
-  return (
-    <View accessibilityLabel={copy.report.label} style={[styles.sheet, { flex: 1, width }]}>
-      <View ref={shot} collapsable={false} style={styles.offscreen}>
-        <ReportShare report={report} />
-      </View>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <View style={styles.headerRow}>
-          <Text accessibilityRole="header" numberOfLines={1} style={styles.title}>
-            {range}
+  const summary = (
+    <>
+      <View style={[styles.headerRow, { width: width - 32 }]}>
+        <Text accessibilityRole="header" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={[styles.title, { maxWidth: width - 32 - 128 }]}>
+          {range}
+        </Text>
+        <View style={[styles.pill, !report.completed && styles.pillOpen]}>
+          {report.completed ? <Check size={12} color={theme.green.accent} /> : null}
+          <Text style={[styles.pillText, !report.completed && styles.pillTextOpen]}>
+            {report.completed ? copy.workouts.completed : copy.history.liftsOf(report.lifts, report.planned)}
           </Text>
-          <View style={[styles.pill, !report.completed && styles.pillOpen]}>
-            {report.completed ? <Check size={12} color={theme.green.accent} /> : null}
-            <Text style={[styles.pillText, !report.completed && styles.pillTextOpen]}>
-              {report.completed ? copy.workouts.completed : copy.history.liftsOf(report.lifts, report.planned)}
-            </Text>
-          </View>
         </View>
+      </View>
 
-        <View style={styles.tiles}>
-          <View style={styles.tileRow}>
-            <View style={styles.tile}>
-              <Text style={styles.tileLabel}>{copy.you.lifts}</Text>
-              <CountValue target={report.lifts} color={theme.green.accent} unit={` / ${report.planned}`} label={copy.you.lifts} />
-            </View>
-            <View style={styles.tile}>
-              <Text style={styles.tileLabel}>{copy.history.sets}</Text>
-              <CountValue target={report.sets} color={theme.text} unit="" label={copy.history.sets} />
-            </View>
+      <View style={styles.tiles}>
+        <View style={styles.tileRow}>
+          <View style={[styles.tile, { width: tileW }]}>
+            <Text style={styles.tileLabel}>{copy.you.lifts}</Text>
+            <CountValue target={report.lifts} color={theme.green.accent} unit={` / ${report.planned}`} label={copy.you.lifts} />
           </View>
-          <View style={styles.tileRow}>
-            <View style={styles.tile}>
-              <Text style={styles.tileLabel}>{copy.report.activityTile}</Text>
-              <CountValue target={report.sport} color={theme.pink.accent} unit={` ${copy.you.min}`} label={copy.report.activityTile} />
-            </View>
-            <View style={styles.tile}>
-              <Text style={styles.tileLabel}>{copy.report.exerciseCalories}</Text>
-              <CountValue target={report.burn} color={theme.fuel} unit={` ${copy.report.kcal}`} label={copy.report.exerciseCalories} />
-            </View>
+          <View style={[styles.tile, { width: tileW }]}>
+            <Text style={styles.tileLabel}>{copy.history.sets}</Text>
+            <CountValue target={report.sets} color={theme.text} unit="" label={copy.history.sets} />
           </View>
         </View>
+        <View style={styles.tileRow}>
+          <View style={[styles.tile, { width: tileW }]}>
+            <Text style={styles.tileLabel}>{copy.report.activityTile}</Text>
+            <CountValue target={report.sport} color={theme.pink.accent} unit={` ${copy.you.min}`} label={copy.report.activityTile} />
+          </View>
+          <View style={[styles.tile, { width: tileW }]}>
+            <Text style={styles.tileLabel}>{copy.report.exerciseCalories}</Text>
+            <CountValue target={report.burn} color={theme.fuel} unit={` ${copy.report.kcal}`} label={copy.report.exerciseCalories} />
+          </View>
+        </View>
+      </View>
+    </>
+  );
+
+  const more = (
+    <>
 
         {report.ups.length ? (
           <Rise delay={150}>
@@ -197,7 +208,7 @@ export function ReportSheet({ report }: { report: Report }) {
               <Text style={styles.cardTitle}>{copy.report.goingUp}</Text>
               {report.ups.map((row) => (
                 <View key={row.n} style={styles.split}>
-                  <Text style={styles.rowName}>{row.n}</Text>
+                  <Text numberOfLines={2} style={styles.rowName}>{row.n}</Text>
                   <Text style={styles.from}>
                     {setLine(row.n, row.fromW, row.fromR)}{" "}
                     <Text style={styles.to}>→ {setLine(row.n, row.toW, row.toR)}</Text>
@@ -215,7 +226,7 @@ export function ReportSheet({ report }: { report: Report }) {
               {report.prs.map((row) => (
                 <View key={row.n} style={styles.split}>
                   <View style={styles.prName}>
-                    <Text style={styles.rowName}>{row.n}</Text>
+                    <Text numberOfLines={2} style={styles.rowName}>{row.n}</Text>
                     <Text style={styles.kind}>{row.kind === "top" ? copy.history.prTop : copy.history.prReps}</Text>
                   </View>
                   <View style={styles.prValue}>
@@ -239,7 +250,7 @@ export function ReportSheet({ report }: { report: Report }) {
                 const color = row.met ? theme.green.accent : SHORT;
                 return (
                   <View key={row.name} style={styles.muscle}>
-                    <Text style={styles.muscleName}>{row.name}</Text>
+                    <Text numberOfLines={1} style={styles.muscleName}>{row.name}</Text>
                     <View style={styles.track}>
                       <View style={[styles.fill, { width: `${widthPct}%`, backgroundColor: color }]} />
                     </View>
@@ -259,16 +270,40 @@ export function ReportSheet({ report }: { report: Report }) {
               <Text style={styles.cardTitle}>{copy.you.activities}</Text>
               {report.activities.map((row) => (
                 <View key={row.k} style={styles.split}>
-                  <Text style={styles.rowName}>{copy.report.activity(activityLabel(row.k), row.n)}</Text>
+                  <Text numberOfLines={2} style={styles.rowName}>{copy.report.activity(activityLabel(row.k), row.n)}</Text>
                   <Text style={styles.minutes}>{copy.history.minutes(row.min)}</Text>
                 </View>
               ))}
             </View>
           </Rise>
         ) : null}
+    </>
+  );
 
+  return (
+    <View
+      accessibilityLabel={copy.report.label}
+      onLayout={(event) => {
+        const next = event.nativeEvent.layout.height;
+        setBoxH((prev) => (Math.abs(prev - next) < 1 ? prev : next));
+      }}
+      style={[styles.sheet, { flex: 1, width }]}
+    >
+      <ScrollView
+        style={scrollH > 0 ? { width, height: scrollH } : styles.scroll}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: footerH }]}
+        showsVerticalScrollIndicator={false}
+      >
+        {summary}
+        {more}
       </ScrollView>
-      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+      <View
+        onLayout={(event) => {
+          const next = event.nativeEvent.layout.height;
+          setBarH((prev) => (Math.abs(prev - next) < 1 ? prev : next));
+        }}
+        style={[styles.footer, { width, paddingBottom: bottom }]}
+      >
         <PressableScale accessibilityRole="button" disabled={busy} onPress={() => void share()} style={[styles.share, busy && styles.busy]}>
           <Share size={18} color={theme.text} />
           <Text style={styles.shareText}>{copy.workout.share}</Text>
@@ -285,11 +320,20 @@ export function ReportSheet({ report }: { report: Report }) {
           <Text style={styles.nextButtonText}>{copy.report.seeNext}</Text>
         </PressableScale>
       </View>
+      <View ref={shot} collapsable={false} pointerEvents="none" style={styles.offscreen}>
+        <ReportShare report={report} />
+      </View>
     </View>
   );
 }
 
 let reportOpened: number | null = null;
+let remembered: Report | null = null;
+
+/** The report handed to the sheet at open, so the route still has it if the pending flag is already clear. */
+export function rememberedWeekReport(): Report | null {
+  return remembered;
+}
 
 export function WeekReportHost() {
   const path = usePathname();
@@ -302,9 +346,14 @@ export function WeekReportHost() {
       return;
     }
     if (reportOpened === live.start || path === "/sheet-report") return;
-    reportOpened = live.start;
-    haptic.heavy();
-    openReportSheet();
+    afterLaunchSplash(() => {
+      const current = engine.pendingWeekReport() as Report | null;
+      if (!current || reportOpened === current.start) return;
+      reportOpened = current.start;
+      remembered = current;
+      haptic.heavy();
+      openReportSheet();
+    });
   }, [live, path]);
 
   return null;
@@ -317,7 +366,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 22,
   },
   scroll: { flex: 1 },
-  scrollContent: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 16, gap: 14 },
+  scrollContent: { paddingHorizontal: 16, paddingTop: 28, gap: 14 },
   headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 12 },
   pill: {
     flexShrink: 0,
@@ -337,13 +386,12 @@ const styles = StyleSheet.create({
     color: theme.text,
     fontFamily: theme.fonts.display,
     fontSize: 40,
-    lineHeight: 42,
+    lineHeight: 48,
     textTransform: "uppercase",
   },
   tiles: { gap: 8 },
   tileRow: { flexDirection: "row", gap: 8 },
   tile: {
-    flex: 1,
     backgroundColor: theme.orange.surface,
     borderRadius: 14,
     paddingHorizontal: 14,
@@ -351,7 +399,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   tileLabel: { color: theme.muted, fontFamily: theme.fonts.body, fontSize: 12 },
-  value: { fontFamily: theme.fonts.monoMedium, fontSize: 28, lineHeight: 34 },
+  value: { fontFamily: theme.fonts.monoMedium, fontSize: 28, lineHeight: 34, flexShrink: 1 },
   unit: { color: theme.muted, fontFamily: theme.fonts.mono, fontSize: 14 },
   card: { backgroundColor: theme.orange.surface, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14, gap: 10 },
   prCard: { backgroundColor: PR_CARD, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14, gap: 10 },
@@ -359,18 +407,18 @@ const styles = StyleSheet.create({
   cardTitle: { color: theme.text, fontFamily: theme.fonts.bodySemi, fontSize: 15 },
   prTitle: { color: theme.fuel, fontFamily: theme.fonts.bodySemi, fontSize: 15 },
   split: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 10 },
-  rowName: { flex: 1, color: theme.text, fontFamily: theme.fonts.body, fontSize: 14 },
-  from: { color: theme.muted, fontFamily: theme.fonts.mono, fontSize: 13 },
+  rowName: { flex: 1, minWidth: 0, color: theme.text, fontFamily: theme.fonts.body, fontSize: 14 },
+  from: { flexShrink: 1, color: theme.muted, fontFamily: theme.fonts.mono, fontSize: 13, textAlign: "right" },
   to: { color: theme.fuel, fontFamily: theme.fonts.mono, fontSize: 13 },
   prName: { flex: 1, gap: 2 },
   prValue: { alignItems: "flex-end", gap: 2 },
   kind: { color: theme.muted, fontFamily: theme.fonts.body, fontSize: 12 },
   prNumber: { color: theme.text, fontFamily: theme.fonts.monoMedium, fontSize: 17 },
   muscle: { flexDirection: "row", alignItems: "center", gap: 10 },
-  muscleName: { width: 92, color: theme.text, fontFamily: theme.fonts.body, fontSize: 13 },
+  muscleName: { width: 96, flexShrink: 0, color: theme.text, fontFamily: theme.fonts.body, fontSize: 13 },
   track: { flex: 1, height: 8, borderRadius: 999, backgroundColor: TRACK, overflow: "hidden" },
   fill: { height: 8, borderRadius: 999 },
-  muscleCount: { width: 52, textAlign: "right", fontFamily: theme.fonts.mono, fontSize: 13 },
+  muscleCount: { minWidth: 52, flexShrink: 0, textAlign: "right", fontFamily: theme.fonts.mono, fontSize: 13 },
   minutes: { color: theme.muted, fontFamily: theme.fonts.mono, fontSize: 14 },
   footer: {
     flexDirection: "row",
@@ -379,6 +427,7 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     borderTopWidth: 1,
     borderTopColor: LINE,
+    backgroundColor: theme.orange.background,
   },
   share: {
     minHeight: 52,

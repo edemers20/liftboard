@@ -47,12 +47,28 @@ const AnimatedG = Animated.createAnimatedComponent(G);
 const AnimatedRect = Animated.createAnimatedComponent(Rect);
 
 let launchSplashArmed = true;
+let splashShowing = false;
+const splashWaiters: Array<() => void> = [];
 
 /** True once per JS cold start. Backgrounding does not arm it again. */
 export function claimLaunchSplash() {
   const show = launchSplashArmed;
   launchSplashArmed = false;
+  if (show) splashShowing = true;
   return show;
+}
+
+/** Run after the launch splash has left. A later open in the same session runs now. */
+export function afterLaunchSplash(run: () => void) {
+  if (!splashShowing) run();
+  else splashWaiters.push(run);
+}
+
+function settleLaunchSplash() {
+  if (!splashShowing) return;
+  splashShowing = false;
+  const waiting = splashWaiters.splice(0);
+  waiting.forEach((run) => run());
 }
 
 function Plate({
@@ -131,6 +147,7 @@ export function LaunchSplash({ appReady, onDone }: { appReady: boolean; onDone: 
   const finish = useCallback(() => {
     if (finished.current) return;
     finished.current = true;
+    settleLaunchSplash();
     onDoneRef.current();
   }, []);
 

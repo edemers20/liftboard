@@ -132,9 +132,9 @@ export default function RootLayout() {
             name="sheet-report"
             options={{
               presentation: "formSheet",
-              sheetAllowedDetents: [0.78, 1],
+              sheetAllowedDetents: [1],
               sheetGrabberVisible: true,
-              sheetInitialDetentIndex: 0,
+              sheetExpandsWhenScrolledToEdge: false,
               headerShown: false,
               contentStyle: { backgroundColor: "transparent" },
             }}

@@ -5,16 +5,17 @@ import { View } from "react-native";
 import { useSolidGlass } from "@/glass";
 import { engine, useEngineStore } from "@/store";
 import { theme } from "@/theme";
-import { ReportSheet, type Report } from "@/week-report";
+import { rememberedWeekReport, ReportSheet, type Report } from "@/week-report";
 
-/** Weekly report. A large detent that can expand to full height. */
+/** Weekly report. Fills the large sheet; the body scrolls above the button bar. */
 export default function ReportRoute() {
   const navigation = useNavigation();
   const solid = useSolidGlass();
   const version = useEngineStore((state) => state.version);
   const live = useMemo(() => engine.pendingWeekReport() as Report | null, [version]);
-  const held = useRef(live);
+  const held = useRef<Report | null>(live ?? rememberedWeekReport());
   if (live) held.current = live;
+  if (!held.current) held.current = rememberedWeekReport();
   const closed = useRef(false);
 
   useEffect(() => {

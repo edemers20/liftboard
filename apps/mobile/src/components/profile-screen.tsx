@@ -570,10 +570,14 @@ function StreakCard({ n, flames, reduce }: { n: number; flames: boolean[]; reduc
         <Reanimated.View style={motion}>
           <Flame size={56} color={theme.fuel} strokeWidth={2} />
         </Reanimated.View>
-        <Text style={styles.streakNum}>{n}</Text>
-        <Text style={styles.streakUnit}>
-          {copy.you.weekUnit(n)} {copy.you.inARow}
-        </Text>
+        <View style={styles.streakNumSlot}>
+          <Text style={styles.streakNum}>{n}</Text>
+        </View>
+        <View style={styles.streakUnitSlot}>
+          <Text style={styles.streakUnit}>
+            {copy.you.weekUnit(n)} {copy.you.inARow}
+          </Text>
+        </View>
       </PressableScale>
       <View style={styles.flameRow}>
         {flames.map((on, index) => (
@@ -712,23 +716,29 @@ const styles = StyleSheet.create({
   progressCount: { fontFamily: theme.fonts.mono, fontSize: 12, color: theme.text },
   streakCard: { borderRadius: 18, padding: 16, gap: 12, overflow: "hidden", backgroundColor: "#221d1b" },
   streakButton: { flexDirection: "row", alignItems: "center", gap: 8 },
+  // Lucide flame at 56, stroke 2. Opaque ink is y 2.25–51.38 (height 49.13),
+  // center 26.81. The numeral's line is 74.16, taller than the flame, so this
+  // slot is that full line. A 56pt slot was clipping the bottom of 0.
+  streakNumSlot: { height: 74.16, justifyContent: "center", overflow: "visible" },
   streakNum: {
     fontFamily: theme.fonts.display,
-    fontSize: 55,
-    lineHeight: 56,
-    height: 56,
+    // Ranchers "1" ink is 0.828em, so 59.33pt is 49.12pt tall. translateY -1.55
+    // puts that ink on the flame once the 56pt flame is centered in this taller row.
+    fontSize: 59.33,
+    lineHeight: 74.16,
+    includeFontPadding: false,
     color: theme.fuel,
-    transform: [{ translateY: 1 }],
+    transform: [{ translateY: -1.55 }],
   },
+  streakUnitSlot: { height: 56, flex: 1, justifyContent: "center" },
   streakUnit: {
-    flex: 1,
-    alignSelf: "flex-end",
     fontFamily: theme.fonts.display,
     fontSize: 22,
     lineHeight: 24,
     color: theme.text,
     textTransform: "uppercase",
-    paddingBottom: 4,
+    // Cap center sits on the 28pt box center. Shift up onto the flame ink center.
+    transform: [{ translateY: -1.19 }],
   },
   flameRow: { flexDirection: "row", justifyContent: "flex-start", gap: 3 },
   shineClip: { ...StyleSheet.absoluteFill, overflow: "hidden" },

@@ -166,6 +166,20 @@ describe("two in-season sports and zero lift days", () => {
     expect(shown.some(l => /calf|calves/i.test(l))).toBe(true);
     expect(shown.some(l => /cuff/i.test(l))).toBe(true);
   });
+  it("an in-season sport with no weekly count is not planned three times", () => {
+    fresh({ acts: { lift: true, pickle: true }, mainSport: "pickle", season: "In-season", days: 3, pickle: "0" });
+    expect(E.cnt("pickle")).toBe(0);
+    const planned = E.plan();
+    expect(planned.sessions).toBe(E.DAYS.length);
+    E.wk.pickle = "";
+    expect(E.cnt("pickle")).toBe(0);
+    expect(E.plan().sessions).toBe(E.DAYS.length);
+    fresh({ acts: { lift: true, pickle: true }, mainSport: "pickle", season: "In-season", days: 3 });
+    delete E.wk.pickle;
+    expect(E.cnt("pickle")).toBe(0);
+    expect(E.plan().sessions).toBe(E.DAYS.length);
+    expect(E.DAYS.length).toBe(3);
+  });
   it("turning a sport off promotes the other to primary", () => {
     const w = E.fixSports({ acts: { tennis: true }, mainSport: "golf", sport2: "tennis", season: "In-season" });
     expect(w.mainSport).toBe("tennis"); expect(w.sport2).toBe(""); expect(w.season).toBe("In-season");
