@@ -322,7 +322,8 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | {…} lb | main.js:820 |
 |  | from {…} @ {…} | main.js:820 |
 |  | Delete | workout set and exercise |
-|  | Deleted · Undo | workout |
+|  | Deleted | workout, the undo toast (left) |
+|  | Undo | workout, the undo toast (right; no dot between them, Emma, Nov 16) |
 |  | Delete {…} and its {…} sets? | workout |
 |  | Finish {…} first? | workout |
 |  | Keep going | workout |

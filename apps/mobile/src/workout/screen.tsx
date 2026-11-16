@@ -1029,16 +1029,20 @@ export function WorkoutScreen({ id }: { id: string }) {
       />
 
       {undo ? (
-        <PressableScale
-          accessibilityRole="button"
-          onPress={() => {
-            undo.run();
-            setUndo(null);
-          }}
-          style={[styles.undo, { bottom: insets.bottom + 16 }]}
-        >
-          <Text style={styles.undoText}>{copy.workout.deletedUndo}</Text>
-        </PressableScale>
+        <View style={[styles.undo, { bottom: insets.bottom + 16 }]}>
+          <Text accessibilityLiveRegion="polite" style={styles.undoText}>{copy.workout.deleted}</Text>
+          <PressableScale
+            accessibilityRole="button"
+            onPress={() => {
+              undo.run();
+              setUndo(null);
+            }}
+            hitSlop={{ top: 4, bottom: 4 }}
+            style={styles.undoButton}
+          >
+            <Text style={styles.undoAction}>{copy.workout.undoDelete}</Text>
+          </PressableScale>
+        </View>
       ) : null}
 
       <SheetFrame visible={resetAsk} onClose={() => setResetAsk(false)} label={copy.you.cancel}>
@@ -1720,11 +1724,14 @@ const styles = StyleSheet.create({
     minHeight: 48,
     borderRadius: theme.radii.pill,
     backgroundColor: "#2f2a27",
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 16,
+    justifyContent: "space-between",
+    paddingLeft: 20,
   },
   undoText: { color: theme.text, fontFamily: theme.fonts.bodySemi, fontSize: 15 },
+  undoButton: { minHeight: 48, paddingHorizontal: 20, borderRadius: theme.radii.pill, justifyContent: "center" },
+  undoAction: { color: theme.green.accent, fontFamily: theme.fonts.bodySemi, fontSize: 15 },
   statusStrip: {
     position: "absolute",
     top: 0,

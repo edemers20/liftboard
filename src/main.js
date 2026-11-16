@@ -1365,7 +1365,7 @@ function toast(lines,ms){
 function toastUndo(fn){
   undoFn=fn;
   const t=document.getElementById("toast");
-  t.innerHTML=`<div class="tin"><button type="button" id="undoBtn">Deleted · Undo</button></div>`;
+  t.innerHTML=`<div class="tundo"><span role="status">Deleted</span><button type="button" id="undoBtn">Undo</button></div>`;
   t.classList.remove("show"); void t.offsetWidth; t.classList.add("show");
   clearTimeout(toastT); toastT=setTimeout(()=>{ undoFn=null; t.classList.remove("show"); },4000);
   t.querySelector("#undoBtn").onclick=()=>{ const run=undoFn; undoFn=null; t.classList.remove("show"); if(run) run(); };

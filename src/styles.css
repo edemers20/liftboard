@@ -111,6 +111,8 @@ details.panel > summary::-webkit-details-marker{display:none}
 #toast.show{transform:translateY(0);opacity:1}
 #toast .tin{display:grid;gap:3px}
 #toast .tin p{margin:0}
+#toast .tundo{display:flex;align-items:center;justify-content:space-between;gap:16px;font-weight:600}
+#toast .tundo button{min-height:44px;padding:0 4px 0 16px;background:none;border:0;color:var(--mint);font:inherit;cursor:pointer}
 #toast .tin p:first-child{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--mint)}
 #toast .tin p:nth-child(2){font-weight:600}
 @media (prefers-reduced-motion:reduce){#toast{transition:none}}
