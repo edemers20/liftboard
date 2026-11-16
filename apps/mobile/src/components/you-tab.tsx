@@ -292,10 +292,10 @@ function readBackupFile(): Promise<string | null> {
 
 /** Settings, opened from the gear on You. Body edits stay in a draft until saved. */
 export function SettingsScreen({ onReplay, startMetrics = false }: { onReplay: () => void; startMetrics?: boolean }) {
+  "use no memo";
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  "use no memo";
-  useEngineStore((state) => state.version);
+  const version = useEngineStore((state) => state.version);
   const call = useEngineStore((state) => state.call);
   const [editing, setEditing] = useState(startMetrics);
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -359,6 +359,41 @@ export function SettingsScreen({ onReplay, startMetrics = false }: { onReplay: (
     if (dirty(draft)) return;
     setDraft(null);
     setEditing(false);
+  }
+
+  function saveSport(id: string) {
+    call((api) => {
+      const mains = new Set([...(api.SPORTS as string[]), "yoga", "pilates"]);
+      let main = api.wk.mainSport || "";
+      let second = api.wk.sport2 || "";
+      if (!id) {
+        main = "";
+        second = "";
+      } else if (mains.has(id)) {
+        if (id === second) {
+          second = main;
+          main = id;
+        } else if (id !== main) {
+          if (!main) main = id;
+          else second = id;
+        }
+        api.wk.acts = { ...(api.wk.acts || {}), [id]: true };
+        if (api.wk[id] == null || api.wk[id] === "") api.wk[id] = 0;
+      }
+      api.wk.mainSport = main;
+      api.wk.sport2 = second;
+      api.fixSports(api.wk);
+      api.syncDays();
+      api.save();
+    });
+  }
+
+  function setSessions(id: string, next: number) {
+    const count = Math.max(0, Math.min(7, next));
+    call((api) => {
+      api.wk[id] = count;
+      api.save();
+    });
   }
 
   function pickSport(id: string) {
@@ -449,8 +484,14 @@ export function SettingsScreen({ onReplay, startMetrics = false }: { onReplay: (
   const week = engine.wk;
   const [adding, setAdding] = useState(false);
   const [showAllFaq, setShowAllFaq] = useState(false);
-  const enabledActs = (engine.ACT_IDS as string[]).filter((id) => id !== "lift" && engine.enabled(id));
-  const activityChoices = (engine.ACT_IDS as string[]).filter((id) => id !== "lift");
+  const mainActs = ([...(engine.SPORTS as string[]), "yoga", "pilates"] as string[]).filter(
+    (id, index, all) => all.indexOf(id) === index,
+  );
+  const enabledActs = (engine.ACT_IDS as string[]).filter((id) => id !== "lift" && engine.enabled(id) && version >= 0);
+  const otherChoices = (engine.ACT_IDS as string[]).filter((id) => id !== "lift" && !mainActs.includes(id));
+  const shownOthers = adding ? otherChoices : otherChoices.filter((id) => engine.enabled(id));
+  const mainNow = version >= 0 ? String(week.mainSport || "") : "";
+  const secondNow = version >= 0 ? String(week.sport2 || "") : "";
   const planFaq = copy.faq.findIndex(([question]) => question.startsWith("How is my plan"));
   const fuelFaq = copy.faq.findIndex(([question]) => question.startsWith("How is fuel"));
 
@@ -573,17 +614,34 @@ export function SettingsScreen({ onReplay, startMetrics = false }: { onReplay: (
 
         <View style={styles.panel}>
           <Text accessibilityRole="header" style={styles.eyebrow}>{copy.you.activities}</Text>
-          <View style={styles.pills}>
-            {(adding ? activityChoices : enabledActs).map((id) => (
-              <PressableScale
+          <Text style={styles.sportsLabel}>
+            <Text style={styles.fieldTitle}>{copy.you.sportsInSeason}</Text>
+            <Text style={styles.rowHint}>{copy.you.sportsHint}</Text>
+          </Text>
+          <View key={version} style={styles.pills}>
+            <Pill label={copy.you.none} selected={!mainNow} tone="pink" onPress={() => saveSport("")} />
+            {mainActs.map((id) => {
+              const picked = mainNow === id || secondNow === id;
+              const primary = mainNow === id && !!secondNow;
+              return (
+                <Pill
+                  key={id}
+                  label={activityName(id)}
+                  badge={primary ? copy.you.primary : undefined}
+                  selected={picked}
+                  tone="pink"
+                  onPress={() => saveSport(id)}
+                />
+              );
+            })}
+            {shownOthers.map((id) => (
+              <Pill
                 key={id}
-                accessibilityRole="button"
-                accessibilityState={{ selected: !!engine.enabled(id) }}
+                label={activityName(id)}
+                selected={engine.enabled(id)}
+                tone="pink"
                 onPress={() => toggleActivity(id)}
-                style={[styles.actPill, engine.enabled(id) ? styles.actPillOn : styles.actPillOff]}
-              >
-                <Text style={[styles.actPillText, engine.enabled(id) ? styles.actPillTextOn : styles.actPillTextOff]}>{activityName(id)}</Text>
-              </PressableScale>
+              />
             ))}
             <PressableScale
               accessibilityRole="button"
@@ -594,6 +652,9 @@ export function SettingsScreen({ onReplay, startMetrics = false }: { onReplay: (
               <Text style={styles.actPillTextOff}>{copy.you.addActivity}</Text>
             </PressableScale>
           </View>
+          {enabledActs.map((id) => (
+            <SessionCount key={`${id}-${version}`} id={id} count={engine.cnt(id)} onChange={(next) => setSessions(id, next)} />
+          ))}
         </View>
 
         <View style={styles.panel}>
@@ -1157,6 +1218,35 @@ function ProfileForm({
   );
 }
 
+function SessionCount({ id, count, onChange }: { id: string; count: number; onChange: (next: number) => void }) {
+  const name = activityName(id);
+  return (
+    <View style={styles.sessionRow}>
+      <Text numberOfLines={2} style={[styles.rowLabel, styles.sessionName]}>{name}</Text>
+      <View style={styles.sessionControls}>
+        <Text style={[styles.rowHint, styles.sessionLabel]}>{copy.activities.sessions}</Text>
+        <PressableScale
+          accessibilityRole="button"
+          accessibilityLabel={copy.onboarding.fewer(name)}
+          onPress={() => onChange(count - 1)}
+          style={styles.sessionStep}
+        >
+          <Text style={styles.sessionSymbol}>−</Text>
+        </PressableScale>
+        <Text style={styles.sessionValue}>{count}</Text>
+        <PressableScale
+          accessibilityRole="button"
+          accessibilityLabel={copy.onboarding.more(name)}
+          onPress={() => onChange(count + 1)}
+          style={styles.sessionStep}
+        >
+          <Text style={styles.sessionSymbol}>+</Text>
+        </PressableScale>
+      </View>
+    </View>
+  );
+}
+
 function Pill({
   label,
   badge,
@@ -1179,6 +1269,7 @@ function Pill({
         haptic.selection();
         onPress();
       }}
+      brighten={selected}
       style={[styles.pill, selected && (tone === "pink" ? styles.pillPink : styles.pillGreen)]}
     >
       <Text style={[styles.pillText, selected && (tone === "pink" ? styles.pillTextPink : styles.pillTextGreen)]}>
@@ -1266,8 +1357,29 @@ const styles = StyleSheet.create({
     borderTopColor: theme.pink.line,
   },
   actPill: { minHeight: 44, paddingHorizontal: 12, borderRadius: theme.radii.pill, alignItems: "center", justifyContent: "center" },
-  actPillOn: { backgroundColor: "#3a2430" },
+  actPillOn: { backgroundColor: theme.pink.tint },
   actPillOff: { backgroundColor: theme.pink.background },
+  sportBlock: { gap: 10, paddingTop: 4 },
+  sessionRow: {
+    minHeight: 44,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  sessionName: { flex: 1 },
+  sessionLabel: { marginTop: 0 },
+  sessionControls: { flexShrink: 0, flexDirection: "row", alignItems: "center", gap: 6 },
+  sessionStep: {
+    width: 44,
+    height: 44,
+    borderRadius: theme.radii.pill,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: theme.pink.background,
+  },
+  sessionSymbol: { color: theme.text, fontSize: 20, lineHeight: 22 },
+  sessionValue: { width: 28, textAlign: "center", color: theme.text, fontFamily: theme.fonts.monoMedium, fontSize: 16 },
   actPillText: { fontFamily: theme.fonts.bodySemi, fontSize: 13 },
   actPillTextOn: { color: theme.pink.accent },
   actPillTextOff: { color: theme.muted },
@@ -1382,10 +1494,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: theme.radii.pill,
     backgroundColor: theme.pink.background,
+    borderWidth: 1,
+    borderColor: "transparent",
     alignItems: "center",
     justifyContent: "center",
   },
-  pillPink: { backgroundColor: "rgba(252,150,191,0.18)" },
+  pillPink: { backgroundColor: "rgba(252,150,191,0.18)", borderColor: theme.pink.accent },
   pillGreen: { backgroundColor: "rgba(111,208,180,0.16)" },
   pillText: { fontFamily: theme.fonts.bodySemi, fontSize: 14, color: theme.text },
   pillTextPink: { color: theme.pink.accent },
