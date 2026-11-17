@@ -33,10 +33,8 @@ export const theme = {
     /** Black at 30% over the pink surface. */
     secondary: "#191617",
   },
-  /** Personal records: a deep purple card, no outline (`record` is the accent). */
+  /** Personal records sit on the neutral card surface; purple (`record`) marks labels and badges only. */
   purple: {
-    card: "#3a2f55",
-    muted: "rgba(237, 234, 232, 0.65)",
     tint: "rgba(183, 156, 240, 0.14)",
   },
   /** Milestone cards (Emma's kind pairs): 135° gradients, dark text. */
