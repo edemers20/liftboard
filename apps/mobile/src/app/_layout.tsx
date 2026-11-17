@@ -18,6 +18,7 @@ import { SharedTransitionBoundary } from "react-native-reanimated";
 
 import { LaunchSplash, claimLaunchSplash } from "@/components/launch-splash";
 import { LiveWorkoutState, useLiveWorkout } from "@/components/live-workout";
+import { useLiveActivitySync } from "@/live-activity/sync";
 import { DialHost } from "@/components/number-dial";
 import { NoticeHost } from "@/components/motion";
 import { TipHost } from "@/components/tip-popover";
@@ -100,6 +101,7 @@ export default function RootLayout() {
   const [enter, setEnter] = useState<WorkoutEnter>("plain");
   useEffect(() => subscribeWorkoutEnter(setEnter), []);
   const live = useLiveWorkout();
+  useLiveActivitySync();
 
   return (
     <LiveWorkoutState live={live}>

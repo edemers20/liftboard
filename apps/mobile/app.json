@@ -56,6 +56,15 @@
           "savePhotosPermission": "Lift Board adds workout cards to your photo library.",
           "isAccessMediaLocationEnabled": false
         }
+      ],
+      [
+        "expo-widgets",
+        {
+          "bundleIdentifier": "app.liftboard.widgets",
+          "groupIdentifier": "group.app.liftboard",
+          "enablePushNotifications": false,
+          "frequentUpdates": true
+        }
       ]
     ],
     "experiments": {

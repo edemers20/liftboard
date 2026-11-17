@@ -1025,6 +1025,11 @@ export const copy = {
       Build: "Build muscle",
     },
   },
+  /** Live Activity on the Lock Screen and in the Dynamic Island (docs/HANDOFF-alerts-haptics.md Part 2). */
+  live: {
+    rest: "Rest",
+    go: "Go",
+  },
   report: {
     label: "Weekly report",
     goingUp: "Going up next week",

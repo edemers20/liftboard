@@ -1125,3 +1125,13 @@ To change wording: edit it here first, then update `copy.ts` to match.
 | Confirm button | Reset day | main.js:1584 |
 |  | Day reset | main.js:1586 |
 |  | Logs cleared and the day is open again. | main.js:1586 |
+
+## Live Activity
+
+Lock Screen and Dynamic Island while a workout is live (`docs/HANDOFF-alerts-haptics.md` Part 2). `copy.live` in `copy.ts`; the title, exercise and "Set 2 of 4" reuse the workout screen's words.
+
+| Where | Copy | Ref |
+| --- | --- | --- |
+| Label | Rest | Lock Screen, before the countdown. From the handoff ("Rest 1:42"). |
+| Label | Go | Lock Screen and Dynamic Island when the rest is over. From the handoff. |
+| Label | ✓ Day done | Shown for a few seconds as the activity ends. Reuses the workout screen's "✓ Day done"; the handoff writes "Day done ✓". |
