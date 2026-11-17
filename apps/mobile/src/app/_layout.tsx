@@ -17,6 +17,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SharedTransitionBoundary } from "react-native-reanimated";
 
 import { LaunchSplash, claimLaunchSplash } from "@/components/launch-splash";
+import { startCrashReports } from "@/crash/report";
 import { LiveWorkoutState, useLiveWorkout } from "@/components/live-workout";
 import { useLiveActivitySync } from "@/live-activity/sync";
 import { DialHost } from "@/components/number-dial";
@@ -32,6 +33,7 @@ import { subscribeWorkoutEnter, WORKOUT_CLOSE_MS, type WorkoutEnter } from "@/wo
 import { startDayClock } from "@/day-clock";
 import { onNewDay, rollWeekIfDue } from "@/week-roll";
 
+startCrashReports();
 SplashScreen.preventAutoHideAsync();
 
 /** Read once at launch. Finishing navigates away; the next launch reads the saved flag. */

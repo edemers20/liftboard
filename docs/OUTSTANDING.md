@@ -130,14 +130,14 @@ These exist in code but haven't been confirmed working. Go through them with Emm
 - `src/live-activity/sync.ts` (mounted in the root layout) starts it when Start workout sets the timer, updates it when anything it shows changes (tick, ±15s, Skip, next exercise), ends it on Day done after showing "✓ Day done" for 4 seconds, ends it at once on reset or abandon, and never keeps one past 8 hours. It picks up an activity left from before an app restart. Tapping opens `liftboard://workout/{id}`. If Live Activities are off in iOS Settings the workout carries on.
 - Config: the `expo-widgets` plugin in `app.json` (extension `app.liftboard.widgets`, App Group `group.app.liftboard`). Checked here: typecheck, `src/live-activity.test.ts`, the iOS JS bundle builds and the layout compiles for the extension. **To do on a phone:** `eas build --profile development --platform ios`, start a workout, lock, tick a set from the app and watch the countdown (the handoff's done-when).
 
-**B4. Beta readiness** (before TestFlight):
-- Apple Developer enrollment.
-- EAS Build and Submit set up.
-- Bundle id and version.
-- An App Store privacy label. The app stores health data on the device only, with no tracking.
-- A short privacy policy page.
-- Crash reporting with health data scrubbed (no weights, body stats or notes in reports).
-- The "not medical advice" line visible in Settings.
+**B4. Beta readiness** (before TestFlight). **Repo side done Nov 17; the account steps are Emma's.** Full guide: `docs/RELEASE-IOS.md`.
+- Apple Developer enrollment. **Done (Emma, Nov 17).**
+- EAS Build and Submit set up. **In the repo:** `apps/mobile/eas.json` (development, preview, production; build numbers kept by EAS). **Emma:** `eas init`, first `eas build` (lets EAS manage certificates and the App Group), App Store Connect app record, `eas submit` API key. All secrets go in EAS, never in chat or git.
+- Bundle id and version. **Done:** `app.liftboard`, extension `app.liftboard.widgets`, App Group `group.app.liftboard`, version 1.0.0, export compliance answered in `app.json`.
+- An App Store privacy label. **Notes in `docs/RELEASE-IOS.md`:** only Crash Data (not linked, not tracking); everything else stays on the phone. The privacy manifest is in `app.json`.
+- A short privacy policy page. **Draft:** `public/privacy.html`, live on GitHub Pages once merged to `main`; Settings → Your data → Privacy policy opens it. Wording and contact email are **TODO copy** for Emma.
+- Crash reporting with health data scrubbed. **Built:** Sentry (`src/crash/report.ts`), off until `EXPO_PUBLIC_SENTRY_DSN` is set in EAS. Every report goes through an allowlist scrubber (`src/crash/scrub.ts`, tested in `src/crash-scrub.test.ts`); breadcrumbs, routes, taps, screenshots and app data are dropped.
+- The "not medical advice" line visible in Settings. **Done:** at the bottom of Settings (it was only on You).
 
 **B5. Backend** (`docs/BACKEND-SUPABASE.md`). Only after Emma has used the native app for a week. Covers email code sign-in, row-level security, the sync outbox and the two Edge Functions.
 

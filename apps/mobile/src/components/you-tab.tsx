@@ -5,7 +5,7 @@ import { GlassSheet } from "@/components/glass-sheet";
 import { PressableScale } from "@/components/pressable-scale";
 import { File, Paths } from "expo-file-system";
 import { usePathname, useRouter } from "expo-router";
-import { AccessibilityInfo, KeyboardAvoidingView, Platform, ScrollView, Share, StyleSheet, Text, TextInput, View, type AccessibilityRole } from "react-native";
+import { AccessibilityInfo, KeyboardAvoidingView, Linking, Platform, ScrollView, Share, StyleSheet, Text, TextInput, View, type AccessibilityRole } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { applyBackup, parseBackup, previewBackup, type LiftBackup } from "@/backup";
@@ -22,6 +22,8 @@ import { engine, useEngineStore } from "@/store";
 import { rollWeekIfDue } from "@/week-roll";
 import { theme } from "@/theme";
 import { fromDisplay, toDisplay } from "@/units";
+/** Served by the web app (`public/privacy.html`) on GitHub Pages; App Store Connect links the same page. */
+const PRIVACY_URL = "https://edemers20.github.io/liftboard/privacy.html";
 const SESSION_MINUTES = [30, 45, 60, 75] as const;
 const LEVELS = ["new", "some", "years"] as const;
 const SEX = ["Female", "Male", "Other"] as const;
@@ -741,6 +743,16 @@ export function SettingsScreen({ onReplay, startMetrics = false }: { onReplay: (
               {notice}
             </Text>
           ) : null}
+          <PressableScale
+            accessibilityRole="link"
+            onPress={() => void Linking.openURL(PRIVACY_URL).catch(() => {})}
+            style={[styles.helpRow, styles.faqDivider, styles.dataRow]}
+          >
+            <View style={styles.helpLine}>
+              <Text style={styles.rowLabel}>{copy.you.privacyPolicy}</Text>
+              <Text style={styles.helpChevron}>›</Text>
+            </View>
+          </PressableScale>
           <PressableScale accessibilityRole="button" onPress={() => setConfirm("reset")} style={[styles.helpRow, styles.faqDivider]}>
             <Text style={styles.dangerLabel}>{copy.you.resetProfile}</Text>
           </PressableScale>
@@ -748,6 +760,7 @@ export function SettingsScreen({ onReplay, startMetrics = false }: { onReplay: (
             <Text style={styles.dangerLabel}>{copy.you.deleteAccount}</Text>
           </PressableScale>
         </View>
+        <Text style={styles.disclaimer}>{copy.you.disclaimer}</Text>
       </ScrollView>
       </TabScrollMarker>
 

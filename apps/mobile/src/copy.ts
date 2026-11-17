@@ -119,6 +119,8 @@ export const copy = {
     notBackup: "That file isn't a Lift Board backup",
     exportData: "Export my data",
     deleteAccount: "Delete account",
+    // TODO copy: B4 Settings row that opens the privacy policy page (App Store Connect needs one).
+    privacyPolicy: "Privacy policy",
     backupDownloaded: "Backup downloaded",
     backupFile: "liftboard-backup-{…}.json",
     stretchingAfterLifts: "Stretching after lifts",

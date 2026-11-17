@@ -1135,3 +1135,11 @@ Lock Screen and Dynamic Island while a workout is live (`docs/HANDOFF-alerts-hap
 | Label | Rest | Lock Screen, before the countdown. From the handoff ("Rest 1:42"). |
 | Label | Go | Lock Screen and Dynamic Island when the rest is over. From the handoff. |
 | Label | ✓ Day done | Shown for a few seconds as the activity ends. Reuses the workout screen's "✓ Day done"; the handoff writes "Day done ✓". |
+
+## Privacy and release (B4)
+
+| Where | Copy | Ref |
+| --- | --- | --- |
+| Settings row | Privacy policy **TODO copy** | Settings, Your data. Opens `https://edemers20.github.io/liftboard/privacy.html`. |
+| Settings footer | Lift Board gives general training and nutrition estimates, not medical advice. Check with a doctor before big changes, especially if you're pregnant, injured or managing a health condition. | Bottom of Settings (same line as You). |
+| Privacy policy page | The whole page **TODO copy** | `public/privacy.html`. A draft written to the voice rules; needs Emma's OK and her contact email. |
