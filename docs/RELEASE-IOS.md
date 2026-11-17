@@ -54,6 +54,28 @@ Then in App Store Connect → TestFlight, add the build to the internal testing 
 
 For a development build on Emma's own phone (Live Activity testing, A-list checks): register the phone with `eas device:create`, then `eas build --platform ios --profile development`.
 
+## Mac: device build (icon, Live Activity, USB Metro)
+
+Live Activities and the Lock Screen widget extension are **not** in Expo Go. After any change under `apps/mobile/src/live-activity/`, the `expo-widgets` block in `app.json`, or the app icons, Emma needs a **fresh native install on the phone**.
+
+On the Mac (with the phone on USB):
+
+```bash
+cd apps/mobile
+npx expo prebuild --platform ios --clean
+npx expo run:ios --device
+```
+
+After install:
+
+1. Delete any old Lift Board icon from the phone first if iOS is still showing a cached icon.
+2. In Settings → Lift Board, confirm **Live Activities** are allowed.
+3. Start a workout, tick a set, lock the phone; the rest countdown should show on the Lock Screen and in the Dynamic Island.
+
+**USB Metro (169.254 link-local).** When developing over USB, point Metro at the machine serving JS (the same flow as before: USB network, often `169.254.x.x`). Bake that host into the dev client's bundle after each native install so reloads reach the right Metro without flipping hosts. Expo's dev menu → bundler location should match; if the app loads stale JS after install, shake → change bundle URL, then reload once.
+
+`eas build --profile development` is an alternative when USB is awkward; still a full rebuild, not an OTA update.
+
 ## App Store privacy label (App Privacy in App Store Connect)
 
 Answer from what the app actually does today (on-device only, no sign-in yet):

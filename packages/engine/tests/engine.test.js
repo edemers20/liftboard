@@ -564,6 +564,17 @@ describe("swapping a workout within its family", () => {
     fresh({ focus: "Lower", days: 5, alt: { d3: "g2" } });
     expect(E.DAYS.map(d => d.id)).toEqual(["d1", "d2", "d3", "x", "g2"]);
   });
+  it("pins today's lift to the workout chosen in the swap sheet", () => {
+    fresh({ focus: "Lower", days: 3 });
+    const id = E.split()[0];
+    E.moveLiftToToday(id);
+    expect(E.dayBoard(0).plannedId).toBe(id);
+    const alt = E.swapOptions(id).map((d) => d.id).find((x) => x !== id);
+    expect(alt).toBeTruthy();
+    expect(E.swapDay(id, alt)).toBe(true);
+    expect(E.wk.pinToday).toEqual({ d: E.dayKey(), id: alt });
+    expect(E.dayBoard(0).plannedId).toBe(alt);
+  });
 });
 
 describe("finishing a week early", () => {

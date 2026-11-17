@@ -9,10 +9,10 @@ import { theme } from "@/theme";
 
 const rows = createSwipeRegistry();
 /** Closing on a tap elsewhere, and the run off the edge on a full swipe. */
-const CLOSE = { duration: 160, easing: Easing.out(Easing.cubic) };
-const OFF_EDGE = { duration: 140, easing: Easing.out(Easing.cubic) };
+const CLOSE = { duration: 120, easing: Easing.out(Easing.cubic) };
+const OFF_EDGE = { duration: 110, easing: Easing.out(Easing.cubic) };
 /** Letting go: picks up the finger's speed and stops on the spot, no bounce. */
-const SETTLE = { stiffness: 520, damping: 42, mass: 1, overshootClamping: true };
+const SETTLE = { stiffness: 720, damping: 48, mass: 0.9, overshootClamping: true };
 
 /** Put on the screen's root view: a touch anywhere but the open row's Delete closes that row. */
 export const swipeCloseCapture = {
@@ -88,7 +88,7 @@ export function SwipeDelete({
   useEffect(() => () => rows.release(key), [key]);
 
   const pan = usePanGesture({
-    activeOffsetX: [-8, 8],
+    activeOffsetX: [-6, 6],
     failOffsetY: [-10, 10],
     onActivate: () => {
       "worklet";

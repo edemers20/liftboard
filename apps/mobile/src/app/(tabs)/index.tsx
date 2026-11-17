@@ -60,7 +60,7 @@ import { canSwapDay } from "@/components/swap-sheet";
 import { TodayButton } from "@/components/today-button";
 import { Swap } from "@/icons";
 import { openFitSheet } from "@/form-sheet";
-import { ShareBox, WorkoutLink } from "@/workout/share-box";
+import { replaceWorkout, ShareBox, WorkoutLink } from "@/workout/share-box";
 
 type DragSource = "day" | "week" | null;
 type WindowSpan = { lo: number; hi: number; gen: number } | null;
@@ -885,7 +885,16 @@ function LiftCards({
           thisWeek={board.wOff === 0}
           started={workoutUnderway(board.plannedId)}
           onMoved={onMoved}
-          onSwap={() => openFitSheet({ kind: "swap", id: board.plannedId! })}
+          onSwap={() => {
+            const cur = board.plannedId!;
+            openFitSheet({
+              kind: "swap",
+              id: cur,
+              onWorkout: (nextId) => {
+                if (workoutUnderway(cur)) replaceWorkout(nextId);
+              },
+            });
+          }}
         />
       ) : null}
     </>

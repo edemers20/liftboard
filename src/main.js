@@ -807,7 +807,7 @@ function renderSeason(P){
 /* ---------- History: calendar of sessions, previous weeks, main lifts ---------- */
 let histView="cal", calOff=0, calSel=null;
 try{ const h=localStorage.getItem(KEY+".hv"); if(h) histView=h; }catch(e){}
-const dowOf=t=>(new Date(t).getDay()+6)%7, dayKey=t=>{ const d=new Date(t); return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`; };
+const dowOf=t=>(new Date(t).getDay()+6)%7, dayKey=t=>{ const d=new Date(t??Date.now()); return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`; };
 const sessName=x=>x.k==="lift"?(x.title||"Lift"):x.k==="zone2"?"Zone 2":(ACT[x.k]?ACT[x.k].name:x.k);
 /* Avg week breakdown: time in each kind of training, one stacked bar per week (last 8 weeks).
    Lifts without a saved duration count as your session length; activities use the minutes you logged. */

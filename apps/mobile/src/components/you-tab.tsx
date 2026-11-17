@@ -910,7 +910,7 @@ function ExperienceSlider({ value, onChange }: { value: string; onChange: (level
                 <View style={[styles.knob, selected && styles.knobOn]} />
               </View>
               <Text style={[styles.stopLabel, selected && styles.stopLabelOn, selected && { color: LEVEL_COLORS[index] }]}>{label}</Text>
-              <Text style={styles.stopDetail}>{detail}</Text>
+              {selected ? <Text style={styles.stopDetail}>{detail}</Text> : null}
             </PressableScale>
           );
         })}

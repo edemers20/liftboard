@@ -322,10 +322,13 @@ function withAlt(ids){ const alt=wk.alt||{}, used=new Set(ids);
 function swapOptions(curId){ const ids=withAlt(split()), base=split()[ids.indexOf(curId)], fam=famOf(base||curId); if(!fam) return [];
   return fam.filter(x=>x===curId||!ids.includes(x)).map(x=>ALL.find(t=>t.id===x)); }
 function swapDay(curId,newId){ const sp=split(), ids=withAlt(sp), k=ids.indexOf(curId); if(k<0||curId===newId) return false;
+  const todayLift=dayBoard(0).plannedId;
   const base=sp[k], alt={...(wk.alt||{})}; if(newId===base) delete alt[base]; else alt[base]=newId; wk.alt=alt;
   if(wk.upNext===curId) wk.upNext=newId;
   if(wk.pinToday&&wk.pinToday.id===curId) wk.pinToday={...wk.pinToday,id:newId};
-  syncDays(); save(); return true; }
+  syncDays();
+  if(todayLift===curId) wk.pinToday={d:dayKey(),id:newId};
+  save(); return true; }
 function syncDays(){ DAYS=withAlt(split()).map((id,i)=>{ const t=ALL.find(x=>x.id===id); return {...t,slots:[...t.slots,...(((wk.extra||{})[id])||[]).map(extraSlot)],tab:`Day ${i+1}`}; }); buildDefaults(); }
 /* ---------- Muscles: what each slot trains, and how much each muscle matters to this person ----------
    Direct work counts 1 set, helper work ½ (a row is back work that also trains biceps and rear delts). */
@@ -917,7 +920,7 @@ function newWeek(start){
 }
 
 /* ---------- Which lift lands on which date (queue on usual lift days; dates are never stored) ---------- */
-const dayKey=t=>{ const d=new Date(t); return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`; };
+const dayKey=t=>{ const d=new Date(t??Date.now()); return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`; };
 const DAY0=t=>{ const d=new Date(t); d.setHours(0,0,0,0); return d; };
 const addD=(d,n)=>{ const x=new Date(d); x.setDate(x.getDate()+n); return x; };
 const monIdx=d=>(d.getDay()+6)%7;
@@ -1077,6 +1080,7 @@ function dayStarted(id){
 function swapWeek(curId, otherId){
   if(!curId||!otherId||curId===otherId) return false;
   if(dayStarted(curId)||dayStarted(otherId)) return false;
+  const todayLift=dayBoard(0).plannedId;
   const todo=queueTodo(wk.done||{});
   const a=todo.indexOf(curId), b=todo.indexOf(otherId);
   if(a<0||b<0) return false;
@@ -1084,6 +1088,8 @@ function swapWeek(curId, otherId){
   wk.weekOrder=next;
   if(wk.upNext===curId) wk.upNext=otherId;
   else if(wk.upNext===otherId) wk.upNext=curId;
+  if(todayLift===curId) wk.pinToday={d:dayKey(),id:otherId};
+  else if(todayLift===otherId) wk.pinToday={d:dayKey(),id:curId};
   save();
   return true;
 }

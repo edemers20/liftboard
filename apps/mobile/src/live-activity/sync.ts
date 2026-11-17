@@ -1,7 +1,7 @@
 "use no memo";
 
 import { useEffect } from "react";
-import { AppState } from "react-native";
+import { AppState, Platform } from "react-native";
 import type { LiveActivity, LiveActivityDismissalPolicy } from "expo-widgets";
 
 import { engine, useEngineStore } from "@/store";
@@ -27,10 +27,6 @@ function underway(): { id: string; start: number } | null {
   return open[0] ?? null;
 }
 
-function stale(props: WorkoutActivityProps): Date | undefined {
-  return props.restEnd > 0 ? new Date(props.restEnd) : undefined;
-}
-
 function finish(props?: WorkoutActivityProps, policy: LiveActivityDismissalPolicy = "immediate") {
   const ending = current;
   current = null;
@@ -45,11 +41,9 @@ export function syncLiveActivity(now = Date.now()) {
   try {
     if (!adopted) {
       adopted = true;
-      // An activity can outlive the app. Pick it back up; extras from an older run go.
-      const left = factory.getInstances();
-      const live = underway();
-      if (left.length && live) current = { activity: left[0], id: live.id, start: live.start, key: "" };
-      left.slice(current ? 1 : 0).forEach((activity) => activity.end("immediate").catch(() => {}));
+      // Orphans from a previous run or build are ended; this run starts fresh from the engine.
+      factory.getInstances().forEach((activity) => activity.end("immediate").catch(() => {}));
+      current = null;
     }
 
     const live = underway();
@@ -68,14 +62,15 @@ export function syncLiveActivity(now = Date.now()) {
     const props = activityProps(live.id, now);
     if (!props) return;
     const key = activityKey(props);
+    const staleDate = props.restEnd > 0 ? new Date(props.restEnd) : undefined;
     if (!current) {
-      const activity = factory.start(props, `liftboard://workout/${live.id}`, stale(props));
+      const activity = factory.start(props, `liftboard://workout/${live.id}`, staleDate);
       current = { activity, id: live.id, start: live.start, key };
       return;
     }
     if (current.key !== key) {
       current.key = key;
-      current.activity.update(props, stale(props)).catch(() => {});
+      current.activity.update(props, staleDate).catch(() => {});
     }
   } catch {
     // Live Activities can be off in Settings, or the device may not support them. The workout carries on.
@@ -89,10 +84,16 @@ export function useLiveActivitySync() {
     syncLiveActivity();
   }, [version]);
   useEffect(() => {
-    if (!WorkoutActivity) return;
+    if (!WorkoutActivity || Platform.OS !== "ios") return;
     const sub = AppState.addEventListener("change", (next) => {
       if (next === "active") syncLiveActivity();
     });
-    return () => sub.remove();
+    const tick = setInterval(() => {
+      if (underway()) syncLiveActivity();
+    }, 1000);
+    return () => {
+      sub.remove();
+      clearInterval(tick);
+    };
   }, []);
 }
