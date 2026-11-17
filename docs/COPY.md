@@ -1003,6 +1003,8 @@ To change wording: edit it here first, then update `copy.ts` to match.
 | Title | Restore backup? | main.js:1226 |
 | Body text | Replaces everything on this phone with the backup from {…}. | main.js:1226 |
 | Confirm button | Restore | main.js:1226 |
+| Preview (native) | {…} Lifts, {…} Activities, {…} Weeks active (the You tab's labels, as three tiles) | Restore backup? Counts found in the file before importing. |
+| Preview note (native) | Set history comes over as top sets only. **TODO copy** | Restore backup? Under the counts. |
 | Title | Replace your data | main.js:1262 |
 | Body text | Everything on this device is replaced with the pasted data. | main.js:1262 |
 | Confirm button | Replace | main.js:1262 |

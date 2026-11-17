@@ -1,0 +1,10 @@
+{
+  "app": "liftboard",
+  "v": 1,
+  "at": "2026-11-12T15:00:00.000Z",
+  "keys": {
+    "liftboard.v1": "{}",
+    "liftboard.week.v2": "{\"setupDone\":true,\"onbDone\":true,\"mig1\":1,\"mig2\":1,\"mig3\":1,\"mig4\":1,\"mig5\":1,\"mig6\":1,\"name\":\"Sam\",\"wkStart\":\"Sun\",\"wkStartAt\":[{\"t\":0,\"rule\":\"Mon\"},{\"t\":1792886400000,\"rule\":\"Sun\"}],\"acts\":{\"lift\":true,\"pickle\":true,\"yoga\":true},\"mainSport\":\"pickle\",\"sessions\":[{\"t\":1791828000000,\"k\":\"lift\",\"id\":\"d1\",\"title\":\"Lower (Squat)\",\"min\":55},{\"t\":1792004400000,\"k\":\"pickle\",\"min\":90},{\"t\":1792317600000,\"k\":\"lift\",\"id\":\"d2\",\"title\":\"Upper (Press)\",\"min\":50},{\"t\":1792519200000,\"k\":\"lift\",\"id\":\"d3\",\"title\":\"Lower (Hinge & Glute)\",\"min\":60},{\"t\":1792918800000,\"k\":\"yoga\",\"min\":45},{\"t\":1793124000000,\"k\":\"lift\",\"id\":\"d1\",\"title\":\"Lower (Squat)\",\"min\":55},{\"t\":1793530800000,\"k\":\"pickle\",\"min\":75},{\"t\":1793642400000,\"k\":\"lift\",\"id\":\"d2\",\"title\":\"Upper (Press)\",\"min\":50}]}",
+    "liftboard.hist.v1": "{\"Back Squat (Barbell)\":[{\"t\":1791828000000,\"w\":135,\"r\":8},{\"t\":1793124000000,\"w\":140,\"r\":8},{\"t\":1794333600000,\"w\":145,\"r\":6}],\"Bench Press\":[{\"t\":1792317600000,\"w\":95,\"r\":8}]}"
+  }
+}

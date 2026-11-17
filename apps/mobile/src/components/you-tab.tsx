@@ -8,7 +8,7 @@ import { usePathname, useRouter } from "expo-router";
 import { AccessibilityInfo, KeyboardAvoidingView, Platform, ScrollView, Share, StyleSheet, Text, TextInput, View, type AccessibilityRole } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { applyBackup, parseBackup, type LiftBackup } from "@/backup";
+import { applyBackup, parseBackup, previewBackup, type LiftBackup } from "@/backup";
 import { playChime } from "@/chime";
 import { LiveWorkoutBar } from "@/components/live-workout";
 import { SheetFrame } from "@/components/motion";
@@ -303,6 +303,7 @@ export function SettingsScreen({ onReplay, startMetrics = false }: { onReplay: (
   const [openFaq, setOpenFaq] = useState<Record<number, boolean>>({});
   const [confirm, setConfirm] = useState<null | "reset" | "delete" | "restore">(null);
   const [pending, setPending] = useState<LiftBackup | null>(null);
+  const [found, setFound] = useState<{ lifts: number; activities: number; weeks: number } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   const path = usePathname();
@@ -421,6 +422,7 @@ export function SettingsScreen({ onReplay, startMetrics = false }: { onReplay: (
       AccessibilityInfo.announceForAccessibility(copy.you.notBackup);
       return;
     }
+    setFound(previewBackup(backup, engine, storage));
     setPending(backup);
     setConfirm("restore");
   }
@@ -728,14 +730,12 @@ export function SettingsScreen({ onReplay, startMetrics = false }: { onReplay: (
               <Text style={styles.helpChevron}>›</Text>
             </View>
           </PressableScale>
-          {__DEV__ ? (
-            <PressableScale accessibilityRole="button" onPress={() => void chooseBackup()} style={[styles.helpRow, styles.faqDivider, styles.dataRow]}>
-              <View style={styles.helpLine}>
-                <Text style={styles.rowLabel}>{copy.you.restoreBackup}</Text>
-                <Text style={styles.helpChevron}>›</Text>
-              </View>
-            </PressableScale>
-          ) : null}
+          <PressableScale accessibilityRole="button" onPress={() => void chooseBackup()} style={[styles.helpRow, styles.faqDivider, styles.dataRow]}>
+            <View style={styles.helpLine}>
+              <Text style={styles.rowLabel}>{copy.you.restoreBackup}</Text>
+              <Text style={styles.helpChevron}>›</Text>
+            </View>
+          </PressableScale>
           {notice ? (
             <Text accessibilityRole="alert" style={styles.notice}>
               {notice}
@@ -787,6 +787,25 @@ export function SettingsScreen({ onReplay, startMetrics = false }: { onReplay: (
                 ? fill(copy.you.restoreBody, new Date(pending?.at || "").toLocaleDateString())
                 : copy.you.resetBody}
             </Text>
+            {confirm === "restore" && found ? (
+              <>
+                <View accessible style={styles.foundRow}>
+                  {(
+                    [
+                      [found.lifts, copy.you.lifts],
+                      [found.activities, copy.you.activities],
+                      [found.weeks, copy.you.weeksActive],
+                    ] as const
+                  ).map(([count, label]) => (
+                    <View key={label} style={styles.foundTile}>
+                      <Text style={styles.foundCount}>{count.toLocaleString()}</Text>
+                      <Text style={styles.foundLabel}>{label}</Text>
+                    </View>
+                  ))}
+                </View>
+                <Text style={styles.confirmBody}>{copy.you.restoreTopSets}</Text>
+              </>
+            ) : null}
             <View style={styles.confirmButtons}>
               <PressableScale
                 accessibilityRole="button"
@@ -1381,6 +1400,10 @@ const styles = StyleSheet.create({
   },
   confirmBody: { fontFamily: theme.fonts.body, fontSize: 14, lineHeight: 20, color: "#d4cfcc" },
   confirmButtons: { flexDirection: "row", gap: 10 },
+  foundRow: { flexDirection: "row", gap: 8 },
+  foundTile: { flex: 1, backgroundColor: "rgba(0,0,0,0.22)", borderRadius: 12, paddingVertical: 10, paddingHorizontal: 12, gap: 2 },
+  foundCount: { fontFamily: theme.fonts.monoMedium, fontSize: 18, color: theme.text },
+  foundLabel: { fontFamily: theme.fonts.body, fontSize: 12, color: "#d4cfcc" },
   confirmCancel: { flex: 1, backgroundColor: "rgba(255,255,255,0.07)" },
   restore: {
     flex: 2,

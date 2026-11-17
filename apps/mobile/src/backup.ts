@@ -56,3 +56,25 @@ export function activeCounts(api: EngineLike) {
   const weeks = new Set(sessions.map((session) => api.weekStartOf(session.t).getTime())).size;
   return { lifts, activities: sessions.length - lifts, weeks };
 }
+
+/**
+ * What a backup holds, counted by the engine itself so older saves get the same migrations an import would run.
+ * The backup loads from a scratch copy, then the engine reloads `current`; nothing on the phone changes.
+ */
+export function previewBackup(backup: LiftBackup, api: EngineLike, current: Store) {
+  const scratch = new Map<string, string>();
+  for (const [key, value] of Object.entries(backup.keys)) {
+    if (value != null) scratch.set(key, value);
+  }
+  try {
+    api.init({
+      getItem: (key) => scratch.get(key) ?? null,
+      setItem: (key, value) => {
+        scratch.set(key, value);
+      },
+    });
+    return activeCounts(api);
+  } finally {
+    api.init(current);
+  }
+}
