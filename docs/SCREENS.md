@@ -88,7 +88,8 @@ Header: the week's date range as a page title ("NOV 2 – 8") or "SEASON"; a Wee
 Calendar · Weeks · Lifts switch (slides between them).
 - **Calendar** [`40-history-calendar`]: month grid; days filled green (lift), pink (activity) or split; tap a day for its details. Week Breakdown (minutes of lifting vs activities per week).
 - **Weeks** [`41-history-weeks`]: one card per past week; empty state "A new week begins on its own."
-- **Lifts** [`42-history-lifts`]: main lifts with top-set trend sparklines.
+- **Lifts** [`42-history-lifts`]: Recent PRs, then Recent trends (Upper body and Lower body, each with an orange trend mark; the percent shows on tap), then main lifts with top-set trend sparklines.
+- **Palette** (Emma, Nov 17): fairly neutral overall. Purple only for records (PR labels and marks; PR cards sit on the neutral surface). Calendar and Weeks stay orange-forward to match Plan, with green and pink only marking lifts and activities. Recent trends uses orange.
 
 ---
 
