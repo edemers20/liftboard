@@ -37,6 +37,11 @@ Updated Nov 16, 2026, from a search of the code at commit `7cd4ab3`. A code sear
 
 These exist in code but haven't been confirmed working. Go through them with Emma on a real phone, fix what's off, then move on.
 
+**A1b. Emma phone feedback (Nov 17). Built in repo; check on the phone.**
+- **Workouts:** Swap on today's lift card works again (Swap sits outside the iOS zoom link so it doesn't open the workout). Check-in no longer shows "Up next: … didn't fit last week" (order still starts with the missed day). Swipe delete settles with a spring and animates the red fill by transform, not width each frame.
+- **Settings:** Neutral `#2f2a27` dividers; no rule under App and Your data section titles; Primary sports + hint; Training drops the repeating level in the corner and shows onboarding level descriptions under the slider; experience slider matches onboarding (green–peach gradient, white thumb, level colours); Body edit shows disabled "Save changes" until something changes; Sex→Age spacing tightened (Settings and onboarding); less padding under Reset profile / before the medical line.
+- **Onboarding:** Experience step body is "Choose how much structure you want so you never need to think about it."; the demo card under the slider crossfades and resizes when the level changes (Reduce Motion: instant).
+
 **A1. Section 20 fixes.** Run each item's test case on the phone:
 - An unstarted cardio finisher has no check.
 - The rest timer reads Done at zero and stops.
@@ -71,7 +76,7 @@ These exist in code but haven't been confirmed working. Go through them with Emm
 - The sets picker is green.
 - Workouts and Plan → Week update straight away after finishing a workout and after marking a week done.
 - Supersets and lower-body focus don't repeat in the next week's changes.
-- Sports can be picked in Settings → Activities. **Built on `outstanding-a-b`**, matching the web: the activities row turns activities on and off; "Sports in season" lists None plus only the sports, yoga and pilates that are on; tapping the primary sport again unpicks it. No sessions-per-week −/+ rows. Turning an activity off also clears its weekly count. Onboarding offers at most two sports (the main one plus the second from Settings), and a one-time cleanup at launch turns off any third sport with nothing logged this week. Check on the phone.
+- Sports can be picked in Settings → Activities. **Built on `outstanding-a-b`**, matching the web: the activities row turns activities on and off; "Primary sports" lists None plus only the sports, yoga and pilates that are on; tapping the primary sport again unpicks it. No sessions-per-week −/+ rows. Turning an activity off also clears its weekly count. Onboarding offers at most two sports (the main one plus the second from Settings), and a one-time cleanup at launch turns off any third sport with nothing logged this week. Check on the phone.
   - Web: done Nov 16 (count cleared on off, onboarding offers classes plus the second sport, one-time `capSports`).
   - Decided (Emma, Nov 16): a newly turned-on activity starts at 0 sessions a week until she sets it. Turning an activity on in Settings now sets its count to 0 on both native and web, so a count saved before it was turned off never comes back. Onboarding still pre-fills 2 for a sport it offers that isn't on yet; that's the onboarding stepper, where she sets it.
 - **Phantom pickleball (3 a week she didn't choose).** No default of 3 exists (engine default is 0). The count is `wk.pickle`, the one saved place onboarding, Plan and Workouts all read through `cnt()`.

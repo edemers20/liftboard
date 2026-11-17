@@ -909,23 +909,23 @@ function PlannedLift({
 }) {
   const title = openTitle(id);
   const rows = previewRows(id);
-  const showSwap = canSwapDay(id);
+  const swap = canSwapDay(id) ? (
+    <PressableScale
+      kind="button"
+      accessibilityRole="button"
+      accessibilityLabel={`${copy.workouts.swap} ${title}`}
+      onPress={onSwap}
+      style={[styles.swapPill, today ? styles.swapOver : null]}
+    >
+      <Swap size={16} color={theme.text} />
+      <Text style={styles.swapPillText}>{copy.workouts.swap}</Text>
+    </PressableScale>
+  ) : null;
   const body = (
     <>
       <View style={styles.liftTop}>
         <Text style={styles.liftEyebrow}>{today ? copy.workouts.today : copy.workouts.planned}</Text>
-        {showSwap ? (
-          <PressableScale
-            kind="button"
-            accessibilityRole="button"
-            accessibilityLabel={`${copy.workouts.swap} ${title}`}
-            onPress={onSwap}
-            style={styles.swapPill}
-          >
-            <Swap size={16} color={theme.text} />
-            <Text style={styles.swapPillText}>{copy.workouts.swap}</Text>
-          </PressableScale>
-        ) : null}
+        {today ? null : swap}
       </View>
       <Text style={styles.liftTitle}>{title}</Text>
       {rows.map((row) => (
@@ -964,6 +964,8 @@ function PlannedLift({
       <WorkoutLink id={id} style={[styles.liftCard, styles.liftCardPad]}>
         {body}
       </WorkoutLink>
+      {/* Outside the link: on iOS the zoom trigger takes every touch inside it. */}
+      {swap}
     </ShareBox>
   );
 }
@@ -1763,6 +1765,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 6,
   },
+  swapOver: { position: "absolute", top: 14, right: 16 },
   swapPillText: { color: theme.text, fontFamily: theme.fonts.bodySemi, fontSize: 13 },
   liftEyebrow: {
     color: theme.green.accent,

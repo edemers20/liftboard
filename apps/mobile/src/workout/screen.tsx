@@ -726,12 +726,6 @@ export function WorkoutScreen({ id }: { id: string }) {
               {` ${copy.workout.shortenedWhy}`}
             </Text>
           ) : null}
-          {day.id === plan.nextId && engine.wk.upNext === day.id && engine.wk.missedNote ? (
-            <Text style={styles.note}>
-              <Text style={styles.noteStrong}>{copy.workout.upNext}</Text>
-              {`: ${engine.wk.missedNote.why}`}
-            </Text>
-          ) : null}
         </View>
 
         {review?.items?.length ? (

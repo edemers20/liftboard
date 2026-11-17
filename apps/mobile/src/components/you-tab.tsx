@@ -24,8 +24,12 @@ import { theme } from "@/theme";
 import { fromDisplay, toDisplay } from "@/units";
 /** Served by the web app (`public/privacy.html`) on GitHub Pages; App Store Connect links the same page. */
 const PRIVACY_URL = "https://edemers20.github.io/liftboard/privacy.html";
+/** Settings dividers: neutral, the same hairline as History. */
+const RULE = "#2f2a27";
 const SESSION_MINUTES = [30, 45, 60, 75] as const;
 const LEVELS = ["new", "some", "years"] as const;
+/** Same as the onboarding slider: green to peach, and each level's name in its colour when picked. */
+const LEVEL_COLORS = ["#6fd0b4", "#edeae8", "#e9b69b"] as const;
 const SEX = ["Female", "Male", "Other"] as const;
 const MAINS = [...(engine.SPORTS as string[]), "yoga", "pilates"];
 
@@ -496,7 +500,6 @@ export function SettingsScreen({ onReplay, startMetrics = false }: { onReplay: (
   const weightN = engine.num(week.weight, 0);
   const weightText = weightN ? `${kgMode ? toDisplay(weightN) : weightN} ${kgMode ? copy.you.kg : copy.you.lb}` : "";
   const stepsN = engine.num(week.steps, 0);
-  const levelLabel = lookup(copy.levels, levelKey(week)) || "";
 
   return (
     <View style={styles.screen}>
@@ -542,23 +545,23 @@ export function SettingsScreen({ onReplay, startMetrics = false }: { onReplay: (
           <PressableScale
             kind="text"
             accessibilityRole="button"
+            accessibilityState={{ disabled: editing && !changed }}
+            disabled={editing && !changed}
             onPress={() => {
-              if (editing && changed) saveProfile();
-              else if (editing) closeEdit();
+              if (editing) saveProfile();
               else setEditing(true);
             }}
             style={styles.linkButton}
           >
-            <Text style={styles.linkButtonText}>{copy.you.editMetrics}</Text>
+            <Text style={[styles.linkButtonText, editing && !changed && styles.linkButtonOff]}>
+              {editing ? copy.you.saveChanges : copy.you.editMetrics}
+            </Text>
           </PressableScale>
         </View>
 
         <View style={styles.panel}>
           <Text accessibilityRole="header" style={styles.eyebrow}>{copy.you.training}</Text>
-          <View style={styles.valueRow}>
-            <Text style={styles.rowLabel}>{copy.you.experience}</Text>
-            <Text style={styles.rowHint}>{levelLabel}</Text>
-          </View>
+          <Text style={styles.rowLabel}>{copy.you.experience}</Text>
           <ExperienceSlider value={levelKey(week)} onChange={(level) => write("level", level)} />
           <Toggle label={copy.you.supersets} on={(week.ss || "Yes") === "Yes"} onPress={() => write("ss", (week.ss || "Yes") === "Yes" ? "No" : "Yes")} />
           <Toggle label={copy.you.stretchingAfterLifts} on={week.stretch === "Yes"} onPress={() => write("stretch", week.stretch === "Yes" ? "No" : "Yes")} />
@@ -599,10 +602,10 @@ export function SettingsScreen({ onReplay, startMetrics = false }: { onReplay: (
           </View>
           {sports.length ? (
             <>
-              <Text style={styles.sportsLabel}>
-                <Text style={styles.fieldTitle}>{copy.you.sportsInSeason}</Text>
+              <View style={styles.sportsLabel}>
+                <Text style={styles.fieldTitle}>{copy.you.primarySports}</Text>
                 <Text style={styles.rowHint}>{copy.you.sportsHint}</Text>
-              </Text>
+              </View>
               <View style={styles.pills}>
                 <Pill label={copy.you.none} selected={!mainNow} tone="pink" onPress={() => pickSport("")} />
                 {sports.map((id) => (
@@ -625,6 +628,7 @@ export function SettingsScreen({ onReplay, startMetrics = false }: { onReplay: (
             {copy.you.app}
           </Text>
           <TwoWay
+            first
             label={copy.you.units}
             value={kgMode ? "kg" : "lb"}
             options={[
@@ -713,7 +717,7 @@ export function SettingsScreen({ onReplay, startMetrics = false }: { onReplay: (
           <Text accessibilityRole="header" style={styles.eyebrow}>
             {copy.you.yourData}
           </Text>
-          <PressableScale accessibilityRole="button" onPress={() => void exportData()} style={[styles.helpRow, styles.faqDivider, styles.dataRow]}>
+          <PressableScale accessibilityRole="button" onPress={() => void exportData()} style={[styles.helpRow, styles.firstRow]}>
             <View style={styles.helpLine}>
               <Text style={styles.rowLabel}>{copy.you.exportData}</Text>
               <Text style={styles.helpChevron}>›</Text>
@@ -753,10 +757,10 @@ export function SettingsScreen({ onReplay, startMetrics = false }: { onReplay: (
               <Text style={styles.helpChevron}>›</Text>
             </View>
           </PressableScale>
-          <PressableScale accessibilityRole="button" onPress={() => setConfirm("reset")} style={[styles.helpRow, styles.faqDivider]}>
+          <PressableScale accessibilityRole="button" onPress={() => setConfirm("reset")} style={[styles.helpRow, styles.faqDivider, styles.dangerRow]}>
             <Text style={styles.dangerLabel}>{copy.you.resetProfile}</Text>
           </PressableScale>
-          <PressableScale accessibilityRole="button" onPress={() => setConfirm("delete")} style={[styles.helpRow, styles.faqDivider]}>
+          <PressableScale accessibilityRole="button" onPress={() => setConfirm("delete")} style={[styles.helpRow, styles.faqDivider, styles.dangerRow]}>
             <Text style={styles.dangerLabel}>{copy.you.deleteAccount}</Text>
           </PressableScale>
         </View>
@@ -880,20 +884,22 @@ function ExperienceSlider({ value, onChange }: { value: string; onChange: (level
   return (
     <View accessibilityRole="radiogroup" accessibilityLabel={copy.you.experience} style={styles.slider}>
       <View pointerEvents="none" style={styles.track}>
-        {Array.from({ length: 12 }, (_, index) => (
-          <View key={index} style={{ flex: 1, backgroundColor: mix("#6fd0b4", theme.pink.accent, index / 11) }} />
+        {Array.from({ length: 24 }, (_, index) => (
+          <View key={index} style={{ flex: 1, backgroundColor: mix(LEVEL_COLORS[0], LEVEL_COLORS[2], index / 23) }} />
         ))}
       </View>
       <View style={styles.stops}>
-        {LEVELS.map((level) => {
+        {LEVELS.map((level, index) => {
           const selected = level === value;
           const label = lookup(copy.levels, level) ?? level;
+          const detail = copy.onboarding.levels.find((item) => item.id === level)?.detail ?? "";
           return (
             <PressableScale
               key={level}
               accessibilityRole={"radio" as AccessibilityRole}
               accessibilityState={{ selected }}
               accessibilityLabel={label}
+              accessibilityHint={detail}
               onPress={() => {
                 if (level !== value) haptic.selection();
                 onChange(level);
@@ -903,7 +909,8 @@ function ExperienceSlider({ value, onChange }: { value: string; onChange: (level
               <View style={styles.knobHit}>
                 <View style={[styles.knob, selected && styles.knobOn]} />
               </View>
-              <Text style={[styles.stopLabel, selected && styles.stopLabelOn]}>{label}</Text>
+              <Text style={[styles.stopLabel, selected && styles.stopLabelOn, selected && { color: LEVEL_COLORS[index] }]}>{label}</Text>
+              <Text style={styles.stopDetail}>{detail}</Text>
             </PressableScale>
           );
         })}
@@ -934,12 +941,14 @@ function Toggle({ label, on, onPress, bare }: { label: string; on: boolean; onPr
 }
 
 function TwoWay({
+  first,
   label,
   hint,
   value,
   options,
   onChange,
 }: {
+  first?: boolean;
   label: string;
   hint?: string;
   value: string;
@@ -947,7 +956,7 @@ function TwoWay({
   onChange: (value: string) => void;
 }) {
   return (
-    <View style={styles.row}>
+    <View style={[styles.row, first && styles.firstRow]}>
       <View style={styles.rowCopy}>
         <Text style={styles.rowLabel}>{label}</Text>
         {hint ? <Text style={styles.rowHint}>{hint}</Text> : null}
@@ -1001,7 +1010,7 @@ function BodyForm({ form, kgMode, onStage }: { form: Source; kgMode: boolean; on
   return (
       <View style={styles.form}>
         <Text style={styles.fieldTitle}>{copy.you.sex}</Text>
-        <View accessibilityRole="radiogroup" accessibilityLabel={copy.you.sex} style={styles.pills}>
+        <View accessibilityRole="radiogroup" accessibilityLabel={copy.you.sex} style={[styles.pills, styles.sexPills]}>
           {SEX.map((id) => (
             <Pill
               key={id}
@@ -1130,16 +1139,6 @@ const styles = StyleSheet.create({
   metric: { width: "30%", flexGrow: 1, gap: 2 },
   metricLabel: { fontFamily: theme.fonts.body, fontSize: 12, color: theme.muted },
   metricValue: { fontFamily: theme.fonts.mono, fontSize: 18, color: theme.text },
-  valueRow: {
-    minHeight: 48,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-    borderTopWidth: 1,
-    borderTopColor: theme.pink.line,
-    paddingTop: 12,
-  },
   soundRow: {
     minHeight: 48,
     flexDirection: "row",
@@ -1147,7 +1146,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: 12,
     borderTopWidth: 1,
-    borderTopColor: theme.pink.line,
+    borderTopColor: RULE,
     paddingTop: 12,
   },
   actPill: { minHeight: 44, paddingHorizontal: 12, borderRadius: theme.radii.pill, alignItems: "center", justifyContent: "center" },
@@ -1156,6 +1155,10 @@ const styles = StyleSheet.create({
   helpRow: { paddingVertical: 12, gap: 4 },
   /** In a panel the 12pt gap is the space above the divider, so the row adds only the space below it. */
   dataRow: { paddingBottom: 0 },
+  /** The first row under a section title: the title already separates it, so no rule and no space above. */
+  firstRow: { borderTopWidth: 0, paddingTop: 0 },
+  /** Danger rows at the bottom of Your data: no extra air under the label. */
+  dangerRow: { paddingTop: 10, paddingBottom: 0 },
   helpLine: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
   helpChevron: { fontFamily: theme.fonts.body, fontSize: 18, color: theme.muted },
   dangerLabel: { fontFamily: theme.fonts.body, fontSize: 15, color: "#ff8a80" },
@@ -1252,10 +1255,13 @@ const styles = StyleSheet.create({
     color: theme.pink.accent,
     textAlign: "center",
   },
+  linkButtonOff: { color: theme.muted, opacity: 0.6 },
   secondaryText: { fontFamily: theme.fonts.bodySemi, fontSize: 14, color: theme.text, textAlign: "center" },
   note: { fontFamily: theme.fonts.body, fontSize: 13, lineHeight: 18, color: theme.muted },
   notice: { fontFamily: theme.fonts.body, fontSize: 13, lineHeight: 18, color: theme.fuel },
   form: { gap: 0 },
+  /** Same spacing as a field: 4 under its label, 10 before the next row. */
+  sexPills: { marginTop: 4, marginBottom: 10 },
   pills: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   pill: {
     minHeight: 44,
@@ -1273,7 +1279,7 @@ const styles = StyleSheet.create({
   pillTextPink: { color: theme.pink.accent },
   pillTextGreen: { color: theme.green.accent },
   badge: { fontSize: 10, letterSpacing: 0.6, textTransform: "uppercase" },
-  sportsLabel: { lineHeight: 20 },
+  sportsLabel: { gap: 2 },
   fieldTitle: { fontFamily: theme.fonts.bodySemi, fontSize: 14, color: theme.text },
   fieldLabel: {
     fontFamily: theme.fonts.bodySemi,
@@ -1316,9 +1322,20 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: theme.pink.surface,
   },
-  knobOn: { width: 26, height: 26, borderRadius: 13, backgroundColor: theme.pink.accent },
+  knobOn: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: "#fff",
+    shadowColor: "#000",
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
+  },
   stopLabel: { fontFamily: theme.fonts.body, fontSize: 13, textAlign: "center", color: theme.muted },
   stopLabelOn: { fontFamily: theme.fonts.bodySemi, color: theme.text },
+  stopDetail: { marginTop: 2, paddingHorizontal: 4, fontFamily: theme.fonts.body, fontSize: 11, lineHeight: 15, textAlign: "center", color: theme.muted },
   stepper: {
     alignSelf: "flex-start",
     flexDirection: "row",
@@ -1345,7 +1362,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: 12,
     borderTopWidth: 1,
-    borderTopColor: theme.pink.line,
+    borderTopColor: RULE,
     paddingTop: 12,
   },
   rowCopy: { flex: 1 },
@@ -1388,11 +1405,11 @@ const styles = StyleSheet.create({
   testSound: { alignSelf: "flex-start", minHeight: 32, justifyContent: "center" },
   testSoundPressed: { opacity: 0.72, transform: [{ scale: 0.97 }] },
   faqItem: { paddingTop: 9, paddingBottom: 7 },
-  faqDivider: { borderTopWidth: 1, borderTopColor: theme.pink.line },
+  faqDivider: { borderTopWidth: 1, borderTopColor: RULE },
   faqQuestion: { justifyContent: "center" },
   faqQuestionText: { fontFamily: theme.fonts.bodyMedium, fontSize: 14, lineHeight: 20, color: theme.text },
   faqAnswer: { marginTop: 4, fontFamily: theme.fonts.body, fontSize: 13, lineHeight: 18, color: theme.muted },
-  disclaimer: { fontFamily: theme.fonts.body, fontSize: 12, lineHeight: 18, color: theme.muted, marginTop: 4 },
+  disclaimer: { fontFamily: theme.fonts.body, fontSize: 12, lineHeight: 18, color: theme.muted },
   foot: { flexDirection: "row", gap: 8 },
   footButton: { flex: 1 },
   saveBar: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12, backgroundColor: theme.pink.background },

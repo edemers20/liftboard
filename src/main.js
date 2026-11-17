@@ -748,11 +748,11 @@ function profileHTML(withGoal,src,part){
   const G=h=>`<div class="pgroup">${h}</div>`;
   if(part==="bio") return `<div class="pgroups">${G(`${seg("sex","Sex",["Female","Male","Other"],src.sex)}<div class="nums">${F("name","Name","text","optional")}${F("age","Age")}${F("height","Height (in)","decimal")}${F("weight","Weight (lb)","decimal")}${F("bf","Body fat %","decimal","optional")}${F("steps","Steps / day")}${F("oura","Daily burn","numeric","optional")}</div>`)}</div>`;
   if(part==="acts") return `<div class="seg">${ACT_IDS.map(a=>`<button type="button" class="actt" data-actt="${a}" aria-pressed="${en(a)}">${ACT[a].name}</button>`).join("")}</div>
-  ${sports.length?`<div class="q"><span>Sports in season<small>: up to two. Tap a picked sport again to make it primary.</small></span><div class="seg sportseg">${[["","None"],...sports.map(a=>[a,ACT[a].name])].map(([a,l])=>{ const p=a&&src.mainSport===a, q=a&&src.sport2===a, on=a?p||q:!src.mainSport;
+  ${sports.length?`<div class="q"><span>Primary sports<small class="qsub">Can have up to two. Tap a sport again to make it primary.</small></span><div class="seg sportseg">${[["","None"],...sports.map(a=>[a,ACT[a].name])].map(([a,l])=>{ const p=a&&src.mainSport===a, q=a&&src.sport2===a, on=a?p||q:!src.mainSport;
     return `<button type="button" data-sp="${a}" aria-pressed="${!!on}">${l}${p&&src.sport2?`<small class="prim">primary</small>`:""}</button>`; }).join("")}</div></div>`:""}`;
   return `<div class="pgroups">${G(`${hdr("Activities",["acts","mainSport",...(hs?["season"]:[])])}
   <div class="seg">${ACT_IDS.map(a=>`<button type="button" class="actt" data-actt="${a}" aria-pressed="${en(a)}">${ACT[a].name}</button>`).join("")}</div>`)}
-  ${sports.length?G(`<div class="q"><span>Sports in season<small>: up to two. Tap a picked sport again to make it primary.</small></span><div class="seg sportseg">${[["","None"],...sports.map(a=>[a,ACT[a].name])].map(([a,l])=>{ const p=a&&src.mainSport===a, q=a&&src.sport2===a, on=a?p||q:!src.mainSport;
+  ${sports.length?G(`<div class="q"><span>Primary sports<small class="qsub">Can have up to two. Tap a sport again to make it primary.</small></span><div class="seg sportseg">${[["","None"],...sports.map(a=>[a,ACT[a].name])].map(([a,l])=>{ const p=a&&src.mainSport===a, q=a&&src.sport2===a, on=a?p||q:!src.mainSport;
     return `<button type="button" data-sp="${a}" aria-pressed="${!!on}">${l}${p&&src.sport2?`<small class="prim">primary</small>`:""}</button>`; }).join("")}</div></div>
   ${withGoal&&hs?toggle("season","In-season",src.season,"In-season","Off-season"):""}`):""}
   ${en("lift")?G(`${hdr("Lifting",withGoal?["focus","days"]:["focus"])}${withGoal?stepper("days","Lifting days",(src.season==="In-season"&&hs?[0,1,2,3]:[0,1,2,3,4,5,6,7]),"",src.days):""}${String(src.days)==="0"?"":seg("focus","Focus",[["Lower","Lower body"],["Balanced","Balanced"],["Upper","Upper body"]],src.focus)}`):""}
@@ -1047,7 +1047,6 @@ function renderDayHTML(d,P){
   html+=`<div class="panel today"><div class="q"><span id="todayLbl">How do you feel today?${ib("today")}</span>
     <div class="seg slider" data-key="today" role="radiogroup" aria-labelledby="todayLbl">${["Good","Normal","Rough"].map(o=>`<button type="button" role="radio" data-v="${o}" aria-checked="${D.today===o}" aria-pressed="${D.today===o}"><i aria-hidden="true"></i><span>${o==="Good"?"Thriving":o}</span></button>`).join("")}</div></div>
     ${D.restSuggest?`<p class="flag">Reps dropped two sessions in a row. Rest a day first if you can.</p>`:D.autoRough?`<p class="adj"><b>Shortened</b> (reps dropped last session)</p>`:""}
-    ${d.id===P.nextId&&wk.upNext===d.id&&wk.missedNote?`<p class="adj"><b>Up next:</b> ${esc(wk.missedNote.why)}</p>`:""}
     </div>`;
   const rv=D.done&&(wk.review||{})[d.id];
   if(rv&&rv.items.length) html+=`<div class="panel"><h3>Next time</h3><div class="rev">${rv.items.map(r=>`<p>${nextLine(r)}</p>`).join("")}</div>${rv.note?`<p class="adj">${esc(rv.note)}</p>`:""}</div>`;
@@ -1986,7 +1985,7 @@ function renderOnb(focus){
   else if(s===2){ const v=o.lvl;
     /* the demo card: everything is rendered once; changing level toggles parts in place so they animate */
     h=`<div class="onb lvlp" data-v="${v}"><div class="otop"><span class="plab">For any level</span>${skip}</div><h2 class="oh big" tabindex="-1">As much help as you want</h2>
-    <p class="olead">Same workout for different experience levels.</p>
+    <p class="olead">Choose how much structure you want so you never need to think about it.</p>
     <div class="lvwrap"><input class="olvl" type="range" min="0" max="2" step="0.01" value="${v}" aria-label="Experience level" aria-valuetext="${LV_NAME[v]}">
     <div class="olvls">${LV_NAME.map((n,k)=>`<button type="button" data-lvl="${k}" aria-pressed="${k===v}">${n}</button>`).join("")}</div></div>
     <section class="odemo" aria-live="polite">

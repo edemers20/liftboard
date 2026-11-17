@@ -5,7 +5,16 @@ import { PressableScale } from "@/components/pressable-scale";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Animated, BackHandler, Easing, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Reanimated, { useAnimatedStyle, useSharedValue, withDelay, withTiming } from "react-native-reanimated";
+import Reanimated, {
+  Easing as REasing,
+  FadeIn,
+  FadeOut,
+  LinearTransition,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withTiming,
+} from "react-native-reanimated";
 
 import { BottomToast } from "@/components/motion";
 import { ageDial, bodyFatDial, DialValue, heightDial, stepsDial, weightDial, type DialSpec } from "@/components/number-dial";
@@ -405,6 +414,11 @@ function LevelSlider({
   );
 }
 
+/** Level changes morph instead of cutting: the card resizes, rows fade in and out, changed values fade in. */
+const DEMO_MOVE = LinearTransition.duration(280).easing(REasing.out(REasing.cubic));
+const DEMO_IN = FadeIn.duration(220).delay(60);
+const DEMO_OUT = FadeOut.duration(140);
+
 function LevelDemo({
   level,
   onChange,
@@ -415,6 +429,10 @@ function LevelDemo({
   onTouch: () => void;
 }) {
   const o = copy.onboarding;
+  const reduce = useReduceMotion();
+  const move = reduce ? undefined : DEMO_MOVE;
+  const enter = reduce ? undefined : DEMO_IN;
+  const leave = reduce ? undefined : DEMO_OUT;
   const showTip = level === 0;
   const showWhy = level === 0;
   const showSwap = level === 2;
@@ -422,28 +440,38 @@ function LevelDemo({
   return (
     <View>
       <LevelSlider value={level} onChange={onChange} onTouch={onTouch} />
-      <View accessibilityLiveRegion="polite" style={styles.demo}>
-        <View style={styles.demoTop}>
+      <Reanimated.View accessibilityLiveRegion="polite" layout={move} style={styles.demo}>
+        <Reanimated.View layout={move} style={styles.demoTop}>
           <Text style={styles.demoEye}>{o.dayOneLower}</Text>
-          <Text style={styles.demoMode}>{LEVEL_MODES[level]}</Text>
-        </View>
+          <Reanimated.Text key={`mode${level}`} entering={enter} style={styles.demoMode}>
+            {LEVEL_MODES[level]}
+          </Reanimated.Text>
+        </Reanimated.View>
         {showTip ? (
-          <View style={styles.tip}>
+          <Reanimated.View entering={enter} exiting={leave} layout={move} style={styles.tip}>
             <Info size={16} color="#6fd0b4" />
             <Text style={styles.tipText}>{o.startLight}</Text>
-          </View>
+          </Reanimated.View>
         ) : null}
-        <View style={styles.demoRow}>
+        <Reanimated.View layout={move} style={styles.demoRow}>
           <Text style={styles.demoName}>{o.hipThrust}</Text>
-          <Text style={styles.demoSets}>{o.setHip[level]}</Text>
-        </View>
-        {showWhy ? <Text style={styles.why}>{o.whyHip}</Text> : null}
-        <View style={[styles.demoRow, styles.demoRule]}>
+          <Reanimated.Text key={o.setHip[level]} entering={enter} style={styles.demoSets}>
+            {o.setHip[level]}
+          </Reanimated.Text>
+        </Reanimated.View>
+        {showWhy ? (
+          <Reanimated.Text entering={enter} exiting={leave} layout={move} style={styles.why}>
+            {o.whyHip}
+          </Reanimated.Text>
+        ) : null}
+        <Reanimated.View layout={move} style={[styles.demoRow, styles.demoRule]}>
           <Text style={styles.demoName}>{o.romanian}</Text>
-          <Text style={styles.demoSets}>{o.setHinge[level]}</Text>
-        </View>
+          <Reanimated.Text key={o.setHinge[level]} entering={enter} style={styles.demoSets}>
+            {o.setHinge[level]}
+          </Reanimated.Text>
+        </Reanimated.View>
         {showSwap ? (
-          <View style={styles.swap}>
+          <Reanimated.View entering={enter} exiting={leave} layout={move} style={styles.swap}>
             <Text style={styles.swapLabel}>{o.swapFreely}</Text>
             <View style={styles.swapChips}>
               {[o.bStance, o.sumo, o.addExercise].map((label) => (
@@ -452,22 +480,22 @@ function LevelDemo({
                 </Text>
               ))}
             </View>
-          </View>
+          </Reanimated.View>
         ) : null}
         {showRest ? (
-          <View style={styles.restBox}>
+          <Reanimated.View entering={enter} exiting={leave} layout={move} style={styles.restBox}>
             <Text style={styles.restText}>{o.restTimer}</Text>
-          </View>
+          </Reanimated.View>
         ) : null}
-      </View>
-      <View style={styles.bullets}>
+      </Reanimated.View>
+      <Reanimated.View layout={move} style={styles.bullets}>
         {o.demoBullets[level].map((line) => (
-          <View key={line} style={styles.bulletRow}>
+          <Reanimated.View key={line} entering={enter} exiting={leave} layout={move} style={styles.bulletRow}>
             <View style={[styles.bullet, { backgroundColor: BULLET_COLORS[level] }]} />
             <Text style={styles.bulletText}>{line}</Text>
-          </View>
+          </Reanimated.View>
         ))}
-      </View>
+      </Reanimated.View>
     </View>
   );
 }
@@ -684,7 +712,7 @@ function AboutFields({
   const o = copy.onboarding;
   const kg = usesKg();
   return (
-    <View style={styles.stack}>
+    <View style={styles.bioStack}>
       <SexPills sex={draft.sex} onPress={onSex} />
       <View style={styles.fields}>
         <DialField label={o.age} value={draft.age} spec={ageDial} onChange={(value) => onBio("age", value)} />
@@ -887,7 +915,7 @@ export function OnboardingScreen() {
       : draft.step === 1
         ? copy.onboarding.share
         : draft.step === 2
-          ? copy.onboarding.sameWorkout
+          ? copy.onboarding.structureBody
           : question?.body ?? "";
 
   return (
@@ -1191,6 +1219,8 @@ const styles = StyleSheet.create({
   bullet: { width: 7, height: 7, borderRadius: 4, marginTop: 6 },
   bulletText: { color: theme.text, fontFamily: theme.fonts.body, fontSize: 14, lineHeight: 20, flex: 1 },
   stack: { gap: 12 },
+  /** The fields pad 4 each, so 4 here puts the sex pills 8 above Age, the same as between field rows. */
+  bioStack: { gap: 4 },
   grid: { flexDirection: "row", flexWrap: "wrap", marginHorizontal: -3 },
   gridCell: { width: "33.33%", padding: 3 },
   pill: {

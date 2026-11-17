@@ -57,7 +57,7 @@ select{font-weight:600;font-size:16px;appearance:none;background-image:linear-gr
 .panel ul{margin:0;padding-left:18px;display:grid;gap:6px;font-size:14px}
 .q{display:grid;gap:6px}
 .q > span{font-weight:600;font-size:14px}
-.q small{color:var(--muted);font-size:12px;font-weight:400}
+.q small{color:var(--muted);font-size:12px;font-weight:400} .q small.qsub{display:block;margin-top:2px}
 .seg{display:flex;flex-wrap:wrap;gap:6px}
 .seg button{font:inherit;font-size:14px;border:1px solid transparent;background:var(--bg);color:var(--fg);border-radius:8px;padding:6px 11px;cursor:pointer}
 .seg button[aria-pressed="true"]{background:var(--accent-fill);border-color:transparent;color:var(--on-accent);font-weight:600}

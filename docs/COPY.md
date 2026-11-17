@@ -143,7 +143,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Rest +15s | main.js:1505 |
 |  | For any level | main.js:1514 |
 |  | As much help as you want | main.js:1514 |
-|  | Same workout for different experience levels. | main.js:1514 |
+|  | Choose how much structure you want so you never need to think about it. | main.js:1514. Onboarding, experience step body (Emma, Nov 17). |
 |  | Start light. The app finds your working weight over the first two weeks. | main.js:1514 |
 |  | Why: hip thrusts build glutes with less strain on your back than squats. | main.js:1514 |
 |  | Romanian Deadlift | main.js:1514 |
@@ -303,7 +303,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Reps dropped two sessions in a row. Rest a day first if you can. | main.js:783 |
 |  | Shortened | main.js:783 |
 |  | (reps dropped last session) | main.js:783 |
-|  | Up next | main.js:784 |
+|  | Up next | main.js:784. Removed from the check-in (Emma, Nov 17). |
 |  | {…} lb ({…}) | main.js:787 |
 |  | Next time | main.js:787 |
 |  | Optional | main.js:794 |
@@ -605,8 +605,8 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Sun | main.js:476 |
 |  | Next-morning check | main.js:477 |
 |  | Off | main.js:477 |
-|  | Sports in season | main.js:546 |
-|  | : up to two. Tap a picked sport again to make it primary. | main.js:546 |
+|  | Primary sports | main.js:546. Settings, Activities (Emma, Nov 17). |
+|  | Can have up to two. Tap a sport again to make it primary. | main.js:546. Under Primary sports, on its own line. |
 |  | Lifting | main.js:549 |
 |  | Bio Data | main.js:551 |
 |  | Female | main.js:552 |
@@ -991,7 +991,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Push your top set on main lifts | engine.js:696 |
 |  | Today: {…} | engine.js:697 |
 |  | Today: {…} (no change to the plan) | engine.js:697 |
-| Reason | {…} didn't fit last week | engine.js:777 |
+| Reason | {…} didn't fit last week | engine.js:777. Not shown in the check-in (Emma, Nov 17); the order still starts with the missed day. |
 | Note | start with {…}, then continue in order | engine.js:777 |
 |  | New week started. Check-in reset to normal. | engine.js:792 |
 
