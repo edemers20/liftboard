@@ -1,6 +1,6 @@
 import "./styles.css";
 import { attachDials } from "./dial.js";
-import { LDEF, ldays, onActs, noteAct, plannedActs, trimActivityDays, addWeekly, askedWeekly, markAskedWeekly, setActivityDay, fitActivityDays, capSports, timeByKind, hoursMoved, mostPlayed, seasonFrom, changeItems, watchItems, keepWeight, rowDone, countsInDay, wTitle, e1rm, prsBetween, weekComplete, weekStreak, countWeek, EFF_MULT, OWN_EFF, weekActuals, swapOptions, swapDay, isBW, yogaMet, pilMet, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk } from "./engine.js";
+import { strengthTrend, LDEF, ldays, onActs, noteAct, plannedActs, trimActivityDays, addWeekly, askedWeekly, markAskedWeekly, setActivityDay, fitActivityDays, capSports, timeByKind, hoursMoved, mostPlayed, seasonFrom, changeItems, watchItems, keepWeight, rowDone, countsInDay, wTitle, e1rm, prsBetween, weekComplete, weekStreak, countWeek, EFF_MULT, OWN_EFF, weekActuals, swapOptions, swapDay, isBW, yogaMet, pilMet, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk } from "./engine.js";
 
 const storage=(()=>{ try{ const k="__t"; localStorage.setItem(k,"1"); localStorage.removeItem(k); return localStorage; }catch(e){ const m=new Map(); return {getItem:k=>m.get(k)??null,setItem:(k,v)=>m.set(k,String(v))}; } })();
 init(storage);
@@ -856,7 +856,15 @@ function calHTML(){
     ${S.length?"":`<p class="note">Sessions show up here when you finish a lift day or enter minutes for an activity.</p>`}
   </div>`;
 }
-let openLift=null;
+let openLift=null, openTrend=null;
+/* Upper and lower strength trend (C2). TODO copy: the card's words wait on Emma. */
+const pctTxt=v=>{ const n=Math.round(v*1000)/10; return `${n>0?"+":n<0?"−":""}${Math.abs(n).toFixed(1)}%`; };
+function strengthHTML(){
+  const T=strengthTrend(weekStartOf), rows=[["upper","Upper body"],["lower","Lower body"]].filter(([h])=>T[h]);
+  if(!rows.length) return "";
+  return `<div class="panel strsec"><h3>Strength trend</h3>${rows.map(([h,name])=>{ const x=T[h], open=openTrend===h, lab=x.label==="up"?"Up":x.label==="down"?"Down":"Holding";
+    return `<button type="button" class="strrow" data-trend="${h}" aria-expanded="${open}"><span class="strl"><b>${name}</b><em class="${x.good?"good":x.label==="down"?"down":""}">${lab}</em></span>${open?`<small class="mono">${pctTxt(x.pct)} since your first sessions</small>${x.rel!=null?`<small class="mono">${pctTxt(x.rel)} relative to your bodyweight</small>`:""}`:""}</button>`; }).join("")}</div>`;
+}
 /* weekly top sets for one exercise, oldest first, with PR marks by the same rule as the engine */
 function liftWeeks(n){ const h=(exHist[n]||[]).filter(x=>x&&x.t).sort((a,b)=>a.t-b.t), by=new Map();
   h.forEach(x=>{ const k=weekStartOf(x.t).getTime(), c=by.get(k); if(!c||num(x.w,0)>num(c.w,0)||(num(x.w,0)===num(c.w,0)&&num(x.r,0)>num(c.r,0))) by.set(k,x); });
@@ -871,6 +879,7 @@ function liftsHTML(){
   const prs=prsBetween(now-28*864e5,now+864e5).slice(0,8), U=KG()?"kg":"lb";
   INFO.liftsTip=`<b>1RM</b> is an estimate of the most you could lift once, worked out from your top set (weight × (1 + reps ÷ 30)). It's for tracking trends; you never need to test it.<br><br><span class="tipdb">${DUMBBELL}</span> Your top set: the heaviest set you did that week.<br>Shown for the last 8 weeks.`;
   return `${prs.length?`<div class="panel prsec"><h3>Recent PRs</h3><div class="prcards">${prs.map(x=>`<div class="prc"><span class="prk">${esc(x.kind==="Heaviest top set"?"Top set":"Reps")}</span><span class="prn">${esc(x.n)}</span><b>${fmtSet(x.n,x.w,x.r)}</b><small>${new Date(x.t).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</small></div>`).join("")}</div></div>`:""}
+  ${strengthHTML()}
   <div class="panel"><h3 class="lhead">Main lifts${ib("liftsTip")}</h3>
    ${names.length?names.map(n=>{ const rows=liftWeeks(n), last=rows[rows.length-1], back=rows.filter(x=>x.k>=now-56*864e5)[0]||rows[0], dw=last.w-back.w, open=openLift===n;
      return `<div class="lrow${open?" open":""}"><button type="button" class="lbtn" data-lx="${esc(n)}" aria-expanded="${open}"><span class="lcopy"><span class="ln2">${esc(n)}</span>
@@ -1646,6 +1655,7 @@ function bind(){
   v.querySelectorAll("[data-wo]").forEach(b=>b.onclick=()=>{ const t=+b.dataset.wo; openWeek=openWeek===t?null:t; render(); });
   v.querySelectorAll("[data-wc]").forEach(b=>b.onclick=()=>{ const t=+b.dataset.wc, w=(wk.weeks||[]).find(x=>x.start===t); countWeek(t,!(w&&w.counted)); render(); });
   v.querySelectorAll("[data-lx]").forEach(b=>b.onclick=()=>{ const n=b.dataset.lx; openLift=openLift===n?null:n; render(); });
+  v.querySelectorAll("[data-trend]").forEach(b=>b.onclick=()=>{ const h=b.dataset.trend; openTrend=openTrend===h?null:h; render(); });
   v.querySelectorAll("[data-hv]").forEach(b=>b.onclick=()=>{ const to=b.dataset.hv, O=["cal","weeks","lifts"]; if(to===histView) return;
     swapView(O.indexOf(to)>O.indexOf(histView)?"subfwd":"subback",()=>{ histView=to; try{localStorage.setItem(KEY+".hv",histView)}catch(e){}; render(); }); });
   v.querySelectorAll("[data-cal]").forEach(b=>b.onclick=()=>{ calOff=Math.min(0,calOff+ +b.dataset.cal); calSel=null; render(); });

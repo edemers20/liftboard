@@ -1115,6 +1115,9 @@ html[data-vt^="day"] .wpager{view-transition-name:lbcards}
 .prc b{font:500 20px var(--mono)} .prc small{font-size:12px;color:var(--muted)}
 h3.lhead{display:flex;align-items:center;gap:4px;justify-content:flex-start}
 .lrow{border-top:1px solid var(--line)} .lrow:first-of-type{border-top:0}
+.strrow{all:unset;box-sizing:border-box;width:100%;cursor:pointer;display:flex;flex-direction:column;gap:4px;padding:10px 0;border-top:1px solid var(--line)} .strsec h3 + .strrow{border-top:0}
+.strl{display:flex;justify-content:space-between;align-items:center;gap:12px} .strl b{font-size:16px;font-weight:600} .strl em{font-style:normal;font-weight:600}
+.strl em.good{color:#6fd0b4} .strl em.down{color:#fea06a} .strrow small{color:var(--muted);font-size:13px}
 .lbtn{width:100%;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer;padding:12px 0;display:grid;grid-template-columns:minmax(0,1fr) 96px;gap:12px;align-items:center}
 .lcopy{display:flex;flex-direction:column;gap:4px;min-width:0}
 .ln2{font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

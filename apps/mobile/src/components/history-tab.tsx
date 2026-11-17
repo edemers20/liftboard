@@ -13,7 +13,7 @@ import { GlassTrack } from "@/components/glass-track";
 import { LiveWorkoutBar } from "@/components/live-workout";
 import { StepButton } from "@/components/step-button";
 import { InfoTip } from "@/components/tip-popover";
-import { copy } from "@/copy";
+import { copy, fill as fillCopy } from "@/copy";
 import type { HistoryDay, HistoryLift, HistoryPr, HistorySession, HistorySnapshot, HistoryWeek, MuscleBar, SessionExercise } from "@/history-data";
 import { haptic } from "@/haptic";
 import { Info, TabWorkouts } from "@/icons";
@@ -781,6 +781,7 @@ function LiftsPage({ data, hide, active, topPad }: { data: HistorySnapshot; hide
           </ScrollView>
         </View>
       ) : null}
+      {data.strength.upper || data.strength.lower ? <StrengthCard strength={data.strength} /> : null}
       {data.lifts.length ? (
         <View style={styles.liftHead}>
           <Text accessibilityRole="header" style={styles.sectionTitle}>
@@ -823,6 +824,56 @@ function LiftsPage({ data, hide, active, topPad }: { data: HistorySnapshot; hide
       <TabBarSpacer />
     </Reanimated.ScrollView>
     </TabScrollMarker>
+  );
+}
+
+function percent(value: number) {
+  const n = Math.round(value * 1000) / 10;
+  return `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n).toFixed(1)}%`;
+}
+
+/** Upper and lower strength trend. The label shows; a tap shows the percent and, with weigh-ins, the bodyweight comparison. */
+function StrengthCard({ strength }: { strength: HistorySnapshot["strength"] }) {
+  const [shown, setShown] = useState<"upper" | "lower" | null>(null);
+  const rows = (["upper", "lower"] as const).filter((half) => strength[half]);
+  return (
+    <View style={styles.prBlock}>
+      <Text accessibilityRole="header" style={styles.sectionTitle}>
+        {copy.history.strengthTrend}
+      </Text>
+      <View style={styles.card}>
+        {rows.map((half, index) => {
+          const row = strength[half]!;
+          const name = half === "upper" ? copy.history.trendUpper : copy.history.trendLower;
+          const label = row.label === "up" ? copy.history.trendUp : row.label === "down" ? copy.history.trendDown : copy.history.trendHolding;
+          const color = row.good ? theme.green.accent : row.label === "down" ? theme.fuel : theme.text;
+          const open = shown === half;
+          const since = fillCopy(copy.history.trendSince, percent(row.pct));
+          const versus = row.rel == null ? null : fillCopy(copy.history.trendBodyweight, percent(row.rel));
+          return (
+            <PressableScale
+              key={half}
+              accessibilityRole="button"
+              accessibilityState={{ expanded: open }}
+              accessibilityLabel={`${name}, ${label}${open ? `. ${since}${versus ? `. ${versus}` : ""}` : ""}`}
+              onPress={() => setShown((current) => (current === half ? null : half))}
+              style={[styles.strengthRow, index > 0 ? styles.strengthDivider : null]}
+            >
+              <View style={styles.strengthLine}>
+                <Text style={styles.liftName}>{name}</Text>
+                <Text style={[styles.strengthLabel, { color }]}>{label}</Text>
+              </View>
+              {open ? (
+                <>
+                  <Text style={styles.strengthDetail}>{since}</Text>
+                  {versus ? <Text style={styles.strengthDetail}>{versus}</Text> : null}
+                </>
+              ) : null}
+            </PressableScale>
+          );
+        })}
+      </View>
+    </View>
   );
 }
 
@@ -1165,6 +1216,11 @@ const styles = StyleSheet.create({
   },
   countText: { fontFamily: theme.fonts.bodySemi, fontSize: 13, color: theme.text },
   prBlock: { gap: 8 },
+  strengthRow: { paddingHorizontal: 16, paddingVertical: 14, gap: 4 },
+  strengthDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: HAIRLINE },
+  strengthLine: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
+  strengthLabel: { fontFamily: theme.fonts.bodySemi, fontSize: 15 },
+  strengthDetail: { fontFamily: theme.fonts.mono, fontSize: 13, color: theme.muted },
   sectionTitle: { fontFamily: theme.fonts.bodySemi, fontSize: 15, color: theme.text },
   prBleed: { marginHorizontal: -16 },
   prScroll: { paddingHorizontal: 16, gap: PR_GAP },

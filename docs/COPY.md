@@ -1082,6 +1082,11 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | 1RM is an estimate of the most you could lift once, worked out from your top set (weight × (1 + reps ÷ 30)). It's for tracking trends; you never need to test it. | History, Lifts. The word 1RM is bold. |
 |  | Your top set: the heaviest set you did that week. | History, Lifts |
 |  | Shown for the last 8 weeks. | History, Lifts |
+| Section title | Strength trend **TODO copy** | History, Lifts. C2 card, between Recent PRs and Main lifts. |
+| Row | Upper body / Lower body | History, Lifts. Strength trend rows (existing words). |
+| Label | Up / Holding / Down **TODO copy** | History, Lifts. Strength trend; from OUTSTANDING C2. Green for Up, and for Holding on a cut. |
+| On tap | {…} since your first sessions **TODO copy** | History, Lifts. Strength trend, e.g. "+4.2%". |
+| On tap | {…} relative to your bodyweight **TODO copy** | History, Lifts. Strength trend, only with a weigh-in near the start. |
 |  | in 8 wk | History, Lifts |
 |  | Week of | History, Lifts |
 |  | 1RM | History, Lifts |

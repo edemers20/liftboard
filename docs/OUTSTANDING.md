@@ -142,7 +142,7 @@ These exist in code but haven't been confirmed working. Go through them with Emm
 
 ## C. Emma's decisions (recorded, not built yet)
 
-Emma decided these on Nov 16, 2026. C1, C4 and C5 are built (Nov 16); C2 is waiting on a check against her real logs; C3 is on hold.
+Emma decided these on Nov 16, 2026. C1, C4 and C5 are built (Nov 16); C2 is built (Nov 17); C3 is on hold.
 
 **C1. Sheet styles. Decided:** glass sheets for every pop-up except the weekly report, the Day done card and the share card, which stay solid. **Built Nov 16 (`79ca24a`), check on the phone.** The native form sheets (swap, leg-day offer, weight suggestion, activity details) already use the system glass sheet. The custom pop-up cards are now Liquid Glass tinted with their own colour (`components/glass-sheet.tsx`): the workout confirmations (reset, finish first, delete sets), the exercise-done sheet, the exercise picker (green), the number dial (green or its context), Settings' reset/delete/restore confirm, the activity delete confirms (pink) and Plan's confirm dialog (orange). Day done keeps its solid card. Older iOS and Reduce Transparency stay solid. Tips and the first-run tab tips are popovers, not sheets, and stay solid. Web: n/a.
 - Glass sheets keep their existing colour palette: swap, weights and the exercise picker are green; activities are pink; the number dial follows its context.
@@ -153,7 +153,7 @@ Earlier proposal, for reference:
 - Solid full screen for Day done.
 - Solid cards inside every sheet, and a solid share card.
 
-**C2. Upper and lower strength trend on History → Lifts. Decided:**
+**C2. Upper and lower strength trend on History → Lifts. Decided:** **Emma OK'd the formula Nov 17; built Nov 17, native and web.** `strengthTrend()` in `packages/engine` (web: `src/engine.js`, passed the web's `weekStartOf`), tests in `packages/engine/tests/engine.test.js` and `tests/strength-trend.test.js`. A "Strength trend" card between Recent PRs and Main lifts with Upper body and Lower body rows; the label shows (Up, Holding, Down; green for Up and for Holding on a cut, orange for Down) and a tap shows the percent since the baseline and, with a weigh-in near the start, the change relative to bodyweight (`(1 + change) × bodyweight then ÷ bodyweight now − 1`). Halves come from the exercise groups (glutes, hamstrings, quads and legs are lower; push, pull, shoulders and arms are upper; core and carries are left out, and so is bodyweight work). Sets per week come from the saved session summaries (1 when a session has none, as in older web logs). "Smoothed over 3 weeks" is the mean of the last 3 weeks that have data. The card's words are **TODO copy**.
 - The percent shows on tap.
 - It also compares against the user's bodyweight when they've entered it.
 - Core and carries are omitted.

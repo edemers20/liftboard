@@ -1239,3 +1239,62 @@ describe("deleting a set in this workout (st.drop)", () => {
     expect(E.plan().days[id].slots[i].sets).toBe(before);
   });
 });
+
+describe("upper and lower strength trend (C2)", () => {
+  const DAY = 864e5;
+  const wed = (() => { const d = new Date(2026, 8, 1, 12); while (d.getDay() !== 3) d.setDate(d.getDate() + 1); return d.getTime(); })();
+  const at = i => wed + i * 7 * DAY;
+  const tops = (rows) => rows.map(([i, w, r = 6]) => ({ t: at(i), w, r }));
+  const seed = (hist, week = {}) => E.init(mem({
+    "liftboard.week.v2": JSON.stringify({ setupDone: true, mig1: 1, mig2: 1, mig3: 1, mig4: 1, mig5: 1, mig6: 1, wkStart: "Mon", mode: "Maintain", ...week }),
+    "liftboard.hist.v1": JSON.stringify(hist),
+  }));
+  const flat = (name, weeks, w) => tops(Array.from({ length: weeks }, (_, i) => [i, w]));
+
+  it("shows nothing before a half has 3 weeks of data", () => {
+    seed({ "Bench Press": tops([[0, 100], [0, 100], [1, 100]]) });
+    expect(E.strengthTrend()).toEqual({ upper: null, lower: null });
+  });
+  it("is Up past +2% of each exercise's first-3-session baseline, smoothed over 3 weeks", () => {
+    seed({ "Bench Press": tops([[0, 100], [1, 100], [2, 100], [3, 110], [4, 110], [5, 110]]) });
+    const { upper, lower } = E.strengthTrend();
+    expect(lower).toBe(null);
+    expect(upper.label).toBe("up");
+    expect(upper.pct).toBeCloseTo(0.1, 5);
+    expect(upper.weeks).toBe(6);
+    expect(upper.rel).toBe(null);
+  });
+  it("only says Down after two smoothed weeks in a row below the band", () => {
+    const hist = { "Back Squat (Barbell)": tops([[0, 100], [1, 100], [2, 100], [3, 95], [4, 95]]) };
+    seed(hist);
+    expect(E.strengthTrend().lower.label).toBe("holding");
+    hist["Back Squat (Barbell)"].push(...tops([[5, 95]]));
+    seed(hist);
+    expect(E.strengthTrend().lower.label).toBe("down");
+    expect(E.strengthTrend().lower.good).toBe(false);
+  });
+  it("takes the best session in a week and weights exercises by that week's sets", () => {
+    const sessions = [{ t: at(3), k: "lift", ex: [{ n: "Back Squat (Barbell)", sets: 5, w: 110, r: 6 }, { n: "Hip Thrust (Barbell)", sets: 1, w: 90, r: 6 }] }];
+    seed({
+      "Back Squat (Barbell)": tops([[0, 100], [1, 100], [2, 100], [3, 90], [3, 110]]),
+      "Hip Thrust (Barbell)": tops([[0, 100], [1, 100], [2, 100], [3, 90]]),
+    }, { sessions });
+    const lower = E.strengthTrend().lower;
+    expect(lower.pct).toBeCloseTo((0 + 0 + (0.1 * 5 - 0.1 * 1) / 6) / 3, 5);
+  });
+  it("leaves out core, carries and bodyweight work", () => {
+    seed({ "Plank": flat("Plank", 4, 20), "Farmer Carry": flat("Farmer Carry", 4, 50), "Pull-Up": flat("Pull-Up", 4, 0) });
+    expect(E.strengthTrend()).toEqual({ upper: null, lower: null });
+  });
+  it("Holding counts as good on a cut", () => {
+    seed({ "Bench Press": flat("Bench Press", 4, 100) }, { mode: "Deficit only" });
+    expect(E.strengthTrend().upper).toMatchObject({ label: "holding", good: true });
+    seed({ "Bench Press": flat("Bench Press", 4, 100) });
+    expect(E.strengthTrend().upper).toMatchObject({ label: "holding", good: false });
+  });
+  it("compares against bodyweight when a weigh-in near the start exists", () => {
+    const weeks = [{ start: at(0) - 2 * DAY, w: 160 }, { start: at(4) - 2 * DAY, w: 152 }];
+    seed({ "Bench Press": tops([[0, 100], [1, 100], [2, 100], [3, 110], [4, 110], [5, 110]]) }, { weeks, weight: 150 });
+    expect(E.strengthTrend().upper.rel).toBeCloseTo(1.1 * 160 / 150 - 1, 5);
+  });
+});

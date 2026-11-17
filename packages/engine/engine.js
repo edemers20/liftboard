@@ -1247,6 +1247,40 @@ function liftTrends(){
     return {name, rows, lastT:last?last.t:0};
   }).filter(row=>row.rows.length).sort((a,b)=>b.lastT-a.lastT||a.name.localeCompare(b.name));
 }
+/* Upper and lower strength trend (Emma, Nov 16; History → Lifts). Each exercise's best estimated 1RM per week as a
+   share of its own first-3-session baseline, averaged per half weighted by that week's sets, smoothed over 3 weeks.
+   Core, carries and bodyweight work are left out. Nothing until a half has 3 weeks of data. */
+const TREND_HALF=(()=>{ const m={}; XGROUPS.forEach(([,keys],gi)=>keys.forEach(k=>{ m[k]=gi<2?"lower":gi<5?"upper":null; })); return m; })();
+const TREND_BAND=0.02;
+function strengthTrend(){
+  const setsBy=new Map();
+  (wk.sessions||[]).forEach(s=>{ if(!s||!s.t||!Array.isArray(s.ex)) return; const ws=weekStartOf(s.t).getTime();
+    s.ex.forEach(e=>{ if(e&&e.n&&!e.cardio){ const k=e.n+"|"+ws; setsBy.set(k,(setsBy.get(k)||0)+num(e.sets,0)); } }); });
+  const halves={upper:new Map(),lower:new Map()};
+  Object.keys(exHist).forEach(n=>{
+    if(isBW(n)) return; const half=TREND_HALF[catOf(n)]; if(!half) return;
+    const h=(exHist[n]||[]).filter(x=>x&&x.t&&num(x.w,0)>0&&num(x.r,0)>0).slice().sort((a,b)=>a.t-b.t);
+    if(h.length<3) return;
+    const est=x=>num(x.w,0)*(1+num(x.r,0)/30), base=h.slice(0,3).reduce((a,x)=>a+est(x),0)/3;
+    const best=new Map(); h.forEach(x=>{ const ws=weekStartOf(x.t).getTime(), e=est(x); if(!best.has(ws)||e>best.get(ws)) best.set(ws,e); });
+    best.forEach((e,ws)=>{ const sets=setsBy.get(n+"|"+ws)||1, cur=halves[half].get(ws)||{sum:0,w:0};
+      cur.sum+=(e/base-1)*sets; cur.w+=sets; halves[half].set(ws,cur); });
+  });
+  const bwWeeks=(wk.weeks||[]).filter(w=>w&&w.start&&num(w.w,0)>0), bwNow=num(wk.weight,0);
+  const out={};
+  ["upper","lower"].forEach(half=>{
+    const weeks=[...halves[half].entries()].sort((a,b)=>a[0]-b[0]).map(([start,v])=>({start,v:v.sum/v.w}));
+    if(weeks.length<3){ out[half]=null; return; }
+    const smooth=weeks.map((_,i)=>i<2?null:(weeks[i].v+weeks[i-1].v+weeks[i-2].v)/3);
+    const pct=smooth[smooth.length-1], prev=smooth.length>=4?smooth[smooth.length-2]:null;
+    const label=pct>TREND_BAND?"up":pct<-TREND_BAND&&prev!=null&&prev<-TREND_BAND?"down":"holding";
+    let rel=null;
+    if(bwWeeks.length&&bwNow>0){ const first=weeks[0].start, near=bwWeeks.reduce((a,w)=>Math.abs(w.start-first)<Math.abs(a.start-first)?w:a);
+      rel=(1+pct)*num(near.w,0)/bwNow-1; }
+    out[half]={label,pct,rel,weeks:weeks.length,good:label==="up"||(label==="holding"&&cutting())};
+  });
+  return out;
+}
 /** PRs, newest first. Bodyweight work is included; it still has no 1RM. */
 function recentPrs(){
   const out=[];
@@ -1422,4 +1456,4 @@ function dayComplete(dayId){
   return d.slots.every((_,i)=>!countsInDay(dayId,i,P)||rowDone(dayId,i,P));
 }
 
-export { onActs, noteAct, orderActs, suggestedAct, trimActivityDays, addWeekly, askedWeekly, markAskedWeekly, sessN, plannedActs, setActivityDay, fitActivityDays, timeByKind, hoursMoved, mostPlayed, seasonFrom, changeItems, watchItems, keepWeight, rowDone, countsInDay, swapWeek, wTitle, sessionKcal, liftKcal, refreshLiftK, LIFT_MET, weekActuals, swapOptions, swapDay, earlyDone, planOff, finishWeek, undoFinish, hasFinishSnap, rateLb, isBW, yogaMet, pilMet, YOGA_EFF, PIL_EFF, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, MUSCLES, slotMuscles, musclePriority, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk, weekModel, dayBoard, moveLiftToToday, dayKey, weekStartOf, weekRuleAt, setWeekStart, restPlan, beginRest, adjustRest, clearRest, restView, startingGuess, startWeight, showsSide, sideDefault, lastSide, offerNudge, dayComplete, e1rm, weekTops, liftTrends, recentPrs, weekCompleted, weekStreak, countWeek, weekActivities, weekReport, pendingWeekReport, dismissWeekReport };
+export { onActs, noteAct, orderActs, suggestedAct, trimActivityDays, addWeekly, askedWeekly, markAskedWeekly, sessN, plannedActs, setActivityDay, fitActivityDays, timeByKind, hoursMoved, mostPlayed, seasonFrom, changeItems, watchItems, keepWeight, rowDone, countsInDay, swapWeek, wTitle, sessionKcal, liftKcal, refreshLiftK, LIFT_MET, weekActuals, swapOptions, swapDay, earlyDone, planOff, finishWeek, undoFinish, hasFinishSnap, rateLb, isBW, yogaMet, pilMet, YOGA_EFF, PIL_EFF, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, MUSCLES, slotMuscles, musclePriority, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk, weekModel, dayBoard, moveLiftToToday, dayKey, weekStartOf, weekRuleAt, setWeekStart, restPlan, beginRest, adjustRest, clearRest, restView, startingGuess, startWeight, showsSide, sideDefault, lastSide, offerNudge, dayComplete, e1rm, weekTops, liftTrends, recentPrs, weekCompleted, weekStreak, countWeek, weekActivities, weekReport, pendingWeekReport, dismissWeekReport , strengthTrend };

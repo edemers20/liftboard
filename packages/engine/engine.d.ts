@@ -160,3 +160,14 @@ export function finishWeek(now?: number): { lifts: number; planned: number; card
 export function undoFinish(): boolean;
 export function hasFinishSnap(): boolean;
 export const yogaMet: any;
+export type StrengthHalf = {
+  label: "up" | "holding" | "down";
+  /** Smoothed change from the baseline, 0.05 = +5%. */
+  pct: number;
+  /** The same change per pound of bodyweight, when a weigh-in near the start exists. */
+  rel: number | null;
+  weeks: number;
+  /** Up, or Holding on a cut: shown in green. */
+  good: boolean;
+};
+export function strengthTrend(): { upper: StrengthHalf | null; lower: StrengthHalf | null };
