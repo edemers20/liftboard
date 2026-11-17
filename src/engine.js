@@ -179,6 +179,12 @@ const enabled=a=>!!(wk.acts||{})[a];
 /** Pace is stored as % of body weight a week (ratePct); lb/week follows current weight. Old saves keep wk.rate in lb. */
 const rateLb=()=>{ const p=String(wk.ratePct??"").trim(); return p!==""&&!isNaN(+p)?Math.round(+p/100*num(wk.weight,150)*100)/100:num(wk.rate,0.5); };
 const cnt=a=>enabled(a)?(parseInt(wk[a])||0):0;
+/* Sessions this week: the saved count, or more when more were logged (also after the activity is turned off).
+   Logging never changes the saved count. */
+const filledN=a=>{ let u=0; (wk[actKey(a)]||[]).forEach((v,i)=>{ if(String(v??"").trim()!=="") u=i+1; }); return u; };
+const sessN=a=>Math.max(cnt(a),filledN(a));
+/* A slot's minutes. A planned session not logged yet counts as planned; past the plan only logged sessions count. */
+const slotMin=(a,i,pl)=>{ const v=(wk[actKey(a)]||[])[i]; return i<cnt(a)?num(v,pl):num(v,0); };
 const hasSport=()=>!!wk.mainSport&&enabled(wk.mainSport);
 /* up to two sports drive the season: the primary (mainSport) and an optional second */
 const seasonSports=()=>[wk.mainSport,wk.sport2].filter((a,i,arr)=>a&&enabled(a)&&arr.indexOf(a)===i);
@@ -298,10 +304,13 @@ function withAlt(ids){ const alt=wk.alt||{}, used=new Set(ids);
 function swapOptions(curId){ const ids=withAlt(split()), base=split()[ids.indexOf(curId)], fam=famOf(base||curId); if(!fam) return [];
   return fam.filter(x=>x===curId||!ids.includes(x)).map(x=>ALL.find(t=>t.id===x)); }
 function swapDay(curId,newId){ const sp=split(), ids=withAlt(sp), k=ids.indexOf(curId); if(k<0||curId===newId) return false;
+  const todayLift=dayBoard(0).plannedId;
   const base=sp[k], alt={...(wk.alt||{})}; if(newId===base) delete alt[base]; else alt[base]=newId; wk.alt=alt;
   if(wk.upNext===curId) wk.upNext=newId;
   if(wk.pinToday&&wk.pinToday.id===curId) wk.pinToday={...wk.pinToday,id:newId};
-  syncDays(); save(); return true; }
+  syncDays();
+  if(todayLift===curId) wk.pinToday={d:dayKey(),id:newId};
+  save(); return true; }
 function syncDays(){ DAYS=withAlt(split()).map((id,i)=>{ const t=ALL.find(x=>x.id===id); return {...t,slots:[...t.slots,...(((wk.extra||{})[id])||[]).map(extraSlot)],tab:`Day ${i+1}`}; }); buildDefaults(); }
 /* ---------- Muscles: what each slot trains, and how much each muscle matters to this person ----------
    Direct work counts 1 set, helper work ½ (a row is back work that also trains biceps and rear delts). */
@@ -356,16 +365,16 @@ function balanceWeek(P,MP,inS,deload){
     Object.keys(L).filter(m=>L[m].target>0&&L[m].missed>0&&proj(m)<L[m].target).sort((a,b)=>L[b].p-L[a].p).forEach(m=>{
       items.filter(it=>!it.dayDone&&it.prim===m&&it.A.skip&&it.A.skip.startsWith("Trimmed")).forEach(it=>{
         if(proj(m)>=L[m].target) return;
-        it.A.skip=""; it.A.why.push(`back in · ${MUSCLES[m].toLowerCase()} behind this week`); it.A.catchUp=1;
+        it.A.skip=""; it.A.why.push(`back in: ${MUSCLES[m].toLowerCase()} behind this week`); it.A.catchUp=1;
         Object.entries(it.mus).forEach(([mm,w])=>{ L[mm].left+=w*Math.max(0,it.A.sets-it.did); });
         changes.push([m,`${it.d.tab}: ${it.s.label.toLowerCase()} back in`]); });
       if(proj(m)<L[m].target){ const it=items.find(x=>!x.dayDone&&x.prim===m&&!x.A.skip&&!x.s.main&&!x.s.extra&&x.did<(x.A.sets||0));
-        if(it){ it.A.sets++; it.A.delta++; it.A.why.push(`+1 · ${MUSCLES[m].toLowerCase()} behind this week`); L[m].left+=1; changes.push([m,`${it.d.tab}: +1 set`]); } }
+        if(it){ it.A.sets++; it.A.delta++; it.A.why.push(`+1: ${MUSCLES[m].toLowerCase()} behind this week`); L[m].left+=1; changes.push([m,`${it.d.tab}: +1 set`]); } }
     });
     /* covered: a low-priority isolation repeat on a later day becomes optional once enough is done or booked */
     items.filter(it=>!it.dayDone&&!it.A.skip&&!it.s.main&&!it.s.extra&&it.did===0&&Object.keys(it.mus).length===1).forEach(it=>{
       const m=it.prim, x=L[m]; if(x.p>2||x.done<=0||!x.target) return;
-      if(proj(m)-(it.A.sets||0)>=x.target*1.25){ it.A.skip=`Covered · ${MUSCLES[m].toLowerCase()} on track this week`; x.left-=it.A.sets||0; changes.push([m,`${it.d.tab}: ${it.s.label.toLowerCase()} optional`]); } });
+      if(proj(m)-(it.A.sets||0)>=x.target*1.25){ it.A.skip=`Covered: ${MUSCLES[m].toLowerCase()} on track this week`; x.left-=it.A.sets||0; changes.push([m,`${it.d.tab}: ${it.s.label.toLowerCase()} optional`]); } });
   }
   P.ledger=Object.entries(L).filter(([m,x])=>x.target>0||x.done>0).map(([m,x])=>({m,name:MUSCLES[m],done:x.done,left:x.left,target:x.target,p:x.p,
     status:x.done>=x.target?"done":(x.missed>0&&proj(m)<x.target)?"behind":"on track"})).sort((a,b)=>b.p-a.p||a.name.localeCompare(b.name));
@@ -393,7 +402,7 @@ function musclePriority(){
   if(wk.focus==="Lower"){ LOWER_M.forEach(m=>bump(m,m==="calves"?1:2,"lower body focus")); }
   if(wk.focus==="Upper"){ UPPER_M.forEach(m=>bump(m,m==="biceps"||m==="triceps"?1:2,"upper body focus")); }
   if(wk.mode==="Build"){ (wk.focus==="Upper"?UPPER_M:wk.focus==="Lower"?LOWER_M:[]).forEach(m=>bump(m,1)); }
-  const active=SPORTS.filter(a=>enabled(a)&&(cnt(a)>0||seasonSports().includes(a)));
+  const active=SPORTS.filter(a=>(enabled(a)||sessN(a)>0)&&(sessN(a)>0||seasonSports().includes(a)));
   active.forEach(a=>{ const A=ACT[a], nm=A.name.toLowerCase();
     if(A.sh){ bump("rdelts",2,nm); bump("cuff",2,nm); bump("core",1,nm); }
     if(A.leg>=1){ bump("adductors",1,nm); bump("calves",1,nm); }
@@ -412,13 +421,13 @@ function plan(){ buildDefaults(); const cut=cutting();
   const recomp=wk.mode==="Recomp", build=wk.mode==="Build", maintain=wk.mode==="Maintain", focus=wk.focus;
   /* sport load */
   let legMin=0, shMin=0, sportTot=0; const sportOn=[];
-  SPORTS.forEach(a=>{ if(ACT[a].noMin) return; const n=cnt(a); let m=0; for(let i=0;i<n;i++) m+=num((wk[actKey(a)]||[])[i],plannedMin(a));
+  SPORTS.forEach(a=>{ if(ACT[a].noMin) return; const n=sessN(a); let m=0; for(let i=0;i<n;i++) m+=slotMin(a,i,plannedMin(a));
     if(m){ sportOn.push([a,m]); sportTot+=m; legMin+=m*ACT[a].leg; shMin+=m*(ACT[a].sh||0); } });
   const sportWhy=sportOn.length===1?`${sportOn[0][1]} min ${ACT[sportOn[0][0]].name.toLowerCase()}`:`${sportTot} min of sport`;
-  const cl=cnt("climb"), sp=cnt("spin"), yg=cnt("yoga");
+  const cl=sessN("climb"), sp=sessN("spin"), yg=sessN("yoga");
   const hardSpin=sp>=2||(sp>=1&&wk.spint==="Really hard");
   /* how many sessions of anything this week: lift days + every activity + the ramp session */
-  const actN=ACT_IDS.filter(a=>a!=="lift"&&enabled(a)).map(a=>[a,cnt(a)]).filter(x=>x[1]>0);
+  const actN=ACT_IDS.filter(a=>a!=="lift").map(a=>[a,sessN(a)]).filter(x=>x[1]>0);
   const sessions=DAYS.length+actN.reduce((t,x)=>t+x[1],0)+((hasSport()&&!inSeason()&&wk.ramp==="Yes")?1:0);
   P.sessions=sessions;
   /* recovery load */
@@ -465,33 +474,33 @@ function plan(){ buildDefaults(); const cut=cutting();
       const base=s.sets+(d.full&&!inS&&!s.cardio&&!s.support?1:0);
       if(s.support&&!(inS&&seasonSports().some(a=>s.sp.includes(a)))){A.skip="hidden"; D.slots.push(A); return;}
       if(!s.cardio){
-        if(deload){ A.sets=Math.max(1,Math.ceil(base*0.6)); A.why.push(`${A.sets} sets · deload week`); D.slots.push(A); return; }
+        if(deload){ A.sets=Math.max(1,Math.ceil(base*0.6)); A.why.push(`${A.sets} sets: deload week`); D.slots.push(A); return; }
         if(wk.time==30&&!s.main&&i!==keep30){A.skip="Trimmed for a 30-min session";}
         if(wk.time==45&&trimSet.has(i)){A.skip="Trimmed for a 45-min session";}
-        if(wk.ss==="No"&&wk.time<=60&&trimSet.has(i)&&hasSS&&!A.skip){A.skip="Trimmed · no supersets";}
-        if(focus==="Lower"&&s.lower&&!s.main){A.delta++;A.why.push("+1 · lower body focus");}
-        if(focus==="Lower"&&s.upperAcc&&base>2){A.delta--;A.why.push("−1 · lower body focus");}
-        if(focus==="Upper"&&s.upperAcc){A.delta++;A.why.push("+1 · upper body focus");}
-        if(focus==="Upper"&&s.lower&&!s.main&&base>2){A.delta--;A.why.push("−1 · upper body focus");}
-        if(shortD){ if(!s.main&&trimSet.has(i)) A.skip="Skipped · "+dayCause; A.delta--; A.why.push("−1 · "+dayCause); }
+        if(wk.ss==="No"&&wk.time<=60&&trimSet.has(i)&&hasSS&&!A.skip){A.skip="Trimmed: no supersets";}
+        if(focus==="Lower"&&s.lower&&!s.main){A.delta++;A.why.push("+1: lower body focus");}
+        if(focus==="Lower"&&s.upperAcc&&base>2){A.delta--;A.why.push("−1: lower body focus");}
+        if(focus==="Upper"&&s.upperAcc){A.delta++;A.why.push("+1: upper body focus");}
+        if(focus==="Upper"&&s.lower&&!s.main&&base>2){A.delta--;A.why.push("−1: upper body focus");}
+        if(shortD){ if(!s.main&&trimSet.has(i)) A.skip="Skipped: "+dayCause; A.delta--; A.why.push("−1: "+dayCause); }
         else if(cutD&&s.main){
           const loc=dayCause==="recovery load"?wk.sore:"Everything";
           const hit=loc==="Legs"?!s.upperMain:loc==="Upper body"?!!s.upperMain:true;
-          if(hit){A.delta--;A.why.push("−1 · "+dayCause);}
+          if(hit){A.delta--;A.why.push("−1: "+dayCause);}
         }
-        if(DAYS.indexOf(d)>=5){A.delta--;A.why.push(`−1 · ${DAYS.length===6?"day 6":"days 6–7"} of ${DAYS.length}`);}
-        if(wk.time==75&&s.main){A.delta++;A.why.push("+1 · 75-min session");}
-        if(build&&s.main){A.delta++;A.why.push("+1 · build");}
-        if(legMin>=120&&s.uni){A.delta--;A.why.push("−1 · "+sportWhy);}
-        if(legMin>=180&&s.quad){A.delta--;A.why.push("−1 · "+sportWhy);}
-        if(shMin>=120&&s.label==="Rear delts"){A.delta++;A.why.push("+1 · "+sportWhy);}
-        if(shMin>=120&&s.label==="Side delts"&&base>=3){A.delta--;A.why.push("−1 · "+sportWhy);}
-        if(hardSpin&&s.quad){A.delta--;A.why.push("−1 · hard spin");}
-        if(cl>=1&&s.vpull&&!climbCut){climbCut=true;A.delta--;A.why.push(`−1 · ${cl}× climbing`);}
-        if(cl>=1&&s.arms){A.skip=`Skipped · ${cl}× climbing`;}
-        if(cl>=2&&s.lats){A.skip=`Skipped · ${cl}× climbing`;}
-        if(today==="Good"&&s.main&&!cutD){A.why.push("push your top set · feeling good");}
-        if(cut&&!s.main&&!done[d.id]){ const lx=missedLast(exName(d,s,i)); if(lx&&lx.r<range(s.reps)[0]&&base>1){A.delta--;A.why.push("−1 · missed reps last time on a cut");} }
+        if(DAYS.indexOf(d)>=5){A.delta--;A.why.push(`−1: ${DAYS.length===6?"day 6":"days 6–7"} of ${DAYS.length}`);}
+        if(wk.time==75&&s.main){A.delta++;A.why.push("+1: 75-min session");}
+        if(build&&s.main){A.delta++;A.why.push("+1: build");}
+        if(legMin>=120&&s.uni){A.delta--;A.why.push("−1: "+sportWhy);}
+        if(legMin>=180&&s.quad){A.delta--;A.why.push("−1: "+sportWhy);}
+        if(shMin>=120&&s.label==="Rear delts"){A.delta++;A.why.push("+1: "+sportWhy);}
+        if(shMin>=120&&s.label==="Side delts"&&base>=3){A.delta--;A.why.push("−1: "+sportWhy);}
+        if(hardSpin&&s.quad){A.delta--;A.why.push("−1: hard spin");}
+        if(cl>=1&&s.vpull&&!climbCut){climbCut=true;A.delta--;A.why.push(`−1: ${cl}× climbing`);}
+        if(cl>=1&&s.arms){A.skip=`Skipped: ${cl}× climbing`;}
+        if(cl>=2&&s.lats){A.skip=`Skipped: ${cl}× climbing`;}
+        if(today==="Good"&&s.main&&!cutD){A.why.push("push your top set: feeling good");}
+        if(cut&&!s.main&&!done[d.id]){ const lx=missedLast(exName(d,s,i)); if(lx&&lx.r<range(s.reps)[0]&&base>1){A.delta--;A.why.push("−1: missed reps last time on a cut");} }
         A.sets=Math.max(s.main?2:1,base+A.delta);
       }else{
         if(wk.time==30) A.skip="Trimmed for a 30-min session";
@@ -508,10 +517,10 @@ function plan(){ buildDefaults(); const cut=cutting();
   holdLogged(P);
   balanceWeek(P,MP,inS,deload);
   holdLogged(P);
-  let lockNew=false;
   /* A workout in progress keeps the set counts it started with. Logging sets mid-session updates the weekly
      ledger, which used to add or drop a catch-up set (5 sets became 4 after the 4th, and the exercise ended early).
-     Switching how the day feels (Rough) retakes that snapshot so what is still ahead can shorten. */
+     Switching how the day feels (Rough) retakes that snapshot so what is still ahead can shorten.
+     plan() is read during render, so it never saves; whoever starts the day or changes the feel saves the snapshot. */
   DAYS.forEach(d=>{ const D=P.days[d.id]; if(!D||done[d.id]) return;
     const started=((wk.wt||{})[d.id]||{}).start||d.slots.some((s,i)=>loggedCount(d.id,i,!!s.cardio)>0);
     if(!started) return;
@@ -521,22 +530,24 @@ function plan(){ buildDefaults(); const cut=cutting();
     if(!L||feelChanged){
       wk.lockSets={...(wk.lockSets||{}),[d.id]:D.slots.map(A=>A&&A.sets!=null?A.sets:null)};
       wk.lockFeel={...(wk.lockFeel||{}),[d.id]:feel};
-      lockNew=true;
       return;
     }
     D.slots.forEach((A,i)=>{ if(A&&L[i]!=null&&A.sets!=null&&!d.slots[i].cardio) A.sets=Math.max(L[i], loggedCount(d.id,i,false)); }); });
-  if(lockNew) save();
+  /* Sets deleted in this workout (st.drop) come off this day only, never below the sets already ticked. */
+  DAYS.forEach(d=>{ const D=P.days[d.id]; if(!D) return;
+    D.slots.forEach((A,i)=>{ const n=num(get(d.id,i).drop,0); if(A&&n>0&&A.sets!=null&&!d.slots[i].cardio) A.sets=Math.max(0,A.sets-n,loggedCount(d.id,i,false)); }); });
   /* Cardio */
   /* "Lose fat, keep strength" allows up to 0.7% of body weight a week, the top of the muscle-friendly range */
   const wLb=num(wk.weight,150), recompCap=Math.round(wLb*0.007*100)/100;
   const rateEff=(build||maintain)?0:recomp?Math.min(rateLb(),recompCap):rateLb(), shareEff=recomp?Math.min(num(wk.share,25),25):num(wk.share,25);
   const target=rateEff*3500, cardioTarget=(build||maintain)?0:target*shareEff/100;
-  const sess=(n,act,pl,rate)=>{let k=0;for(let i=0;i<n;i++)k+=num((act||[])[i],pl)*rate;return k;};
+  const sess=(a,pl,rate)=>{let k=0;for(let i=0;i<sessN(a);i++)k+=slotMin(a,i,pl)*rate;return k;};
   let sportK=0; sportOn.forEach(([a,m])=>{ sportK+=m*perMin(ACT[a].met); });
-  const climbK=cl*75*perMin(ACT.climb.met);
-  const pilK=sess(cnt("pilates"),wk[actKey("pilates")],plannedMin("pilates"),perMin(pilMet()));
-  const yogaK=sess(yg,wk.yAct,num(wk.ymin,60),perMin(yogaMet()));
-  const spinK=sess(sp,wk.sAct,SPIN_MIN,perMin(SPIN_MET[wk.spint]||8.5));
+  let climbN=0; for(let i=0;i<cl;i++) if(i<cnt("climb")||slotMin("climb",i,0)>0) climbN++;
+  const climbK=climbN*75*perMin(ACT.climb.met);
+  const pilK=sess("pilates",plannedMin("pilates"),perMin(pilMet()));
+  const yogaK=sess("yoga",num(wk.ymin,60),perMin(yogaMet()));
+  const spinK=sess("spin",SPIN_MIN,perMin(SPIN_MET[wk.spint]||8.5));
   const zoneK=ramp?num((wk.zAct||[])[0],45)*perMin(CARDIO["Bike (steady)"].met):0;
   let doneK=0; const cand=[];
   DAYS.forEach(d=>{ d.slots.forEach((s,i)=>{ const A=P.days[d.id].slots[i]; if(!s.cardio) return;
@@ -557,7 +568,7 @@ function plan(){ buildDefaults(); const cut=cutting();
   const finK=fins.reduce((a,f)=>a+f.kcal,0);
   const overs=[];
   DAYS.forEach(d=>{ const pl=(wk.donePlan||{})[d.id]; const got=P.days[d.id].done; if(done[d.id]&&pl!=null&&got-pl>Math.max(50,pl*0.25)) overs.push(`${d.tab} cardio +${r5(got-pl)} kcal`); });
-  if(overs.length&&!build&&!maintain) cand.forEach(f=>{ f.flag=(f.skip?"Dropped":`Cut to ${f.min} min`)+" · "+overs.join(", "); f.overWhy=overs.join(", "); });
+  if(overs.length&&!build&&!maintain) cand.forEach(f=>{ f.flag=(f.skip?"Dropped":`Cut to ${f.min} min`)+": "+overs.join(", "); f.overWhy=overs.join(", "); });
   const cardioTotal=otherK+doneK+finK;
   const food=(target-cardioTotal)/7;
   /* Maintenance */
@@ -624,11 +635,11 @@ function plan(){ buildDefaults(); const cut=cutting();
   DAYS.forEach(d=>{ d.slots.forEach((s,i)=>{ const A=P.days[d.id].slots[i];
     if(A.skip==="hidden") return;
     const daily=c=>c==="rough day"||c==="reps dropped last session"||c==="feeling good";
-    if(A.skip&&A.skip.startsWith("Skipped · ")){ const c=A.skip.slice(10); if(!daily(c)) add(causeOf(c),"some accessories skipped"); }
-    if(A.skip&&A.skip.startsWith("Covered · ")) add("Muscle balance",`${d.tab} ${s.label.toLowerCase()} optional (${A.skip.slice(10).replace(" on track this week","")} covered)`);
-    if(A.skip==="Trimmed · no supersets") add("No supersets","optional accessories cut to fit");
+    if(A.skip&&A.skip.startsWith("Skipped: ")){ const c=A.skip.slice(9); if(!daily(c)) add(causeOf(c),"some accessories skipped"); }
+    if(A.skip&&A.skip.startsWith("Covered: ")) add("Muscle balance",`${d.tab} ${s.label.toLowerCase()} optional (${A.skip.slice(9).replace(" on track this week","")} covered)`);
+    if(A.skip==="Trimmed: no supersets") add("No supersets","optional accessories cut to fit");
     else if(A.skip&&A.skip.startsWith("Trimmed")) add(wk.time+"-min sessions",wk.time==30?"main lifts + 1 accessory, no finisher":"optional accessories cut");
-    if(!A.skip) A.why.forEach(w=>{const [e,c]=w.split(" · "); if(!c||daily(c)) return;
+    if(!A.skip) A.why.forEach(w=>{const [e,c]=w.split(": "); if(!c||daily(c)) return;
       if(/^[+−]\d$/.test(e)) add(causeOf(c),`${cat(s)} ${e[0]}1 set`); else if(c==="deload week") add(c,"about 60% of sets"); else add(c,e); });
     if(A.steady&&!A.skip&&!daily(A.steady)) add(causeOf(A.steady),"finishers at easy pace");
     if(A.overWhy) add(A.overWhy,A.skip?"finishers dropped":"finishers shortened"); }); });
@@ -685,7 +696,7 @@ function suggest(d,s,i,useLog,P){
     /* on a cut, missing the range is expected fatigue: keep the load; only ease 5% after three misses in a row */
     const seq=h.slice(); if(now) seq.push(now); let miss=0;
     for(let k=seq.length-1;k>=0&&seq[k].w===last.w&&seq[k].r<lo;k--) miss++;
-    if(miss>=3) return {w:roundW(n,last.w*0.95),r:lo,why:"3 misses · ease 5%"};
+    if(miss>=3) return {w:roundW(n,last.w*0.95),r:lo,why:"3 misses: ease 5%"};
     return {w:last.w,r:lo,why:"hold"};
   }
   if(prev&&prev.w===last.w&&prev.r<lo) return {w:roundW(n,last.w*0.9),r:lo,why:"rebuild"};
@@ -704,7 +715,7 @@ function review(d,s,i,P){
   if(canUp&&last.r>=top+3){ w=last.w+2*incFor(n,s,last.w); r=lo; why="too light, bigger jump"; }
   else if(log.length>=2&&first.w===last.w&&first.r-last.r>=4){ w=last.w; why="reps fell off across sets; rest longer, same weight"; tag="collapse"; }
   else if(last.r<lo&&base.why.startsWith("hold")){ why="hold"; }
-  if(log.length<(A.sets||0)) why+=` · ${log.length}/${A.sets} sets`;
+  if(log.length<(A.sets||0)) why+=` (${log.length}/${A.sets} sets)`;
   tag=tag||(w>last.w?"up":w<last.w?"down":"hold");
   return {n,w,r,why,tag};
 }
@@ -714,7 +725,7 @@ function fx(P){
   Object.entries(P.G).forEach(([c,l])=>{ o["r:"+c.replace(/ \d+ \(.*\)$/,"").replace(/^\d+ min /,"")]=`${c[0].toUpperCase()+c.slice(1)} → ${l.join(", ")}`; });
   o.intake=r5(P.math.intake); o.tdee=r5(P.math.tdee); o.target=r5(P.math.target);
   o.fin=P.math.nLift?(P.math.nFin?`Finishers now ${P.math.m} min × ${P.math.nFin}`:"No finishers needed"):"";
-  o.days=DAYS.length?`Days now: ${DAYS.map(d=>d.title.split(" (")[0]).join(" · ")}`:"No lifting days";
+  o.days=DAYS.length?`Days now: ${DAYS.map(d=>d.title.split(" (")[0]).join(", ")}`:"No lifting days";
   return o;
 }
 function diffFx(a,b){
@@ -745,7 +756,7 @@ function dayDiff(Pa,Pb,id){
   if(B.cutD&&!A.cutD) out.push("Same weights as last time");
   if(!B.cutD&&A.cutD) out.push("Weights can go up again");
   if(B.today==="Good"&&A.today!=="Good") out.push("Push your top set on main lifts");
-  return out.length?[`Today: ${B.today}`,...out]:[`Today: ${B.today} · no change to the plan`];
+  return out.length?[`Today: ${B.today}`,...out]:[`Today: ${B.today} (no change to the plan)`];
 }
 const UNI_RE=/single|bulgarian|split squat|lunge|step-up|copenhagen|side plank|suitcase|cossack|single-arm|one-arm|side-lying|kneeling single/i;
 const sideDefault=n=>{ const h=(exHist[n]||[]).slice().reverse().find(x=>x.side); return h&&h.side==="Left"?"Right":"Left"; };
@@ -938,7 +949,7 @@ function countWeek(start,on){ wk.weeks=(wk.weeks||[]).map(w=>w.start===start?{..
 function newWeek(start){
   const P=plan(), done=wk.done||{};
   const missed=DAYS.filter(d=>!done[d.id]);
-  let sm=0; SPORTS.forEach(a=>{ if(ACT[a].noMin) return; for(let i=0;i<cnt(a);i++) sm+=num((wk[actKey(a)]||[])[i],plannedMin(a)); });
+  let sm=0; SPORTS.forEach(a=>{ if(ACT[a].noMin) return; for(let i=0;i<sessN(a);i++) sm+=slotMin(a,i,plannedMin(a)); });
   const w=num(wk.wAvg,0)||null;
   wk.weeks=(wk.weeks||[]).concat([{start:wk.weekStart||Date.now(),season:inSeason()?"In-season":"Off-season",focus:wk.focus,mode:wk.mode,ramp:hasSport()&&!inSeason()&&wk.ramp==="Yes",deload:wk.deload==="Yes",
     lifts:DAYS.length-missed.length,planned:DAYS.length,fast:!!P.math.fast,sport:sm,cardio:r5(P.math.cardioTotal),w,intake:r5(P.math.intake),raw:r5(P.math.raw),
@@ -961,7 +972,7 @@ function newWeek(start){
   refreshLiftK();
   ACT_IDS.forEach(a=>{ if(a!=="lift") reset[actKey(a)]=[]; });
   Object.assign(wk,reset);
-  ALL.forEach(d=>d.slots.forEach((s,i)=>{ const st=slots[d.id]&&slots[d.id][i]; if(!st) return; if(s.cardio) delete st.act; if(done[d.id]){ st.log=[]; delete st.cdone; } }));
+  ALL.forEach(d=>d.slots.forEach((s,i)=>{ const st=slots[d.id]&&slots[d.id][i]; if(!st) return; if(s.cardio) delete st.act; if(done[d.id]){ st.log=[]; delete st.cdone; delete st.drop; } }));
   /* exercises you added belong to that week */
   Object.keys(wk.extra||{}).forEach(id=>{ const b=tplLen(id), st=slots[id]; if(st) Object.keys(st).forEach(i=>{ if(+i>=b) delete st[i]; }); });
   wk.extra={}; syncDays();
@@ -970,7 +981,105 @@ function newWeek(start){
   save(); return ["New week started. Check-in reset to normal."];
 }
 
-export { timeByKind, hoursMoved, mostPlayed, seasonFrom, changeItems, watchItems, keepWeight, rowDone, countsInDay, wTitle, e1rm, prsBetween, weekComplete, weekStreak, countWeek, EFF_MULT, OWN_EFF, sessionKcal, liftKcal, refreshLiftK, LIFT_MET, weekActuals, swapOptions, swapDay, rateLb, isBW, yogaMet, pilMet, YOGA_EFF, PIL_EFF, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, MUSCLES, slotMuscles, musclePriority, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk };
+/* ---------- Usual lift days and activity days (Monday = 0) ---------- */
+const LDEF={0:[],1:[0],2:[0,3],3:[0,2,4],4:[0,2,4,6],5:[0,1,3,4,6],6:[0,1,2,3,4,5],7:[0,1,2,3,4,5,6]};
+function ldays(){ const n=DAYS.length, L0=Array.isArray(wk.ldays)?wk.ldays:null; return L0&&L0.length===n?L0.slice().sort((a,b)=>a-b):(LDEF[n]||[]).slice(); }
+/* Usual activity days: the saved plan for activities, one shared set. They carry over every week as they are.
+   The weekly counts of the activities you plan (not one-offs) follow them: unchecking a day drops a session from
+   the activity planned most often (the main sport last on a tie), and checking one adds a session to the main sport. */
+const adaysOf=()=>Array.isArray(wk.adays)?wk.adays.slice().sort((a,b)=>a-b):[];
+/* Activity order: the season sports (main, then second; the same in a deload week), then the rest in the order
+   they were turned on in Settings (wk.actOrder). Activities on before that was saved keep the fixed order, ahead of newer ones. */
+function noteAct(a,on){ const o=(wk.actOrder||[]).filter(x=>x!==a); wk.actOrder=on?o.concat([a]):o; }
+function orderActs(ids){ const lead=seasonSports(), rec=wk.actOrder||[], rank=a=>{ const i=lead.indexOf(a); if(i>=0) return i-10; return rec.indexOf(a); };
+  return ids.slice().sort((a,b)=>rank(a)-rank(b)||ACT_IDS.indexOf(a)-ACT_IDS.indexOf(b)); }
+/* On in Settings (not one-offs), in order. Planned means on with at least one session a week. */
+const onActs=()=>orderActs(ACT_IDS.filter(a=>a!=="lift"&&enabled(a)&&!(wk.adhoc||{})[a]));
+const plannedActs=()=>onActs().filter(a=>cnt(a)>0);
+/* The suggested activity: the first planned one. Workouts shows it as the first chip. */
+const suggestedAct=()=>plannedActs()[0]||"";
+const plannedTotal=()=>plannedActs().reduce((t,a)=>t+cnt(a),0);
+function setActivityDay(k,on){
+  const A=adaysOf(); if(A.includes(k)===on) return;
+  wk.adays=on?A.concat([k]).sort((a,b)=>a-b):A.filter(x=>x!==k);
+  const n=wk.adays.length, total=plannedTotal(), acts=plannedActs();
+  if(!on&&total>n){ const pick=acts.filter(a=>cnt(a)>0).reduce((b,a)=>!b||cnt(a)>cnt(b)||(cnt(a)===cnt(b)&&b===wk.mainSport)?a:b,"");
+    if(pick) wk[pick]=String(cnt(pick)-1); }
+  const add=onActs();
+  if(on&&total<n&&add.length){ const pick=add[0]; wk[pick]=String(cnt(pick)+1); }
+}
+/* One more session a week, after logging past the plan: the count goes up and a day is added
+   (days without a lift first). A one-off becomes a planned activity. */
+function addWeekly(a){
+  if((wk.adhoc||{})[a]){ const h={...wk.adhoc}; delete h[a]; wk.adhoc=h; }
+  if(!enabled(a)) wk.acts={...(wk.acts||{}),[a]:true};
+  if(!(wk.actOrder||[]).includes(a)) noteAct(a,true);
+  wk[a]=String(cnt(a)+1); fitActivityDays(); save();
+}
+/* The "add to your weekly sessions" ask after an extra session: asked once per activity per week, whatever the answer. */
+const askedWeekly=a=>{ const x=wk.addAsked||{}; return x.week===wk.weekStart&&!!(x.ids||{})[a]; };
+function markAskedWeekly(a){ const x=wk.addAsked||{}, ids=x.week===wk.weekStart?{...(x.ids||{})}:{}; ids[a]=1; wk.addAsked={week:wk.weekStart,ids}; save(); }
+/* No more activity days than planned sessions: turning an activity off drops its days from the end of the week. */
+function trimActivityDays(){ const A=adaysOf(), n=Math.min(7,plannedTotal()); if(A.length>n) wk.adays=A.slice(0,n); }
+/* After onboarding: as many activity days as planned sessions (up to 7). Saved days stay; extra ones go
+   from the end of the week; new ones go on days without a lift first, Monday onward. */
+function fitActivityDays(){
+  const n=Math.min(7,plannedTotal()); let A=adaysOf();
+  if(A.length>n) A=A.slice(0,n);
+  const L0=ldays(), free=[0,1,2,3,4,5,6].filter(k=>!A.includes(k)), order=[...free.filter(k=>!L0.includes(k)),...free.filter(k=>L0.includes(k))];
+  while(A.length<n) A.push(order.shift());
+  wk.adays=A.sort((a,b)=>a-b);
+}
+/* Runs once. Up to two sports can be on, the same as the Sports in season picker. Any other sport is
+   turned off with its weekly count cleared, unless it has sessions logged this week. */
+function capSports(){
+  if(wk.twoSports) return;
+  const keep=[wk.mainSport,wk.sport2], logged=a=>(wk[actKey(a)]||[]).some(v=>String(v??"").trim()!=="");
+  const on=SPORTS.filter(a=>enabled(a));
+  if(on.length>2){ const acts={...(wk.acts||{})};
+    on.filter(a=>!keep.includes(a)&&!logged(a)).forEach(a=>{ acts[a]=false; wk[a]="0"; });
+    wk.acts=acts; fixSports(wk); syncDays(); }
+  wk.twoSports=1; save();
+}
+
+/* Upper and lower strength trend (Emma, Nov 16; History → Lifts). Each exercise's best estimated 1RM per week as a
+   share of its own first-3-session baseline, averaged per half weighted by that week's sets, smoothed over 3 weeks.
+   Core, carries and bodyweight work are left out. Nothing until a half has 3 weeks of data. The web passes its own weekStartOf. */
+const TREND_HALF=(()=>{ const m={}; XGROUPS.forEach(([,keys],gi)=>keys.forEach(k=>{ m[k]=gi<2?"lower":gi<5?"upper":null; })); return m; })();
+const TREND_BAND=0.02;
+const TREND_SPARK=12;
+function strengthTrend(weekStartOf){
+  const setsBy=new Map();
+  (wk.sessions||[]).forEach(s=>{ if(!s||!s.t||!Array.isArray(s.ex)) return; const ws=weekStartOf(s.t).getTime();
+    s.ex.forEach(e=>{ if(e&&e.n&&!e.cardio){ const k=e.n+"|"+ws; setsBy.set(k,(setsBy.get(k)||0)+num(e.sets,0)); } }); });
+  const halves={upper:new Map(),lower:new Map()};
+  Object.keys(exHist).forEach(n=>{
+    if(isBW(n)) return; const half=TREND_HALF[catOf(n)]; if(!half) return;
+    const h=(exHist[n]||[]).filter(x=>x&&x.t&&num(x.w,0)>0&&num(x.r,0)>0).slice().sort((a,b)=>a.t-b.t);
+    if(h.length<3) return;
+    const est=x=>num(x.w,0)*(1+num(x.r,0)/30), base=h.slice(0,3).reduce((a,x)=>a+est(x),0)/3;
+    const best=new Map(); h.forEach(x=>{ const ws=weekStartOf(x.t).getTime(), e=est(x); if(!best.has(ws)||e>best.get(ws)) best.set(ws,e); });
+    best.forEach((e,ws)=>{ const sets=setsBy.get(n+"|"+ws)||1, cur=halves[half].get(ws)||{sum:0,w:0};
+      cur.sum+=(e/base-1)*sets; cur.w+=sets; halves[half].set(ws,cur); });
+  });
+  const bwWeeks=(wk.weeks||[]).filter(w=>w&&w.start&&num(w.w,0)>0), bwNow=num(wk.weight,0);
+  const out={};
+  ["upper","lower"].forEach(half=>{
+    const weeks=[...halves[half].entries()].sort((a,b)=>a[0]-b[0]).map(([start,v])=>({start,v:v.sum/v.w}));
+    if(weeks.length<3){ out[half]=null; return; }
+    const smooth=weeks.map((_,i)=>i<2?null:(weeks[i].v+weeks[i-1].v+weeks[i-2].v)/3);
+    const run=weeks.map((_,i)=>{ const w=weeks.slice(Math.max(0,i-2),i+1); return w.reduce((t,x)=>t+x.v,0)/w.length; });
+    const pct=smooth[smooth.length-1], prev=smooth.length>=4?smooth[smooth.length-2]:null;
+    const label=pct>TREND_BAND?"up":pct<-TREND_BAND&&prev!=null&&prev<-TREND_BAND?"down":"holding";
+    let rel=null;
+    if(bwWeeks.length&&bwNow>0){ const first=weeks[0].start, near=bwWeeks.reduce((a,w)=>Math.abs(w.start-first)<Math.abs(a.start-first)?w:a);
+      rel=(1+pct)*num(near.w,0)/bwNow-1; }
+    out[half]={label,pct,rel,weeks:weeks.length,spark:run.slice(-TREND_SPARK),good:label==="up"||(label==="holding"&&cutting())};
+  });
+  return out;
+}
+
+export { LDEF, ldays, onActs, noteAct, orderActs, suggestedAct, trimActivityDays, addWeekly, askedWeekly, markAskedWeekly, sessN, plannedActs, setActivityDay, fitActivityDays, capSports, timeByKind, hoursMoved, mostPlayed, seasonFrom, changeItems, watchItems, keepWeight, rowDone, countsInDay, wTitle, e1rm, prsBetween, weekComplete, weekStreak, countWeek, EFF_MULT, OWN_EFF, sessionKcal, liftKcal, refreshLiftK, LIFT_MET, weekActuals, swapOptions, swapDay, rateLb, isBW, yogaMet, pilMet, YOGA_EFF, PIL_EFF, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, MUSCLES, slotMuscles, musclePriority, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk , strengthTrend };
 
 /* workout titles read "Lower (Glute & Hamstring)"; older saved titles used a middle dot */
-const wTitle=t=>String(t||"").replace(/^(Lower|Upper) · (.+)$/,"$1 ($2)");
+const wTitle=t=>String(t||"").replace(/^(Lower|Upper): (.+)$/,"$1 ($2)");

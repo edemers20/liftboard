@@ -1,10 +1,12 @@
 import { forwardRef, useEffect, useRef, useState, type ReactNode } from "react";
-import { Pressable, StyleSheet, type PressableProps, type StyleProp, type View, type ViewStyle } from "react-native";
+import { Platform, Pressable, StyleSheet, type PressableProps, type StyleProp, type View, type ViewStyle } from "react-native";
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from "react-native-reanimated";
 
 import { useReduceMotion } from "@/use-reduce-motion";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+/** Reanimated's animated Pressable drops clicks on web; plain Pressable keeps buttons usable. */
+const WebSafePressable = (Platform.OS === "web" ? Pressable : AnimatedPressable) as typeof AnimatedPressable;
 
 export type PressKind = "button" | "surface" | "text" | "tab" | "plain";
 
@@ -43,14 +45,20 @@ export const PressableScale = forwardRef<View, Props>(function PressableScale(
     flash.value = withSequence(withTiming(0.28, { duration: PRESS_IN }), withTiming(0, { duration: PRESS_OUT }));
   }, [brighten, flash]);
 
+  const resolved = typeof style === "function" ? style({ pressed: down }) : style;
+  const flat = StyleSheet.flatten(resolved) || {};
+  /** The shade only reads on a control with its own fill; on a bare one it shows as a dark box, so that fades instead. */
+  const filled = !!flat.backgroundColor && flat.backgroundColor !== "transparent";
   const scaleTo = kind === "surface" ? 0.985 : kind === "tab" ? 0.88 : kind === "button" ? 0.96 : 1;
-  const darken = kind === "surface" ? 0.1 : kind === "button" || (kind === "tab" && reduce) ? 0.15 : 0;
+  const shadeKind = kind === "surface" ? 0.1 : kind === "button" || (kind === "tab" && reduce) ? 0.15 : 0;
+  const darken = filled ? shadeKind : 0;
+  const fade = kind === "text" || (shadeKind > 0 && !filled);
 
   function pressIn(event: Parameters<NonNullable<PressableProps["onPressIn"]>>[0]) {
     if (disabled) return;
     setDown(true);
     if (!reduce && scaleTo !== 1) scale.value = withTiming(scaleTo, { duration: PRESS_IN });
-    if (kind === "text" || darken > 0) shade.value = withTiming(1, { duration: PRESS_IN });
+    if (fade || darken > 0) shade.value = withTiming(1, { duration: PRESS_IN });
     onPressIn?.(event);
   }
 
@@ -63,25 +71,24 @@ export const PressableScale = forwardRef<View, Props>(function PressableScale(
 
   const motion = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
-    opacity: kind === "text" ? 1 - shade.value * 0.4 : 1,
+    opacity: fade ? 1 - shade.value * 0.4 : 1,
   }));
   const dim = useAnimatedStyle(() => ({ opacity: shade.value * darken }));
   const glow = useAnimatedStyle(() => ({ opacity: flash.value }));
-  const resolved = typeof style === "function" ? style({ pressed: down }) : style;
 
   return (
-    <AnimatedPressable
+    <WebSafePressable
       ref={ref as never}
       disabled={disabled}
       onPressIn={pressIn}
       onPressOut={pressOut}
-      style={[resolved, motion, kind === "button" || kind === "surface" ? styles.clip : null]}
+      style={[resolved, Platform.OS === "web" ? null : motion, kind === "button" || kind === "surface" ? styles.clip : null]}
       {...rest}
     >
       {children}
-      {darken > 0 ? <Animated.View pointerEvents="none" style={[styles.shade, dim]} /> : null}
+      {darken > 0 ? <Animated.View pointerEvents="none" style={[styles.shade, { borderRadius: flat.borderRadius }, dim]} /> : null}
       {brighten !== undefined ? <Animated.View pointerEvents="none" style={[styles.glow, glow]} /> : null}
-    </AnimatedPressable>
+    </WebSafePressable>
   );
 });
 

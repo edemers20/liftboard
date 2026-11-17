@@ -70,13 +70,11 @@ export function formatAverage(minutes: number): string {
   return `${String(hours).replace(/\.0$/, "")}h`;
 }
 
-/** "½h", "1½h", "7h", "10h". Hours of 10 or more round to a whole number. */
+/** "0.5h", "1.5h", "7h", "10h". Hours of 10 or more round to a whole number. */
 export function formatHours(minutes: number): string {
   const hours = minutes / 60;
   if (hours >= 10) return `${Math.round(hours)}h`;
-  const half = Math.round(hours * 2) / 2;
-  const text = String(half).replace(/\.5$/, "½").replace(/^0½$/, "½");
-  return `${text}h`;
+  return `${Math.round(hours * 2) / 2}h`;
 }
 
 export function displayWeight(lb: number, units: string | undefined): number {
@@ -99,6 +97,23 @@ export function linePoints(values: number[]): { x: number; y: number }[] {
     x: +(count > 1 ? 4 + (index * 88) / (count - 1) : 48).toFixed(1),
     y: +(40 - ((value - low) / span) * 34).toFixed(1),
   }));
+}
+
+/**
+ * The strength trend mark: 96 × 32, with 0% kept in range so the line reads against its start.
+ * The span is at least 4% (the Holding band), so small wobbles stay flat.
+ */
+export function trendPoints(values: number[]): { points: { x: number; y: number }[]; zero: number } {
+  const low = Math.min(0, ...values);
+  const high = Math.max(0, ...values);
+  const span = Math.max(0.04, high - low);
+  const mid = (low + high) / 2;
+  const y = (value: number) => +(16 - ((value - mid) / span) * 24).toFixed(1);
+  const count = values.length;
+  return {
+    points: values.map((value, index) => ({ x: +(count > 1 ? 4 + (index * 88) / (count - 1) : 48).toFixed(1), y: y(value) })),
+    zero: y(0),
+  };
 }
 
 /** "Nov 2 – 8", or "Oct 26 – Nov 1" when the week crosses a month. */

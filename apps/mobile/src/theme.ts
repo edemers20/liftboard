@@ -2,6 +2,10 @@ export const theme = {
   text: "#edeae8",
   muted: "#a8a09c",
   fuel: "#fea06a",
+  /** Personal records: the week card's PRs tile, on screen and in the shared image. */
+  record: "#b79cf0",
+  /** Dark text and marks on a filled accent (week card tiles, milestones). */
+  ink: "#2a1a12",
   green: {
     background: "#131615",
     surface: "#1d2220",
@@ -29,6 +33,17 @@ export const theme = {
     /** Black at 30% over the pink surface. */
     secondary: "#191617",
   },
+  /** Personal records sit on the neutral card surface; purple (`record`) marks labels and badges only. */
+  purple: {
+    tint: "rgba(183, 156, 240, 0.14)",
+  },
+  /** Milestone cards (Emma's kind pairs): 135° gradients, dark text. */
+  milestone: {
+    lifts: ["#6fd0b4", "#c8e86a"],
+    hours: ["#fea06a", "#f5d06a"],
+    streak: ["#fc96bf", "#fea06a"],
+    firstPr: ["#b79cf0", "#fc96bf"],
+  } as const satisfies Record<string, readonly [string, string]>,
   banner: "#3a3018",
   radii: {
     small: 8,

@@ -14,6 +14,7 @@ import {
   weekStartOf,
   weekStreak,
   wk,
+  strengthTrend,
 } from "@liftboard/engine";
 
 import { copy } from "@/copy";
@@ -113,6 +114,8 @@ export type HistorySnapshot = {
   year: { state: "future" | "past" | "part" | "done"; current: boolean }[];
   prs: HistoryPr[];
   lifts: HistoryLift[];
+  /** Upper and lower strength trend; a half is null before it has 3 weeks of data. */
+  strength: ReturnType<typeof strengthTrend>;
 };
 
 type RawExercise = {
@@ -310,6 +313,7 @@ export function readHistory(now = Date.now()): HistorySnapshot {
     year: yearCells(now),
     prs,
     lifts,
+    strength: strengthTrend(),
   };
 }
 

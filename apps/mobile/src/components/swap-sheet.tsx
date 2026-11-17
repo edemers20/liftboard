@@ -1,3 +1,5 @@
+"use no memo";
+
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { PressableScale } from "@/components/pressable-scale";
@@ -6,6 +8,25 @@ import { haptic } from "@/haptic";
 import { engine, useEngineStore } from "@/store";
 import { theme } from "@/theme";
 import { replaceWorkout } from "@/workout/share-box";
+
+/** If this lift is live, point the timer and open slot at the workout they picked. */
+function moveOpenWorkout(from: string, to: string) {
+  if (from === to) return;
+  const wt = (engine.wk.wt || {}) as Record<string, { start?: number; end?: number }>;
+  const open = wt[from]?.start && !wt[from]?.end;
+  if (!open) return;
+  const next = { ...wt };
+  next[to] = { ...wt[from] };
+  delete next[from];
+  engine.wk.wt = next;
+  const active = { ...(engine.wk.active || {}) };
+  if (active[from] != null) {
+    active[to] = active[from];
+    delete active[from];
+    engine.wk.active = active;
+  }
+  engine.save();
+}
 
 type Day = { id: string; tab?: string; title: string; slots: { cardio?: number }[] };
 
@@ -25,7 +46,7 @@ function preview(day: Day) {
     .filter((row) => !row.slot.cardio)
     .slice(0, 3)
     .map((row) => engine.exName(day, row.slot, row.index))
-    .join(" · ");
+    .join(", ");
 }
 
 export function swapChoices(id: string) {
@@ -64,15 +85,17 @@ export function SwapForm({
   function pickFamily(nextId: string) {
     onClose();
     if (!engine.swapDay(id, nextId)) return;
+    moveOpenWorkout(id, nextId);
     haptic.medium();
-    if (onWorkout) onWorkout(nextId);
+    onWorkout?.(nextId);
   }
 
   function pickPlanned(nextId: string) {
     onClose();
     if (!engine.swapWeek(id, nextId)) return;
+    moveOpenWorkout(id, nextId);
     haptic.medium();
-    if (onWorkout) onWorkout(nextId);
+    onWorkout?.(nextId);
   }
 
   return (
@@ -108,7 +131,7 @@ export function SwapForm({
 }
 
 const styles = StyleSheet.create({
-  body: { paddingHorizontal: 16, paddingTop: 28, paddingBottom: 16, gap: 6 },
+  body: { paddingHorizontal: 16, paddingTop: 32, paddingBottom: 16, gap: 6 },
   title: { color: theme.text, fontFamily: theme.fonts.bodySemi, fontSize: 20, lineHeight: 24 },
   note: { color: theme.muted, fontFamily: theme.fonts.body, fontSize: 14, lineHeight: 18 },
   section: { gap: 6 },

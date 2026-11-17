@@ -39,6 +39,19 @@ export const addExtra: any;
 export const catOf: any;
 export const changeItems: any;
 export const cnt: any;
+export function sessN(id: string): number;
+export function plannedActs(): string[];
+/** On in Settings and not a one-off, including 0 a week, in activity order. */
+export function onActs(): string[];
+export function orderActs(ids: string[]): string[];
+export function noteAct(id: string, on: boolean): void;
+export function suggestedAct(): string;
+export function trimActivityDays(): void;
+export function addWeekly(id: string): void;
+export function askedWeekly(id: string): boolean;
+export function markAskedWeekly(id: string): void;
+export function setActivityDay(day: number, on: boolean): void;
+export function fitActivityDays(): void;
 export const cutting: any;
 export const dayDiff: any;
 export const daySummary: any;
@@ -147,3 +160,16 @@ export function finishWeek(now?: number): { lifts: number; planned: number; card
 export function undoFinish(): boolean;
 export function hasFinishSnap(): boolean;
 export const yogaMet: any;
+export type StrengthHalf = {
+  label: "up" | "holding" | "down";
+  /** Smoothed change from the baseline, 0.05 = +5%. */
+  pct: number;
+  /** The same change per pound of bodyweight, when a weigh-in near the start exists. */
+  rel: number | null;
+  weeks: number;
+  /** The smoothed change week by week (3-week trailing mean), oldest first, up to 12; ends at `pct`. */
+  spark: number[];
+  /** Up, or Holding on a cut: shown in green. */
+  good: boolean;
+};
+export function strengthTrend(): { upper: StrengthHalf | null; lower: StrengthHalf | null };

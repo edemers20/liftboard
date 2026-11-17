@@ -240,6 +240,7 @@ export function showReminder(offset: number): boolean {
   const selected = addDays(today, offset);
   if (selected.getTime() < today.getTime()) return false;
   if (!isUsualActivityDay(selected)) return false;
+  if (!(engine.plannedActs() as string[]).length) return false;
   return activitySessionsOn(selected).length === 0;
 }
 
@@ -256,19 +257,34 @@ function rampOn(): boolean {
   return engine.hasSport() && !engine.inSeason() && engine.wk.ramp === "Yes";
 }
 
+/** Every activity on in Settings, 0 a week included, in activity order (main sport, second sport, the rest); then one-offs. */
 export function chipIds(): string[] {
-  const ids = (engine.ACT_IDS as string[]).filter((id) => id !== "lift" && engine.enabled(id));
+  const oneOffs = (engine.ACT_IDS as string[]).filter((id) => id !== "lift" && engine.enabled(id) && engine.wk.adhoc?.[id]);
+  const ids = [...(engine.onActs() as string[]), ...oneOffs];
   if (rampOn()) ids.push("zone2");
   return ids;
 }
 
-/** Every activity that is not already turned on. */
+/** Activities that are off. */
 export function otherIds(): string[] {
-  return (engine.ACT_IDS as string[]).filter((id) => id !== "lift" && !engine.enabled(id));
+  const shown = chipIds();
+  return (engine.ACT_IDS as string[]).filter((id) => id !== "lift" && !shown.includes(id));
 }
 
 function actStorageKey(id: string): string {
   return id === "zone2" ? "zAct" : engine.actKey(id);
+}
+
+/** Today's ask: an activity logged past its weekly sessions this week that hasn't been asked about. */
+export function addAskId(): string | null {
+  const ids = (engine.ACT_IDS as string[]).filter((id) => id !== "lift" && engine.enabled(id));
+  return ids.find((id) => loggedOf(id) > engine.cnt(id) && !engine.askedWeekly(id)) ?? null;
+}
+
+/** Either answer closes the ask for that activity until next week. */
+export function answerAddAsk(id: string, add: boolean): void {
+  if (add) engine.addWeekly(id);
+  engine.markAskedWeekly(id);
 }
 
 export function plannedOf(id: string): number {
@@ -311,10 +327,7 @@ export function logActivity(id: string, at: number): void {
       break;
     }
   }
-  if (index < 0) {
-    index = Math.max(planned, filledLength(slots));
-    if (id !== "zone2") engine.wk[id] = index + 1;
-  }
+  if (index < 0) index = Math.max(planned, filledLength(slots));
   const minutes = id === "zone2" ? 45 : engine.plannedMin(id);
   engine.logAct(key, index, String(minutes), at);
   if (usesSessionEffort(id)) {

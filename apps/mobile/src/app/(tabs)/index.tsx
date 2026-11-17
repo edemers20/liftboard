@@ -1,4 +1,7 @@
+"use no memo";
+
 import { useFocusEffect } from "expo-router";
+import { GlassSheet } from "@/components/glass-sheet";
 import { PressableScale } from "@/components/pressable-scale";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Animated, ScrollView, StyleSheet, Text, TextInput, View, type NativeScrollEvent, type NativeSyntheticEvent, type ScrollViewInstance } from "react-native";
@@ -21,10 +24,10 @@ import {
   isRecent,
   logActivity,
   logOther,
-  loggedOf,
+  addAskId,
+  answerAddAsk,
   offsetForWeek,
   otherIds,
-  plannedOf,
   saveSession,
   setSessionEffort,
   showReminder,
@@ -57,7 +60,7 @@ import { canSwapDay } from "@/components/swap-sheet";
 import { TodayButton } from "@/components/today-button";
 import { Swap } from "@/icons";
 import { openFitSheet } from "@/form-sheet";
-import { ShareBox, WorkoutLink } from "@/workout/share-box";
+import { replaceWorkout, ShareBox, WorkoutLink } from "@/workout/share-box";
 
 type DragSource = "day" | "week" | null;
 type WindowSpan = { lo: number; hi: number; gen: number } | null;
@@ -72,7 +75,6 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 export default function WorkoutsScreen() {
-  "use no memo";
   const version = useEngineStore((state) => state.version);
   const reduce = useReduceMotion();
   const insets = useSafeAreaInsets();
@@ -604,6 +606,7 @@ function DayPage({
             onToggle={() => onToggleSession(session.t)}
           />
         ))}
+        {offset === 0 ? <AddWeeklyAsk /> : null}
         {showReminder(offset) ? (
           <View style={styles.reminder}>
             <Text style={styles.eyebrow}>{copy.workouts.activityDay}</Text>
@@ -624,8 +627,34 @@ function DayPage({
   );
 }
 
+/** After logging past the weekly sessions: offer to make it a weekly session. Small, inline, asked once a week. */
+function AddWeeklyAsk() {
+  useEngineStore((state) => state.version);
+  const id = addAskId();
+  if (!id) return null;
+  return (
+    <View style={styles.reminder}>
+      <Text style={styles.reminderText}>{copy.workouts.addAsk(activityName(id))}</Text>
+      <View style={styles.askRow}>
+        <PressableScale
+          accessibilityRole="button"
+          onPress={() => {
+            haptic.selection();
+            answerAddAsk(id, true);
+          }}
+          style={styles.askYes}
+        >
+          <Text style={styles.askYesText}>{copy.workouts.addYes}</Text>
+        </PressableScale>
+        <PressableScale kind="text" accessibilityRole="button" onPress={() => answerAddAsk(id, false)} style={styles.askNo}>
+          <Text style={styles.askNoText}>{copy.workouts.addNo}</Text>
+        </PressableScale>
+      </View>
+    </View>
+  );
+}
+
 function FuelLink() {
-  "use no memo";
   const version = useEngineStore((state) => state.version);
   const clock = usePlanClock();
   const model = useMemo(() => readPlan(), [version, clock]);
@@ -667,7 +696,6 @@ function RecoveryBit({ label, hours }: { label: string; hours: number | null }) 
 }
 
 function YesterdayBanner() {
-  "use no memo";
   useEngineStore((state) => state.version);
   const open = yesterdayOpen();
   if (!open) return null;
@@ -765,7 +793,7 @@ function previewRows(id: string): { name: string; detail: string }[] {
       const name = engine.exName(day, slot, index);
       const suggested = engine.suggest(day, slot, index, false, plan);
       const weight = suggested?.w ? (engine.isBW(name) ? "BW" : String(toDisplay(suggested.w))) : "";
-      return { name, detail: `${target.sets} × ${slot.reps}${weight ? ` · ${weight}` : ""}` };
+      return { name, detail: `${target.sets} × ${slot.reps}${weight ? ` (${weight})` : ""}` };
     });
 }
 
@@ -857,7 +885,16 @@ function LiftCards({
           thisWeek={board.wOff === 0}
           started={workoutUnderway(board.plannedId)}
           onMoved={onMoved}
-          onSwap={() => openFitSheet({ kind: "swap", id: board.plannedId! })}
+          onSwap={() => {
+            const cur = board.plannedId!;
+            openFitSheet({
+              kind: "swap",
+              id: cur,
+              onWorkout: (nextId) => {
+                if (workoutUnderway(cur)) replaceWorkout(nextId);
+              },
+            });
+          }}
         />
       ) : null}
     </>
@@ -881,23 +918,23 @@ function PlannedLift({
 }) {
   const title = openTitle(id);
   const rows = previewRows(id);
-  const showSwap = canSwapDay(id);
+  const swap = canSwapDay(id) ? (
+    <PressableScale
+      kind="button"
+      accessibilityRole="button"
+      accessibilityLabel={`${copy.workouts.swap} ${title}`}
+      onPress={onSwap}
+      style={[styles.swapPill, today ? styles.swapOver : null]}
+    >
+      <Swap size={16} color={theme.text} />
+      <Text style={styles.swapPillText}>{copy.workouts.swap}</Text>
+    </PressableScale>
+  ) : null;
   const body = (
     <>
       <View style={styles.liftTop}>
         <Text style={styles.liftEyebrow}>{today ? copy.workouts.today : copy.workouts.planned}</Text>
-        {showSwap ? (
-          <PressableScale
-            kind="button"
-            accessibilityRole="button"
-            accessibilityLabel={`${copy.workouts.swap} ${title}`}
-            onPress={onSwap}
-            style={styles.swapPill}
-          >
-            <Swap size={16} color={theme.text} />
-            <Text style={styles.swapPillText}>{copy.workouts.swap}</Text>
-          </PressableScale>
-        ) : null}
+        {today ? null : swap}
       </View>
       <Text style={styles.liftTitle}>{title}</Text>
       {rows.map((row) => (
@@ -936,6 +973,8 @@ function PlannedLift({
       <WorkoutLink id={id} style={[styles.liftCard, styles.liftCardPad]}>
         {body}
       </WorkoutLink>
+      {/* Outside the link: on iOS the zoom trigger takes every touch inside it. */}
+      {swap}
     </ShareBox>
   );
 }
@@ -1159,7 +1198,7 @@ function ActivityDetails({ session, onClose }: { session: ActSession; onClose: (
         <Text style={styles.deleteText}>{copy.workouts.delete}</Text>
       </PressableScale>
       <SheetFrame visible={askDelete} onClose={() => setAskDelete(false)} label={copy.you.cancel}>
-        <View style={[styles.sheet, { marginBottom: insets.bottom + 12 }]}>
+        <GlassSheet style={[styles.sheet, { marginBottom: insets.bottom + 12 }]}>
           <View style={styles.sheetButtons}>
             <PressableScale accessibilityRole="button" onPress={() => setAskDelete(false)} style={styles.sheetCancel}>
               <Text style={styles.sheetCancelText}>{copy.you.cancel}</Text>
@@ -1168,7 +1207,7 @@ function ActivityDetails({ session, onClose }: { session: ActSession; onClose: (
               <Text style={styles.sheetDeleteText}>{copy.workouts.delete}</Text>
             </PressableScale>
           </View>
-        </View>
+        </GlassSheet>
       </SheetFrame>
     </View>
   );
@@ -1223,7 +1262,6 @@ function ActivityChips({
   onToggle: () => void;
   onLog: (id: string, turnedOn: boolean) => void;
 }) {
-  "use no memo";
   useEngineStore((state) => state.version);
   if (!canLogDay(offset)) return null;
   const mine = chipIds();
@@ -1251,7 +1289,7 @@ function ActivityChips({
       {otherOpen ? (
         <View style={styles.chips}>
           {others.map((id) => (
-            <LogChip key={id} id={id} onPress={() => onLog(id, true)} />
+            <LogChip key={id} id={id} onPress={() => onLog(id, !engine.enabled(id))} />
           ))}
         </View>
       ) : null}
@@ -1260,22 +1298,12 @@ function ActivityChips({
 }
 
 function LogChip({ id, onPress }: { id: string; onPress: () => void }) {
-  "use no memo";
   useEngineStore((state) => state.version);
   const name = activityName(id);
-  const planned = plannedOf(id);
-  const logged = loggedOf(id);
-  const progress = planned > 0 ? copy.workouts.countOf(logged, planned) : logged > 0 ? String(logged) : "";
   return (
-    <PressableScale
-      style={styles.chip}
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={progress ? `${name} ${progress}` : name}
-    >
+    <PressableScale style={styles.chip} onPress={onPress} accessibilityRole="button" accessibilityLabel={name}>
       <Text style={styles.plus}>+</Text>
       <Text style={styles.chipName}>{name}</Text>
-      {progress ? <Text style={styles.chipCount}>{progress}</Text> : null}
     </PressableScale>
   );
 }
@@ -1746,6 +1774,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 6,
   },
+  swapOver: { position: "absolute", top: 14, right: 16 },
   swapPillText: { color: theme.text, fontFamily: theme.fonts.bodySemi, fontSize: 13 },
   liftEyebrow: {
     color: theme.green.accent,
@@ -1838,6 +1867,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
   },
+  askRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 8 },
+  askYes: {
+    minHeight: 40,
+    paddingHorizontal: 18,
+    borderRadius: theme.radii.pill,
+    backgroundColor: theme.pink.selectedFill,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  askYesText: { color: theme.text, fontFamily: theme.fonts.bodySemi, fontSize: 14 },
+  askNo: { minHeight: 40, paddingHorizontal: 12, justifyContent: "center" },
+  askNoText: { color: theme.muted, fontFamily: theme.fonts.bodySemi, fontSize: 14 },
   rest: {
     backgroundColor: theme.green.surface,
     borderRadius: theme.radii.card,
@@ -1894,10 +1935,5 @@ const styles = StyleSheet.create({
     color: theme.text,
     fontFamily: theme.fonts.bodySemi,
     fontSize: 13,
-  },
-  chipCount: {
-    color: theme.muted,
-    fontFamily: theme.fonts.monoMedium,
-    fontSize: 12,
   },
 });

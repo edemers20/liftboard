@@ -42,8 +42,9 @@ From step 1 on, a "Plan so far" card at the bottom updates live. Finishing write
   - **Open day (today or future, nothing planned)**: "Nothing planned" + "View next lift".
   - **Past day, nothing logged**: "Rest · Nothing logged".
   - **Activity logged**: pink card with minutes. Logging it expands the card inline: minutes, and Difficulty (Easy / Moderate / Hard, default Moderate). Spin, yoga and Pilates keep their own effort options. Deleting a one-off (logged from Other) removes that activity as well as the session. A regular activity only loses the session. Tap a card to open or close the details.
-  - **Usual activity day**: a reminder card.
-- Activity chips: one pill per activity with "0 of 2" progress, plus "Other" to log anything. Only on today and past days of this week.
+  - **Usual activity day**: a reminder card with the "Activity day" eyebrow and the log line. No count, no activity names. It only shows when at least one activity is planned. Activities stay separate named pills on Workouts (the chips); the combined "Activity" / "Activities" wording is only on Plan.
+  - **Add to your week** (today only): after you log more sessions of an activity than you plan, a small card in the same style asks "Add {activity} to your weekly sessions? It shows up every week." with Add and Not now (TODO copy). Add raises the weekly count by one and adds an activity day; either answer hides it for that activity until next week.
+- Activity chips: one pill per activity turned on in Settings, including ones with 0 sessions a week (no count), in order (main sport, second sport, then the order they were turned on); then one-offs; plus "Other" for activities that are off. Logging a pill never changes a count (Emma, Nov 16). Only on today and past days of this week.
 - Fuel & recovery card (today only): Fuel today kcal; Lower body and Upper body recovery ("18h rest" or "Ready"). Taps through to Plan.
 - Banners: next-morning check ("Did you play or train yesterday?") when yesterday is empty and the setting is on.
 
@@ -53,7 +54,7 @@ From step 1 on, a "Plan so far" card at the bottom updates live. Finishing write
 
 - Back link "Back", which returns to the page that opened the workout. Then the workout title and a running timer once started.
 - "How do you feel today?" slider: Thriving · Normal · Rough (stored values Good / Normal / Rough).
-- Exercise cards in order; the current one is expanded and outlined, others collapsed with a chevron. Each card: slot label, set count badge ("Set 2 of 4"), progress bar, exercise picker, rows of weight × reps with a ✓ per set, "+ Set".
+- Exercise cards in order; the current one is expanded and outlined, others collapsed with a chevron. Each card: slot label, set count badge ("Set 2 of 4"), progress bar, exercise picker, rows of weight × reps with a ✓ per set, "+ Set". Any set row, empty or not, and any exercise swipes left to Delete, with Undo. A row always rests fully closed or fully open; one row is open at a time, and a tap anywhere else or a scroll closes it. Deleting a planned set lowers this workout's set count for that exercise; deleting the last row removes the exercise.
 - Ticking a set starts the rest bar at the bottom: −15s zone, "Rest 2:59", +15s zone, Skip. It chimes at zero (local notification when the phone is locked).
 - Optional cardio finisher at the end.
 - Finishing shows a "Day done" summary (sets, ups, holds, next-time weights).
@@ -71,7 +72,7 @@ Header: the week's date range as a page title ("NOV 2 – 8") or "SEASON"; a Wee
 
 ### Week [`30-plan-week`, `31-plan-week-checkin`]
 1. **Weekly check-in** (only until saved for the week): Readiness, Soreness, Cycle (female only), Drinking nights, Avg weight, Save check-in. Once saved it collapses to a line at the bottom: "Check-in · Feeling normal, no soreness" with a pencil to edit.
-2. **This week's plan**: one row per lift and activity with a status icon (done, next, open); tap opens it. Then "Lift days" and "Activity days" (no count) Mon–Sun toggles.
+2. **This week's plan**: one row per lift and activity with a status icon (done, next, open); tap opens it. Then "Lift days" and "Activity days" (no count) Mon–Sun toggles. Activity days are one shared set; unchecking one also drops a planned session, and the change carries into later weeks. Planned activity rows read "Activity" or "Activities" with their day, never a sport name; logged rows keep the activity's name.
 3. **Fuel/Recover** with an (i) whose tip is "How this is calculated": Fuel today kcal, recovery tiles; tiles for Your base, vs last week, Expected loss.
 4. **This week's changes** and **Watch** lists, each with an (i).
 
@@ -87,7 +88,8 @@ Header: the week's date range as a page title ("NOV 2 – 8") or "SEASON"; a Wee
 Calendar · Weeks · Lifts switch (slides between them).
 - **Calendar** [`40-history-calendar`]: month grid; days filled green (lift), pink (activity) or split; tap a day for its details. Week Breakdown (minutes of lifting vs activities per week).
 - **Weeks** [`41-history-weeks`]: one card per past week; empty state "A new week begins on its own."
-- **Lifts** [`42-history-lifts`]: main lifts with top-set trend sparklines.
+- **Lifts** [`42-history-lifts`]: Recent PRs, then Recent trends (Upper body and Lower body, each with an orange trend mark; the percent shows on tap), then main lifts with top-set trend sparklines.
+- **Palette** (Emma, Nov 17): fairly neutral overall. Purple only for records (PR labels and marks; PR cards sit on the neutral surface). Calendar and Weeks stay orange-forward to match Plan, with green and pink only marking lifts and activities. Recent trends uses orange.
 
 ---
 
@@ -96,7 +98,7 @@ Calendar · Weeks · Lifts switch (slides between them).
 [`docs/design/Proto_Profile.dc.html`, `Proto_ProfileNew.dc.html`, `Proto_Settings.dc.html`; full spec in `docs/HANDOFF-nov-13-features.md` section 19]
 - **You:** a profile of what you've done: avatar, name, activities; the streak card; Lifts, Activities and Hours moved; Strongest lift; Personal Records; Most played this season; Milestones. A gear at the top right opens Settings. No body stats.
 - **First week:** each empty spot says what fills it, plus "Finish setting up" for what setup skipped.
-- **Settings:** Body (with Edit metrics), Training, Activities, App, Help (FAQ), Your data. Goal, pace and focus live on Plan → Season; lift days and session length on Plan → Week.
+- **Settings:** Body (with Edit metrics), Training, Activities, App, Help (FAQ), Your data (Export, Replay tour, Restore backup, Privacy policy, Reset profile, Delete account), then the "not medical advice" line at the bottom. Activities shows "Primary sports" (None, the sports, yoga and pilates; up to two, with a primary), then the other activities you do and Add activity. No sessions-per-week counts here. Goal, pace and focus live on Plan → Season; lift days and session length on Plan → Week.
 
 ---
 

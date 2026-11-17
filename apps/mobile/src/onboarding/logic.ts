@@ -52,11 +52,24 @@ function currentDays(wk: { ldays?: number[]; days?: number }): number[] {
   return (LDEF[count] || []).slice();
 }
 
-/** Classes always, plus anything else already on, except the sport being chosen. */
-export function activityIds(sport: string): string[] {
+/**
+ * Classes always, plus anything else already on, except the sport being chosen.
+ * The only other sport offered is the second sport from Settings, so there are never more than two.
+ */
+export function activityIds(sport: string, sport2 = ""): string[] {
   return engine.ACT_IDS.filter(
-    (id: string) => id !== "lift" && id !== sport && (engine.ACT[id].cls || engine.enabled(id)),
+    (id: string) =>
+      id !== "lift" &&
+      id !== sport &&
+      (engine.ACT[id].cls || (engine.enabled(id) && (!isSeasonal(id) || (!!sport && id === sport2)))),
   );
+}
+
+/** Weekly counts for the activities onboarding shows. Counts left from a sport that is no longer offered are ignored. */
+function shownActivities(draft: Draft): [string, number][] {
+  const shown = new Set(activityIds(draft.sport, draft.sport2));
+  if (draft.sport && draft.sport2 && draft.sport2 !== draft.sport) shown.add(draft.sport2);
+  return Object.entries(draft.activities).filter(([id]) => shown.has(id));
 }
 
 export function activityLabel(id: string): string {
@@ -99,7 +112,7 @@ export function createDraft(): Draft {
   const sport2 = mains.includes(wk.sport2) && wk.sport2 !== sport ? String(wk.sport2) : "";
   const setupDone = !!wk.setupDone;
   const activities: Record<string, number> = {};
-  for (const id of activityIds(sport)) {
+  for (const id of activityIds(sport, sport2)) {
     activities[id] = engine.enabled(id) ? engine.cnt(id) : 0;
   }
   if (sport2) {
@@ -119,7 +132,7 @@ export function createDraft(): Draft {
     inSeason: wk.season === "In-season",
     goal: wk.mode || "Recomp",
     days: setupDone ? currentDays(wk) : [0, 2, 4],
-    sportCount: sport ? engine.cnt(sport) || 2 : 0,
+    sportCount: sport ? savedCount(sport) : 0,
     activities,
     focus: wk.focus || "Balanced",
     level,
@@ -132,12 +145,18 @@ export function createDraft(): Draft {
   };
 }
 
+/** The saved weekly count for a sport that is on, including 0. A sport not on yet starts at 2. */
+function savedCount(sport: string): number {
+  return engine.enabled(sport) ? engine.cnt(sport) : 2;
+}
+
+/** The count follows the sport picked: what this draft already has for it, else what's saved. Never the previous sport's count. */
 export function chooseSport(draft: Draft, sport: string): Draft {
-  let sportCount = draft.sportCount;
   let inSeason = draft.inSeason;
   if (!sport) inSeason = false;
-  if (sport && draft.activities[sport]) sportCount = draft.activities[sport];
-  if (sport && !sportCount) sportCount = engine.cnt(sport) || 2;
+  let sportCount = 0;
+  if (sport === draft.sport) sportCount = draft.sportCount;
+  else if (sport) sportCount = draft.activities[sport] || savedCount(sport);
   const sport2 = sport && sport === draft.sport2 ? "" : draft.sport2;
   return { ...draft, sport, sport2, inSeason, sportCount };
 }
@@ -167,7 +186,7 @@ export function stepperRows(draft: Draft): StepperRow[] {
   if (draft.sport) {
     rows.push({ id: draft.sport, name: activityLabel(draft.sport), value: draft.sportCount, kind: "sport" });
   }
-  for (const id of activityIds(draft.sport)) {
+  for (const id of activityIds(draft.sport, draft.sport2)) {
     rows.push({ id, name: activityLabel(id), value: draft.activities[id] || 0, kind: "other" });
   }
   return rows;
@@ -192,7 +211,7 @@ export function weekSummary(draft: Draft): string {
   if (draft.sport && draft.sportCount) {
     line += ` + ${draft.sportCount}× ${activityLabel(draft.sport).toLowerCase()}`;
   }
-  for (const [id, count] of Object.entries(draft.activities)) {
+  for (const [id, count] of shownActivities(draft)) {
     if (!count || id === draft.sport) continue;
     line += ` + ${count}× ${activityLabel(id).toLowerCase()}`;
   }
@@ -205,7 +224,7 @@ function seasonRow(draft: Draft): PlanRow {
   if (!draft.sport) return { label, value: copy.onboarding.noSport };
   const name = activityLabel(draft.sport);
   const value = seasonal
-    ? `${name} · ${draft.inSeason ? copy.onboarding.inSeasonWord : copy.onboarding.offSeasonWord}`
+    ? `${name} (${draft.inSeason ? copy.onboarding.inSeasonWord : copy.onboarding.offSeasonWord})`
     : name;
   return { label, value };
 }
@@ -251,7 +270,7 @@ export function firstWorkout(draft: Draft, preview: PlanPreview): { eyebrow: str
     });
   };
   add(draft.sport, draft.sportCount);
-  for (const [id, count] of Object.entries(draft.activities)) {
+  for (const [id, count] of shownActivities(draft)) {
     if (id !== draft.sport) add(id, count);
   }
   const when = titles.length && next != null
@@ -292,7 +311,7 @@ function writeAnswers(wk: Record<string, any>, draft: Draft, real: boolean) {
   }
   wk.mainSport = draft.sport;
   wk.season = draft.sport && draft.inSeason && isSeasonal(draft.sport) ? "In-season" : "Off-season";
-  for (const [id, count] of Object.entries(draft.activities)) {
+  for (const [id, count] of shownActivities(draft)) {
     if (id === draft.sport) continue;
     if (count > 0) {
       wk.acts[id] = true;
@@ -326,6 +345,7 @@ function writeAnswers(wk: Record<string, any>, draft: Draft, real: boolean) {
   }
   engine.fixSports(wk);
   engine.syncDays();
+  engine.fitActivityDays();
   fitPace(wk);
   if (real) {
     wk.createdAt = wk.createdAt || Date.now();

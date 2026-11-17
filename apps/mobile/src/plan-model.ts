@@ -1,3 +1,5 @@
+"use no memo";
+
 import { useEffect, useState } from "react";
 import { AppState } from "react-native";
 import * as engine from "@liftboard/engine";
@@ -380,6 +382,7 @@ function planRows(days: Day[]): PlanRow[] {
         !model.byDay[index].some((session) => session.k !== "lift"),
     );
   let slot = 0;
+  const plannedWord = copy.plannedActivity((engine.plannedActs() as string[]).length);
   activityIds().forEach((id) => {
     for (let count = loggedCount(id); count < plannedCount(id); count += 1) {
       const dayIndex = openActivityDays[slot];
@@ -389,7 +392,7 @@ function planRows(days: Day[]): PlanRow[] {
         order: when ? when.getTime() + 2 : 9.5e15,
         id,
         kind: "act",
-        title: activityName(id),
+        title: id === "zone2" ? activityName(id) : plannedWord,
         sub: when ? weekdayShort(when, today) : copy.plan.anyDay,
         status: "open",
         dayOffset: when ? Math.round((day0(when.getTime()).getTime() - day0(Date.now()).getTime()) / DAY) : 0,

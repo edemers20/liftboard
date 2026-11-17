@@ -1,3 +1,5 @@
+"use no memo";
+
 import { DMMono_400Regular } from "@expo-google-fonts/dm-mono/400Regular";
 import { DMMono_500Medium } from "@expo-google-fonts/dm-mono/500Medium";
 import { DMSans_400Regular } from "@expo-google-fonts/dm-sans/400Regular";
@@ -11,10 +13,13 @@ import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState, type ReactNode } from "react";
 import { AppState, Platform, View } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SharedTransitionBoundary } from "react-native-reanimated";
 
 import { LaunchSplash, claimLaunchSplash } from "@/components/launch-splash";
+import { startCrashReports } from "@/crash/report";
 import { LiveWorkoutState, useLiveWorkout } from "@/components/live-workout";
+import { useLiveActivitySync } from "@/live-activity/sync";
 import { DialHost } from "@/components/number-dial";
 import { NoticeHost } from "@/components/motion";
 import { TipHost } from "@/components/tip-popover";
@@ -25,8 +30,10 @@ import { theme } from "@/theme";
 import { useReduceMotion } from "@/use-reduce-motion";
 import { prepareRestAlerts } from "@/workout/notify";
 import { subscribeWorkoutEnter, WORKOUT_CLOSE_MS, type WorkoutEnter } from "@/workout/share-box";
-import { rollWeekIfDue } from "@/week-roll";
+import { startDayClock } from "@/day-clock";
+import { onNewDay, rollWeekIfDue } from "@/week-roll";
 
+startCrashReports();
 SplashScreen.preventAutoHideAsync();
 
 /** Read once at launch. Finishing navigates away; the next launch reads the saved flag. */
@@ -69,22 +76,38 @@ export default function RootLayout() {
   }, [showSplash, appReady]);
 
   useEffect(() => {
-    prepareRestAlerts();
-    rollWeekIfDue();
-    const sub = AppState.addEventListener("change", (next) => {
-      if (next === "active") rollWeekIfDue();
+    let clock: ReturnType<typeof startDayClock> | null = null;
+  const sub = AppState.addEventListener("change", (next) => {
+      if (next !== "active") return;
+      rollWeekIfDue();
+      clock?.check();
     });
-    return () => sub.remove();
+    let cancelled = false;
+    const id = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (cancelled) return;
+        prepareRestAlerts();
+        rollWeekIfDue();
+        clock = startDayClock(onNewDay);
+      });
+    });
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(id);
+      sub.remove();
+      clock?.stop();
+    };
   }, []);
 
   const reduceMotion = useReduceMotion();
   const [enter, setEnter] = useState<WorkoutEnter>("plain");
   useEffect(() => subscribeWorkoutEnter(setEnter), []);
   const live = useLiveWorkout();
+  useLiveActivitySync();
 
   return (
     <LiveWorkoutState live={live}>
-    <View style={{ flex: 1, backgroundColor: theme.orange.background }}>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: theme.orange.background }}>
       <StatusBar style="light" />
       {appReady ? (
         <>
@@ -149,7 +172,7 @@ export default function RootLayout() {
         </>
       ) : null}
       {showSplash ? <LaunchSplash appReady={appReady} onDone={() => setShowSplash(false)} /> : null}
-    </View>
+    </GestureHandlerRootView>
     </LiveWorkoutState>
   );
 }

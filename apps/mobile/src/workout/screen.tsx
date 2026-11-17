@@ -1,4 +1,7 @@
+"use no memo";
+
 import { useEffect, useRef, useState } from "react";
+import { GlassSheet } from "@/components/glass-sheet";
 import { PressableScale } from "@/components/pressable-scale";
 import { AppState, Platform, ScrollView, StyleSheet, type ScrollViewInstance, Text, TextInput, View } from "react-native";
 import { router, useNavigation, Link } from "expo-router";
@@ -24,7 +27,7 @@ import { Check, Close, Swap } from "@/icons";
 import { RestBar } from "@/workout/rest-bar";
 
 import { endLiveWorkout, liveWorkoutHeld, quietLiveWorkout, releaseEmptyLive, releaseLiveWorkout } from "@/components/live-workout";
-import { SwipeDelete } from "@/components/swipe-delete";
+import { closeOpenSwipe, SwipeDelete, swipeCloseCapture } from "@/components/swipe-delete";
 import { armRest, cancelRestChime, claimRestChime } from "./notify";
 import { markWorkoutClose, openWorkout, ShareBox, WORKOUT_OPEN_MS, workoutEnter } from "./share-box";
 import { ShareWorkoutActions } from "./share-card";
@@ -57,7 +60,7 @@ const TAG_NAME: Record<string, string> = {
 function nextNote(why: string): string {
   const text = String(why || "");
   if (/^(hold|~?\d+ reps|\+5 lb|add a rep|same weight)/.test(text)) return "";
-  return text.replace(/ · \d+\/\d+ sets$/, "");
+  return text.replace(/ \(\d+\/\d+ sets\)$/, "");
 }
 
 function nextTarget(item: { n: string; w?: number; r?: number; bw?: number }): string {
@@ -114,11 +117,11 @@ const STRETCH: Record<string, [string, string][]> = {
 function skipNote(slot: { skip?: string; flag?: string }): string {
   const k = slot.skip || "";
   if (slot.flag) return slot.flag;
-  if (k === "Trimmed · no supersets") return copy.workout.cutSupersets;
+  if (k === "Trimmed: no supersets") return copy.workout.cutSupersets;
   if (k.startsWith("Trimmed for a 45")) return copy.workout.cut45;
   if (k.startsWith("Trimmed for a 30")) return copy.workout.cut30;
   if (k === "Not needed this week") return copy.workout.cardioCovered;
-  if (k.startsWith("Skipped · ")) return fill(copy.workout.skippedFor, k.slice(10));
+  if (k.startsWith("Skipped: ")) return fill(copy.workout.skippedFor, k.slice(9));
   return k;
 }
 
@@ -216,6 +219,8 @@ export function WorkoutScreen({ id }: { id: string }) {
   const [resetAsk, setResetAsk] = useState(false);
   const [switchAsk, setSwitchAsk] = useState<string | null>(null);
   const [deleteAsk, setDeleteAsk] = useState<null | { index: number; name: string; sets: number }>(null);
+  /** Bumped when rows are removed or restored, so no row keeps another row's open swipe. */
+  const [swipeRev, setSwipeRev] = useState(0);
   const [undo, setUndo] = useState<null | { run: () => void }>(null);
   const pendingLive = useRef<null | (() => void)>(null);
   const nudgeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -264,6 +269,7 @@ export function WorkoutScreen({ id }: { id: string }) {
     if (current?.start && !current.end) return;
     timers[id] = { start: Date.now() };
     engine.wk.wt = timers;
+    engine.plan();
     engine.save();
   }
 
@@ -302,11 +308,20 @@ export function WorkoutScreen({ id }: { id: string }) {
     engine.syncDays();
     engine.save();
     if (engine.wk.done?.[id]) engine.resyncDone(id);
+    setSwipeRev((rev) => rev + 1);
   }
 
+  /** Removes the row. A planned row also lowers this workout's set count, so the plan can't refill it. */
   function deleteSet(index: number, setIndex: number) {
+    const state = engine.get(id, index);
+    const planned = engine.plan().days[id].slots[index].sets || 0;
+    if (Math.max(planned, (state.log || []).length) <= 1) {
+      removeExercise(index);
+      return;
+    }
     const snap = daySnap();
-    const log = (engine.get(id, index).log || []).slice();
+    if (setIndex < planned) engine.set(id, index, "drop", (Number(state.drop) || 0) + 1);
+    const log = (state.log || []).slice();
     log.splice(setIndex, 1);
     engine.set(id, index, "log", log);
     if (engine.wk.done?.[id]) engine.resyncDone(id);
@@ -327,6 +342,7 @@ export function WorkoutScreen({ id }: { id: string }) {
     }
     if (engine.wk.done?.[id]) engine.resyncDone(id);
     releaseEmptyLive(id);
+    setSwipeRev((rev) => rev + 1);
     rememberUndo(() => restoreDay(snap));
   }
 
@@ -439,8 +455,9 @@ export function WorkoutScreen({ id }: { id: string }) {
     haptic.selection();
     const before = engine.plan();
     engine.wk.today = { ...(engine.wk.today || {}), [id]: value };
+    const after = engine.plan();
     engine.save();
-    showLines(engine.dayDiff(before, engine.plan(), id), false);
+    showLines(engine.dayDiff(before, after, id), false);
   }
 
   async function skipRest() {
@@ -513,6 +530,7 @@ export function WorkoutScreen({ id }: { id: string }) {
       const timers = { ...(engine.wk.wt || {}) };
       if (!timers[id]?.start) timers[id] = { start: Date.now() };
       engine.wk.wt = timers;
+      engine.plan();
     }
     const wasDone = !!engine.wk.done?.[id];
     engine.set(id, index, "log", log);
@@ -647,11 +665,12 @@ export function WorkoutScreen({ id }: { id: string }) {
 
   const screenTree = (
     <ShareBox tag={expand ? `lift-${id}` : undefined} style={styles.screen}>
-      <Animated.View style={[styles.reveal, bodyStyle]}>
+      <Animated.View style={[styles.reveal, bodyStyle]} {...swipeCloseCapture}>
       <Animated.ScrollView
         ref={scroll}
         style={styles.reveal}
         keyboardShouldPersistTaps="handled"
+        onScrollBeginDrag={closeOpenSwipe}
         onScroll={hide.onScroll}
         scrollEventThrottle={16}
         scrollsToTop
@@ -707,12 +726,6 @@ export function WorkoutScreen({ id }: { id: string }) {
               {` ${copy.workout.shortenedWhy}`}
             </Text>
           ) : null}
-          {day.id === plan.nextId && engine.wk.upNext === day.id && engine.wk.missedNote ? (
-            <Text style={styles.note}>
-              <Text style={styles.noteStrong}>{copy.workout.upNext}</Text>
-              {` · ${engine.wk.missedNote.why}`}
-            </Text>
-          ) : null}
         </View>
 
         {review?.items?.length ? (
@@ -746,7 +759,7 @@ export function WorkoutScreen({ id }: { id: string }) {
           const label = slot.extra
             ? fill(copy.workout.added, slot.label)
             : slot.ss && engine.wk.ss !== "No"
-              ? `${slot.label} · ${slot.ss}`
+              ? `${slot.label} (${slot.ss})`
               : slot.label;
           if (index === firstOptional) {
             return (
@@ -811,7 +824,7 @@ export function WorkoutScreen({ id }: { id: string }) {
             return readOnly ? (
               <View key={index}>{row}</View>
             ) : (
-              <SwipeDelete key={index} label={copy.workout.delete} onDelete={() => askDeleteExercise(index)}>
+              <SwipeDelete key={`${index}/${swipeRev}`} label={copy.workout.delete} onDelete={() => askDeleteExercise(index)}>
                 {row}
               </SwipeDelete>
             );
@@ -844,7 +857,7 @@ export function WorkoutScreen({ id }: { id: string }) {
           return readOnly ? (
             card
           ) : (
-            <SwipeDelete key={index} label={copy.workout.delete} onDelete={() => askDeleteExercise(index)}>
+            <SwipeDelete key={`${index}/${swipeRev}`} label={copy.workout.delete} onDelete={() => askDeleteExercise(index)}>
               {card}
             </SwipeDelete>
           );
@@ -1010,20 +1023,24 @@ export function WorkoutScreen({ id }: { id: string }) {
       />
 
       {undo ? (
-        <PressableScale
-          accessibilityRole="button"
-          onPress={() => {
-            undo.run();
-            setUndo(null);
-          }}
-          style={[styles.undo, { bottom: insets.bottom + 16 }]}
-        >
-          <Text style={styles.undoText}>{copy.workout.deletedUndo}</Text>
-        </PressableScale>
+        <View style={[styles.undo, { bottom: insets.bottom + 16 }]}>
+          <Text accessibilityLiveRegion="polite" style={styles.undoText}>{copy.workout.deleted}</Text>
+          <PressableScale
+            accessibilityRole="button"
+            onPress={() => {
+              undo.run();
+              setUndo(null);
+            }}
+            hitSlop={{ top: 4, bottom: 4 }}
+            style={styles.undoButton}
+          >
+            <Text style={styles.undoAction}>{copy.workout.undoDelete}</Text>
+          </PressableScale>
+        </View>
       ) : null}
 
       <SheetFrame visible={resetAsk} onClose={() => setResetAsk(false)} label={copy.you.cancel}>
-          <View style={[styles.sheet, { marginBottom: insets.bottom + 12 }]}>
+          <GlassSheet style={[styles.sheet, { marginBottom: insets.bottom + 12 }]}>
             <Text accessibilityRole="header" style={styles.confirmTitle}>
               {fill(copy.workout.resetTitle, day.tab || copy.workout.thisDay)}
             </Text>
@@ -1036,11 +1053,11 @@ export function WorkoutScreen({ id }: { id: string }) {
                 <Text style={styles.primaryText}>{copy.workout.resetDay}</Text>
               </PressableScale>
             </View>
-          </View>
+          </GlassSheet>
       </SheetFrame>
 
       <SheetFrame visible={!!switchAsk} onClose={() => { pendingLive.current = null; setSwitchAsk(null); }} label={copy.you.cancel}>
-        <View style={[styles.sheet, { marginBottom: insets.bottom + 12 }]}>
+        <GlassSheet style={[styles.sheet, { marginBottom: insets.bottom + 12 }]}>
           <Text accessibilityRole="header" style={styles.confirmTitle}>
             {fill(copy.workout.finishFirst, (engine.DAYS as { id: string; title: string }[]).find((item) => item.id === switchAsk)?.title || "")}
           </Text>
@@ -1072,11 +1089,11 @@ export function WorkoutScreen({ id }: { id: string }) {
               <Text style={styles.primaryText}>{copy.workout.switchWorkout}</Text>
             </PressableScale>
           </View>
-        </View>
+        </GlassSheet>
       </SheetFrame>
 
       <SheetFrame visible={!!deleteAsk} onClose={() => setDeleteAsk(null)} label={copy.you.cancel}>
-        <View style={[styles.sheet, { marginBottom: insets.bottom + 12 }]}>
+        <GlassSheet style={[styles.sheet, { marginBottom: insets.bottom + 12 }]}>
           <Text accessibilityRole="header" style={styles.confirmTitle}>
             {deleteAsk ? fill(copy.workout.deleteSets, deleteAsk.name, deleteAsk.sets) : ""}
           </Text>
@@ -1096,11 +1113,11 @@ export function WorkoutScreen({ id }: { id: string }) {
               <Text style={styles.primaryText}>{copy.workout.delete}</Text>
             </PressableScale>
           </View>
-        </View>
+        </GlassSheet>
       </SheetFrame>
 
       <SheetFrame visible={sheet != null} onClose={() => setSheet(null)}>
-          <View style={[styles.sheet, { marginBottom: insets.bottom + 12 }]}>
+          <GlassSheet solid={sheet === "done"} style={[styles.sheet, { marginBottom: insets.bottom + 12 }]}>
             {sheet === "done" ? (
               <>
                 <View style={styles.sheetTop}>
@@ -1170,7 +1187,7 @@ export function WorkoutScreen({ id }: { id: string }) {
                     <Close />
                   </PressableScale>
                 </View>
-                {upReview ? <NextLine item={upReview} lead={`${copy.workout.nextTime} ·`} /> : null}
+                {upReview ? <NextLine item={upReview} lead={`${copy.workout.nextTime}:`} /> : null}
                 {upFollowing != null ? (
                   <PressableScale
                     accessibilityRole="button"
@@ -1188,7 +1205,7 @@ export function WorkoutScreen({ id }: { id: string }) {
                 ) : null}
               </>
             )}
-          </View>
+          </GlassSheet>
       </SheetFrame>
 
       <PickerModal
@@ -1397,13 +1414,13 @@ function ExerciseCard(props: {
           {planSlot.flag ? (
             <Text style={styles.note}>
               <Text style={styles.noteStrong}>{copy.workout.lowered}</Text>
-              {` · ${planSlot.flag}`}
+              {`: ${planSlot.flag}`}
             </Text>
           ) : null}
           {planSlot.steady ? (
             <Text style={styles.note}>
               <Text style={styles.noteStrong}>{copy.workout.easyPace}</Text>
-              {` · ${planSlot.steady}`}
+              {`: ${planSlot.steady}`}
             </Text>
           ) : null}
           {planSlot.min ? (
@@ -1503,7 +1520,7 @@ function ExerciseCard(props: {
             return readOnly ? (
               setRow
             ) : (
-              <SwipeDelete key={setIndex} label={copy.workout.delete} onDelete={() => props.onDeleteSet(setIndex)}>
+              <SwipeDelete key={`${setIndex}/${rows}`} label={copy.workout.delete} onDelete={() => props.onDeleteSet(setIndex)}>
                 {setRow}
               </SwipeDelete>
             );
@@ -1665,7 +1682,7 @@ function PickerModal({
 }) {
   return (
     <SheetFrame visible={open} onClose={onClose}>
-        <View style={styles.pickerSheet}>
+        <GlassSheet style={styles.pickerSheet}>
           <Text style={styles.section}>{title}</Text>
           <ScrollView style={styles.pickerList} keyboardShouldPersistTaps="handled">
             {groups.map((group) => (
@@ -1685,7 +1702,7 @@ function PickerModal({
               </View>
             ))}
           </ScrollView>
-        </View>
+        </GlassSheet>
     </SheetFrame>
   );
 }
@@ -1701,11 +1718,14 @@ const styles = StyleSheet.create({
     minHeight: 48,
     borderRadius: theme.radii.pill,
     backgroundColor: "#2f2a27",
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 16,
+    justifyContent: "space-between",
+    paddingLeft: 20,
   },
   undoText: { color: theme.text, fontFamily: theme.fonts.bodySemi, fontSize: 15 },
+  undoButton: { minHeight: 48, paddingHorizontal: 20, borderRadius: theme.radii.pill, justifyContent: "center" },
+  undoAction: { color: theme.green.accent, fontFamily: theme.fonts.bodySemi, fontSize: 15 },
   statusStrip: {
     position: "absolute",
     top: 0,

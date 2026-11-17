@@ -1,4 +1,7 @@
+"use no memo";
+
 import { router, useFocusEffect } from "expo-router";
+import { GlassTrack } from "@/components/glass-track";
 import { PressableScale } from "@/components/pressable-scale";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import { Keyboard, StyleSheet, type ScrollViewInstance, Text, useWindowDimensions, View } from "react-native";
@@ -82,7 +85,6 @@ function savedView(): ViewName {
 }
 
 export default function PlanScreen() {
-  "use no memo";
   const version = useEngineStore((state) => state.version);
   const clock = usePlanClock();
   const reduceMotion = useReduceMotion();
@@ -187,10 +189,7 @@ export default function PlanScreen() {
       }, false);
     },
     toggleActivity(index) {
-      const current: number[] = model.activityDays;
-      engine.wk.adays = current.includes(index)
-        ? current.filter((day) => day !== index)
-        : [...current, index].sort((a, b) => a - b);
+      engine.setActivityDay(index, !model.activityDays.includes(index));
       engine.save();
     },
     setSeason(on) {
@@ -475,14 +474,14 @@ function Header({
           </Text>
         )}
       </View>
-      <View accessibilityRole="tablist" style={styles.switchTrack}>
+      <GlassTrack>
         <PressableScale kind="button" brighten={view === "week"} accessibilityRole="tab" accessibilityState={{ selected: view === "week" }} aria-selected={view === "week"} hitSlop={{ top: 6, bottom: 6 }} onPress={onWeek} style={[styles.switchBtn, view === "week" && styles.switchOn]}>
           <Text style={[styles.switchText, view === "week" && styles.switchTextOn]}>{copy.plan.week}</Text>
         </PressableScale>
         <PressableScale kind="button" brighten={view === "season"} accessibilityRole="tab" accessibilityState={{ selected: view === "season" }} aria-selected={view === "season"} hitSlop={{ top: 6, bottom: 6 }} onPress={onSeason} style={[styles.switchBtn, view === "season" && styles.switchOn]}>
           <Text style={[styles.switchText, view === "season" && styles.switchTextOn]}>{copy.plan.season}</Text>
         </PressableScale>
-      </View>
+      </GlassTrack>
     </View>
   );
 }
@@ -1161,14 +1160,6 @@ const styles = StyleSheet.create({
     fontSize: 34,
     lineHeight: 40,
     textTransform: "uppercase",
-  },
-  switchTrack: {
-    flexDirection: "row",
-    alignItems: "stretch",
-    minHeight: 44,
-    backgroundColor: theme.orange.surface,
-    borderRadius: theme.radii.pill,
-    padding: 3,
   },
   switchBtn: {
     minHeight: 38,

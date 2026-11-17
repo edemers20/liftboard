@@ -7,6 +7,7 @@ import {
   formatAverage,
   formatHours,
   linePoints,
+  trendPoints,
   monthGrid,
   sparkPoints,
   weekRange,
@@ -25,14 +26,14 @@ const june = monthGrid(2026, 5);
 assert.equal(june.lead, 0);
 assert.equal(june.days, 30);
 
-assert.equal(formatHours(30), "½h");
+assert.equal(formatHours(30), "0.5h");
 assert.equal(formatAverage(45), "45m");
 assert.equal(formatAverage(90), "1.5h");
 assert.equal(formatAverage(120), "2h");
-assert.equal(formatHours(90), "1½h");
+assert.equal(formatHours(90), "1.5h");
 assert.equal(formatHours(420), "7h");
 assert.equal(formatHours(600), "10h");
-assert.equal(formatHours(20), "½h");
+assert.equal(formatHours(20), "0.5h");
 
 assert.equal(displayWeight(140, "lb"), 140);
 assert.equal(displayWeight(110, "kg"), Math.round((110 / 2.20462) * 10) / 10);
@@ -59,6 +60,20 @@ assert.deepEqual(linePoints([80, 80]), [
   { x: 92, y: 40 },
 ]);
 assert.deepEqual(linePoints([50]), [{ x: 48, y: 40 }]);
+
+const rising = trendPoints([0, 0.05, 0.1]);
+assert.deepEqual(rising.points, [
+  { x: 4, y: 28 },
+  { x: 48, y: 16 },
+  { x: 92, y: 4 },
+]);
+assert.equal(rising.zero, 28);
+const flat = trendPoints([0.01, -0.01, 0]);
+assert.ok(flat.points.every((point) => point.y >= 10 && point.y <= 22));
+assert.equal(flat.zero, 16);
+const falling = trendPoints([0, -0.03, -0.06]);
+assert.ok(falling.points[2].y > falling.points[0].y);
+assert.equal(falling.zero, 4);
 
 const nov2 = new Date(2026, 10, 2).getTime();
 const oct26 = new Date(2026, 9, 26).getTime();

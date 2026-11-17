@@ -1,17 +1,21 @@
+"use no memo";
+
 import { router } from "expo-router";
 import { PressableScale } from "@/components/pressable-scale";
 import { Flame } from "lucide-react-native";
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Animated, Easing, Platform, ScrollView, StyleSheet, Text, useWindowDimensions, View, type ScrollViewInstance, type ViewStyle } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Svg, { Circle, Polyline } from "react-native-svg";
+import Svg, { Circle, Line, Polyline } from "react-native-svg";
 import Reanimated from "react-native-reanimated";
 
+import { GlassTrack } from "@/components/glass-track";
 import { LiveWorkoutBar } from "@/components/live-workout";
 import { StepButton } from "@/components/step-button";
 import { InfoTip } from "@/components/tip-popover";
-import { copy } from "@/copy";
+import { copy, fill as fillCopy } from "@/copy";
 import type { HistoryDay, HistoryLift, HistoryPr, HistorySession, HistorySnapshot, HistoryWeek, MuscleBar, SessionExercise } from "@/history-data";
+import { haptic } from "@/haptic";
 import { Info, TabWorkouts } from "@/icons";
 import {
   displayWeight,
@@ -19,6 +23,7 @@ import {
   formatHours,
   formatWeight,
   linePoints,
+  trendPoints,
   MIX_ORDER,
   monthGrid,
   weekRange,
@@ -26,6 +31,7 @@ import {
   type MonthCell,
   type MixWeek,
 } from "@/history-model";
+import { createScrollTick } from "@/scroll-tick";
 import { storage } from "@/storage";
 import { TabBarSpacer, TabScrollMarker } from "@/tab-bar-inset";
 import { engine, useEngineStore } from "@/store";
@@ -63,7 +69,8 @@ const SPLIT_FILL = {
 const UNDER = "#e7b94a";
 const DONE_PILL = "#1f3029";
 const TRACK = "#34302c";
-const PR_CARD = "#2a211c";
+const PR_WIDTH = 150;
+const PR_GAP = 8;
 const HAIRLINE = "#2f2a27";
 
 function storedView(): ViewId {
@@ -223,7 +230,7 @@ export function HistoryTab({ data }: { data: HistorySnapshot }) {
         <Text accessibilityRole="header" style={styles.title}>
           {copy.tabs.history}
         </Text>
-        <View accessibilityRole="tablist" accessibilityLabel={copy.tabs.history} style={styles.switch}>
+        <GlassTrack label={copy.tabs.history} style={styles.switch}>
           {VIEWS.map((id) => {
             const selected = id === view;
             return (
@@ -242,7 +249,7 @@ export function HistoryTab({ data }: { data: HistorySnapshot }) {
               </PressableScale>
             );
           })}
-        </View>
+        </GlassTrack>
       </View>
       </Reanimated.View>
       <View style={styles.pager}>
@@ -512,7 +519,7 @@ function WeekMix({ data }: { data: HistorySnapshot }) {
       <SectionHeading title={copy.history.weekMix} body={copy.history.weekMixInfo} />
       <View
         accessibilityRole="image"
-        accessibilityLabel={[mixSummary(mix.weeks), trend ? copy.history.aboutAWeek(trend).replace(/^ · /, "") : ""]
+        accessibilityLabel={[mixSummary(mix.weeks), trend ? copy.history.aboutAWeek(trend).replace(/^ \((.*)\)$/, "$1") : ""]
           .filter(Boolean)
           .join(". ")}
         style={styles.mix}
@@ -727,6 +734,7 @@ function MuscleRow({ muscle }: { muscle: MuscleBar }) {
 function LiftsPage({ data, hide, active, topPad }: { data: HistorySnapshot; hide: HideOnScroll; active: boolean; topPad: number }) {
   const [open, setOpen] = useState<string | null>(null);
   const [tip, setTip] = useState(false);
+  const prTick = useRef(createScrollTick(PR_WIDTH + PR_GAP)).current;
   if (!data.lifts.length && !data.prs.length) {
     return (
       <TabScrollMarker active={active}>
@@ -763,6 +771,10 @@ function LiftsPage({ data, hide, active, topPad }: { data: HistorySnapshot; hide
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.prScroll}
             style={styles.prBleed}
+            scrollEventThrottle={16}
+            onScroll={(event) => {
+              if (prTick(event.nativeEvent.contentOffset.x, Date.now())) haptic.selection();
+            }}
           >
             {data.prs.map((pr) => (
               <PrCard key={`${pr.name}-${pr.t}-${pr.kind}`} pr={pr} units={data.units} />
@@ -770,6 +782,7 @@ function LiftsPage({ data, hide, active, topPad }: { data: HistorySnapshot; hide
           </ScrollView>
         </View>
       ) : null}
+      {data.strength.upper || data.strength.lower ? <StrengthCard strength={data.strength} /> : null}
       {data.lifts.length ? (
         <View style={styles.liftHead}>
           <Text accessibilityRole="header" style={styles.sectionTitle}>
@@ -812,6 +825,55 @@ function LiftsPage({ data, hide, active, topPad }: { data: HistorySnapshot; hide
       <TabBarSpacer />
     </Reanimated.ScrollView>
     </TabScrollMarker>
+  );
+}
+
+function percent(value: number) {
+  const n = Math.round(value * 1000) / 10;
+  return `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n).toFixed(1)}%`;
+}
+
+/** Upper and lower strength trend. The label shows; a tap shows the percent and, with weigh-ins, the bodyweight comparison. */
+function StrengthCard({ strength }: { strength: HistorySnapshot["strength"] }) {
+  const [shown, setShown] = useState<"upper" | "lower" | null>(null);
+  const rows = (["upper", "lower"] as const).filter((half) => strength[half]);
+  return (
+    <View style={styles.prBlock}>
+      <Text accessibilityRole="header" style={styles.sectionTitle}>
+        {copy.history.strengthTrend}
+      </Text>
+      <View style={styles.card}>
+        {rows.map((half, index) => {
+          const row = strength[half]!;
+          const name = half === "upper" ? copy.history.trendUpper : copy.history.trendLower;
+          const label = row.label === "up" ? copy.history.trendUp : row.label === "down" ? copy.history.trendDown : copy.history.trendHolding;
+          const open = shown === half;
+          const since = fillCopy(copy.history.trendSince, percent(row.pct));
+          const versus = row.rel == null ? null : fillCopy(copy.history.trendBodyweight, percent(row.rel));
+          return (
+            <PressableScale
+              key={half}
+              accessibilityRole="button"
+              accessibilityState={{ expanded: open }}
+              accessibilityLabel={`${name}, ${label}${open ? `. ${since}${versus ? `. ${versus}` : ""}` : ""}`}
+              onPress={() => setShown((current) => (current === half ? null : half))}
+              style={[styles.strengthRow, index > 0 ? styles.strengthDivider : null]}
+            >
+              <View style={styles.strengthLine}>
+                <Text style={styles.liftName}>{name}</Text>
+                <TrendMark values={row.spark} />
+              </View>
+              {open ? (
+                <>
+                  <Text style={styles.strengthDetail}>{since}</Text>
+                  {versus ? <Text style={styles.strengthDetail}>{versus}</Text> : null}
+                </>
+              ) : null}
+            </PressableScale>
+          );
+        })}
+      </View>
+    </View>
   );
 }
 
@@ -923,6 +985,29 @@ function Spark({ values, label }: { values: number[]; label: string }) {
   );
 }
 
+function TrendMark({ values }: { values: number[] }) {
+  const { points, zero } = trendPoints(values);
+  const last = points[points.length - 1];
+  return (
+    <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      <Svg width={96} height={32}>
+        <Line x1={4} x2={92} y1={zero} y2={zero} stroke={theme.orange.accent} strokeOpacity={0.35} strokeWidth={1} strokeDasharray="3 3" />
+        {points.length > 1 ? (
+          <Polyline
+            points={points.map((point) => `${point.x},${point.y}`).join(" ")}
+            fill="none"
+            stroke={theme.fuel}
+            strokeWidth={2}
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
+        ) : null}
+        {last ? <Circle cx={last.x} cy={last.y} r={3.5} fill={theme.fuel} /> : null}
+      </Svg>
+    </View>
+  );
+}
+
 function Reveal({ children }: { children: ReactNode }) {
   const reduce = useReduceMotion();
   const progress = useRef(new Animated.Value(reduce ? 1 : 0)).current;
@@ -966,14 +1051,13 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     color: theme.text,
   },
-  switch: { flexDirection: "row", gap: 6, marginBottom: 12 },
+  switch: { gap: 4, marginBottom: 12 },
   segment: {
     flex: 1,
-    minHeight: 40,
+    minHeight: 38,
     borderRadius: theme.radii.pill,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: theme.orange.background,
   },
   segmentOn: { backgroundColor: theme.orange.selectedFill },
   segmentText: { fontFamily: theme.fonts.body, fontSize: 14, color: theme.text },
@@ -1155,18 +1239,22 @@ const styles = StyleSheet.create({
   },
   countText: { fontFamily: theme.fonts.bodySemi, fontSize: 13, color: theme.text },
   prBlock: { gap: 8 },
+  strengthRow: { paddingHorizontal: 16, paddingVertical: 14, gap: 4 },
+  strengthDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: HAIRLINE },
+  strengthLine: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
+  strengthDetail: { fontFamily: theme.fonts.mono, fontSize: 13, color: theme.muted },
   sectionTitle: { fontFamily: theme.fonts.bodySemi, fontSize: 15, color: theme.text },
   prBleed: { marginHorizontal: -16 },
-  prScroll: { paddingHorizontal: 16, gap: 8 },
-  prCard: { width: 150, backgroundColor: PR_CARD, borderRadius: 14, padding: 12, gap: 2 },
+  prScroll: { paddingHorizontal: 16, gap: PR_GAP },
+  prCard: { width: PR_WIDTH, backgroundColor: theme.orange.surface, borderRadius: 14, padding: 12, gap: 2 },
   prKind: {
     fontFamily: theme.fonts.bodySemi,
     fontSize: 11,
     letterSpacing: 0.44,
     textTransform: "uppercase",
-    color: theme.fuel,
+    color: theme.record,
   },
-  prName: { fontFamily: theme.fonts.body, fontSize: 13, color: theme.text },
+  prName: { fontFamily: theme.fonts.bodySemi, fontSize: 13, color: theme.text },
   prValue: { fontFamily: theme.fonts.monoMedium, fontSize: 20, color: theme.text },
   prDate: { fontFamily: theme.fonts.body, fontSize: 12, color: theme.muted },
   liftHead: { flexDirection: "row", alignItems: "center", alignSelf: "flex-start", gap: 5 },
@@ -1193,5 +1281,5 @@ const styles = StyleSheet.create({
   tableWeek: { flex: 1, fontFamily: theme.fonts.body, fontSize: 13, color: theme.muted },
   tableMono: { flex: 1, fontFamily: theme.fonts.mono, fontSize: 13, color: theme.text },
   tableRight: { textAlign: "right" },
-  tablePr: { color: theme.fuel },
+  tablePr: { color: theme.record },
 });

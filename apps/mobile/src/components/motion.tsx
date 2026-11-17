@@ -1,3 +1,5 @@
+"use no memo";
+
 import { usePathname } from "expo-router";
 import { PressableScale } from "@/components/pressable-scale";
 import { useEffect, useRef, useState, type ReactNode } from "react";

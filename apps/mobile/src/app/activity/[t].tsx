@@ -1,4 +1,7 @@
+"use no memo";
+
 import { router, useLocalSearchParams } from "expo-router";
+import { GlassSheet } from "@/components/glass-sheet";
 import { PressableScale } from "@/components/pressable-scale";
 import { useEffect, useRef, useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
@@ -194,7 +197,7 @@ export default function ActivityScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
       <SheetFrame visible={askDelete} onClose={() => setAskDelete(false)} label={copy.you.cancel}>
-        <View style={[styles.sheet, { marginBottom: insets.bottom + 12 }]}>
+        <GlassSheet style={[styles.sheet, { marginBottom: insets.bottom + 12 }]}>
           <View style={styles.sheetButtons}>
             <PressableScale accessibilityRole="button" onPress={() => setAskDelete(false)} style={styles.sheetCancel}>
               <Text style={styles.sheetCancelText}>{copy.you.cancel}</Text>
@@ -203,7 +206,7 @@ export default function ActivityScreen() {
               <Text style={styles.sheetDeleteText}>{copy.workouts.delete}</Text>
             </PressableScale>
           </View>
-        </View>
+        </GlassSheet>
       </SheetFrame>
     </SafeAreaView>
   );
@@ -259,7 +262,7 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: 16,
-    paddingTop: 8,
+    paddingTop: 32,
     paddingBottom: 24,
     gap: 16,
   },

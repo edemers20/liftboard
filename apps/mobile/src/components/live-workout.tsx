@@ -1,3 +1,5 @@
+"use no memo";
+
 import { isLiquidGlassAvailable } from "expo-glass-effect";
 import { PressableScale } from "@/components/pressable-scale";
 import { SheetFrame } from "@/components/motion";
@@ -200,6 +202,8 @@ function glassTabs(): boolean {
 export function useSolidLive(): boolean {
   const [reduce, setReduce] = useState(false);
   useEffect(() => {
+    // iOS only; React Native Web has no isReduceTransparencyEnabled and throws.
+    if (Platform.OS !== "ios") return;
     let current = true;
     AccessibilityInfo.isReduceTransparencyEnabled().then((on) => {
       if (current) setReduce(on);
@@ -247,7 +251,7 @@ function spoken(live: LiveWorkout, inline: boolean): string {
   if (live.done) return live.detail;
   if (inline) return live.compact;
   if (!live.detail) return live.title;
-  return `${live.title} · ${live.detail}`;
+  return `${live.title}: ${live.detail}`;
 }
 
 function Label({ live, inline }: { live: LiveWorkout; inline: boolean }) {
@@ -268,7 +272,7 @@ function Label({ live, inline }: { live: LiveWorkout; inline: boolean }) {
   return (
     <Text numberOfLines={1} style={styles.label}>
       {live.title}
-      <Text style={styles.time}>{` · ${live.detail}`}</Text>
+      <Text style={styles.time}>{`: ${live.detail}`}</Text>
     </Text>
   );
 }

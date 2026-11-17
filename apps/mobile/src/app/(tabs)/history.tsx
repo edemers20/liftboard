@@ -1,3 +1,5 @@
+"use no memo";
+
 import { useMemo } from "react";
 
 import { HistoryTab } from "@/components/history-tab";

@@ -1,3 +1,4 @@
+import { GlassSheet } from "@/components/glass-sheet";
 import { PressableScale } from "@/components/pressable-scale";
 import {
   Modal,
@@ -224,7 +225,7 @@ export function ConfirmCard({
       <View style={styles.fill}>
         <PressableScale kind="plain" style={styles.backdrop} onPress={onCancel} />
         <View style={styles.dialogWrap} pointerEvents="box-none">
-          <View accessibilityViewIsModal style={styles.dialog}>
+          <GlassSheet accessibilityViewIsModal style={styles.dialog}>
             <Text style={styles.dialogTitle}>{title}</Text>
             <Text style={styles.dialogBody}>{body}</Text>
             <View style={styles.dialogButtons}>
@@ -235,7 +236,7 @@ export function ConfirmCard({
                 <Text style={styles.primaryText}>{confirm}</Text>
               </PressableScale>
             </View>
-          </View>
+          </GlassSheet>
         </View>
       </View>
     </Modal>
