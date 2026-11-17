@@ -1004,7 +1004,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 | Body text | Replaces everything on this phone with the backup from {…}. | main.js:1226 |
 | Confirm button | Restore | main.js:1226 |
 | Preview (native) | {…} Lifts, {…} Activities, {…} Weeks active (the You tab's labels, as three tiles) | Restore backup? Counts found in the file before importing. |
-| Preview note (native) | Set history comes over as top sets only. **TODO copy** | Restore backup? Under the counts. |
+| Preview note (native) | Set history transfers your top sets only. | Restore backup? Under the counts. Emma approved Nov 17. |
 | Title | Replace your data | main.js:1262 |
 | Body text | Everything on this device is replaced with the pasted data. | main.js:1262 |
 | Confirm button | Replace | main.js:1262 |
@@ -1082,11 +1082,11 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | 1RM is an estimate of the most you could lift once, worked out from your top set (weight × (1 + reps ÷ 30)). It's for tracking trends; you never need to test it. | History, Lifts. The word 1RM is bold. |
 |  | Your top set: the heaviest set you did that week. | History, Lifts |
 |  | Shown for the last 8 weeks. | History, Lifts |
-| Section title | Strength trend **TODO copy** | History, Lifts. C2 card, between Recent PRs and Main lifts. |
-| Row | Upper body / Lower body | History, Lifts. Strength trend rows (existing words). |
-| Label | Up / Holding / Down **TODO copy** | History, Lifts. Strength trend; from OUTSTANDING C2. Green for Up, and for Holding on a cut. |
-| On tap | {…} since your first sessions **TODO copy** | History, Lifts. Strength trend, e.g. "+4.2%". |
-| On tap | {…} relative to your bodyweight **TODO copy** | History, Lifts. Strength trend, only with a weigh-in near the start. |
+| Section title | Recent trends | History, Lifts. C2 card, between Recent PRs and Main lifts. Emma Nov 17. |
+| Row | Upper body / Lower body | History, Lifts. Recent trends rows (existing words). Each row shows an orange trend mark, not a word. |
+| Screen reader | Up / Holding / Down **TODO copy** | History, Lifts. Read after the row name; not shown (Emma Nov 17: the trend mark is the signal). |
+| On tap | {…} since your first sessions **TODO copy** | History, Lifts. Recent trends, e.g. "+4.2%". |
+| On tap | {…} relative to your bodyweight **TODO copy** | History, Lifts. Recent trends, only with a weigh-in near the start. |
 |  | in 8 wk | History, Lifts |
 |  | Week of | History, Lifts |
 |  | 1RM | History, Lifts |

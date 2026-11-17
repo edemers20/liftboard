@@ -7,6 +7,7 @@ import {
   formatAverage,
   formatHours,
   linePoints,
+  trendPoints,
   monthGrid,
   sparkPoints,
   weekRange,
@@ -59,6 +60,20 @@ assert.deepEqual(linePoints([80, 80]), [
   { x: 92, y: 40 },
 ]);
 assert.deepEqual(linePoints([50]), [{ x: 48, y: 40 }]);
+
+const rising = trendPoints([0, 0.05, 0.1]);
+assert.deepEqual(rising.points, [
+  { x: 4, y: 28 },
+  { x: 48, y: 16 },
+  { x: 92, y: 4 },
+]);
+assert.equal(rising.zero, 28);
+const flat = trendPoints([0.01, -0.01, 0]);
+assert.ok(flat.points.every((point) => point.y >= 10 && point.y <= 22));
+assert.equal(flat.zero, 16);
+const falling = trendPoints([0, -0.03, -0.06]);
+assert.ok(falling.points[2].y > falling.points[0].y);
+assert.equal(falling.zero, 4);
 
 const nov2 = new Date(2026, 10, 2).getTime();
 const oct26 = new Date(2026, 9, 26).getTime();

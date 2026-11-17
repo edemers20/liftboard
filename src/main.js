@@ -859,11 +859,15 @@ function calHTML(){
 let openLift=null, openTrend=null;
 /* Upper and lower strength trend (C2). TODO copy: the card's words wait on Emma. */
 const pctTxt=v=>{ const n=Math.round(v*1000)/10; return `${n>0?"+":n<0?"−":""}${Math.abs(n).toFixed(1)}%`; };
+/* 96×32, 0% kept in range (dashed line); span at least the 4% Holding band so small wobbles stay flat */
+const trendMark=v=>{ const lo=Math.min(0,...v), hi=Math.max(0,...v), span=Math.max(.04,hi-lo), mid=(lo+hi)/2, n=v.length;
+  const y=e=>+(16-(e-mid)/span*24).toFixed(1), pts=v.map((e,j)=>[+(n>1?4+j*88/(n-1):48).toFixed(1),y(e)]), z=y(0);
+  return `<svg class="trendmark" width="96" height="32" viewBox="0 0 96 32" aria-hidden="true"><line x1="4" x2="92" y1="${z}" y2="${z}"/><polyline points="${pts.map(p=>p.join(",")).join(" ")}"/><circle cx="${pts[n-1][0]}" cy="${pts[n-1][1]}" r="3.5"/></svg>`; };
 function strengthHTML(){
   const T=strengthTrend(weekStartOf), rows=[["upper","Upper body"],["lower","Lower body"]].filter(([h])=>T[h]);
   if(!rows.length) return "";
-  return `<div class="panel strsec"><h3>Strength trend</h3>${rows.map(([h,name])=>{ const x=T[h], open=openTrend===h, lab=x.label==="up"?"Up":x.label==="down"?"Down":"Holding";
-    return `<button type="button" class="strrow" data-trend="${h}" aria-expanded="${open}"><span class="strl"><b>${name}</b><em class="${x.good?"good":x.label==="down"?"down":""}">${lab}</em></span>${open?`<small class="mono">${pctTxt(x.pct)} since your first sessions</small>${x.rel!=null?`<small class="mono">${pctTxt(x.rel)} relative to your bodyweight</small>`:""}`:""}</button>`; }).join("")}</div>`;
+  return `<div class="panel strsec"><h3>Recent trends</h3>${rows.map(([h,name])=>{ const x=T[h], open=openTrend===h, lab=x.label==="up"?"Up":x.label==="down"?"Down":"Holding";
+    return `<button type="button" class="strrow" data-trend="${h}" aria-expanded="${open}"><span class="strl"><b>${name}<span class="srx">, ${lab}</span></b>${trendMark(x.spark)}</span>${open?`<small class="mono">${pctTxt(x.pct)} since your first sessions</small>${x.rel!=null?`<small class="mono">${pctTxt(x.rel)} relative to your bodyweight</small>`:""}`:""}</button>`; }).join("")}</div>`;
 }
 /* weekly top sets for one exercise, oldest first, with PR marks by the same rule as the engine */
 function liftWeeks(n){ const h=(exHist[n]||[]).filter(x=>x&&x.t).sort((a,b)=>a.t-b.t), by=new Map();

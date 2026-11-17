@@ -1264,6 +1264,16 @@ describe("upper and lower strength trend (C2)", () => {
     expect(upper.weeks).toBe(6);
     expect(upper.rel).toBe(null);
   });
+  it("gives a weekly spark that rises with the lifts and ends at the percent", () => {
+    seed({ "Bench Press": tops([[0, 100], [1, 100], [2, 100], [3, 110], [4, 110], [5, 110]]) });
+    const { spark, pct } = E.strengthTrend().upper;
+    expect(spark).toHaveLength(6);
+    spark.slice(0, 3).forEach(v => expect(v).toBeCloseTo(0, 5));
+    expect(spark[3]).toBeCloseTo(0.1 / 3, 5);
+    expect(spark[5]).toBeCloseTo(pct, 10);
+    seed({ "Bench Press": tops(Array.from({ length: 20 }, (_, i) => [i, 100 + i])) });
+    expect(E.strengthTrend().upper.spark).toHaveLength(12);
+  });
   it("only says Down after two smoothed weeks in a row below the band", () => {
     const hist = { "Back Squat (Barbell)": tops([[0, 100], [1, 100], [2, 100], [3, 95], [4, 95]]) };
     seed(hist);

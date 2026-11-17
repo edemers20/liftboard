@@ -99,6 +99,23 @@ export function linePoints(values: number[]): { x: number; y: number }[] {
   }));
 }
 
+/**
+ * The strength trend mark: 96 × 32, with 0% kept in range so the line reads against its start.
+ * The span is at least 4% (the Holding band), so small wobbles stay flat.
+ */
+export function trendPoints(values: number[]): { points: { x: number; y: number }[]; zero: number } {
+  const low = Math.min(0, ...values);
+  const high = Math.max(0, ...values);
+  const span = Math.max(0.04, high - low);
+  const mid = (low + high) / 2;
+  const y = (value: number) => +(16 - ((value - mid) / span) * 24).toFixed(1);
+  const count = values.length;
+  return {
+    points: values.map((value, index) => ({ x: +(count > 1 ? 4 + (index * 88) / (count - 1) : 48).toFixed(1), y: y(value) })),
+    zero: y(0),
+  };
+}
+
 /** "Nov 2 – 8", or "Oct 26 – Nov 1" when the week crosses a month. */
 export function weekRange(start: number): string {
   const open = new Date(start);

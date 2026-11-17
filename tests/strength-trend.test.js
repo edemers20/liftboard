@@ -20,6 +20,8 @@ describe("strength trend (web)", () => {
     expect(T.lower).toBe(null);
     expect(T.upper.label).toBe("up");
     expect(T.upper.pct).toBeCloseTo(0.1, 5);
+    expect(T.upper.spark).toHaveLength(6);
+    expect(T.upper.spark[5]).toBeCloseTo(T.upper.pct, 10);
     seed({ "Back Squat (Barbell)": tops([[0, 100], [1, 100]]) });
     expect(E.strengthTrend(weekStartOf)).toEqual({ upper: null, lower: null });
   });

@@ -6,7 +6,7 @@ import { Flame } from "lucide-react-native";
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Animated, Easing, Platform, ScrollView, StyleSheet, Text, useWindowDimensions, View, type ScrollViewInstance, type ViewStyle } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Svg, { Circle, Polyline } from "react-native-svg";
+import Svg, { Circle, Line, Polyline } from "react-native-svg";
 import Reanimated from "react-native-reanimated";
 
 import { GlassTrack } from "@/components/glass-track";
@@ -23,6 +23,7 @@ import {
   formatHours,
   formatWeight,
   linePoints,
+  trendPoints,
   MIX_ORDER,
   monthGrid,
   weekRange,
@@ -846,7 +847,6 @@ function StrengthCard({ strength }: { strength: HistorySnapshot["strength"] }) {
           const row = strength[half]!;
           const name = half === "upper" ? copy.history.trendUpper : copy.history.trendLower;
           const label = row.label === "up" ? copy.history.trendUp : row.label === "down" ? copy.history.trendDown : copy.history.trendHolding;
-          const color = row.good ? theme.green.accent : row.label === "down" ? theme.fuel : theme.text;
           const open = shown === half;
           const since = fillCopy(copy.history.trendSince, percent(row.pct));
           const versus = row.rel == null ? null : fillCopy(copy.history.trendBodyweight, percent(row.rel));
@@ -861,7 +861,7 @@ function StrengthCard({ strength }: { strength: HistorySnapshot["strength"] }) {
             >
               <View style={styles.strengthLine}>
                 <Text style={styles.liftName}>{name}</Text>
-                <Text style={[styles.strengthLabel, { color }]}>{label}</Text>
+                <TrendMark values={row.spark} />
               </View>
               {open ? (
                 <>
@@ -969,6 +969,29 @@ function Spark({ values, label }: { values: number[]; label: string }) {
   return (
     <View accessibilityRole="image" accessibilityLabel={label} style={styles.spark}>
       <Svg width={96} height={44}>
+        {points.length > 1 ? (
+          <Polyline
+            points={points.map((point) => `${point.x},${point.y}`).join(" ")}
+            fill="none"
+            stroke={theme.fuel}
+            strokeWidth={2}
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
+        ) : null}
+        {last ? <Circle cx={last.x} cy={last.y} r={3.5} fill={theme.fuel} /> : null}
+      </Svg>
+    </View>
+  );
+}
+
+function TrendMark({ values }: { values: number[] }) {
+  const { points, zero } = trendPoints(values);
+  const last = points[points.length - 1];
+  return (
+    <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      <Svg width={96} height={32}>
+        <Line x1={4} x2={92} y1={zero} y2={zero} stroke={theme.orange.accent} strokeOpacity={0.35} strokeWidth={1} strokeDasharray="3 3" />
         {points.length > 1 ? (
           <Polyline
             points={points.map((point) => `${point.x},${point.y}`).join(" ")}
@@ -1219,7 +1242,6 @@ const styles = StyleSheet.create({
   strengthRow: { paddingHorizontal: 16, paddingVertical: 14, gap: 4 },
   strengthDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: HAIRLINE },
   strengthLine: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
-  strengthLabel: { fontFamily: theme.fonts.bodySemi, fontSize: 15 },
   strengthDetail: { fontFamily: theme.fonts.mono, fontSize: 13, color: theme.muted },
   sectionTitle: { fontFamily: theme.fonts.bodySemi, fontSize: 15, color: theme.text },
   prBleed: { marginHorizontal: -16 },

@@ -1252,6 +1252,7 @@ function liftTrends(){
    Core, carries and bodyweight work are left out. Nothing until a half has 3 weeks of data. */
 const TREND_HALF=(()=>{ const m={}; XGROUPS.forEach(([,keys],gi)=>keys.forEach(k=>{ m[k]=gi<2?"lower":gi<5?"upper":null; })); return m; })();
 const TREND_BAND=0.02;
+const TREND_SPARK=12;
 function strengthTrend(){
   const setsBy=new Map();
   (wk.sessions||[]).forEach(s=>{ if(!s||!s.t||!Array.isArray(s.ex)) return; const ws=weekStartOf(s.t).getTime();
@@ -1272,12 +1273,13 @@ function strengthTrend(){
     const weeks=[...halves[half].entries()].sort((a,b)=>a[0]-b[0]).map(([start,v])=>({start,v:v.sum/v.w}));
     if(weeks.length<3){ out[half]=null; return; }
     const smooth=weeks.map((_,i)=>i<2?null:(weeks[i].v+weeks[i-1].v+weeks[i-2].v)/3);
+    const run=weeks.map((_,i)=>{ const w=weeks.slice(Math.max(0,i-2),i+1); return w.reduce((t,x)=>t+x.v,0)/w.length; });
     const pct=smooth[smooth.length-1], prev=smooth.length>=4?smooth[smooth.length-2]:null;
     const label=pct>TREND_BAND?"up":pct<-TREND_BAND&&prev!=null&&prev<-TREND_BAND?"down":"holding";
     let rel=null;
     if(bwWeeks.length&&bwNow>0){ const first=weeks[0].start, near=bwWeeks.reduce((a,w)=>Math.abs(w.start-first)<Math.abs(a.start-first)?w:a);
       rel=(1+pct)*num(near.w,0)/bwNow-1; }
-    out[half]={label,pct,rel,weeks:weeks.length,good:label==="up"||(label==="holding"&&cutting())};
+    out[half]={label,pct,rel,weeks:weeks.length,spark:run.slice(-TREND_SPARK),good:label==="up"||(label==="holding"&&cutting())};
   });
   return out;
 }

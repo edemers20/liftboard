@@ -167,6 +167,8 @@ export type StrengthHalf = {
   /** The same change per pound of bodyweight, when a weigh-in near the start exists. */
   rel: number | null;
   weeks: number;
+  /** The smoothed change week by week (3-week trailing mean), oldest first, up to 12; ends at `pct`. */
+  spark: number[];
   /** Up, or Holding on a cut: shown in green. */
   good: boolean;
 };

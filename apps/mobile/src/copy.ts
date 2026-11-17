@@ -115,8 +115,7 @@ export const copy = {
     restoreTitle: "Restore backup?",
     restoreBody: "Replaces everything on this phone with the backup from {…}.",
     restore: "Restore",
-    // TODO copy: B2 import preview note (SCREENS section 8 says to say set history is top sets only).
-    restoreTopSets: "Set history comes over as top sets only.",
+    restoreTopSets: "Set history transfers your top sets only.",
     notBackup: "That file isn't a Lift Board backup",
     exportData: "Export my data",
     deleteAccount: "Delete account",
@@ -948,8 +947,8 @@ export const copy = {
     kcalExtraBurn: "kcal extra burn",
     previousWeeks: "Previous weeks",
     mainLifts: "Main lifts",
-    // TODO copy: C2 strength trend card (History, Lifts). Labels Up / Holding / Down are from OUTSTANDING C2.
-    strengthTrend: "Strength trend",
+    strengthTrend: "Recent trends",
+    // TODO copy: C2 row names and the tap lines. Up / Holding / Down are read by VoiceOver only; the row shows a trend mark.
     trendUpper: "Upper body",
     trendLower: "Lower body",
     trendUp: "Up",
