@@ -17,19 +17,20 @@ import type { WorkoutActivityProps } from "./state";
  * declared inside the function (no module-scope values). The countdown is a system timer, and the activity goes
  * stale at the rest end. The extension has no DM Mono, so digits use the system monospaced font.
  *
- * Lock Screen liquid glass comes from `activityBackgroundTint("clear")`. Do not use `glassEffect` here; WidgetKit
- * does not paint it and it blanks the Lock Screen banner while the Dynamic Island can still look fine.
+ * Lock Screen liquid glass: `activityBackgroundTint` with lime (not `glassEffect`, which blanks the banner).
+ * Lime palette on bars, rest timer and accents must still read on top of that tint.
  */
 function WorkoutActivityLayout(props: WorkoutActivityProps, environment: LiveActivityEnvironment) {
   "widget";
   const limeA = "#6fd0b4";
   const limeB = "#c8e86a";
   const fillDone = "#237a64";
-  const warn = environment.isLuminanceReduced ? "#ffffff" : "#e07a6a";
-  const text = "#edeae8";
-  const muted = "rgba(237,234,232,0.78)";
-  const track = "rgba(255,255,255,0.22)";
-  const lime = environment.isLuminanceReduced ? "#ffffff" : limeA;
+  const warn = "#e07a6a";
+  const text = environment.isLuminanceReduced ? "#ffffff" : "#edeae8";
+  const muted = environment.isLuminanceReduced ? "rgba(255,255,255,0.78)" : "rgba(237,234,232,0.78)";
+  const track = "rgba(255,255,255,0.28)";
+  // Accents stay lime even when luminance is reduced so the Lock Screen does not go colorless.
+  const lime = limeA;
   const limeGrad = {
     type: "linearGradient" as const,
     colors: [limeA, limeB],
@@ -80,6 +81,7 @@ function WorkoutActivityLayout(props: WorkoutActivityProps, environment: LiveAct
         {Array.from({ length: props.setsTotal }, (_, index) => {
           const done = index < props.setsDone;
           const now = !done && index === props.setNow && !props.finished;
+          // Prefer lime gradient for current; solid limeB if the gradient fill is dropped.
           const fill = done ? fillDone : now ? limeGrad : track;
           return (
             <RoundedRectangle
@@ -95,12 +97,15 @@ function WorkoutActivityLayout(props: WorkoutActivityProps, environment: LiveAct
       </HStack>
     ) : null;
 
-  /** System Lock Screen liquid glass + lime content. Tint clear keeps chrome with the text in one paint. */
+  /**
+   * Lime-tinted system liquid glass (ActivityKit tint), not SwiftUI glassEffect.
+   * clear made the banner readable but colorless; limeA restores the palette wash.
+   */
   const bannerBody = (
     <VStack
       alignment="leading"
       spacing={0}
-      modifiers={[padding({ all: 14 }), activityBackgroundTint("clear")]}
+      modifiers={[padding({ all: 14 }), activityBackgroundTint(limeA)]}
     >
       <HStack alignment="top" spacing={12}>
         <VStack alignment="leading" spacing={2} modifiers={[frame({ maxWidth: 1e4 })]}>
@@ -116,7 +121,7 @@ function WorkoutActivityLayout(props: WorkoutActivityProps, environment: LiveAct
         <VStack alignment="trailing" spacing={3}>
           {bigClock(24)}
           {props.finished ? null : resting ? (
-            <Text modifiers={[font({ size: 11, weight: "medium" }), foregroundStyle(muted)]}>{props.restLabel}</Text>
+            <Text modifiers={[font({ size: 11, weight: "medium" }), foregroundStyle(lime)]}>{props.restLabel}</Text>
           ) : (
             <Text modifiers={[font({ size: 11, weight: "medium" }), foregroundStyle(muted)]}>{props.elapsedLabel}</Text>
           )}
