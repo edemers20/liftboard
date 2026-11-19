@@ -391,13 +391,17 @@ function Label({ live, inline }: { live: LiveWorkout; inline: boolean }) {
       <View style={[styles.pillRight, live.resting ? null : styles.pillRightLift]}>
         {live.resting && live.restSeconds != null ? (
           <>
-            <Text style={[styles.bigTime, live.restUrgent ? styles.restWarn : styles.restOk]}>{clock(live.restSeconds)}</Text>
+            <Text numberOfLines={1} style={[styles.bigTime, live.restUrgent ? styles.restWarn : styles.restOk]}>
+              {clock(live.restSeconds)}
+            </Text>
             <Text numberOfLines={1} style={styles.timeLabel}>
               {clock(live.elapsed)}
             </Text>
           </>
         ) : (
-          <Text style={[styles.bigTime, styles.elapsedOk]}>{clock(live.elapsed)}</Text>
+          <Text numberOfLines={1} style={[styles.bigTime, styles.elapsedOk]}>
+            {clock(live.elapsed)}
+          </Text>
         )}
       </View>
     </View>
@@ -541,10 +545,10 @@ const styles = StyleSheet.create({
     opacity: 0.55,
   },
   pillRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  /** Exercise name keeps the width; timer column does not grow. */
+  /** Title shrinks; timer keeps intrinsic "00:00" width. */
   pillLeft: { flexGrow: 1, flexShrink: 1, flexBasis: 0, minWidth: 0 },
-  pillRight: { flexGrow: 0, flexShrink: 0, alignItems: "flex-end", maxWidth: 48 },
-  pillRightLift: { alignSelf: "stretch", justifyContent: "center", maxWidth: 44 },
+  pillRight: { flexGrow: 0, flexShrink: 0, alignItems: "flex-end", minWidth: 56 },
+  pillRightLift: { alignSelf: "stretch", justifyContent: "center", flexShrink: 0, minWidth: 56 },
   bigTime: {
     color: theme.text,
     fontFamily: theme.fonts.monoMedium,

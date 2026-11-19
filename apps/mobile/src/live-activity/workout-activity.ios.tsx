@@ -8,6 +8,7 @@ import {
   frame,
   layoutPriority,
   lineLimit,
+  minimumScaleFactor,
   monospacedDigit,
   multilineTextAlignment,
   padding,
@@ -19,17 +20,15 @@ import type { WorkoutActivityProps } from "./state";
 /**
  * Lock Screen and Dynamic Island layout. Widget runtime only: locals inside this function.
  *
- * Lock Screen: clear tint + lime wash. Never `glassEffect` (blanks the banner).
- * Banner layout matches the last known-good paint (ee0eb14): left stack priority 0, timer
- * priority 1 + fixedSize. Giving both sides priority 1 (6102d84) left the banner empty while
- * ExpoWidgetsTarget was still running.
- *
- * Dynamic Island: docs-style plain Text (no frame / fixedSize / timerInterval on compact).
+ * Lock Screen banner is restored verbatim from bcecee5 (last build Emma confirmed painted
+ * with lime wash). Dynamic Island stays docs-style plain Text (no frame / fixedSize /
+ * timerInterval on compact). Never `glassEffect` (blanks the banner).
  */
 function WorkoutActivityLayout(props: WorkoutActivityProps, environment: LiveActivityEnvironment) {
   "widget";
   const limeA = "#6fd0b4";
   const limeB = "#c8e86a";
+  /** Island digits: lighter than banner lime so they read on the black capsule. */
   const limeSoft = "#9fcfc1";
   const fillDone = "#237a64";
   const warn = "#e07a6a";
@@ -37,12 +36,14 @@ function WorkoutActivityLayout(props: WorkoutActivityProps, environment: LiveAct
   const muted = environment.isLuminanceReduced ? "rgba(255,255,255,0.78)" : "rgba(237,234,232,0.78)";
   const track = "rgba(255,255,255,0.22)";
   const white = "#ffffff";
+  const lime = limeA;
   const limeBarGrad = {
     type: "linearGradient" as const,
     colors: [limeA, limeB],
     startPoint: { x: 0, y: 0 },
     endPoint: { x: 1, y: 0 },
   };
+  /** Viz wash: 135° lime→chartreuse over dark glass (live-glass-lime-v5). */
   const limeWash = {
     type: "linearGradient" as const,
     colors: ["rgba(111,208,180,0.50)", "rgba(200,232,106,0.38)"],
@@ -50,8 +51,8 @@ function WorkoutActivityLayout(props: WorkoutActivityProps, environment: LiveAct
     endPoint: { x: 1, y: 1 },
   };
   const maxLiveMs = 8 * 3600e3;
+  const restColor = props.restUrgent ? warn : lime;
   const resting = !props.finished && props.restEnd > 0 && !environment.isStale;
-  const restColor = props.restUrgent ? warn : limeSoft;
   const restRange = { lower: new Date(props.restStart || props.restEnd), upper: new Date(props.restEnd) };
   const workoutStart = props.workoutStart || Date.now();
   const elapsedRange = {
@@ -71,47 +72,36 @@ function WorkoutActivityLayout(props: WorkoutActivityProps, environment: LiveAct
     : resting
       ? clockLabel((props.restEnd - nowMs) / 1000)
       : props.weightCompact || clockLabel((nowMs - workoutStart) / 1000);
-  const islandTrailColor = props.finished ? limeSoft : resting ? restColor : limeSoft;
+  const islandTrailColor = props.finished ? limeSoft : resting ? (props.restUrgent ? warn : limeSoft) : limeSoft;
 
-  const bannerClock = (size: number) =>
+  // --- Lock Screen (verbatim from bcecee5) ---
+  const clockText = (size: number, color: string, opts?: { width?: number; banner?: boolean }) => {
+    const base = [
+      font({ size, weight: "medium", design: "monospaced" }),
+      monospacedDigit(),
+      foregroundStyle(color),
+      multilineTextAlignment("trailing"),
+      lineLimit(1),
+      minimumScaleFactor(0.75),
+    ];
+    if (opts?.banner) {
+      return [...base, fixedSize({ horizontal: true, vertical: true })];
+    }
+    if (opts?.width) {
+      return [...base, frame({ width: opts.width, alignment: "trailing" })];
+    }
+    return base;
+  };
+
+  const bigClock = (size: number, opts?: { width?: number; banner?: boolean }) =>
     props.finished ? (
-      <Text
-        modifiers={[
-          font({ size, weight: "semibold" }),
-          foregroundStyle(limeSoft),
-          multilineTextAlignment("trailing"),
-          lineLimit(1),
-          fixedSize({ horizontal: true, vertical: true }),
-        ]}
-      >
+      <Text modifiers={[font({ size, weight: "semibold" }), foregroundStyle(lime), multilineTextAlignment("trailing"), lineLimit(1)]}>
         {props.doneLabel}
       </Text>
     ) : resting ? (
-      <Text
-        timerInterval={restRange}
-        countsDown
-        modifiers={[
-          font({ size, weight: "medium", design: "monospaced" }),
-          monospacedDigit(),
-          foregroundStyle(restColor),
-          multilineTextAlignment("trailing"),
-          lineLimit(1),
-          fixedSize({ horizontal: true, vertical: true }),
-        ]}
-      />
+      <Text timerInterval={restRange} countsDown modifiers={clockText(size, restColor, opts)} />
     ) : (
-      <Text
-        timerInterval={elapsedRange}
-        countsDown={false}
-        modifiers={[
-          font({ size, weight: "medium", design: "monospaced" }),
-          monospacedDigit(),
-          foregroundStyle(text),
-          multilineTextAlignment("trailing"),
-          lineLimit(1),
-          fixedSize({ horizontal: true, vertical: true }),
-        ]}
-      />
+      <Text timerInterval={elapsedRange} countsDown={false} modifiers={clockText(size, text, opts)} />
     );
 
   const timeLabel =
@@ -139,27 +129,28 @@ function WorkoutActivityLayout(props: WorkoutActivityProps, environment: LiveAct
       </Text>
     );
 
-  /** Timer column wins layout fights; left stack yields (priority 0). */
+  /** Right column: timer on top, muted rest/elapsed under; shrink-wrap, no overlap with the left stack. */
   const timeBlock = (
     <VStack
       alignment="trailing"
       spacing={2}
       modifiers={[layoutPriority(1), frame({ minWidth: 56, alignment: "trailing" }), fixedSize({ horizontal: true, vertical: true })]}
     >
-      {bannerClock(24)}
+      {bigClock(24, { banner: true })}
       {timeLabel}
     </VStack>
   );
 
-  const setBars = () =>
+  const setBars =
     props.setsTotal > 0 ? (
       <HStack spacing={4} modifiers={[padding({ top: 12 })]}>
         {Array.from({ length: props.setsTotal }, (_, index) => {
           const done = index < props.setsDone;
-          const current = !done && index === props.setNow && !props.finished;
-          const fill = done ? fillDone : current ? limeBarGrad : track;
+          const now = !done && index === props.setNow && !props.finished;
+          const fill = done ? fillDone : now ? limeBarGrad : track;
           return (
             <RoundedRectangle
+              key={index}
               cornerRadius={2}
               modifiers={[
                 frame({ minWidth: 0, maxWidth: 9999, minHeight: 5, maxHeight: 5 }),
@@ -190,10 +181,11 @@ function WorkoutActivityLayout(props: WorkoutActivityProps, environment: LiveAct
         <Spacer />
         {timeBlock}
       </HStack>
-      {setBars()}
+      {setBars}
     </VStack>
   );
 
+  // --- Dynamic Island (current docs-style plain Text) ---
   return {
     banner: bannerBody,
     compactLeading: (
@@ -222,7 +214,7 @@ function WorkoutActivityLayout(props: WorkoutActivityProps, environment: LiveAct
         {props.setLine ? (
           <Text modifiers={[font({ size: 13, weight: "medium" }), foregroundStyle(muted)]}>{props.setLine}</Text>
         ) : null}
-        {setBars()}
+        {setBars}
       </VStack>
     ),
   };
