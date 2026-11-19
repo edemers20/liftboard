@@ -1,0 +1,19 @@
+diff --git a/node_modules/expo-widgets/bundle/react-native-stub.ts b/node_modules/expo-widgets/bundle/react-native-stub.ts
+index 2e46e0f..37f960a 100644
+--- a/node_modules/expo-widgets/bundle/react-native-stub.ts
++++ b/node_modules/expo-widgets/bundle/react-native-stub.ts
+@@ -29,3 +29,14 @@ export const Image = { resolveAssetSource };
+ export const useColorScheme = (): 'light' | 'dark' | null => {
+   return (globalThis.__expoWidgetEnvironment?.colorScheme as 'light' | 'dark' | undefined) ?? null;
+ };
++
++/** Widget JS has no TurboModules; Host reads locale direction from here. */
++export const I18nManager = {
++  getConstants: () => ({ isRTL: false, doLeftAndRightSwapInRTL: true }),
++  allowRTL: (_allow: boolean) => {},
++  forceRTL: (_force: boolean) => {},
++  swapLeftAndRightInRTL: (_swap: boolean) => {},
++  isRTL: false,
++  doLeftAndRightSwapInRTL: true,
++};
++
