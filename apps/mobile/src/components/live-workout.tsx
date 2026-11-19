@@ -5,8 +5,9 @@ import { LinearGradient } from "expo-linear-gradient";
 import { PressableScale } from "@/components/pressable-scale";
 import { SheetFrame } from "@/components/motion";
 import { NativeTabs } from "expo-router/native-tabs";
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { AccessibilityInfo, Platform, StyleSheet, Text, View } from "react-native";
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { copy, fill } from "@/copy";
@@ -15,9 +16,11 @@ import { exerciseProgress } from "@/live-activity/state";
 import { engine, useEngineStore } from "@/store";
 import { theme } from "@/theme";
 import { clock } from "@/units";
+import { useReduceMotion } from "@/use-reduce-motion";
 import { openWorkout } from "@/workout/share-box";
 
 const FLASH_MS = 2500;
+const FADE_MS = 280;
 const LIME = ["#6fd0b4", "#c8e86a"] as const;
 const WARN = "#e07a6a";
 const MUTED_PILL = "rgba(237,234,232,0.78)";
@@ -330,8 +333,27 @@ export function LiveWorkoutDock({ live, bottom }: { live: LiveWorkout; bottom: n
   const label = spoken(live);
   const [endAsk, setEndAsk] = useState(false);
   const solid = useSolidGlass();
+  const reduce = useReduceMotion();
+  const opacity = useSharedValue(1);
+  const modeKey = `${live.id}:${live.resting ? "rest" : live.done ? "done" : "lift"}`;
+  const lastMode = useRef(modeKey);
+
+  useLayoutEffect(() => {
+    if (lastMode.current === modeKey) return;
+    lastMode.current = modeKey;
+    // Rest (and other mode) swaps: fade chrome + words together so text never leads the glass.
+    if (reduce) {
+      opacity.value = 1;
+      return;
+    }
+    opacity.value = 0;
+    opacity.value = withTiming(1, { duration: FADE_MS, easing: Easing.out(Easing.cubic) });
+  }, [modeKey, opacity, reduce]);
+
+  const fadeStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
+
   return (
-    <View pointerEvents="box-none" style={[styles.dock, { bottom }]}>
+    <Animated.View pointerEvents="box-none" style={[styles.dock, { bottom }, fadeStyle]}>
       <PressableScale
         kind="plain"
         accessibilityRole="button"
@@ -347,8 +369,8 @@ export function LiveWorkoutDock({ live, bottom }: { live: LiveWorkout; bottom: n
             <GlassView
               isInteractive
               colorScheme="dark"
-              tintColor="rgba(111,208,180,0.35)"
-              glassEffectStyle={{ style: "regular" }}
+              tintColor={live.restUrgent ? "rgba(224,122,106,0.4)" : "rgba(111,208,180,0.35)"}
+              glassEffectStyle={{ style: "regular", animate: false }}
               style={[StyleSheet.absoluteFill, styles.glass]}
             />
             <LinearGradient
@@ -363,7 +385,7 @@ export function LiveWorkoutDock({ live, bottom }: { live: LiveWorkout; bottom: n
         <Label live={live} inline={false} />
       </PressableScale>
       <EndSheet live={live} visible={endAsk} onClose={() => setEndAsk(false)} />
-    </View>
+    </Animated.View>
   );
 }
 

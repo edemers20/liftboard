@@ -1,11 +1,10 @@
 import { HStack, RoundedRectangle, Spacer, Text, VStack } from "@expo/ui/swift-ui";
 import {
+  activityBackgroundTint,
   background,
-  cornerRadius,
   font,
   foregroundStyle,
   frame,
-  glassEffect,
   monospacedDigit,
   padding,
 } from "@expo/ui/swift-ui/modifiers";
@@ -17,6 +16,9 @@ import type { WorkoutActivityProps } from "./state";
  * Lock Screen and Dynamic Island layout. It runs in the widget extension's own runtime: everything it uses is
  * declared inside the function (no module-scope values). The countdown is a system timer, and the activity goes
  * stale at the rest end. The extension has no DM Mono, so digits use the system monospaced font.
+ *
+ * Lock Screen liquid glass comes from `activityBackgroundTint("clear")`. Do not use `glassEffect` here; WidgetKit
+ * does not paint it and it blanks the Lock Screen banner while the Dynamic Island can still look fine.
  */
 function WorkoutActivityLayout(props: WorkoutActivityProps, environment: LiveActivityEnvironment) {
   "widget";
@@ -33,12 +35,6 @@ function WorkoutActivityLayout(props: WorkoutActivityProps, environment: LiveAct
     colors: [limeA, limeB],
     startPoint: { x: 0, y: 0 },
     endPoint: { x: 1, y: 0 },
-  };
-  const glassBg = {
-    type: "linearGradient" as const,
-    colors: ["rgba(111,208,180,0.42)", "rgba(200,232,106,0.28)"],
-    startPoint: { x: 0, y: 0 },
-    endPoint: { x: 1, y: 1 },
   };
   /** Match MAX_LIVE_MS in state.ts; inlined so the widget runtime does not close over imports. */
   const maxLiveMs = 8 * 3600e3;
@@ -99,20 +95,12 @@ function WorkoutActivityLayout(props: WorkoutActivityProps, environment: LiveAct
       </HStack>
     ) : null;
 
+  /** System Lock Screen liquid glass + lime content. Tint clear keeps chrome with the text in one paint. */
   const bannerBody = (
     <VStack
       alignment="leading"
       spacing={0}
-      modifiers={[
-        padding({ all: 14 }),
-        background(glassBg),
-        glassEffect({
-          glass: { variant: "regular", tint: "rgba(111,208,180,0.35)" },
-          shape: "roundedRectangle",
-          cornerRadius: 24,
-        }),
-        cornerRadius(24),
-      ]}
+      modifiers={[padding({ all: 14 }), activityBackgroundTint("clear")]}
     >
       <HStack alignment="top" spacing={12}>
         <VStack alignment="leading" spacing={2} modifiers={[frame({ maxWidth: 1e4 })]}>
