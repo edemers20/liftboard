@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { GlassSheet } from "@/components/glass-sheet";
 import { PressableScale } from "@/components/pressable-scale";
+import { LinearGradient } from "expo-linear-gradient";
 import { AppState, Platform, ScrollView, StyleSheet, type ScrollViewInstance, Text, TextInput, View } from "react-native";
 import { router, useNavigation, Link } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -1361,16 +1362,22 @@ function ExerciseCard(props: {
       </PressableScale>
       {slot.cardio ? null : (
         <View style={styles.bars} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-          {Array.from({ length: rows }, (_, setIndex) => (
-            <View
-              key={setIndex}
-              style={[
-                styles.bar,
-                setIndex < ticks ? styles.barOn : null,
-                setIndex === ticks && !finished ? styles.barNow : null,
-              ]}
-            />
-          ))}
+          {Array.from({ length: rows }, (_, setIndex) => {
+            const on = setIndex < ticks;
+            const now = setIndex === ticks && !finished;
+            if (now) {
+              return (
+                <LinearGradient
+                  key={setIndex}
+                  colors={["#6fd0b4", "#c8e86a"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={[styles.bar, styles.barNow]}
+                />
+              );
+            }
+            return <View key={setIndex} style={[styles.bar, on ? styles.barOn : null]} />;
+          })}
         </View>
       )}
       {slot.extra ? (
@@ -1869,9 +1876,9 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   bars: { flexDirection: "row", gap: 4 },
-  bar: { flex: 1, height: 4, borderRadius: 2, backgroundColor: "#2c3833" },
+  bar: { flex: 1, height: 5, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.22)" },
   barOn: { backgroundColor: theme.green.accentFill },
-  barNow: { backgroundColor: "#9fcfc1" },
+  barNow: { backgroundColor: "transparent" },
   picker: {
     minHeight: 44,
     borderRadius: theme.radii.small,

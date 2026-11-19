@@ -1,6 +1,7 @@
 "use no memo";
 
-import { isLiquidGlassAvailable } from "expo-glass-effect";
+import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
+import { LinearGradient } from "expo-linear-gradient";
 import { PressableScale } from "@/components/pressable-scale";
 import { SheetFrame } from "@/components/motion";
 import { NativeTabs } from "expo-router/native-tabs";
@@ -9,12 +10,17 @@ import { AccessibilityInfo, Platform, StyleSheet, Text, View } from "react-nativ
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { copy, fill } from "@/copy";
+import { useSolidGlass } from "@/glass";
+import { exerciseProgress } from "@/live-activity/state";
 import { engine, useEngineStore } from "@/store";
 import { theme } from "@/theme";
 import { clock } from "@/units";
 import { openWorkout } from "@/workout/share-box";
 
 const FLASH_MS = 2500;
+const LIME = ["#6fd0b4", "#c8e86a"] as const;
+const WARN = "#e07a6a";
+const MUTED_PILL = "rgba(237,234,232,0.78)";
 
 /**
  * Reset day deletes the timer, then the open screen can start it again.
@@ -61,41 +67,19 @@ export type LiveWorkout = {
   title: string;
   /** Rest is running, including the "Go" overtime. */
   resting: boolean;
+  /** Rest countdown is ≤10s. */
+  restUrgent: boolean;
   done: boolean;
   doneAt: number;
-  /** Full line after the title, or the whole inline line. */
+  /** Subtitle under the title (`Exercise 2 of 5` or `Rest`). */
   detail: string;
   /** Short form for the minimized tab bar. */
   compact: string;
+  /** Elapsed workout seconds. */
+  elapsed: number;
+  /** Rest seconds left; 0 when over / Go. Null when not resting. */
+  restSeconds: number | null;
 };
-
-function slotDone(id: string, _day: any, planned: any, index: number): boolean {
-  return engine.rowDone(id, index, { days: { [id]: planned } });
-}
-
-function setLine(id: string): { full: string; compact: string } | null {
-  const planned = engine.plan().days[id];
-  const day = engine.DAYS.find((item: any) => item.id === id);
-  if (!day || !planned) return null;
-  const order = (engine.slotOrder(day) as number[]).filter((index) =>
-    engine.countsInDay(id, index, { days: { [id]: planned } }),
-  );
-  const saved = (engine.wk.active || {})[id];
-  let index = order[0] ?? -1;
-  if (saved === -1) index = -1;
-  else if (saved != null && day.slots[saved] && planned.slots[saved] && planned.slots[saved].skip !== "hidden") index = saved;
-  else {
-    const next = order.find((item) => !slotDone(id, day, planned, item));
-    index = next ?? order[order.length - 1] ?? -1;
-  }
-  if (index < 0 || day.slots[index].cardio) return null;
-  const total = planned.slots[index]?.sets || 0;
-  if (!total) return null;
-  const ticks = (engine.get(id, index).log || []).filter((row: any) => row.d).length;
-  const current = Math.min(ticks + 1, total);
-  const line = fill(copy.workout.setOf, current, total);
-  return { full: line, compact: line };
-}
 
 function dayHasWork(id: string): boolean {
   const bag = ((engine.slots || {}) as Record<string, Record<string, { cdone?: boolean; log?: { d?: boolean }[] }>>)[id] || {};
@@ -121,16 +105,26 @@ function restClock(now: number): { over: boolean; seconds: number } | null {
   return { over: false, seconds: Math.round(left) };
 }
 
+function elapsedSeconds(id: string, now: number): number {
+  const start = ((engine.wk.wt || {}) as Record<string, { start?: number }>)[id]?.start || 0;
+  if (!start) return 0;
+  return Math.max(0, Math.floor((now - start) / 1000));
+}
+
 function liveFrom(id: string, title: string, now: number, doneAt = 0): LiveWorkout {
+  const elapsed = elapsedSeconds(id, now);
   if (doneAt && now - doneAt < FLASH_MS) {
     return {
       id,
       title,
       resting: false,
+      restUrgent: false,
       done: true,
       doneAt,
       detail: copy.workout.dayDone,
       compact: copy.workout.dayDone,
+      elapsed,
+      restSeconds: null,
     };
   }
   const rest = restClock(now);
@@ -140,26 +134,33 @@ function liveFrom(id: string, title: string, now: number, doneAt = 0): LiveWorko
       id,
       title,
       resting: true,
+      restUrgent: !rest.over && rest.seconds <= 10,
       done: false,
       doneAt: 0,
-      detail: fill(copy.workout.rest, time),
+      detail: copy.live.rest,
       compact: time,
+      elapsed,
+      restSeconds: rest.seconds,
     };
   }
-  let set: { full: string; compact: string } | null = null;
+  let detail = "";
   try {
-    set = setLine(id);
+    const progress = exerciseProgress(id);
+    if (progress) detail = fill(copy.live.exerciseOf, progress.index, progress.total);
   } catch {
-    set = null;
+    detail = "";
   }
   return {
     id,
     title,
     resting: false,
+    restUrgent: false,
     done: false,
     doneAt: 0,
-    detail: set?.full || "",
-    compact: set?.compact || title,
+    detail,
+    compact: detail || title,
+    elapsed,
+    restSeconds: null,
   };
 }
 
@@ -228,7 +229,7 @@ export function useShownLiveWorkout(): LiveWorkout | null {
   return useContext(LiveWorkoutContext);
 }
 
-/** Re-renders as the rest clock moves, and once the "Day done" flash should leave. */
+/** Re-renders as elapsed and rest clocks move, and once the "Day done" flash should leave. */
 export function useLiveWorkout(): LiveWorkout | null {
   const version = useEngineStore((state) => state.version);
   const [now, setNow] = useState(() => Date.now());
@@ -239,41 +240,61 @@ export function useLiveWorkout(): LiveWorkout | null {
   }, [version]);
   useEffect(() => {
     if (!live) return;
-    const delay = live.done ? Math.max(16, live.doneAt + FLASH_MS - Date.now()) : live.resting ? 1000 : 0;
-    if (!delay) return;
+    const delay = live.done ? Math.max(16, live.doneAt + FLASH_MS - Date.now()) : 1000;
     const timer = setTimeout(() => setNow(Date.now()), delay);
     return () => clearTimeout(timer);
-  }, [live?.id, live?.done, live?.resting, live?.doneAt, now]);
+  }, [live?.id, live?.done, live?.resting, live?.doneAt, live?.elapsed, live?.restSeconds, now]);
   return live;
 }
 
-function spoken(live: LiveWorkout, inline: boolean): string {
+function spoken(live: LiveWorkout): string {
   if (live.done) return live.detail;
-  if (inline) return live.compact;
-  if (!live.detail) return live.title;
-  return `${live.title}: ${live.detail}`;
+  const elapsed = clock(live.elapsed);
+  if (live.resting && live.restSeconds != null) {
+    return `${live.title}: ${copy.live.rest} ${clock(live.restSeconds)}, ${fill(copy.live.elapsedLine, elapsed)}`;
+  }
+  if (!live.detail) return `${live.title}, ${elapsed}`;
+  return `${live.title}: ${live.detail}, ${elapsed}`;
 }
 
 function Label({ live, inline }: { live: LiveWorkout; inline: boolean }) {
   if (inline) {
     return (
       <Text numberOfLines={1} style={styles.compact}>
-        {live.done ? live.detail : live.compact}
+        {live.done ? live.detail : live.resting && live.restSeconds != null ? clock(live.restSeconds) : clock(live.elapsed)}
       </Text>
     );
   }
-  if (live.done || !live.detail) {
+  if (live.done) {
     return (
       <Text numberOfLines={1} style={styles.label}>
-        {live.done ? live.detail : live.title}
+        {live.detail}
       </Text>
     );
   }
   return (
-    <Text numberOfLines={1} style={styles.label}>
-      {live.title}
-      <Text style={styles.time}>{`: ${live.detail}`}</Text>
-    </Text>
+    <View style={styles.pillRow}>
+      <View style={styles.pillLeft}>
+        <Text numberOfLines={1} style={styles.label}>
+          {live.title}
+        </Text>
+        {live.detail ? (
+          <Text numberOfLines={1} style={styles.sub}>
+            {live.detail}
+          </Text>
+        ) : null}
+      </View>
+      <View style={[styles.pillRight, live.resting ? null : styles.pillRightLift]}>
+        {live.resting && live.restSeconds != null ? (
+          <>
+            <Text style={[styles.bigTime, live.restUrgent ? styles.restWarn : styles.restOk]}>{clock(live.restSeconds)}</Text>
+            <Text style={styles.timeLabel}>{fill(copy.live.elapsedLine, clock(live.elapsed))}</Text>
+          </>
+        ) : (
+          <Text style={styles.bigTime}>{clock(live.elapsed)}</Text>
+        )}
+      </View>
+    </View>
   );
 }
 
@@ -306,8 +327,9 @@ export function LiveWorkoutBar() {
 }
 
 export function LiveWorkoutDock({ live, bottom }: { live: LiveWorkout; bottom: number }) {
-  const label = spoken(live, false);
+  const label = spoken(live);
   const [endAsk, setEndAsk] = useState(false);
+  const solid = useSolidGlass();
   return (
     <View pointerEvents="box-none" style={[styles.dock, { bottom }]}>
       <PressableScale
@@ -318,6 +340,26 @@ export function LiveWorkoutDock({ live, bottom }: { live: LiveWorkout; bottom: n
         onLongPress={() => setEndAsk(true)}
         style={({ pressed }) => [styles.shell, pressed && styles.pressed]}
       >
+        {solid ? (
+          <View style={[StyleSheet.absoluteFill, styles.solidShell]} />
+        ) : (
+          <>
+            <GlassView
+              isInteractive
+              colorScheme="dark"
+              tintColor="rgba(111,208,180,0.35)"
+              glassEffectStyle={{ style: "regular" }}
+              style={[StyleSheet.absoluteFill, styles.glass]}
+            />
+            <LinearGradient
+              colors={["rgba(111,208,180,0.42)", "rgba(200,232,106,0.28)"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={[StyleSheet.absoluteFill, styles.glassWash]}
+              pointerEvents="none"
+            />
+          </>
+        )}
         <Label live={live} inline={false} />
       </PressableScale>
       <EndSheet live={live} visible={endAsk} onClose={() => setEndAsk(false)} />
@@ -349,26 +391,48 @@ function EndSheet({ live, visible, onClose }: { live: LiveWorkout; visible: bool
 const styles = StyleSheet.create({
   hit: { minHeight: 44, justifyContent: "center", paddingHorizontal: 16 },
   label: { color: theme.text, fontFamily: theme.fonts.bodySemi, fontSize: 15 },
-  time: { fontFamily: theme.fonts.monoMedium },
+  sub: { color: MUTED_PILL, fontFamily: theme.fonts.bodyMedium, fontSize: 12, marginTop: 2 },
   compact: { color: theme.text, fontFamily: theme.fonts.monoMedium, fontSize: 15, textAlign: "center" },
   dock: { position: "absolute", left: 16, right: 16, zIndex: 80 },
   shell: {
     minHeight: 56,
     borderRadius: theme.radii.pill,
-    backgroundColor: theme.green.surface,
     borderWidth: 1,
-    borderColor: theme.green.accent,
+    borderColor: "rgba(200,232,106,0.32)",
     justifyContent: "center",
-    paddingHorizontal: 16,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
     overflow: "hidden",
   },
-  glass: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
+  solidShell: {
     borderRadius: theme.radii.pill,
+    backgroundColor: theme.green.surface,
+  },
+  glass: {
+    borderRadius: theme.radii.pill,
+  },
+  glassWash: {
+    borderRadius: theme.radii.pill,
+    opacity: 0.55,
+  },
+  pillRow: { flexDirection: "row", alignItems: "center", gap: 14 },
+  pillLeft: { flex: 1, minWidth: 0 },
+  pillRight: { flexShrink: 0, alignItems: "flex-end" },
+  pillRightLift: { alignSelf: "stretch", justifyContent: "center", minWidth: 64 },
+  bigTime: {
+    color: theme.text,
+    fontFamily: theme.fonts.monoMedium,
+    fontSize: 24,
+    lineHeight: 28,
+    fontVariant: ["tabular-nums"],
+  },
+  restOk: { color: LIME[0] },
+  restWarn: { color: WARN },
+  timeLabel: {
+    color: MUTED_PILL,
+    fontFamily: theme.fonts.bodyMedium,
+    fontSize: 11,
+    marginTop: 2,
   },
   pressed: { opacity: 0.7 },
   endSheet: { marginHorizontal: 16, gap: 12 },

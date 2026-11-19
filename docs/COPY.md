@@ -1126,15 +1126,19 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Day reset | main.js:1586 |
 |  | Logs cleared and the day is open again. | main.js:1586 |
 
-## Live Activity
+## Live Activity and live pill
 
-Lock Screen and Dynamic Island while a workout is live (`docs/HANDOFF-alerts-haptics.md` Part 2). `copy.live` in `copy.ts`; the title, exercise and "Set 2 of 4" reuse the workout screen's words.
+Lock Screen, Dynamic Island and in-app live pill while a workout is live (`docs/HANDOFF-alerts-haptics.md` Part 2; lime-glass design lock Nov 19). `copy.live` in `copy.ts`. "Set {…} of {…}" reuses the workout screen; weight joins with `@` (never a middle dot).
 
 | Where | Copy | Ref |
 | --- | --- | --- |
-| Label | Rest | Lock Screen, before the countdown. From the handoff ("Rest 1:42"). |
-| Label | Go | Lock Screen and Dynamic Island when the rest is over. From the handoff. |
-| Label | ✓ Day done | Shown for a few seconds as the activity ends. Reuses the workout screen's "✓ Day done"; the handoff writes "Day done ✓". |
+| Label | Rest | Lock Screen time label and in-app pill subtitle while resting. |
+| Label | Go | Lock Screen / Dynamic Island when rest is over (handoff). |
+| Label | ✓ Day done | Shown for a few seconds as the activity ends. Reuses the workout screen's "✓ Day done". |
+| Subtitle | Exercise {…} of {…} | In-app pill while lifting (day exercise index). |
+| Meta | Next set @{…} | Lock Screen while resting; `{…}` is the weight (e.g. 115 lb). |
+| Label | elapsed | Lock Screen under the big elapsed timer while lifting. |
+| Line | {…} elapsed | In-app pill under the rest countdown (`32:15 elapsed`). |
 
 ## Privacy and release (B4)
 
