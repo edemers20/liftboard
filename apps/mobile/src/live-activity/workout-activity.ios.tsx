@@ -11,43 +11,44 @@ import {
 } from "@expo/ui/swift-ui/modifiers";
 import { createLiveActivity, type LiveActivityEnvironment, type LiveActivityFactory } from "expo-widgets";
 
-import { MAX_LIVE_MS, type WorkoutActivityProps } from "./state";
-
-const LIME_A = "#6fd0b4";
-const LIME_B = "#c8e86a";
-const FILL = "#237a64";
-const WARN = "#e07a6a";
-const TEXT = "#edeae8";
-const MUTED = "rgba(237,234,232,0.78)";
-const TRACK = "rgba(255,255,255,0.22)";
-const GLASS_BG = {
-  type: "linearGradient" as const,
-  colors: ["rgba(111,208,180,0.42)", "rgba(200,232,106,0.28)"],
-  startPoint: { x: 0, y: 0 },
-  endPoint: { x: 1, y: 1 },
-};
-const LIME_GRAD = {
-  type: "linearGradient" as const,
-  colors: [LIME_A, LIME_B],
-  startPoint: { x: 0, y: 0 },
-  endPoint: { x: 1, y: 0 },
-};
+import type { WorkoutActivityProps } from "./state";
 
 /**
  * Lock Screen and Dynamic Island layout. It runs in the widget extension's own runtime: everything it uses is
- * declared inside the function. The countdown is a system timer, and the activity goes stale at the rest end.
- * The extension has no DM Mono, so digits use the system monospaced font.
+ * declared inside the function (no module-scope values). The countdown is a system timer, and the activity goes
+ * stale at the rest end. The extension has no DM Mono, so digits use the system monospaced font.
  */
 function WorkoutActivityLayout(props: WorkoutActivityProps, environment: LiveActivityEnvironment) {
   "widget";
-  const lime = environment.isLuminanceReduced ? "#ffffff" : LIME_A;
-  const warn = environment.isLuminanceReduced ? "#ffffff" : WARN;
+  const limeA = "#6fd0b4";
+  const limeB = "#c8e86a";
+  const fillDone = "#237a64";
+  const warn = environment.isLuminanceReduced ? "#ffffff" : "#e07a6a";
+  const text = "#edeae8";
+  const muted = "rgba(237,234,232,0.78)";
+  const track = "rgba(255,255,255,0.22)";
+  const lime = environment.isLuminanceReduced ? "#ffffff" : limeA;
+  const limeGrad = {
+    type: "linearGradient" as const,
+    colors: [limeA, limeB],
+    startPoint: { x: 0, y: 0 },
+    endPoint: { x: 1, y: 0 },
+  };
+  const glassBg = {
+    type: "linearGradient" as const,
+    colors: ["rgba(111,208,180,0.42)", "rgba(200,232,106,0.28)"],
+    startPoint: { x: 0, y: 0 },
+    endPoint: { x: 1, y: 1 },
+  };
+  /** Match MAX_LIVE_MS in state.ts; inlined so the widget runtime does not close over imports. */
+  const maxLiveMs = 8 * 3600e3;
   const restColor = props.restUrgent ? warn : lime;
   const resting = !props.finished && props.restEnd > 0 && !environment.isStale;
   const restRange = { lower: new Date(props.restStart || props.restEnd), upper: new Date(props.restEnd) };
+  const workoutStart = props.workoutStart || Date.now();
   const elapsedRange = {
-    lower: new Date(props.workoutStart || Date.now()),
-    upper: new Date((props.workoutStart || Date.now()) + MAX_LIVE_MS),
+    lower: new Date(workoutStart),
+    upper: new Date(workoutStart + maxLiveMs),
   };
 
   const bigClock = (size: number, width?: number) =>
@@ -71,7 +72,7 @@ function WorkoutActivityLayout(props: WorkoutActivityProps, environment: LiveAct
         modifiers={[
           font({ size, weight: "medium", design: "monospaced" }),
           monospacedDigit(),
-          foregroundStyle(TEXT),
+          foregroundStyle(text),
           ...(width ? [frame({ width })] : []),
         ]}
       />
@@ -83,7 +84,7 @@ function WorkoutActivityLayout(props: WorkoutActivityProps, environment: LiveAct
         {Array.from({ length: props.setsTotal }, (_, index) => {
           const done = index < props.setsDone;
           const now = !done && index === props.setNow && !props.finished;
-          const fill = done ? FILL : now ? LIME_GRAD : TRACK;
+          const fill = done ? fillDone : now ? limeGrad : track;
           return (
             <RoundedRectangle
               key={index}
@@ -104,7 +105,7 @@ function WorkoutActivityLayout(props: WorkoutActivityProps, environment: LiveAct
       spacing={0}
       modifiers={[
         padding({ all: 14 }),
-        background(GLASS_BG),
+        background(glassBg),
         glassEffect({
           glass: { variant: "regular", tint: "rgba(111,208,180,0.35)" },
           shape: "roundedRectangle",
@@ -115,21 +116,21 @@ function WorkoutActivityLayout(props: WorkoutActivityProps, environment: LiveAct
     >
       <HStack alignment="top" spacing={12}>
         <VStack alignment="leading" spacing={2} modifiers={[frame({ maxWidth: 1e4 })]}>
-          <Text modifiers={[font({ size: 12, weight: "medium" }), foregroundStyle(MUTED)]}>{props.title}</Text>
+          <Text modifiers={[font({ size: 12, weight: "medium" }), foregroundStyle(muted)]}>{props.title}</Text>
           {props.exercise ? (
-            <Text modifiers={[font({ size: 16, weight: "semibold" }), foregroundStyle(TEXT)]}>{props.exercise}</Text>
+            <Text modifiers={[font({ size: 16, weight: "semibold" }), foregroundStyle(text)]}>{props.exercise}</Text>
           ) : null}
           {props.setLine ? (
-            <Text modifiers={[font({ size: 12, weight: "medium" }), foregroundStyle(MUTED)]}>{props.setLine}</Text>
+            <Text modifiers={[font({ size: 12, weight: "medium" }), foregroundStyle(muted)]}>{props.setLine}</Text>
           ) : null}
         </VStack>
         <Spacer />
         <VStack alignment="trailing" spacing={3}>
           {bigClock(24)}
           {props.finished ? null : resting ? (
-            <Text modifiers={[font({ size: 11, weight: "medium" }), foregroundStyle(MUTED)]}>{props.restLabel}</Text>
+            <Text modifiers={[font({ size: 11, weight: "medium" }), foregroundStyle(muted)]}>{props.restLabel}</Text>
           ) : (
-            <Text modifiers={[font({ size: 11, weight: "medium" }), foregroundStyle(MUTED)]}>{props.elapsedLabel}</Text>
+            <Text modifiers={[font({ size: 11, weight: "medium" }), foregroundStyle(muted)]}>{props.elapsedLabel}</Text>
           )}
         </VStack>
       </HStack>
@@ -140,7 +141,7 @@ function WorkoutActivityLayout(props: WorkoutActivityProps, environment: LiveAct
   return {
     banner: bannerBody,
     compactLeading: (
-      <Text modifiers={[font({ size: 12, weight: "semibold" }), foregroundStyle(TEXT), frame({ maxWidth: 110 })]}>
+      <Text modifiers={[font({ size: 12, weight: "semibold" }), foregroundStyle(text), frame({ maxWidth: 110 })]}>
         {props.exercise || props.title}
       </Text>
     ),
@@ -153,15 +154,17 @@ function WorkoutActivityLayout(props: WorkoutActivityProps, environment: LiveAct
     ) : (
       bigClock(15, 48)
     ),
-    minimal: resting ? bigClock(12, 36) : (
+    minimal: resting ? (
+      bigClock(12, 36)
+    ) : (
       <Text modifiers={[font({ size: 12, weight: "medium", design: "monospaced" }), monospacedDigit(), foregroundStyle(lime)]}>
         {props.weightCompact || props.goLabel}
       </Text>
     ),
     expandedLeading: (
       <VStack alignment="leading" spacing={2} modifiers={[padding({ leading: 4 })]}>
-        <Text modifiers={[font({ size: 12, weight: "medium" }), foregroundStyle(MUTED)]}>{props.title}</Text>
-        <Text modifiers={[font({ size: 14, weight: "semibold" }), foregroundStyle(TEXT)]}>
+        <Text modifiers={[font({ size: 12, weight: "medium" }), foregroundStyle(muted)]}>{props.title}</Text>
+        <Text modifiers={[font({ size: 14, weight: "semibold" }), foregroundStyle(text)]}>
           {props.exercise || props.title}
         </Text>
       </VStack>
@@ -170,7 +173,7 @@ function WorkoutActivityLayout(props: WorkoutActivityProps, environment: LiveAct
     expandedBottom: (
       <VStack alignment="leading" spacing={4} modifiers={[padding({ horizontal: 4 })]}>
         {props.setLine ? (
-          <Text modifiers={[font({ size: 13, weight: "medium" }), foregroundStyle(MUTED)]}>{props.setLine}</Text>
+          <Text modifiers={[font({ size: 13, weight: "medium" }), foregroundStyle(muted)]}>{props.setLine}</Text>
         ) : null}
         {setBars}
       </VStack>
