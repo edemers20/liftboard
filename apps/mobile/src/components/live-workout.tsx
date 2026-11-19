@@ -359,7 +359,9 @@ function Label({ live, inline }: { live: LiveWorkout; inline: boolean }) {
         {live.resting && live.restSeconds != null ? (
           <>
             <Text style={[styles.bigTime, live.restUrgent ? styles.restWarn : styles.restOk]}>{clock(live.restSeconds)}</Text>
-            <Text style={styles.timeLabel}>{fill(copy.live.elapsedLine, clock(live.elapsed))}</Text>
+            <Text numberOfLines={1} style={styles.timeLabel}>
+              {fill(copy.live.elapsedLine, clock(live.elapsed))}
+            </Text>
           </>
         ) : (
           <Text style={[styles.bigTime, styles.elapsedOk]}>{clock(live.elapsed)}</Text>
@@ -490,7 +492,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(200,232,106,0.32)",
     justifyContent: "center",
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     paddingVertical: 10,
     overflow: "hidden",
   },
@@ -505,16 +507,16 @@ const styles = StyleSheet.create({
     borderRadius: theme.radii.pill,
     opacity: 0.55,
   },
-  pillRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  /** Prefer name width; timer shrink-wraps. */
-  pillLeft: { flexGrow: 1, flexShrink: 1, flexBasis: 0, minWidth: 120 },
-  pillRight: { flexGrow: 0, flexShrink: 0, alignItems: "flex-end" },
-  pillRightLift: { alignSelf: "stretch", justifyContent: "center" },
+  pillRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  /** Name takes the row; timer is a narrow shrink-wrap column. */
+  pillLeft: { flex: 1, minWidth: 168, paddingRight: 4 },
+  pillRight: { width: 56, flexGrow: 0, flexShrink: 0, alignItems: "flex-end" },
+  pillRightLift: { alignSelf: "stretch", justifyContent: "center", width: 52 },
   bigTime: {
     color: theme.text,
     fontFamily: theme.fonts.monoMedium,
-    fontSize: 22,
-    lineHeight: 26,
+    fontSize: 18,
+    lineHeight: 22,
     fontVariant: ["tabular-nums"],
   },
   restOk: { color: TIMER_LIME },
@@ -523,8 +525,9 @@ const styles = StyleSheet.create({
   timeLabel: {
     color: MUTED_PILL,
     fontFamily: theme.fonts.bodyMedium,
-    fontSize: 11,
+    fontSize: 10,
     marginTop: 2,
+    maxWidth: 56,
   },
   pressed: { opacity: 0.7 },
   endSheet: { marginHorizontal: 16, gap: 12 },
