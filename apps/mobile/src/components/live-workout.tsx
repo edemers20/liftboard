@@ -12,7 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { copy, fill } from "@/copy";
 import { useSolidGlass } from "@/glass";
-import { exerciseProgress } from "@/live-activity/state";
+import { currentSlot, exerciseProgress } from "@/live-activity/state";
 import { engine, useEngineStore } from "@/store";
 import { theme } from "@/theme";
 import { clock } from "@/units";
@@ -70,13 +70,15 @@ export function releaseEmptyLive(id: string) {
 export type LiveIdentity = {
   id: string;
   title: string;
+  /** Current exercise name; primary line on the pill when set. */
+  exercise: string;
   /** Rest is running, including the "Go" overtime. */
   resting: boolean;
   /** Rest countdown is ≤10s at the time this was read. */
   restUrgent: boolean;
   done: boolean;
   doneAt: number;
-  /** Subtitle under the title (`Exercise 2 of 5` or `Rest`). */
+  /** Subtitle (`Exercise 2 of 5` or `Rest`). */
   detail: string;
   /** Short form for the minimized tab bar. */
   compact: string;
@@ -123,12 +125,30 @@ function elapsedSeconds(id: string, now: number): number {
   return Math.max(0, Math.floor((now - start) / 1000));
 }
 
+function readExerciseName(id: string): string {
+  try {
+    const day = (engine.DAYS as any[]).find((entry) => entry.id === id);
+    const planned = engine.plan().days[id];
+    if (!day || !planned) return "";
+    const restName = (engine.wk.rest as { name?: string } | null)?.name;
+    if (restName) return String(restName);
+    const index = currentSlot(id, day, planned);
+    if (index < 0) return "";
+    const slot = day.slots[index];
+    if (!slot || slot.cardio) return "";
+    return String(engine.exName(day, slot, index) || "");
+  } catch {
+    return "";
+  }
+}
+
 function identityFrom(id: string, title: string, now: number, doneAt = 0): LiveIdentity {
   const workoutStart = ((engine.wk.wt || {}) as Record<string, { start?: number }>)[id]?.start || now;
   if (doneAt && now - doneAt < FLASH_MS) {
     return {
       id,
       title,
+      exercise: "",
       resting: false,
       restUrgent: false,
       done: true,
@@ -145,6 +165,7 @@ function identityFrom(id: string, title: string, now: number, doneAt = 0): LiveI
     return {
       id,
       title,
+      exercise: readExerciseName(id),
       resting: true,
       restUrgent: !rest.over && rest.seconds <= 10,
       done: false,
@@ -156,16 +177,19 @@ function identityFrom(id: string, title: string, now: number, doneAt = 0): LiveI
     };
   }
   let detail = "";
+  let exercise = "";
   try {
     const planned = engine.plan().days[id];
     const progress = exerciseProgress(id, planned);
     if (progress) detail = fill(copy.live.exerciseOf, progress.index, progress.total);
+    exercise = readExerciseName(id);
   } catch {
     detail = "";
   }
   return {
     id,
     title,
+    exercise,
     resting: false,
     restUrgent: false,
     done: false,
@@ -321,11 +345,12 @@ export function useLiveWorkout(): LiveWorkout | null {
 function spoken(live: LiveWorkout): string {
   if (live.done) return live.detail;
   const elapsed = clock(live.elapsed);
+  const name = live.exercise || live.title;
   if (live.resting && live.restSeconds != null) {
-    return `${live.title}: ${copy.live.rest} ${clock(live.restSeconds)}, ${fill(copy.live.elapsedLine, elapsed)}`;
+    return `${name}: ${copy.live.rest} ${clock(live.restSeconds)}, ${fill(copy.live.elapsedLine, elapsed)}`;
   }
-  if (!live.detail) return `${live.title}, ${elapsed}`;
-  return `${live.title}: ${live.detail}, ${elapsed}`;
+  if (!live.detail) return `${name}, ${elapsed}`;
+  return `${name}: ${live.detail}, ${elapsed}`;
 }
 
 function Label({ live, inline }: { live: LiveWorkout; inline: boolean }) {
@@ -343,15 +368,23 @@ function Label({ live, inline }: { live: LiveWorkout; inline: boolean }) {
       </Text>
     );
   }
+  const primary = live.exercise || live.title;
+  const secondary = live.exercise ? (live.detail ? `${live.title}: ${live.detail}` : live.title) : live.detail;
   return (
     <View style={styles.pillRow}>
       <View style={styles.pillLeft}>
-        <Text numberOfLines={1} ellipsizeMode="tail" style={styles.label}>
-          {live.title}
+        <Text
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.7}
+          ellipsizeMode="tail"
+          style={styles.label}
+        >
+          {primary}
         </Text>
-        {live.detail ? (
+        {secondary ? (
           <Text numberOfLines={1} ellipsizeMode="tail" style={styles.sub}>
-            {live.detail}
+            {secondary}
           </Text>
         ) : null}
       </View>
@@ -360,7 +393,7 @@ function Label({ live, inline }: { live: LiveWorkout; inline: boolean }) {
           <>
             <Text style={[styles.bigTime, live.restUrgent ? styles.restWarn : styles.restOk]}>{clock(live.restSeconds)}</Text>
             <Text numberOfLines={1} style={styles.timeLabel}>
-              {fill(copy.live.elapsedLine, clock(live.elapsed))}
+              {clock(live.elapsed)}
             </Text>
           </>
         ) : (
@@ -492,8 +525,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(200,232,106,0.32)",
     justifyContent: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
     overflow: "hidden",
   },
   solidShell: {
@@ -507,16 +540,16 @@ const styles = StyleSheet.create({
     borderRadius: theme.radii.pill,
     opacity: 0.55,
   },
-  pillRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  /** Name takes the row; timer is a narrow shrink-wrap column. */
-  pillLeft: { flex: 1, minWidth: 168, paddingRight: 4 },
-  pillRight: { width: 56, flexGrow: 0, flexShrink: 0, alignItems: "flex-end" },
-  pillRightLift: { alignSelf: "stretch", justifyContent: "center", width: 52 },
+  pillRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  /** Exercise name keeps the width; timer column does not grow. */
+  pillLeft: { flexGrow: 1, flexShrink: 1, flexBasis: 0, minWidth: 0 },
+  pillRight: { flexGrow: 0, flexShrink: 0, alignItems: "flex-end", maxWidth: 48 },
+  pillRightLift: { alignSelf: "stretch", justifyContent: "center", maxWidth: 44 },
   bigTime: {
     color: theme.text,
     fontFamily: theme.fonts.monoMedium,
-    fontSize: 18,
-    lineHeight: 22,
+    fontSize: 16,
+    lineHeight: 20,
     fontVariant: ["tabular-nums"],
   },
   restOk: { color: TIMER_LIME },
@@ -524,10 +557,10 @@ const styles = StyleSheet.create({
   restWarn: { color: WARN },
   timeLabel: {
     color: MUTED_PILL,
-    fontFamily: theme.fonts.bodyMedium,
+    fontFamily: theme.fonts.monoMedium,
     fontSize: 10,
-    marginTop: 2,
-    maxWidth: 56,
+    marginTop: 1,
+    fontVariant: ["tabular-nums"],
   },
   pressed: { opacity: 0.7 },
   endSheet: { marginHorizontal: 16, gap: 12 },

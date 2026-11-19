@@ -8,7 +8,6 @@ import {
   frame,
   layoutPriority,
   lineLimit,
-  minimumScaleFactor,
   monospacedDigit,
   multilineTextAlignment,
   padding,
@@ -21,11 +20,11 @@ import type { WorkoutActivityProps } from "./state";
  * Lock Screen and Dynamic Island layout. Widget runtime only: locals inside this function.
  *
  * Lock Screen: clear tint + lime wash. Never `glassEffect` (blanks the banner).
+ * Banner layout matches the last known-good paint (ee0eb14): left stack priority 0, timer
+ * priority 1 + fixedSize. Giving both sides priority 1 (6102d84) left the banner empty while
+ * ExpoWidgetsTarget was still running.
  *
- * Dynamic Island compact/minimal match the Expo docs shape: plain `Text` nodes, no `frame` /
- * `fixedSize` / `lineLimit` / `timerInterval` (those have left the Island empty while the
- * Lock Screen banner still painted). Trailing uses a short static label; the Lock Screen
- * keeps the live system timer.
+ * Dynamic Island: docs-style plain Text (no frame / fixedSize / timerInterval on compact).
  */
 function WorkoutActivityLayout(props: WorkoutActivityProps, environment: LiveActivityEnvironment) {
   "widget";
@@ -65,15 +64,13 @@ function WorkoutActivityLayout(props: WorkoutActivityProps, environment: LiveAct
     const s = Math.max(0, Math.floor(total));
     return `${pad2(Math.floor(s / 60))}:${pad2(s % 60)}`;
   };
-  /** Snapshot for Island only; Lock Screen uses system timerInterval. */
   const nowMs = Date.now();
+  const islandLead = props.exercise || props.title || "Workout";
   const islandTrail = props.finished
     ? props.doneLabel
     : resting
       ? clockLabel((props.restEnd - nowMs) / 1000)
       : props.weightCompact || clockLabel((nowMs - workoutStart) / 1000);
-  const islandLead = props.exercise || props.title || "Workout";
-  const islandLeadColor = white;
   const islandTrailColor = props.finished ? limeSoft : resting ? restColor : limeSoft;
 
   const bannerClock = (size: number) =>
@@ -99,7 +96,6 @@ function WorkoutActivityLayout(props: WorkoutActivityProps, environment: LiveAct
           foregroundStyle(restColor),
           multilineTextAlignment("trailing"),
           lineLimit(1),
-          minimumScaleFactor(0.75),
           fixedSize({ horizontal: true, vertical: true }),
         ]}
       />
@@ -113,7 +109,6 @@ function WorkoutActivityLayout(props: WorkoutActivityProps, environment: LiveAct
           foregroundStyle(text),
           multilineTextAlignment("trailing"),
           lineLimit(1),
-          minimumScaleFactor(0.75),
           fixedSize({ horizontal: true, vertical: true }),
         ]}
       />
@@ -144,11 +139,12 @@ function WorkoutActivityLayout(props: WorkoutActivityProps, environment: LiveAct
       </Text>
     );
 
+  /** Timer column wins layout fights; left stack yields (priority 0). */
   const timeBlock = (
     <VStack
       alignment="trailing"
       spacing={2}
-      modifiers={[layoutPriority(1), frame({ minWidth: 52, alignment: "trailing" }), fixedSize({ horizontal: true, vertical: true })]}
+      modifiers={[layoutPriority(1), frame({ minWidth: 56, alignment: "trailing" }), fixedSize({ horizontal: true, vertical: true })]}
     >
       {bannerClock(24)}
       {timeLabel}
@@ -181,13 +177,11 @@ function WorkoutActivityLayout(props: WorkoutActivityProps, environment: LiveAct
       spacing={0}
       modifiers={[padding({ all: 14 }), activityBackgroundTint("clear"), background(limeWash)]}
     >
-      <HStack alignment="top" spacing={10}>
-        <VStack alignment="leading" spacing={2} modifiers={[layoutPriority(1), frame({ maxWidth: 9999, alignment: "leading" })]}>
+      <HStack alignment="top" spacing={12}>
+        <VStack alignment="leading" spacing={2} modifiers={[layoutPriority(0), frame({ maxWidth: 9999, alignment: "leading" })]}>
           <Text modifiers={[font({ size: 12, weight: "medium" }), foregroundStyle(muted), lineLimit(1)]}>{props.title}</Text>
           {props.exercise ? (
-            <Text modifiers={[font({ size: 16, weight: "semibold" }), foregroundStyle(text), lineLimit(2), minimumScaleFactor(0.85)]}>
-              {props.exercise}
-            </Text>
+            <Text modifiers={[font({ size: 16, weight: "semibold" }), foregroundStyle(text), lineLimit(2)]}>{props.exercise}</Text>
           ) : null}
           {props.setLine ? (
             <Text modifiers={[font({ size: 12, weight: "medium" }), foregroundStyle(muted), lineLimit(1)]}>{props.setLine}</Text>
@@ -202,9 +196,8 @@ function WorkoutActivityLayout(props: WorkoutActivityProps, environment: LiveAct
 
   return {
     banner: bannerBody,
-    // Docs-shaped Island: plain Text only. No frame / timerInterval / fixedSize.
     compactLeading: (
-      <Text modifiers={[font({ size: 13, weight: "semibold" }), foregroundStyle(islandLeadColor)]}>{islandLead}</Text>
+      <Text modifiers={[font({ size: 13, weight: "semibold" }), foregroundStyle(white)]}>{islandLead}</Text>
     ),
     compactTrailing: (
       <Text modifiers={[font({ size: 13, weight: "medium", design: "monospaced" }), monospacedDigit(), foregroundStyle(islandTrailColor)]}>
