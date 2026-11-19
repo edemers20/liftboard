@@ -18,11 +18,12 @@ import { SharedTransitionBoundary } from "react-native-reanimated";
 
 import { LaunchSplash, claimLaunchSplash } from "@/components/launch-splash";
 import { startCrashReports } from "@/crash/report";
-import { LiveWorkoutState, useLiveIdentity } from "@/components/live-workout";
-import { useLiveActivitySync } from "@/live-activity/sync";
+import { LiveWorkoutState } from "@/components/live-workout";
+import { LiveActivitySync } from "@/live-activity/sync";
 import { DialHost } from "@/components/number-dial";
 import { NoticeHost } from "@/components/motion";
 import { TipHost } from "@/components/tip-popover";
+import { Probe } from "@/perf/probe";
 import { engine, useEngineStore } from "@/store";
 import { watchTabTipPath } from "@/tab-tips";
 import { WeekReportHost } from "@/week-report";
@@ -49,11 +50,11 @@ function TransitionRoot({ active, children }: { active: boolean; children: React
 
 function OnboardingGate() {
   const pathname = usePathname();
-  useEngineStore((state) => state.version);
+  const onboarded = useEngineStore(() => !!engine.wk.onbDone);
   useEffect(() => {
     if (pathname) watchTabTipPath(pathname);
   }, [pathname]);
-  if (engine.wk.onbDone) return null;
+  if (onboarded) return null;
   if (!pathname || pathname === "/onboarding") return null;
   return <Redirect href="/onboarding" />;
 }
@@ -102,11 +103,11 @@ export default function RootLayout() {
   const reduceMotion = useReduceMotion();
   const [enter, setEnter] = useState<WorkoutEnter>("plain");
   useEffect(() => subscribeWorkoutEnter(setEnter), []);
-  const live = useLiveIdentity();
-  useLiveActivitySync();
 
   return (
-    <LiveWorkoutState live={live}>
+    <Probe id="root">
+    <LiveWorkoutState>
+    <LiveActivitySync />
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: theme.orange.background }}>
       <StatusBar style="light" />
       {appReady ? (
@@ -174,5 +175,6 @@ export default function RootLayout() {
       {showSplash ? <LaunchSplash appReady={appReady} onDone={() => setShowSplash(false)} /> : null}
     </GestureHandlerRootView>
     </LiveWorkoutState>
+    </Probe>
   );
 }

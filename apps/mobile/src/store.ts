@@ -1,6 +1,7 @@
 import * as engine from "@liftboard/engine";
 import { create } from "zustand";
 
+import { PERF_ON, perfCount } from "./perf/probe";
 import { storage } from "./storage";
 
 type EngineModule = typeof engine;
@@ -42,6 +43,7 @@ export const useEngineStore = create<EngineState>((set) => {
   engine.init(storage);
   capSports();
   engine.setSaveHook(() => {
+    perfCount("store:version");
     set((state) => ({ version: state.version + 1 }));
   });
 
@@ -50,5 +52,7 @@ export const useEngineStore = create<EngineState>((set) => {
     call: (fn) => fn(engine),
   };
 });
+
+if (PERF_ON) (globalThis as Record<string, unknown>).__lbStore = useEngineStore;
 
 export { engine };

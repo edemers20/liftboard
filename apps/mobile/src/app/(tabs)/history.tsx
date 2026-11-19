@@ -4,10 +4,15 @@ import { useMemo } from "react";
 
 import { HistoryTab } from "@/components/history-tab";
 import { readHistory } from "@/history-data";
-import { useEngineStore } from "@/store";
+import { Probe } from "@/perf/probe";
+import { useEngineVersion } from "@/screen-version";
 
 export default function HistoryScreen() {
-  const version = useEngineStore((state) => state.version);
+  const version = useEngineVersion();
   const data = useMemo(() => readHistory(), [version]);
-  return <HistoryTab data={data} />;
+  return (
+    <Probe id="tab:history">
+      <HistoryTab data={data} />
+    </Probe>
+  );
 }

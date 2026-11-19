@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { AppState, Platform } from "react-native";
 import type { LiveActivity, LiveActivityDismissalPolicy } from "expo-widgets";
 
+import { perfCount, perfTime } from "@/perf/probe";
 import { engine, useEngineStore } from "@/store";
 
 import { activityKey, activityProps, MAX_LIVE_MS, type WorkoutActivityProps } from "./state";
@@ -11,6 +12,8 @@ import { WorkoutActivity } from "./workout-activity";
 
 /** How long "Day done ✓" stays on the Lock Screen before the activity goes. */
 const DONE_SHOW_MS = 4000;
+/** Saves in one burst (a set tap, then its rest) share one Live Activity update. */
+const SYNC_AFTER_SAVE_MS = 120;
 
 type Current = { activity: LiveActivity<WorkoutActivityProps>; id: string; start: number; key: string };
 
@@ -36,6 +39,10 @@ function finish(props?: WorkoutActivityProps, policy: LiveActivityDismissalPolic
 
 /** Start, update or end the workout's Live Activity so it matches the engine. Safe to call often. */
 export function syncLiveActivity(now = Date.now()) {
+  perfTime("la:sync", () => syncNow(now));
+}
+
+function syncNow(now: number) {
   const factory = WorkoutActivity;
   if (!factory) return;
   try {
@@ -70,6 +77,7 @@ export function syncLiveActivity(now = Date.now()) {
     }
     if (current.key !== key) {
       current.key = key;
+      perfCount("la:update");
       current.activity.update(props, staleDate).catch(() => {});
     }
   } catch {
@@ -77,32 +85,53 @@ export function syncLiveActivity(now = Date.now()) {
   }
 }
 
+/** Keeps the Live Activity in step with the workout. Mounted once at the root, beside the app tree. */
+export function LiveActivitySync() {
+  useLiveActivitySync();
+  return null;
+}
+
 /**
- * Keeps the Live Activity in step with the workout. Mounted once at the root.
- * Syncs on engine version, app foreground, rest-urgent and rest-end — not every second
- * (elapsed and rest countdown are Timeline dates on the widget).
+ * Keeps the Live Activity in step with the workout.
+ * Syncs after engine saves, on app foreground, at rest-urgent and at rest-end; not every second
+ * (elapsed and rest countdown are Timeline dates on the widget). Saves are followed outside React
+ * and synced a moment later, so a tap's redraw never waits on plan() or the ActivityKit bridge.
  */
 export function useLiveActivitySync() {
-  const version = useEngineStore((state) => state.version);
   useEffect(() => {
-    syncLiveActivity();
-    if (!WorkoutActivity || Platform.OS !== "ios") return;
-    const live = underway();
-    if (!live) return;
-    const now = Date.now();
-    const timers: ReturnType<typeof setTimeout>[] = [];
-    const rest = engine.wk.rest as { end?: number } | null | undefined;
-    if (rest?.end && rest.end > now) {
-      const urgentAt = rest.end - 10_000;
-      if (urgentAt > now) timers.push(setTimeout(() => syncLiveActivity(), urgentAt - now));
-      timers.push(setTimeout(() => syncLiveActivity(), rest.end - now + 50));
-    }
-    const maxLeft = live.start + MAX_LIVE_MS - now;
-    if (maxLeft > 0 && maxLeft < 48 * 3600e3) {
-      timers.push(setTimeout(() => syncLiveActivity(), maxLeft));
-    }
-    return () => timers.forEach(clearTimeout);
-  }, [version]);
+    let soon: ReturnType<typeof setTimeout> | null = null;
+    let timers: ReturnType<typeof setTimeout>[] = [];
+    const run = () => {
+      soon = null;
+      timers.forEach(clearTimeout);
+      timers = [];
+      syncLiveActivity();
+      if (!WorkoutActivity || Platform.OS !== "ios") return;
+      const live = underway();
+      if (!live) return;
+      const now = Date.now();
+      const rest = engine.wk.rest as { end?: number } | null | undefined;
+      if (rest?.end && rest.end > now) {
+        const urgentAt = rest.end - 10_000;
+        if (urgentAt > now) timers.push(setTimeout(() => syncLiveActivity(), urgentAt - now));
+        timers.push(setTimeout(() => syncLiveActivity(), rest.end - now + 50));
+      }
+      const maxLeft = live.start + MAX_LIVE_MS - now;
+      if (maxLeft > 0 && maxLeft < 48 * 3600e3) {
+        timers.push(setTimeout(() => syncLiveActivity(), maxLeft));
+      }
+    };
+    run();
+    const unsubscribe = useEngineStore.subscribe(() => {
+      if (soon) clearTimeout(soon);
+      soon = setTimeout(run, SYNC_AFTER_SAVE_MS);
+    });
+    return () => {
+      unsubscribe();
+      if (soon) clearTimeout(soon);
+      timers.forEach(clearTimeout);
+    };
+  }, []);
   useEffect(() => {
     if (!WorkoutActivity || Platform.OS !== "ios") return;
     const sub = AppState.addEventListener("change", (next) => {

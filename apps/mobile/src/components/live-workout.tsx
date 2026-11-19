@@ -13,6 +13,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { copy, fill } from "@/copy";
 import { useSolidGlass } from "@/glass";
 import { currentSlot, exerciseProgress } from "@/live-activity/state";
+import { perfTime } from "@/perf/probe";
+import { useScreenShown } from "@/screen-version";
+import { useSecondClock } from "@/second-clock";
 import { engine, useEngineStore } from "@/store";
 import { theme } from "@/theme";
 import { clock } from "@/units";
@@ -228,6 +231,10 @@ function liveFromIdentity(identity: LiveIdentity, now: number): LiveWorkout {
 
 /** Presence for the underway workout, or the one just marked done for a moment. No per-second clocks. */
 export function readLiveIdentity(now = Date.now()): LiveIdentity | null {
+  return perfTime("live:identity", () => readIdentityNow(now));
+}
+
+function readIdentityNow(now: number): LiveIdentity | null {
   const timers = engine.wk.wt || {};
   const started = Object.keys(timers)
     .map((id) => ({ id, start: timers[id]?.start || 0, end: timers[id]?.end || 0 }))
@@ -288,8 +295,13 @@ export function useSolidLive(): boolean {
 
 const LiveWorkoutContext = createContext<LiveIdentity | null>(null);
 
-/** Identity only: spacers and sheets re-render on start/rest/done, not every second. */
-export function LiveWorkoutState({ live, children }: { live: LiveIdentity | null; children: ReactNode }) {
+/**
+ * Identity only: spacers and sheets re-render on start/rest/done, not every second. Reads the
+ * identity itself so a save redraws the provider and the consumers whose identity changed, not
+ * the app root and every navigator under it.
+ */
+export function LiveWorkoutState({ children }: { children: ReactNode }) {
+  const live = useLiveIdentity();
   return <LiveWorkoutContext.Provider value={live}>{children}</LiveWorkoutContext.Provider>;
 }
 
@@ -304,7 +316,10 @@ export function useShownLiveWorkout(): LiveIdentity | null {
 export function useLiveIdentity(): LiveIdentity | null {
   const version = useEngineStore((state) => state.version);
   const [pulse, setPulse] = useState(0);
-  const live = readLiveIdentity();
+  const last = useRef<LiveIdentity | null>(null);
+  const read = readLiveIdentity();
+  const live = sameIdentity(last.current, read) ? last.current : read;
+  last.current = live;
   useEffect(() => {
     const rest = engine.wk.rest;
     if (rest?.end && (rest.end - Date.now()) / 1000 < -300) engine.restView();
@@ -328,18 +343,21 @@ export function useLiveIdentity(): LiveIdentity | null {
   return live;
 }
 
-/** Re-renders as elapsed and rest clocks move. Use only in the pill / accessory. */
-export function useLiveWorkout(): LiveWorkout | null {
+function sameIdentity(a: LiveIdentity | null, b: LiveIdentity | null): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  return (Object.keys(b) as (keyof LiveIdentity)[]).every((key) => a[key] === b[key]);
+}
+
+/**
+ * Re-renders as elapsed and rest clocks move, on the shared second tick. Use only in the pill /
+ * accessory. `on` false (pill under a pushed screen) stops the clock until it shows again.
+ */
+export function useLiveWorkout(on = true): LiveWorkout | null {
   const identity = useContext(LiveWorkoutContext);
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    if (!identity) return;
-    const delay = identity.done ? Math.max(16, identity.doneAt + FLASH_MS - Date.now()) : 1000;
-    const timer = setTimeout(() => setNow(Date.now()), delay);
-    return () => clearTimeout(timer);
-  }, [identity?.id, identity?.done, identity?.doneAt, identity?.restEnd, now]);
+  useSecondClock(on && !!identity && !identity.done);
   if (!identity) return null;
-  return liveFromIdentity(identity, now);
+  return liveFromIdentity(identity, Date.now());
 }
 
 function spoken(live: LiveWorkout): string {
@@ -452,7 +470,7 @@ export function LiveWorkoutAccessory({ live }: { live: LiveWorkout }) {
 
 /** Sits on the 88pt strip the tab bar already covers, with a small gap. */
 export function LiveWorkoutBar() {
-  const live = useLiveWorkout();
+  const live = useLiveWorkout(useScreenShown());
   if (!live) return null;
   return <LiveWorkoutDock live={live} bottom={96} />;
 }

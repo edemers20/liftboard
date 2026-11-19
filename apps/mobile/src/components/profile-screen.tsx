@@ -22,6 +22,7 @@ import Svg, { Circle, Polyline } from "react-native-svg";
 import { copy } from "@/copy";
 import { useSolidGlass } from "@/glass";
 import { engine, useEngineStore } from "@/store";
+import { useEngineVersion } from "@/screen-version";
 import { TabBarSpacer } from "@/tab-bar-inset";
 import { theme } from "@/theme";
 import { toDisplay } from "@/units";
@@ -165,7 +166,7 @@ export function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const reduce = useReduceMotion();
-  useEngineStore((state) => state.version);
+  useEngineVersion();
   const call = useEngineStore((state) => state.call);
   const [naming, setNaming] = useState(false);
   const [draftName, setDraftName] = useState("");
