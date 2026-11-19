@@ -660,6 +660,11 @@ export function SettingsScreen({ onReplay, startMetrics = false }: { onReplay: (
             on={(week.remind || "On") !== "Off"}
             onPress={() => write("remind", (week.remind || "On") === "Off" ? "On" : "Off")}
           />
+          <Toggle
+            label={copy.you.showExerciseImages}
+            on={(week.exImg || "Off") === "On"}
+            onPress={() => write("exImg", (week.exImg || "Off") === "On" ? "Off" : "On")}
+          />
         </View>
 
         <View style={styles.panel}>
@@ -764,7 +769,8 @@ export function SettingsScreen({ onReplay, startMetrics = false }: { onReplay: (
             <Text style={styles.dangerLabel}>{copy.you.deleteAccount}</Text>
           </PressableScale>
         </View>
-        <Text style={styles.disclaimer}>{copy.you.disclaimer}</Text>
+        <Text style={styles.disclaimer}>{copy.you.exerciseArtCredit}</Text>
+        <Text style={[styles.disclaimer, styles.disclaimerGap]}>{copy.you.disclaimer}</Text>
       </ScrollView>
       </TabScrollMarker>
 
@@ -1410,6 +1416,7 @@ const styles = StyleSheet.create({
   faqQuestionText: { fontFamily: theme.fonts.bodyMedium, fontSize: 14, lineHeight: 20, color: theme.text },
   faqAnswer: { marginTop: 4, fontFamily: theme.fonts.body, fontSize: 13, lineHeight: 18, color: theme.muted },
   disclaimer: { fontFamily: theme.fonts.body, fontSize: 12, lineHeight: 18, color: theme.muted },
+  disclaimerGap: { marginTop: 8 },
   foot: { flexDirection: "row", gap: 8 },
   footButton: { flex: 1 },
   saveBar: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12, backgroundColor: theme.pink.background },

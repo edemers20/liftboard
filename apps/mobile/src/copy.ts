@@ -105,10 +105,13 @@ export const copy = {
     mon: "Mon",
     sun: "Sun",
     nextMorning: "Next-morning check",
+    showExerciseImages: "Show exercise images",
     on: "On",
     off: "Off",
     faq: "FAQ",
     yourData: "Your data",
+    exerciseArtCredit:
+      "Original exercise artwork by Everkinetic, expanded by Bryl Lim, licensed under CC BY-SA 4.0.",
     backupNote:
       "Everything lives on this phone only. Export your data now and then; restoring replaces what's here.",
     restoreBackup: "Restore backup",
@@ -598,6 +601,7 @@ export const copy = {
     addExerciseBtn: "+ Add exercise",
     addExercise: "Add exercise",
     chooseExercise: "Choose an exercise…",
+    searchExercises: "Search exercises",
     exerciseName: "Custom exercise",
     addTo: "Add to {…}",
     countsAs: "Counts as",

@@ -23,6 +23,8 @@ import { useReduceMotion } from "@/use-reduce-motion";
 import { useHideOnScroll } from "@/use-hide-on-scroll";
 
 import { canSwapDay, openSwappedWorkout } from "@/components/swap-sheet";
+import { ExerciseThumb } from "@/exercise-images/thumb";
+import { exerciseImageSource, exerciseImagesOn } from "@/exercise-images";
 import { Check, Close, Swap } from "@/icons";
 import { RestBar } from "@/workout/rest-bar";
 
@@ -1278,6 +1280,7 @@ function CollapsedRow({
       onPress={onPress}
       style={[styles.collapsed, done ? styles.collapsedDone : null, optional && !done ? styles.collapsedOptional : null]}
     >
+      <ExerciseThumb name={name} />
       <View style={styles.collapsedText}>
         <Text style={styles.slotLabel}>{label}</Text>
         <Text style={[styles.exercise, done ? styles.doneName : null, optional && !done ? styles.optionalName : null]}>{name}</Text>
@@ -1391,6 +1394,7 @@ function ExerciseCard(props: {
             onPress={props.onOpenPicker}
             style={styles.picker}
           >
+            {choice === engine.CUSTOM ? null : <ExerciseThumb name={choice} size={40} />}
             <Text style={styles.pickerText} numberOfLines={1}>
               {choice === engine.CUSTOM ? copy.workout.custom : choice}
             </Text>
@@ -1680,25 +1684,59 @@ function PickerModal({
   onClose: () => void;
   onSelect: (value: string) => void;
 }) {
+  const [query, setQuery] = useState("");
+  const showImages = exerciseImagesOn();
+  const needle = query.trim().toLowerCase();
+  const filtered = needle
+    ? groups
+        .map((group) => ({
+          ...group,
+          options: group.options.filter(
+            (option) => option.label.toLowerCase().includes(needle) || option.value.toLowerCase().includes(needle),
+          ),
+        }))
+        .filter((group) => group.options.length)
+    : groups;
+
+  useEffect(() => {
+    if (!open) setQuery("");
+  }, [open]);
+
   return (
     <SheetFrame visible={open} onClose={onClose}>
         <GlassSheet style={styles.pickerSheet}>
           <Text style={styles.section}>{title}</Text>
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder={copy.workout.searchExercises}
+            placeholderTextColor={theme.muted}
+            autoCorrect={false}
+            autoCapitalize="none"
+            clearButtonMode="while-editing"
+            style={styles.pickerSearch}
+          />
           <ScrollView style={styles.pickerList} keyboardShouldPersistTaps="handled">
-            {groups.map((group) => (
+            {filtered.map((group) => (
               <View key={group.label || "all"}>
                 {group.label ? <Text style={styles.optionalLabel}>{group.label}</Text> : null}
-                {group.options.map((option) => (
-                  <PressableScale
-                    key={option.value}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: option.value === selected }}
-                    onPress={() => onSelect(option.value)}
-                    style={styles.pickerOption}
-                  >
-                    <Text style={[styles.body, option.value === selected ? styles.pickerOn : null]}>{option.label}</Text>
-                  </PressableScale>
-                ))}
+                {group.options.map((option) => {
+                  const thumb = showImages ? exerciseImageSource(option.value) : null;
+                  return (
+                    <PressableScale
+                      key={option.value}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: option.value === selected }}
+                      onPress={() => onSelect(option.value)}
+                      style={styles.pickerOption}
+                    >
+                      {thumb ? <ExerciseThumb name={option.value} size={44} /> : null}
+                      <Text style={[styles.body, styles.pickerOptionText, option.value === selected ? styles.pickerOn : null]}>
+                        {option.label}
+                      </Text>
+                    </PressableScale>
+                  );
+                })}
               </View>
             ))}
           </ScrollView>
@@ -2087,13 +2125,29 @@ const styles = StyleSheet.create({
   pickerSheet: {
     marginHorizontal: 12,
     marginBottom: 12,
-    maxHeight: "70%",
+    maxHeight: "88%",
     backgroundColor: theme.green.surface,
     borderRadius: theme.radii.card,
     padding: 16,
     gap: 8,
   },
+  pickerSearch: {
+    minHeight: 44,
+    borderRadius: theme.radii.small,
+    backgroundColor: theme.green.background,
+    color: theme.text,
+    fontFamily: theme.fonts.body,
+    fontSize: 16,
+    paddingHorizontal: 12,
+  },
   pickerList: { flexGrow: 0 },
-  pickerOption: { minHeight: 44, justifyContent: "center" },
+  pickerOption: {
+    minHeight: 48,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 4,
+  },
+  pickerOptionText: { flex: 1 },
   pickerOn: { color: theme.green.accent, fontFamily: theme.fonts.bodySemi },
 });

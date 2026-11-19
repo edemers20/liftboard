@@ -359,6 +359,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | + Add exercise | main.js:851 |
 |  | Add exercise | main.js:856 |
 |  | Choose an exercise… | main.js:856 |
+|  | Search exercises | Workout exercise picker sheet (Emma, Nov 19). |
 | Placeholder | Custom exercise | custom exercise name field |
 |  | Add to {…} | main.js:856 |
 |  | Counts as | main.js:858 |
@@ -583,11 +584,13 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Save changes | main.js:463 |
 |  | Save & close | You tab, preferences |
 |  | App | main.js:463 |
+|  | Show exercise images | Settings → App (Emma, Nov 19). Toggle; default off. |
 |  | FAQ | main.js:463 |
 |  | Your data | main.js:463 |
 |  | Everything lives on this phone only. Export your data now and then; restoring replaces what's here. | main.js:463 (Emma, Nov 16: matches "Export my data") |
 |  | Export my data | main.js:463 (was "Download backup"; Emma, Nov 16) |
 |  | Restore backup | main.js:463 |
+|  | Original exercise artwork by Everkinetic, expanded by Bryl Lim, licensed under CC BY-SA 4.0. | Settings footer credit for Workout Guide (Emma, Nov 19). |
 |  | Lift Board gives general training and nutrition estimates, not medical advice. Check with a doctor before big changes, especially if you're pregnant, injured or managing a health condition. | main.js:463 |
 |  | Replay tour | main.js:463 |
 |  | Reset profile | main.js:463 |
