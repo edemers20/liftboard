@@ -65,12 +65,13 @@ export function releaseEmptyLive(id: string) {
   engine.save();
 }
 
-export type LiveWorkout = {
+/** Stable live-workout presence. Clocks tick only in the pill, not the app root. */
+export type LiveIdentity = {
   id: string;
   title: string;
   /** Rest is running, including the "Go" overtime. */
   resting: boolean;
-  /** Rest countdown is ≤10s. */
+  /** Rest countdown is ≤10s at the time this was read. */
   restUrgent: boolean;
   done: boolean;
   doneAt: number;
@@ -78,6 +79,13 @@ export type LiveWorkout = {
   detail: string;
   /** Short form for the minimized tab bar. */
   compact: string;
+  /** Rest end in ms; 0 when not resting. */
+  restEnd: number;
+  /** Workout timer start in ms. */
+  workoutStart: number;
+};
+
+export type LiveWorkout = LiveIdentity & {
   /** Elapsed workout seconds. */
   elapsed: number;
   /** Rest seconds left; 0 when over / Go. Null when not resting. */
@@ -114,8 +122,8 @@ function elapsedSeconds(id: string, now: number): number {
   return Math.max(0, Math.floor((now - start) / 1000));
 }
 
-function liveFrom(id: string, title: string, now: number, doneAt = 0): LiveWorkout {
-  const elapsed = elapsedSeconds(id, now);
+function identityFrom(id: string, title: string, now: number, doneAt = 0): LiveIdentity {
+  const workoutStart = ((engine.wk.wt || {}) as Record<string, { start?: number }>)[id]?.start || now;
   if (doneAt && now - doneAt < FLASH_MS) {
     return {
       id,
@@ -126,13 +134,13 @@ function liveFrom(id: string, title: string, now: number, doneAt = 0): LiveWorko
       doneAt,
       detail: copy.workout.dayDone,
       compact: copy.workout.dayDone,
-      elapsed,
-      restSeconds: null,
+      restEnd: 0,
+      workoutStart,
     };
   }
   const rest = restClock(now);
   if (rest) {
-    const time = clock(rest.seconds);
+    const restEnd = (engine.wk.rest as { end?: number } | null)?.end || 0;
     return {
       id,
       title,
@@ -141,9 +149,9 @@ function liveFrom(id: string, title: string, now: number, doneAt = 0): LiveWorko
       done: false,
       doneAt: 0,
       detail: copy.live.rest,
-      compact: time,
-      elapsed,
-      restSeconds: rest.seconds,
+      compact: clock(rest.seconds),
+      restEnd,
+      workoutStart,
     };
   }
   let detail = "";
@@ -162,13 +170,38 @@ function liveFrom(id: string, title: string, now: number, doneAt = 0): LiveWorko
     doneAt: 0,
     detail,
     compact: detail || title,
-    elapsed,
-    restSeconds: null,
+    restEnd: 0,
+    workoutStart,
   };
 }
 
-/** The workout that is underway, or the one just marked done for a moment. */
-export function readLiveWorkout(now = Date.now()): LiveWorkout | null {
+function liveFromIdentity(identity: LiveIdentity, now: number): LiveWorkout {
+  const elapsed = identity.workoutStart
+    ? Math.max(0, Math.floor((now - identity.workoutStart) / 1000))
+    : elapsedSeconds(identity.id, now);
+  if (identity.done) {
+    return { ...identity, elapsed, restSeconds: null };
+  }
+  if (identity.resting && identity.restEnd) {
+    const left = (identity.restEnd - now) / 1000;
+    const seconds = left <= 0 ? 0 : Math.round(left);
+    const over = left <= 0;
+    const restUrgent = !over && seconds <= 10;
+    return {
+      ...identity,
+      resting: true,
+      restUrgent,
+      detail: copy.live.rest,
+      compact: clock(seconds),
+      elapsed,
+      restSeconds: seconds,
+    };
+  }
+  return { ...identity, elapsed, restSeconds: null };
+}
+
+/** Presence for the underway workout, or the one just marked done for a moment. No per-second clocks. */
+export function readLiveIdentity(now = Date.now()): LiveIdentity | null {
   const timers = engine.wk.wt || {};
   const started = Object.keys(timers)
     .map((id) => ({ id, start: timers[id]?.start || 0, end: timers[id]?.end || 0 }))
@@ -182,15 +215,21 @@ export function readLiveWorkout(now = Date.now()): LiveWorkout | null {
     if (quiet.has(item.id)) continue;
     if (done) {
       if (now - doneAt >= FLASH_MS) continue;
-      return liveFrom(item.id, day.title, now, doneAt);
+      return identityFrom(item.id, day.title, now, doneAt);
     }
     if (item.end) continue;
-    return liveFrom(item.id, day.title, now);
+    return identityFrom(item.id, day.title, now);
   }
   const open = (engine.DAYS as { id: string; title: string }[]).find(
     (day) => !quiet.has(day.id) && workoutUnderway(day.id),
   );
-  return open ? liveFrom(open.id, open.title, now) : null;
+  return open ? identityFrom(open.id, open.title, now) : null;
+}
+
+/** The workout that is underway, or the one just marked done for a moment. */
+export function readLiveWorkout(now = Date.now()): LiveWorkout | null {
+  const identity = readLiveIdentity(now);
+  return identity ? liveFromIdentity(identity, now) : null;
 }
 
 function glassTabs(): boolean {
@@ -221,33 +260,60 @@ export function useSolidLive(): boolean {
   return reduce || !glassTabs();
 }
 
-const LiveWorkoutContext = createContext<LiveWorkout | null>(null);
+const LiveWorkoutContext = createContext<LiveIdentity | null>(null);
 
-/** One clock for the tab bar and the list spacers under it. */
-export function LiveWorkoutState({ live, children }: { live: LiveWorkout | null; children: ReactNode }) {
+/** Identity only: spacers and sheets re-render on start/rest/done, not every second. */
+export function LiveWorkoutState({ live, children }: { live: LiveIdentity | null; children: ReactNode }) {
   return <LiveWorkoutContext.Provider value={live}>{children}</LiveWorkoutContext.Provider>;
 }
 
-export function useShownLiveWorkout(): LiveWorkout | null {
+export function useShownLiveWorkout(): LiveIdentity | null {
   return useContext(LiveWorkoutContext);
 }
 
-/** Re-renders as elapsed and rest clocks move, and once the "Day done" flash should leave. */
-export function useLiveWorkout(): LiveWorkout | null {
+/**
+ * Presence for the app root. Updates on engine version and at rest urgent / rest end /
+ * day-done flash — never on a one-second clock.
+ */
+export function useLiveIdentity(): LiveIdentity | null {
   const version = useEngineStore((state) => state.version);
-  const [now, setNow] = useState(() => Date.now());
-  const live = readLiveWorkout(now);
+  const [pulse, setPulse] = useState(0);
+  const live = readLiveIdentity();
   useEffect(() => {
     const rest = engine.wk.rest;
     if (rest?.end && (rest.end - Date.now()) / 1000 < -300) engine.restView();
-  }, [version]);
+  }, [version, pulse]);
   useEffect(() => {
     if (!live) return;
-    const delay = live.done ? Math.max(16, live.doneAt + FLASH_MS - Date.now()) : 1000;
+    const now = Date.now();
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    const bump = () => setPulse((n) => n + 1);
+    if (live.done) {
+      timers.push(setTimeout(bump, Math.max(16, live.doneAt + FLASH_MS - now)));
+    }
+    if (live.restEnd > now) {
+      const urgentAt = live.restEnd - 10_000;
+      if (urgentAt > now) timers.push(setTimeout(bump, urgentAt - now));
+      timers.push(setTimeout(bump, live.restEnd - now + 30));
+    }
+    return () => timers.forEach(clearTimeout);
+    // pulse is intentionally omitted: timers stay armed across urgent/end bumps.
+  }, [live?.id, live?.restEnd, live?.done, live?.doneAt, version]);
+  return live;
+}
+
+/** Re-renders as elapsed and rest clocks move. Use only in the pill / accessory. */
+export function useLiveWorkout(): LiveWorkout | null {
+  const identity = useContext(LiveWorkoutContext);
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!identity) return;
+    const delay = identity.done ? Math.max(16, identity.doneAt + FLASH_MS - Date.now()) : 1000;
     const timer = setTimeout(() => setNow(Date.now()), delay);
     return () => clearTimeout(timer);
-  }, [live?.id, live?.done, live?.resting, live?.doneAt, live?.elapsed, live?.restSeconds, now]);
-  return live;
+  }, [identity?.id, identity?.done, identity?.doneAt, identity?.restEnd, now]);
+  if (!identity) return null;
+  return liveFromIdentity(identity, now);
 }
 
 function spoken(live: LiveWorkout): string {
