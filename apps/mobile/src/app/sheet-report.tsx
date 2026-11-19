@@ -3,7 +3,8 @@ import { useEffect, useMemo, useRef } from "react";
 import { View } from "react-native";
 
 import { useSolidGlass } from "@/glass";
-import { engine, useEngineStore } from "@/store";
+import { engine } from "@/store";
+import { useEngineVersion } from "@/screen-version";
 import { theme } from "@/theme";
 import { rememberedWeekReport, ReportSheet, type Report } from "@/week-report";
 
@@ -11,7 +12,7 @@ import { rememberedWeekReport, ReportSheet, type Report } from "@/week-report";
 export default function ReportRoute() {
   const navigation = useNavigation();
   const solid = useSolidGlass();
-  const version = useEngineStore((state) => state.version);
+  const version = useEngineVersion();
   const live = useMemo(() => engine.pendingWeekReport() as Report | null, [version]);
   const held = useRef<Report | null>(live ?? rememberedWeekReport());
   if (live) held.current = live;
