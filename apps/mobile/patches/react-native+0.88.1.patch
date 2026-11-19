@@ -1,0 +1,12 @@
+--- a/node_modules/react-native/package.json
++++ b/node_modules/react-native/package.json
+@@ -206,9 +206,6 @@
+             "PlatformConstants": {
+               "unstableRequiresMainQueueSetup": true
+             },
+-            "SampleTurboModule": {
+-              "unstableRequiresMainQueueSetup": true
+-            },
+             "StatusBarManager": {
+               "unstableRequiresMainQueueSetup": true
+             }
