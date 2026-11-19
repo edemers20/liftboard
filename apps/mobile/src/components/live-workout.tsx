@@ -21,7 +21,8 @@ import { openWorkout } from "@/workout/share-box";
 
 const FLASH_MS = 2500;
 const FADE_MS = 280;
-const LIME = ["#6fd0b4", "#c8e86a"] as const;
+/** Rest/elapsed digits: lighter than lime-a, still readable on glass. */
+const TIMER_LIME = "#9fcfc1";
 const WARN = "#e07a6a";
 const MUTED_PILL = "rgba(237,234,232,0.78)";
 
@@ -156,7 +157,8 @@ function identityFrom(id: string, title: string, now: number, doneAt = 0): LiveI
   }
   let detail = "";
   try {
-    const progress = exerciseProgress(id);
+    const planned = engine.plan().days[id];
+    const progress = exerciseProgress(id, planned);
     if (progress) detail = fill(copy.live.exerciseOf, progress.index, progress.total);
   } catch {
     detail = "";
@@ -344,11 +346,11 @@ function Label({ live, inline }: { live: LiveWorkout; inline: boolean }) {
   return (
     <View style={styles.pillRow}>
       <View style={styles.pillLeft}>
-        <Text numberOfLines={1} style={styles.label}>
+        <Text numberOfLines={1} ellipsizeMode="tail" style={styles.label}>
           {live.title}
         </Text>
         {live.detail ? (
-          <Text numberOfLines={1} style={styles.sub}>
+          <Text numberOfLines={1} ellipsizeMode="tail" style={styles.sub}>
             {live.detail}
           </Text>
         ) : null}
@@ -360,7 +362,7 @@ function Label({ live, inline }: { live: LiveWorkout; inline: boolean }) {
             <Text style={styles.timeLabel}>{fill(copy.live.elapsedLine, clock(live.elapsed))}</Text>
           </>
         ) : (
-          <Text style={styles.bigTime}>{clock(live.elapsed)}</Text>
+          <Text style={[styles.bigTime, styles.elapsedOk]}>{clock(live.elapsed)}</Text>
         )}
       </View>
     </View>
@@ -488,7 +490,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(200,232,106,0.32)",
     justifyContent: "center",
-    paddingHorizontal: 18,
+    paddingHorizontal: 14,
     paddingVertical: 10,
     overflow: "hidden",
   },
@@ -503,18 +505,20 @@ const styles = StyleSheet.create({
     borderRadius: theme.radii.pill,
     opacity: 0.55,
   },
-  pillRow: { flexDirection: "row", alignItems: "center", gap: 14 },
-  pillLeft: { flex: 1, minWidth: 0 },
-  pillRight: { flexShrink: 0, alignItems: "flex-end" },
-  pillRightLift: { alignSelf: "stretch", justifyContent: "center", minWidth: 64 },
+  pillRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  /** Prefer name width; timer shrink-wraps. */
+  pillLeft: { flexGrow: 1, flexShrink: 1, flexBasis: 0, minWidth: 120 },
+  pillRight: { flexGrow: 0, flexShrink: 0, alignItems: "flex-end" },
+  pillRightLift: { alignSelf: "stretch", justifyContent: "center" },
   bigTime: {
     color: theme.text,
     fontFamily: theme.fonts.monoMedium,
-    fontSize: 24,
-    lineHeight: 28,
+    fontSize: 22,
+    lineHeight: 26,
     fontVariant: ["tabular-nums"],
   },
-  restOk: { color: LIME[0] },
+  restOk: { color: TIMER_LIME },
+  elapsedOk: { color: TIMER_LIME },
   restWarn: { color: WARN },
   timeLabel: {
     color: MUTED_PILL,

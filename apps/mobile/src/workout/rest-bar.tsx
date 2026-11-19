@@ -81,6 +81,8 @@ export function RestBar({
   if (rest) latest.current = rest;
   const open = rest != null;
   const [mounted, setMounted] = useState(false);
+  /** Clock ticks here only; the workout screen does not re-render every second for rest. */
+  const [now, setNow] = useState(() => Date.now());
   const opacity = useSharedValue(0);
   const gap = useRestGap(open && mounted, reduce);
   const canGlass = !solid && glassApi();
@@ -108,11 +110,24 @@ export function RestBar({
     return () => clearTimeout(timer);
   }, [open, reduce, opacity]);
 
+  useEffect(() => {
+    if (!rest?.end) return;
+    setNow(Date.now());
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [rest?.end]);
+
   const fadeStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
 
-  const view = rest ?? latest.current;
-  if (!mounted || !view) return null;
+  const base = rest ?? latest.current;
+  if (!mounted || !base) return null;
 
+  const left = (base.end - now) / 1000;
+  const view: Rest = {
+    ...base,
+    over: left <= 0,
+    seconds: left <= 0 ? 0 : Math.round(left),
+  };
   const label = fill(copy.workout.rest, clock(view.over ? 0 : view.seconds));
   const soon = !view.over && view.seconds <= 10;
   const tint = view.over ? theme.fuel : soon ? SOON : undefined;

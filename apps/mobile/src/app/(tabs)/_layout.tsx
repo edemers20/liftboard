@@ -5,6 +5,7 @@ import { Tabs } from "expo-router/js-tabs";
 import { NativeTabs } from "expo-router/native-tabs";
 import { Platform, Text, View } from "react-native";
 
+import { LiveWorkoutBar } from "@/components/live-workout";
 import { TabTips } from "@/components/tab-tip";
 import { copy } from "@/copy";
 import { TabHistory, TabPlan, TabWorkouts } from "@/icons";
@@ -194,6 +195,8 @@ export default function TabLayout() {
     <View style={{ flex: 1 }}>
       {Platform.OS === "ios" ? <IosTabs /> : <JsTabs />}
       <TabTips />
+      {/* One pill for all tabs; per-tab mounts were each ticking a 1s clock. */}
+      <LiveWorkoutBar />
     </View>
   );
 }

@@ -101,6 +101,7 @@ export function setMetaLine(setOf: string, weight: string, resting: boolean): st
 /** Props for the workout `id`, or null when there's nothing to show. */
 export function activityProps(id: string, now = Date.now()): WorkoutActivityProps | null {
   const day = (engine.DAYS as any[]).find((item) => item.id === id);
+  // One plan() per sync; Live Activity updates must not re-plan every second.
   const planned = engine.plan().days[id] as Planned | undefined;
   if (!day || !planned) return null;
   const order = countedSlots(id, day, planned);
@@ -144,9 +145,9 @@ export function activityKey(props: WorkoutActivityProps | null): string {
 }
 
 /** Day exercise index for the in-app pill (`Exercise 2 of 5`). */
-export function exerciseProgress(id: string): { index: number; total: number } | null {
+export function exerciseProgress(id: string, plannedIn?: Planned): { index: number; total: number } | null {
   const day = (engine.DAYS as any[]).find((item) => item.id === id);
-  const planned = engine.plan().days[id] as Planned | undefined;
+  const planned = plannedIn ?? (engine.plan().days[id] as Planned | undefined);
   if (!day || !planned) return null;
   const order = countedSlots(id, day, planned);
   if (!order.length) return null;

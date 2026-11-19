@@ -47,7 +47,7 @@ import { copy, fill } from "@/copy";
 import { haptic } from "@/haptic";
 import { openPlan, takeWorkoutsDay } from "@/links";
 import { readPlan, usePlanClock } from "@/plan-model";
-import { LiveWorkoutBar, workoutUnderway } from "@/components/live-workout";
+import { workoutUnderway } from "@/components/live-workout";
 import { engine, useEngineStore } from "@/store";
 import { TabBarSpacer } from "@/tab-bar-inset";
 import { theme } from "@/theme";
@@ -495,7 +495,6 @@ export default function WorkoutsScreen() {
           </ScrollView>
         ) : null}
       </Animated.View>
-      <LiveWorkoutBar />
     </View>
   );
 }

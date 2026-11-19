@@ -10,7 +10,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { applyBackup, parseBackup, previewBackup, type LiftBackup } from "@/backup";
 import { playChime } from "@/chime";
-import { LiveWorkoutBar } from "@/components/live-workout";
 import { SheetFrame } from "@/components/motion";
 import { ageDial, bodyFatDial, DialValue, heightDial, stepsDial, weightDial, type DialSpec } from "@/components/number-dial";
 import { copy, fill } from "@/copy";
@@ -850,7 +849,6 @@ export function SettingsScreen({ onReplay, startMetrics = false }: { onReplay: (
             </View>
           </GlassSheet>
       </SheetFrame>
-      <LiveWorkoutBar />
     </View>
   );
 }

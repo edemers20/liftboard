@@ -44,6 +44,26 @@ type NudgeAsk = {
 };
 type Rest = { over: boolean; seconds: number; why: string; end: number };
 
+/** Same numbers as engine.restView, without clearing an expired timer during render. */
+function peekRest(now = Date.now()): Rest | null {
+  const rest = engine.wk.rest as { end?: number; why?: string } | null | undefined;
+  if (!rest?.end) return null;
+  const left = (rest.end - now) / 1000;
+  if (left < -300) return null;
+  if (left <= 0) return { over: true, seconds: 0, why: rest.why || "", end: rest.end };
+  return { over: false, seconds: Math.round(left), why: rest.why || "", end: rest.end };
+}
+
+/** Header elapsed clock; ticks locally so the workout tree is not re-rendered every second. */
+function ElapsedClock({ start, style }: { start: number; style: object }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [start]);
+  return <Text style={style}>{clock((now - start) / 1000)}</Text>;
+}
+
 const FEEL: { value: Feel; label: string; knob: string }[] = [
   { value: "Good", label: copy.workout.thriving, knob: "#3fa88c" },
   { value: "Normal", label: copy.workout.normal, knob: theme.muted },
@@ -207,8 +227,7 @@ export function WorkoutScreen({ id }: { id: string }) {
   const scroll = useRef<ScrollViewInstance>(null);
   const offsets = useRef<Record<number, number>>({});
   const listY = useRef(0);
-  const [rest, setRest] = useState<Rest | null>(null);
-  const [now, setNow] = useState(() => Date.now());
+  const [rest, setRest] = useState<Rest | null>(() => peekRest());
   const restOver = useRef<boolean | null>(null);
   const leftWhileCounting = useRef(false);
   const [sheet, setSheet] = useState<null | "done" | number>(null);
@@ -375,18 +394,26 @@ export function WorkoutScreen({ id }: { id: string }) {
   }, [undo]);
 
   useEffect(() => {
-    const tick = () => {
-      setNow(Date.now());
-      setRest(engine.restView());
-    };
-    tick();
-    const timer = setInterval(tick, 1000);
-    return () => clearInterval(timer);
+    const expired = engine.wk.rest?.end && (engine.wk.rest.end - Date.now()) / 1000 < -300;
+    if (expired) engine.restView();
+    setRest(peekRest());
   }, [version]);
+
+  useEffect(() => {
+    if (!rest?.end) return;
+    const ms = rest.end - Date.now();
+    if (ms <= 0) {
+      setRest(peekRest());
+      return;
+    }
+    const timer = setTimeout(() => setRest(peekRest()), ms + 30);
+    return () => clearTimeout(timer);
+  }, [rest?.end, version]);
 
   useEffect(() => {
     const sub = AppState.addEventListener("change", (state) => {
       if (state !== "active" && restOver.current === false) leftWhileCounting.current = true;
+      if (state === "active") setRest(peekRest());
     });
     return () => sub.remove();
   }, []);
@@ -408,7 +435,7 @@ export function WorkoutScreen({ id }: { id: string }) {
   }, [rest]);
 
   useEffect(() => {
-    const view = engine.restView();
+    const view = peekRest();
     if (view && !view.over && !engine.wk.rest?.noteId) void armRest(view.seconds);
   }, [id]);
 
@@ -649,11 +676,6 @@ export function WorkoutScreen({ id }: { id: string }) {
     ]);
   }
 
-  const timerLabel = !timer?.start
-    ? null
-    : timer.end
-      ? fill(copy.workout.minutes, Math.round((timer.end - timer.start) / 60000))
-      : clock((now - timer.start) / 1000);
   const feelQuestion = copy.workout.feel.split("{…}")[0];
 
   const summary = engine.daySummary(id) as any[];
@@ -1011,7 +1033,13 @@ export function WorkoutScreen({ id }: { id: string }) {
           <Text accessibilityRole="header" style={styles.title}>
             {day.tab ? `${day.tab}: ${day.title}` : day.title}
           </Text>
-          {timerLabel ? <Text style={styles.timer}>{timerLabel}</Text> : null}
+          {timer?.start ? (
+            timer.end ? (
+              <Text style={styles.timer}>{fill(copy.workout.minutes, Math.round((timer.end - timer.start) / 60000))}</Text>
+            ) : (
+              <ElapsedClock start={timer.start} style={styles.timer} />
+            )
+          ) : null}
         </View>
       </Animated.View>
 

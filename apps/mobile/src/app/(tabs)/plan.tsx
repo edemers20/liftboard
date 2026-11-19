@@ -18,7 +18,6 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { useNotice } from "@/activity-log";
-import { LiveWorkoutBar } from "@/components/live-workout";
 import { avgWeightDial, DialValue, shareDial } from "@/components/number-dial";
 import {
   ChoicePills,
@@ -400,7 +399,6 @@ export default function PlanScreen() {
           }}
         />
       ) : null}
-      <LiveWorkoutBar />
     </View>
   );
 }
