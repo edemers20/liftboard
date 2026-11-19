@@ -10,6 +10,7 @@ import { TabTips } from "@/components/tab-tip";
 import { copy } from "@/copy";
 import { TabHistory, TabPlan, TabWorkouts } from "@/icons";
 import { initialIcon, profileLetter } from "@/icons/initial-icon";
+import { Probe } from "@/perf/probe";
 import { engine, useEngineStore } from "@/store";
 import { PressableScale } from "@/components/pressable-scale";
 import { theme } from "@/theme";
@@ -49,13 +50,31 @@ const jsLabel = {
  * only apply on earlier iOS, where the dark material is the translucent bar.
  * SDK 58: import from `expo-router/native-tabs` (`unstable-native-tabs` is a deprecated alias).
  */
-function youLabel() {
-  return String(engine.wk.name || "").trim() || copy.you.profile;
+function youLabel(name: string) {
+  return name.trim() || copy.you.profile;
 }
 
+/** The tab bar shows only the name, so it redraws when the name changes, not on every save. */
+function useProfileName(): string {
+  return useEngineStore(() => String(engine.wk.name || ""));
+}
+
+const NAV_THEME = {
+  ...DarkTheme,
+  colors: {
+    ...DarkTheme.colors,
+    primary: theme.orange.accent,
+    background: theme.orange.background,
+    card: theme.orange.surface,
+    text: theme.text,
+    border: "transparent",
+  },
+};
+
+const LABEL_STYLE = { default: { ...label, color: theme.muted }, selected: label };
+
 function YouMark({ size }: { size: number }) {
-  useEngineStore((state) => state.version);
-  const letter = profileLetter(String(engine.wk.name || ""));
+  const letter = profileLetter(useProfileName());
   return (
     <View
       style={{
@@ -78,29 +97,17 @@ function YouMark({ size }: { size: number }) {
 }
 
 function IosTabs() {
-  useEngineStore((state) => state.version);
+  const name = useProfileName();
   const path = usePathname();
   const minimize = path === "/plan" || path === "/history" || path === "/you" ? "onScrollDown" : "never";
-  const letter = profileLetter(String(engine.wk.name || ""));
+  const letter = profileLetter(name);
   const youIcon = initialIcon(letter);
-  const profile = youLabel();
+  const profile = youLabel(name);
   return (
-    <ThemeProvider
-      value={{
-        ...DarkTheme,
-        colors: {
-          ...DarkTheme.colors,
-          primary: theme.orange.accent,
-          background: theme.orange.background,
-          card: theme.orange.surface,
-          text: theme.text,
-          border: "transparent",
-        },
-      }}
-    >
+    <ThemeProvider value={NAV_THEME}>
       <NativeTabs
         iconColor={theme.muted}
-        labelStyle={{ default: { ...label, color: theme.muted }, selected: label }}
+        labelStyle={LABEL_STYLE}
         blurEffect="systemChromeMaterialDark"
         minimizeBehavior={minimize}
         sidebarAdaptable={false}
@@ -128,8 +135,7 @@ function IosTabs() {
 
 function JsTabs() {
   const reduceMotion = useReduceMotion();
-  useEngineStore((state) => state.version);
-  const profile = youLabel();
+  const profile = youLabel(useProfileName());
   return (
     <Tabs
       screenOptions={{
@@ -193,10 +199,12 @@ function JsTabs() {
 export default function TabLayout() {
   return (
     <View style={{ flex: 1 }}>
-      {Platform.OS === "ios" ? <IosTabs /> : <JsTabs />}
+      <Probe id="tabs-nav">{Platform.OS === "ios" ? <IosTabs /> : <JsTabs />}</Probe>
       <TabTips />
       {/* One pill for all tabs; per-tab mounts were each ticking a 1s clock. */}
-      <LiveWorkoutBar />
+      <Probe id="pill">
+        <LiveWorkoutBar />
+      </Probe>
     </View>
   );
 }

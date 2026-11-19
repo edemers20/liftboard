@@ -55,7 +55,11 @@ for (const must of ["app/(tabs)/index.tsx", "app/(tabs)/plan.tsx", "components/h
 
 // Screens that sit at the root of a tab or route redraw from the store version; their children redraw with them.
 for (const screen of ["app/(tabs)/index.tsx", "app/(tabs)/plan.tsx", "app/(tabs)/history.tsx", "app/(tabs)/_layout.tsx", "components/profile-screen.tsx", "components/you-tab.tsx", "workout/screen.tsx", "app/activity/[t].tsx", "app/sheet-report.tsx", "week-report.tsx", "components/live-workout.tsx", "components/swap-sheet.tsx"]) {
-  assert.match(source.get(join(root, screen))!, /useEngineStore\(\(state\) => state\.version\)/, `${screen} subscribes to the store version`);
+  assert.match(
+    source.get(join(root, screen))!,
+    /useEngineStore\(\(state\) => state\.version\)|useEngineVersion\(\)|useProfileName\(\)|useEngineStore\(\(\) => /,
+    `${screen} subscribes to the store version`,
+  );
 }
 
 const memoized: string[] = [];

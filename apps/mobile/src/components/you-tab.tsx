@@ -18,6 +18,7 @@ import { storage } from "@/storage";
 import { resetTabTips } from "@/tab-tips";
 import { TabScrollMarker } from "@/tab-bar-inset";
 import { engine, useEngineStore } from "@/store";
+import { useEngineVersion } from "@/screen-version";
 import { rollWeekIfDue } from "@/week-roll";
 import { theme } from "@/theme";
 import { fromDisplay, toDisplay } from "@/units";
@@ -301,7 +302,7 @@ function readBackupFile(): Promise<string | null> {
 export function SettingsScreen({ onReplay, startMetrics = false }: { onReplay: () => void; startMetrics?: boolean }) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  useEngineStore((state) => state.version);
+  useEngineVersion();
   const call = useEngineStore((state) => state.call);
   const [editing, setEditing] = useState(startMetrics);
   const [draft, setDraft] = useState<Draft | null>(null);

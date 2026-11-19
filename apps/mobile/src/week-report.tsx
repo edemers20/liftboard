@@ -363,8 +363,8 @@ export function rememberedWeekReport(): Report | null {
 
 export function WeekReportHost() {
   const path = usePathname();
-  const version = useEngineStore((state) => state.version);
-  const live = useMemo(() => engine.pendingWeekReport() as Report | null, [version]);
+  const pending = useEngineStore(() => `${engine.wk.reportPending ?? ""}:${engine.wk.setupDone ? 1 : 0}`);
+  const live = useMemo(() => engine.pendingWeekReport() as Report | null, [pending]);
 
   useEffect(() => {
     if (!live) {

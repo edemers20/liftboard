@@ -24,11 +24,11 @@ import { SheetFrame } from "@/components/motion";
 import { useSolidGlass } from "@/glass";
 import { copy } from "@/copy";
 import { haptic } from "@/haptic";
-import { useEngineStore } from "@/store";
+import { useEngineVersion } from "@/screen-version";
 import { theme } from "@/theme";
 
 export default function ActivityScreen() {
-  useEngineStore((state) => state.version);
+  useEngineVersion();
   const params = useLocalSearchParams<{ t: string }>();
   const raw = Array.isArray(params.t) ? params.t[0] : params.t;
   const time = Number(raw);

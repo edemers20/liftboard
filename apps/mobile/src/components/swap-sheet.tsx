@@ -5,7 +5,8 @@ import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { PressableScale } from "@/components/pressable-scale";
 import { copy } from "@/copy";
 import { haptic } from "@/haptic";
-import { engine, useEngineStore } from "@/store";
+import { engine } from "@/store";
+import { useEngineVersion } from "@/screen-version";
 import { theme } from "@/theme";
 import { replaceWorkout } from "@/workout/share-box";
 
@@ -79,7 +80,7 @@ export function SwapForm({
   onClose: () => void;
   onWorkout?: (nextId: string) => void;
 }) {
-  useEngineStore((state) => state.version);
+  useEngineVersion();
   const choices = swapChoices(id);
 
   function pickFamily(nextId: string) {
