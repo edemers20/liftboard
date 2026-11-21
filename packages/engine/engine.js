@@ -817,8 +817,29 @@ function daySummary(dayId){ const d=DAYS.find(x=>x.id===dayId); if(!d) return []
     const log=(get(dayId,i).log||[]).map(x=>({w:num(x.w,0),r:num(x.r,0),d:x.d})).filter(x=>x.d&&x.r>0); if(!log.length) return null;
     const top=log.reduce((a,x)=>x.w>a.w||(x.w===a.w&&x.r>a.r)?x:a); return {n:exName(d,s,i),w:top.w,r:top.r,sets:log.length,extra:!!s.extra}; }).filter(Boolean); }
 function stampNotes(items,t){ wk.next={...(wk.next||{})}; items.forEach(r=>{ wk.next[r.n]={w:r.w,why:r.why,tag:r.tag,t,...(r.r!=null?{r:r.r}:{}),...(r.bw?{bw:1}:{})}; }); }
-/** Mark a day done: logs history, detects fatigue, stores the next-time review. Returns toast lines. */
-function markDone(dayId){
+/* Write one finished lift into lift history, the session log and next-time notes, dated `stamp`.
+   A dated (earlier-day) lift slots in by time, counts as your session length, and only leaves
+   next-time notes on exercises it is now the latest entry for. */
+function writeLift(d,stamp,P0,dated){
+  const dayId=d.id, items=[]; let drops=0;
+  d.slots.forEach((s,i)=>{ if(s.cardio||P0.days[dayId].slots[i].skip) return; const r=review(d,s,i,P0); if(r) items.push(r); });
+  d.slots.forEach((s,i)=>{ if(s.cardio) return; const n=exName(d,s,i), L=lastSet(get(dayId,i).log,isBW(n)); if(!L) return; const h=exHist[n]||[];
+    const at=dated?h.findIndex(x=>x.t>stamp):-1, pv=at<0?h[h.length-1]:h[at-1];
+    const rv=items.find(x=>x.n===n);
+    if((pv&&wk.deload!=="Yes"&&L.w>=pv.w&&L.r<=pv.r-2)||(rv&&rv.tag==="collapse")) drops++;
+    const sd=get(dayId,i).side||sideDefault(n), row={w:L.w,r:L.r,t:stamp,season:inSeason()?"In-season":"Off-season",...(UNI_RE.test(n)?{side:sd}:{})};
+    if(at<0) h.push(row); else h.splice(at,0,row); exHist[n]=h.slice(-24); });
+  /* how long it took, rounded to 15 min (timer start to Day done), else the session length setting */
+  const T=(wk.wt||{})[dayId]||{}, raw=!dated&&T.start?(stamp-T.start)/6e4:0, liftMin=raw>=10&&raw<=240?Math.max(30,Math.round(raw/15)*15):num(wk.time,60);
+  const S=(wk.sessions||[]).slice(), row={t:stamp,k:"lift",id:dayId,title:d.title,ex:daySummary(dayId),min:liftMin}, at=dated?S.findIndex(x=>x.t>stamp):-1;
+  if(at<0) S.push(row); else S.splice(at,0,row);
+  wk.sessions=S.slice(-500);
+  stampNotes(dated?items.filter(r=>{ const h=exHist[r.n]||[]; return !h.length||h[h.length-1].t===stamp; }):items,stamp);
+  return {items,drops};
+}
+/** Mark a day done: logs history, detects fatigue, stores the next-time review. Returns toast lines.
+    `at` dates it on an earlier day of this week (see logLiftOn); left out, it is now. */
+function markDone(dayId,at){
   wk.done=wk.done||{};
   if(wk.done[dayId]){
     /* reopening a day takes back the history it wrote, so finishing it again doesn't double-count */
@@ -826,21 +847,12 @@ function markDone(dayId){
     if(t) wk.sessions=(wk.sessions||[]).filter(s=>s.t!==t);
     if(t&&wk.next) Object.keys(wk.next).forEach(n=>{ if(wk.next[n].t===t) delete wk.next[n]; });
     delete wk.done[dayId]; if(wk.review) delete wk.review[dayId]; if(wk.doneT) delete wk.doneT[dayId]; if(wk.wt&&wk.wt[dayId]) delete wk.wt[dayId].end; save(); return []; }
-  const stamp=Date.now();
-  const d=DAYS.find(x=>x.id===dayId); let drops=0;
-  const P0=plan(), items=[];
-  d.slots.forEach((s,i)=>{ if(s.cardio||P0.days[dayId].slots[i].skip) return; const r=review(d,s,i,P0); if(r) items.push(r); });
-  d.slots.forEach((s,i)=>{ if(s.cardio) return; const n=exName(d,s,i), L=lastSet(get(dayId,i).log,isBW(n)); if(!L) return; const h=exHist[n]||[], pv=h[h.length-1];
-    const rv=items.find(x=>x.n===n);
-    if((pv&&wk.deload!=="Yes"&&L.w>=pv.w&&L.r<=pv.r-2)||(rv&&rv.tag==="collapse")) drops++;
-    const sd=get(dayId,i).side||sideDefault(n); h.push({w:L.w,r:L.r,t:stamp,season:inSeason()?"In-season":"Off-season",...(UNI_RE.test(n)?{side:sd}:{})}); exHist[n]=h.slice(-24); });
+  const now=Date.now(), stamp=at||now;
+  const d=DAYS.find(x=>x.id===dayId);
+  const {items,drops}=writeLift(d,stamp,plan(),!!at);
   /* the day's set logs stay on screen until a new week starts */
   wk.doneT={...(wk.doneT||{}),[dayId]:stamp};
-  /* how long it took, rounded to 15 min (timer start to Day done), else the session length setting */
-  const T=(wk.wt||{})[dayId]||{}, raw=T.start?(stamp-T.start)/6e4:0, liftMin=raw>=10&&raw<=240?Math.max(30,Math.round(raw/15)*15):num(wk.time,60);
-  wk.sessions=(wk.sessions||[]).concat([{t:stamp,k:"lift",id:dayId,title:d.title,ex:daySummary(dayId),min:liftMin}]).slice(-500);
-  stampNotes(items,stamp);
-  if(wk.wt&&wk.wt[dayId]&&wk.wt[dayId].start&&!wk.wt[dayId].end) wk.wt[dayId].end=stamp;
+  if(wk.wt&&wk.wt[dayId]&&wk.wt[dayId].start&&!wk.wt[dayId].end) wk.wt[dayId].end=now;
   wk.fatigue=(wk.fatigue||[]).concat([{t:Date.now(),day:dayId,drops}]).slice(-10);
   const P=plan(); let k=0;
   P.days[dayId].slots.forEach((A,i)=>{ if(d.slots[i].cardio&&!A.skip&&A.kcal){ const a=num(get(dayId,i).act,0); k+=a>0?a*A.rate:A.kcal; } });
@@ -1032,6 +1044,44 @@ function swapWeek(curId, otherId){
   else if(wk.upNext===otherId) wk.upNext=curId;
   save();
   return true;
+}
+/* ---------- Log a lift on an earlier day ---------- */
+const BACK_DAYS=56;
+/** The days a lift can be logged on: yesterday back to 8 weeks ago (start of each day). */
+function backdateRange(now){ const today=DAY0(now||Date.now()); return {min:addD(today,-BACK_DAYS).getTime(),max:addD(today,-1).getTime()}; }
+/** Log a lift (with whatever sets are ticked) on an earlier day. In the plan's current week it is the same as
+    finishing it, dated that day. In a closed week it goes into history and that week's record (lifts, missed, sets,
+    records), its sets clear from this week, and if it was the week just closed the carried-over queue moves past it.
+    Returns {t, closed} or null when the day or lift can't be logged. */
+function logLiftOn(dayId, day, now){
+  now=now||Date.now();
+  const d=DAYS.find(x=>x.id===dayId), R=backdateRange(now), d0=DAY0(day).getTime();
+  if(!d||(wk.done||{})[dayId]||!(d0>=R.min&&d0<=R.max)) return null;
+  const noon=new Date(d0); noon.setHours(12,0,0,0);
+  let stamp=noon.getTime(); while((wk.sessions||[]).some(s=>s.t===stamp)) stamp++;
+  const bucket=weekStartOf(stamp).getTime();
+  if(bucket>=weekStartOf(wk.weekStart||0).getTime()){ markDone(dayId,stamp); return {t:stamp,closed:false}; }
+  const sets=d.slots.reduce((a,s,i)=>a+(s.cardio?0:(get(dayId,i).log||[]).filter(x=>x&&x.d).length),0);
+  writeLift(d,stamp,plan(),true);
+  const W=wk.weeks||[], rec=W.slice().reverse().find(x=>weekStartOf(num(x.start,0)).getTime()===bucket);
+  if(rec){
+    const planned=num(rec.planned,0), miss=(Array.isArray(rec.miss)?rec.miss:[]).slice(), j=miss.indexOf(d.title);
+    if(j>=0) miss.splice(j,1);
+    rec.miss=miss; rec.lifts=planned>0?Math.min(planned,num(rec.lifts,0)+1):num(rec.lifts,0)+1;
+    rec.sets=num(rec.sets,0)+sets; rec.prs=prsForClose(bucket);
+    if(rec===W[W.length-1]){
+      /* the same carry-over newWeek works out, with this lift no longer missed */
+      const left=DAYS.filter(x=>miss.includes(x.title)), nextDay=left.length&&left.length<DAYS.length?left[0]:(DAYS[0]||null);
+      rec.nextTitle=nextDay?nextDay.title:"";
+      if(left.length&&left.length<DAYS.length){ wk.upNext=left[0].id; wk.missedNote={why:`${left.map(x=>x.tab).join(" and ")} didn't fit last week`,txt:`start with ${left[0].tab}, then continue in order`}; }
+      else { wk.upNext=""; wk.missedNote=null; }
+    }
+  }
+  /* its sets now belong to that day, so this week's copy of the lift starts empty */
+  d.slots.forEach((s,i)=>{ const st=slots[dayId]&&slots[dayId][i]; if(!st) return; st.log=[]; delete st.cdone; delete st.act; });
+  if(wk.wt) delete wk.wt[dayId]; if(wk.active) delete wk.active[dayId];
+  save();
+  return {t:stamp,closed:true};
 }
 const FIN_KEY=KEY2+".preFinish";
 function readFinishSnap(){ try{ return JSON.parse(store.getItem(FIN_KEY)||"null"); }catch(e){ return null; } }
@@ -1368,4 +1418,4 @@ function dayComplete(dayId){
   return d.slots.every((_,i)=>!countsInDay(dayId,i,P)||rowDone(dayId,i,P));
 }
 
-export { timeByKind, hoursMoved, mostPlayed, seasonFrom, changeItems, watchItems, keepWeight, rowDone, countsInDay, swapWeek, wTitle, sessionKcal, liftKcal, refreshLiftK, LIFT_MET, weekActuals, swapOptions, swapDay, earlyDone, planOff, finishWeek, undoFinish, hasFinishSnap, rateLb, isBW, yogaMet, pilMet, YOGA_EFF, PIL_EFF, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, MUSCLES, slotMuscles, musclePriority, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk, weekModel, dayBoard, moveLiftToToday, dayKey, weekStartOf, weekRuleAt, setWeekStart, restPlan, beginRest, adjustRest, clearRest, restView, startingGuess, startWeight, showsSide, sideDefault, lastSide, offerNudge, dayComplete, e1rm, weekTops, liftTrends, recentPrs, weekCompleted, weekStreak, countWeek, weekActivities, weekReport, pendingWeekReport, dismissWeekReport };
+export { backdateRange, logLiftOn, timeByKind, hoursMoved, mostPlayed, seasonFrom, changeItems, watchItems, keepWeight, rowDone, countsInDay, swapWeek, wTitle, sessionKcal, liftKcal, refreshLiftK, LIFT_MET, weekActuals, swapOptions, swapDay, earlyDone, planOff, finishWeek, undoFinish, hasFinishSnap, rateLb, isBW, yogaMet, pilMet, YOGA_EFF, PIL_EFF, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, MUSCLES, slotMuscles, musclePriority, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk, weekModel, dayBoard, moveLiftToToday, dayKey, weekStartOf, weekRuleAt, setWeekStart, restPlan, beginRest, adjustRest, clearRest, restView, startingGuess, startWeight, showsSide, sideDefault, lastSide, offerNudge, dayComplete, e1rm, weekTops, liftTrends, recentPrs, weekCompleted, weekStreak, countWeek, weekActivities, weekReport, pendingWeekReport, dismissWeekReport };
