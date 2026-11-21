@@ -12,7 +12,7 @@ export type NudgeAsk = {
 export type LegOffer = { activity: string; from: string; toId: string; to: string };
 
 type Job =
-  | { kind: "swap"; id: string; onWorkout?: (id: string) => void }
+  | { kind: "swap"; id: string; onWorkout?: (id: string) => void; onLogged?: (lines: string[]) => void }
   | { kind: "leg"; offer: LegOffer; onSwap: (id: string, title: string) => void }
   | { kind: "nudge"; ask: NudgeAsk; onUse: () => void; onKeep?: () => void };
 

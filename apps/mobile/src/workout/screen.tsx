@@ -19,7 +19,7 @@ import { useEngineStore } from "@/store";
 import { useReduceMotion } from "@/use-reduce-motion";
 import { useHideOnScroll } from "@/use-hide-on-scroll";
 
-import { canSwapDay, openSwappedWorkout } from "@/components/swap-sheet";
+import { canLogEarlier, canSwapDay, openSwappedWorkout } from "@/components/swap-sheet";
 import { Check, Close, Swap } from "@/icons";
 import { RestBar } from "@/workout/rest-bar";
 
@@ -461,6 +461,14 @@ export function WorkoutScreen({ id }: { id: string }) {
     haptic.success();
     showLines(lines, false);
     setSheet("done");
+  }
+
+  function loggedEarlier(lines: string[]) {
+    void cancelRestChime();
+    engine.clearRest();
+    setRest(null);
+    showLines(lines, false);
+    leave();
   }
 
   function resetDay() {
@@ -981,11 +989,11 @@ export function WorkoutScreen({ id }: { id: string }) {
           <PressableScale kind="text" accessibilityRole="button" onPress={leave} style={styles.back}>
             <Text style={styles.backText}>{copy.workouts.back}</Text>
           </PressableScale>
-          {canSwapDay(id) ? (
+          {canSwapDay(id) || canLogEarlier(id) ? (
             <PressableScale
               kind="button"
               accessibilityRole="button"
-              onPress={() => openFitSheet({ kind: "swap", id, onWorkout: openSwappedWorkout })}
+              onPress={() => openFitSheet({ kind: "swap", id, onWorkout: openSwappedWorkout, onLogged: loggedEarlier })}
               style={styles.swapPill}
             >
               <Swap size={16} color={theme.text} />

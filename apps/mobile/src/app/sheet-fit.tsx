@@ -41,7 +41,7 @@ export default function FitSheet() {
 
   return (
     <View style={[styles.sheet, { backgroundColor: solid ? theme.green.surface : "transparent", paddingBottom: Math.max(insets.bottom, 12) }]}>
-      {job.kind === "swap" ? <SwapForm id={job.id} onWorkout={job.onWorkout} onClose={() => leave()} /> : null}
+      {job.kind === "swap" ? <SwapForm id={job.id} onWorkout={job.onWorkout} onLogged={job.onLogged} onClose={() => leave()} /> : null}
       {job.kind === "leg" ? (
         <View style={styles.pad}>
           <Text accessibilityRole="header" style={styles.title}>

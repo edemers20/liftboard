@@ -1,6 +1,6 @@
 import "./styles.css";
 import { attachDials } from "./dial.js";
-import { timeByKind, hoursMoved, mostPlayed, seasonFrom, changeItems, watchItems, keepWeight, rowDone, countsInDay, wTitle, e1rm, prsBetween, weekComplete, weekStreak, countWeek, EFF_MULT, OWN_EFF, weekActuals, swapOptions, swapDay, isBW, yogaMet, pilMet, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk } from "./engine.js";
+import { backdateRange, logLiftOn, timeByKind, hoursMoved, mostPlayed, seasonFrom, changeItems, watchItems, keepWeight, rowDone, countsInDay, wTitle, e1rm, prsBetween, weekComplete, weekStreak, countWeek, EFF_MULT, OWN_EFF, weekActuals, swapOptions, swapDay, isBW, yogaMet, pilMet, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk } from "./engine.js";
 
 const storage=(()=>{ try{ const k="__t"; localStorage.setItem(k,"1"); localStorage.removeItem(k); return localStorage; }catch(e){ const m=new Map(); return {getItem:k=>m.get(k)??null,setItem:(k,v)=>m.set(k,String(v))}; } })();
 init(storage);
@@ -1020,8 +1020,8 @@ function askNudge(p){ const u=KG()?"kg":"lb";
 function renderDayHTML(d,P){
   const D=P.days[d.id], act=activeIdx(d,D);
   const WT=(wk.wt||{})[d.id];
-  const canSwap=canSwapDay(d.id);
-  let html=`<div class="dayhead"><h2>${d.tab?`${esc(d.tab)}: ${esc(d.title)}`:esc(d.title)}</h2>${WT&&WT.start?`<p class="wtime" id="wtime" data-day="${d.id}"></p>`:""}${canSwap?`<button type="button" class="swapbtn" data-swap="${d.id}"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13l-3-3M20 16H7l3 3"/></svg>Swap workout</button>`:""}</div>`;
+  const canSwap=canSwapDay(d.id)||canLogEarlier(d.id);
+  let html=`<div class="dayhead"><h2>${d.tab?`${esc(d.tab)}: ${esc(d.title)}`:esc(d.title)}</h2>${WT&&WT.start?`<p class="wtime" id="wtime" data-day="${d.id}"></p>`:""}${canSwap?`<button type="button" class="swapbtn" data-swap="${d.id}" data-log="1"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13l-3-3M20 16H7l3 3"/></svg>Swap workout</button>`:""}</div>`;
   html+=`<div class="panel today"><div class="q"><span id="todayLbl">How do you feel today?${ib("today")}</span>
     <div class="seg slider" data-key="today" role="radiogroup" aria-labelledby="todayLbl">${["Good","Normal","Rough"].map(o=>`<button type="button" role="radio" data-v="${o}" aria-checked="${D.today===o}" aria-pressed="${D.today===o}"><i aria-hidden="true"></i><span>${o==="Good"?"Thriving":o}</span></button>`).join("")}</div></div>
     ${D.restSuggest?`<p class="flag">Reps dropped two sessions in a row. Rest a day first if you can.</p>`:D.autoRough?`<p class="adj"><b>Shortened</b> · reps dropped last session</p>`:""}
@@ -1121,17 +1121,40 @@ function showSheet(html,bindFn,dim){
 function todayLift(){ if(earlyDone()) return null; const M=weekModel(0); return M.plan[M.tIdx]||null; }
 function plannedOthers(id){ return weekModel(0).todo.filter(x=>x!==id&&!dayHasSets(x)&&!(wk.done||{})[x]); }
 const canSwapDay=id=>!(wk.done||{})[id]&&!dayHasSets(id)&&(swapOptions(id).length>1||plannedOthers(id).length>0);
-/* Swap: another workout from the same family (sticks in that spot), or, for today's lift, one of this week's other planned lifts */
-function swapSheet(id){
-  const fam=swapOptions(id).filter(t=>t.id!==id), others=plannedOthers(id).map(dayById).filter(Boolean);
-  if(!fam.length&&!others.length) return;
+/* any lift not finished yet can be logged on an earlier day, started or not */
+const canLogEarlier=id=>!(wk.done||{})[id]&&!!dayById(id);
+const bdText=t=>new Date(t).toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});
+const bdShift=(t,n)=>{ const x=new Date(t); x.setDate(x.getDate()+n); return x.getTime(); };
+const BD_STEPS=[[-7,"Previous week","M15 18l-6-6 6-6M21 18l-6-6 6-6"],[-1,"Previous day","M15 18l-6-6 6-6"],[0],[1,"Next day","M9 18l6-6-6-6"],[7,"Next week","M9 18l6-6-6-6M3 18l6-6-6-6"]];
+function backdateHTML(when,R,label){
+  const arrow=([n,lab,path])=>{ const can=n<0?when>R.min:when<R.max;
+    return `<button type="button" class="bdarrow" data-bd="${n}" aria-label="${lab}"${can?"":" disabled"}><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${path}"/></svg></button>`; };
+  return `${label?`<span class="plab swaph">Log to an earlier day</span>`:""}<p class="small">Did this lift on another day? Save it on that date. Sets you've ticked are saved with it.</p>
+    <div class="bdrow">${BD_STEPS.map(x=>x[0]===0?`<span class="bddate" aria-live="polite">${bdText(when)}</span>`:arrow(x)).join("")}</div>
+    <button type="button" class="tb bdlog" data-bdlog>Log lift</button>`;
+}
+/* Swap: another workout from the same family (sticks in that spot), or, for today's lift, one of this week's other planned lifts.
+   From the workout itself it also offers logging the lift on an earlier day. */
+function swapSheet(id,withLog){
+  const swappable=canSwapDay(id), canLog=!!withLog&&canLogEarlier(id);
+  const fam=swappable?swapOptions(id).filter(t=>t.id!==id):[], others=swappable?plannedOthers(id).map(dayById).filter(Boolean):[];
+  if(!fam.length&&!others.length&&!canLog) return;
+  const R=backdateRange(); let when=R.max;
   const ex=t=>t.slots.map((sl,i)=>[sl,i]).filter(([sl])=>!sl.cardio).slice(0,3).map(([sl,i])=>exName(t,sl,i)).join(" · ");
   const opt=(t,attr)=>`<button type="button" class="swapopt" ${attr}="${t.id}"><b>${esc(t.tab?`${t.tab}: ${t.title}`:t.title)}</b><small>${esc(ex(t))}</small></button>`;
-  showSheet(`<div class="swapsheet"><div class="shtop"><h3 class="swapt">Swap workout</h3>${XBTN}</div>
-    <p class="small">The week will adjust to any swaps.</p>
+  showSheet(`<div class="swapsheet"><div class="shtop"><h3 class="swapt">${swappable?"Swap workout":"Log to an earlier day"}</h3>${XBTN}</div>
+    ${swappable?`<p class="small">The week will adjust to any swaps.</p>`:""}
     ${fam.length?`<span class="plab swaph">Same muscle group</span><div class="swaplist">${fam.map(t=>opt(t,"data-to")).join("")}</div>`:""}
-    ${others.length?`<span class="plab swaph">Planned</span><div class="swaplist">${others.map(t=>opt(t,"data-pick")).join("")}</div>`:""}</div>`,
-    el=>{ el.querySelectorAll("[data-to]").forEach(b=>b.onclick=()=>{ const to=b.dataset.to; closeSheet(); if(swapDay(id,to)){ if(cur===id) cur=to; keepNav(); render(); } });
+    ${others.length?`<span class="plab swaph">Planned</span><div class="swaplist">${others.map(t=>opt(t,"data-pick")).join("")}</div>`:""}
+    ${canLog?`<div class="bdbox">${backdateHTML(when,R,swappable)}</div>`:""}</div>`,
+    el=>{ const box=el.querySelector(".bdbox");
+      const bindLog=()=>{ if(!box) return;
+        box.querySelectorAll("[data-bd]").forEach(b=>b.onclick=()=>{ when=Math.min(R.max,Math.max(R.min,bdShift(when,+b.dataset.bd))); box.innerHTML=backdateHTML(when,R,swappable); bindLog(); });
+        box.querySelector("[data-bdlog]").onclick=()=>{ const title=wTitle(dayById(id).title), out=logLiftOn(id,when); closeSheet(); if(!out) return;
+          if(wk.rest) endRest(); if(cur===id) cur="home"; keepNav(); render(); window.scrollTo(0,0);
+          toast([`${title} logged on ${bdText(out.t)}`,...(out.closed?["It counts toward that week."]:[])]); }; };
+      bindLog();
+      el.querySelectorAll("[data-to]").forEach(b=>b.onclick=()=>{ const to=b.dataset.to; closeSheet(); if(swapDay(id,to)){ if(cur===id) cur=to; keepNav(); render(); } });
       el.querySelectorAll("[data-pick]").forEach(b=>b.onclick=()=>{ const to=b.dataset.pick; closeSheet(); if(!swapWeek(id,to)) return; if(cur===id) cur=to; keepNav(); render(); }); },true);
 }
 function closeSheet(){ sheetDim(false); const el=document.getElementById("sheet"); if(!el||el.hidden||el.classList.contains("out")) return; el.classList.add("out"); sheetT=setTimeout(()=>{ el.hidden=true; el.innerHTML=""; el.classList.remove("out"); },200); }
@@ -1701,7 +1724,7 @@ function bind(){
   v.querySelectorAll(".sidebtn").forEach(b=>b.onclick=()=>{ set(cur,+b.dataset.i,"side",b.dataset.side); render(); });
   v.querySelectorAll(".addset").forEach(b=>b.onclick=()=>{ const i=+b.dataset.i, log=(get(cur,i).log||[]).slice(), A=plan().days[cur].slots[i]; while(log.length<A.sets) log.push({}); log.push({}); set(cur,i,"log",log); render(); });
   const db=document.getElementById("doneBtn"); if(db) db.onclick=()=>{ const id=cur; if((wk.done||{})[id]) return; const n=setsLogged(id); markDone(id); render(); dayDone(id,n); };
-  v.querySelectorAll("[data-swap]").forEach(b=>b.onclick=()=>swapSheet(b.dataset.swap));
+  v.querySelectorAll("[data-swap]").forEach(b=>b.onclick=()=>swapSheet(b.dataset.swap,!!b.dataset.log));
   v.querySelectorAll("[data-share]").forEach(bindShare);
   const fw=document.getElementById("finishWeek"); if(fw) fw.onclick=()=>askSure({title:"Finish this week?",text:"This week's numbers are saved to history and next week's plan starts now. Lifts you didn't get to come first next week. You can undo until next week begins.",ok:"Finish week",onOk:finishWeek});
   const uf=document.getElementById("undoFinish"); if(uf) uf.onclick=undoFinish;
