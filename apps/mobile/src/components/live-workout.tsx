@@ -371,26 +371,7 @@ function spoken(live: LiveWorkout): string {
   return `${name}: ${live.detail}, ${elapsed}`;
 }
 
-type PillWidths = { shell: number; row: number; left: number; right: number; title: number };
-
-/** DIAG: on-screen width readout in Release too. Numbers only; never exercise names. */
-function PillWidthProbe({ widths }: { widths: PillWidths }) {
-  const { shell, row, left, right, title } = widths;
-  if (row <= 0) return null;
-  const leftover = Math.max(0, Math.round(row - left - right));
-  return (
-    <Text pointerEvents="none" style={styles.widthProbe} importantForAccessibility="no">
-      {`pill s${Math.round(shell)} r${Math.round(row)} L${Math.round(left)} R${Math.round(right)} T${Math.round(title)} gap${leftover}`}
-    </Text>
-  );
-}
-
 function Label({ live, inline }: { live: LiveWorkout; inline: boolean }) {
-  const [widths, setWidths] = useState<PillWidths>({ shell: 0, row: 0, left: 0, right: 0, title: 0 });
-  const setSlot = (slot: keyof PillWidths, width: number) => {
-    setWidths((prev) => (prev[slot] === width ? prev : { ...prev, [slot]: width }));
-  };
-
   if (inline) {
     return (
       <Text numberOfLines={1} style={styles.compact}>
@@ -408,16 +389,11 @@ function Label({ live, inline }: { live: LiveWorkout; inline: boolean }) {
   const primary = live.exercise || live.title;
   const secondary = live.exercise ? (live.detail ? `${live.title}: ${live.detail}` : live.title) : live.detail;
   return (
-    <View style={styles.pillBody} onLayout={(event) => setSlot("shell", event.nativeEvent.layout.width)}>
-      <View style={styles.pillRow} onLayout={(event) => setSlot("row", event.nativeEvent.layout.width)}>
+    <View style={styles.pillBody}>
+      <View style={styles.pillRow}>
         {/* flex:1 + minWidth:0 so the name owns every point the timer does not. */}
-        <View style={styles.pillLeft} onLayout={(event) => setSlot("left", event.nativeEvent.layout.width)}>
-          <Text
-            numberOfLines={2}
-            ellipsizeMode="tail"
-            style={styles.label}
-            onLayout={(event) => setSlot("title", event.nativeEvent.layout.width)}
-          >
+        <View style={styles.pillLeft}>
+          <Text numberOfLines={2} ellipsizeMode="tail" style={styles.label}>
             {primary}
           </Text>
           {secondary ? (
@@ -426,10 +402,7 @@ function Label({ live, inline }: { live: LiveWorkout; inline: boolean }) {
             </Text>
           ) : null}
         </View>
-        <View
-          style={[styles.pillRight, live.resting ? null : styles.pillRightLift]}
-          onLayout={(event) => setSlot("right", event.nativeEvent.layout.width)}
-        >
+        <View style={[styles.pillRight, live.resting ? null : styles.pillRightLift]}>
           {live.resting && live.restSeconds != null ? (
             <>
               <Text numberOfLines={1} style={[styles.bigTime, live.restUrgent ? styles.restWarn : styles.restOk]}>
@@ -446,7 +419,6 @@ function Label({ live, inline }: { live: LiveWorkout; inline: boolean }) {
           )}
         </View>
       </View>
-      <PillWidthProbe widths={widths} />
     </View>
   );
 }
@@ -574,15 +546,14 @@ const styles = StyleSheet.create({
   compact: { color: theme.text, fontFamily: theme.fonts.monoMedium, fontSize: 15, textAlign: "center" },
   dock: { position: "absolute", left: 16, right: 16, zIndex: 80 },
   shell: {
-    minHeight: 56,
+    // Tall enough for 2-line title + sub (~18*2 + 14) without clipping.
+    minHeight: 72,
     borderRadius: theme.radii.pill,
     borderWidth: 1,
     borderColor: "rgba(200,232,106,0.32)",
     justifyContent: "center",
-    // DIAG: less horizontal chrome so the name keeps more of the dock width.
     paddingHorizontal: 12,
-    paddingVertical: 8,
-    overflow: "hidden",
+    paddingVertical: 10,
     alignSelf: "stretch",
   },
   solidShell: {
@@ -621,13 +592,6 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
   },
   pillRightLift: { alignSelf: "center", justifyContent: "center" },
-  widthProbe: {
-    marginTop: 2,
-    color: "rgba(237,234,232,0.55)",
-    fontFamily: theme.fonts.monoMedium,
-    fontSize: 9,
-    lineHeight: 11,
-  },
   bigTime: {
     color: theme.text,
     fontFamily: theme.fonts.monoMedium,
