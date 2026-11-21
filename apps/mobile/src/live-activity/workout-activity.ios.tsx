@@ -18,13 +18,10 @@ import { createLiveActivity, type LiveActivityEnvironment, type LiveActivityFact
 import type { WorkoutActivityProps } from "./state";
 
 /**
- * Lock Screen + Dynamic Island. Widget runtime only: every value used here is local
- * (module-scope constants blank / throw in the extension, as with the old LIME_A bug).
+ * Lock Screen + Dynamic Island. Widget runtime only: locals only inside this function.
  *
- * Visibility note (9903): translucent lime wash + activityBackgroundTint("clear") painted a
- * hollow Lock Screen / expanded chrome after JS succeeded. Force opaque bg + white text until
- * a proven glass path lands. Compact leading gets a short name + aggressive scale; trailing
- * stays a short timer/weight only.
+ * 9904: opaque Lock Screen plate + white text; hardcoded "LB JS TEXT". Expanded: set line
+ * once (bottom only), timer/weight on trailing, no green plate on the Island.
  */
 function WorkoutActivityLayout(props: WorkoutActivityProps, environment: LiveActivityEnvironment) {
   "widget";
@@ -36,7 +33,6 @@ function WorkoutActivityLayout(props: WorkoutActivityProps, environment: LiveAct
   const limeSoft = "#9fcfc1";
   const fillDone = "#237a64";
   const warn = "#e07a6a";
-  /** Forced-visible palette: opaque green plate + white type (diag for invisible paint). */
   const plate = "#1a3d32";
   const text = "#ffffff";
   const muted = "rgba(255,255,255,0.85)";
@@ -81,7 +77,6 @@ function WorkoutActivityLayout(props: WorkoutActivityProps, environment: LiveAct
     const s = Math.max(0, Math.floor(total));
     return `${pad2(Math.floor(s / 60))}:${pad2(s % 60)}`;
   };
-  /** Compact Island leading is ~half the pill; keep names short enough to scale. */
   const shortIslandName = (name: string) => {
     const trimmed = (name || "").trim();
     if (!trimmed) return "Lift";
@@ -90,7 +85,6 @@ function WorkoutActivityLayout(props: WorkoutActivityProps, environment: LiveAct
     if (words.length >= 2) {
       const two = `${words[0]} ${words[1]}`;
       if (two.length <= 16) return two;
-      // "Single-Leg Romanian Deadlift" → "Single-Leg…"
       if (words[0].length <= 12) return `${words[0]}…`;
     }
     return `${trimmed.slice(0, 12)}…`;
@@ -98,12 +92,13 @@ function WorkoutActivityLayout(props: WorkoutActivityProps, environment: LiveAct
   const nowMs = Date.now();
   const islandLeadFull = exercise || title;
   const islandLead = shortIslandName(islandLeadFull);
-  // Trailing: timer while resting, weight (or elapsed) while lifting — never a long string.
+  // Never put "Set N of M" on trailing — weightCompact falls back to that string in props.
+  const weightOnly = weightCompact && weightCompact.indexOf("Set ") !== 0 ? weightCompact : "";
   const islandTrail = finished
     ? doneLabel
     : resting
       ? clockLabel((restEnd - nowMs) / 1000)
-      : weightCompact || clockLabel((nowMs - workoutStart) / 1000);
+      : weightOnly || clockLabel((nowMs - workoutStart) / 1000);
   const islandTrailColor = finished ? limeSoft : resting ? (restUrgent ? warn : limeSoft) : limeSoft;
 
   const clockText = (size: number, color: string, opts?: { width?: number; banner?: boolean }) => {
@@ -136,25 +131,11 @@ function WorkoutActivityLayout(props: WorkoutActivityProps, environment: LiveAct
     );
 
   const timeLabel = finished ? null : resting ? (
-    <Text
-      modifiers={[
-        font({ size: 11, weight: "medium" }),
-        foregroundStyle(muted),
-        multilineTextAlignment("trailing"),
-        lineLimit(1),
-      ]}
-    >
+    <Text modifiers={[font({ size: 11, weight: "medium" }), foregroundStyle(muted), multilineTextAlignment("trailing"), lineLimit(1)]}>
       {restLabel}
     </Text>
   ) : (
-    <Text
-      modifiers={[
-        font({ size: 11, weight: "medium" }),
-        foregroundStyle(muted),
-        multilineTextAlignment("trailing"),
-        lineLimit(1),
-      ]}
-    >
+    <Text modifiers={[font({ size: 11, weight: "medium" }), foregroundStyle(muted), multilineTextAlignment("trailing"), lineLimit(1)]}>
       {elapsedLabel}
     </Text>
   );
@@ -172,7 +153,7 @@ function WorkoutActivityLayout(props: WorkoutActivityProps, environment: LiveAct
 
   const setBars =
     setsTotal > 0 ? (
-      <HStack spacing={4} modifiers={[padding({ top: 12 })]}>
+      <HStack spacing={4} modifiers={[padding({ top: 8, bottom: 4 })]}>
         {Array.from({ length: setsTotal }, (_, index) => {
           const done = index < setsDone;
           const current = !done && index === setNow && !finished;
@@ -180,23 +161,16 @@ function WorkoutActivityLayout(props: WorkoutActivityProps, environment: LiveAct
           return (
             <RoundedRectangle
               cornerRadius={2}
-              modifiers={[
-                frame({ minWidth: 0, maxWidth: 9999, minHeight: 5, maxHeight: 5 }),
-                background(fill),
-              ]}
+              modifiers={[frame({ minWidth: 0, maxWidth: 9999, minHeight: 5, maxHeight: 5 }), background(fill)]}
             />
           );
         })}
       </HStack>
     ) : null;
 
-  // Opaque plate (not clear / not translucent wash) so Lock Screen cannot paint hollow chrome.
   const bannerBody = (
-    <VStack
-      alignment="leading"
-      spacing={0}
-      modifiers={[padding({ all: 14 }), activityBackgroundTint(plate), background(plate)]}
-    >
+    <VStack alignment="leading" spacing={4} modifiers={[padding({ all: 14 }), activityBackgroundTint(plate), background(plate)]}>
+      <Text modifiers={[font({ size: 11, weight: "bold" }), foregroundStyle("#c8e86a"), lineLimit(1)]}>LB JS TEXT</Text>
       <HStack alignment="top" spacing={12}>
         <VStack alignment="leading" spacing={2} modifiers={[layoutPriority(0), frame({ maxWidth: 9999, alignment: "leading" })]}>
           <Text modifiers={[font({ size: 12, weight: "medium" }), foregroundStyle(muted), lineLimit(1)]}>{title}</Text>
@@ -259,31 +233,29 @@ function WorkoutActivityLayout(props: WorkoutActivityProps, environment: LiveAct
         {islandLeadFull}
       </Text>
     ),
+    // Timer / weight only — not the set line (that lives in bottom once).
     expandedTrailing: (
       <Text
         modifiers={[
           font({ size: 16, weight: "medium", design: "monospaced" }),
           monospacedDigit(),
-          foregroundStyle(islandTrailColor),
+          foregroundStyle(limeSoft),
           lineLimit(1),
         ]}
       >
         {islandTrail}
       </Text>
     ),
-    // Was missing → EmptyView center made the expanded Island feel hollow.
-    expandedCenter: (
-      <Text modifiers={[font({ size: 13, weight: "medium" }), foregroundStyle(muted), lineLimit(1)]}>
-        {setLine || title}
-      </Text>
-    ),
+    // Leave center empty so "Set N of M" is not repeated here.
     expandedBottom: (
-      <VStack alignment="leading" spacing={4} modifiers={[padding({ horizontal: 4 }), background(plate)]}>
+      <VStack
+        alignment="leading"
+        spacing={6}
+        modifiers={[padding({ horizontal: 6, top: 4, bottom: 10 }), frame({ maxWidth: 9999, alignment: "leading" })]}
+      >
         {setLine ? (
-          <Text modifiers={[font({ size: 13, weight: "medium" }), foregroundStyle(text)]}>{setLine}</Text>
-        ) : (
-          <Text modifiers={[font({ size: 13, weight: "medium" }), foregroundStyle(text)]}>{islandLeadFull}</Text>
-        )}
+          <Text modifiers={[font({ size: 13, weight: "medium" }), foregroundStyle(text), lineLimit(1)]}>{setLine}</Text>
+        ) : null}
         {setBars}
       </VStack>
     ),
