@@ -377,16 +377,6 @@ export const copy = {
     swapWorkout: "Swap workout",
     swapBody: "The week will adjust to any swaps.",
     sameGroup: "Same muscle group",
-    /** TODO copy: not in docs/COPY.md. Swap sheet section (or title, when nothing can be swapped). */
-    logEarlier: "Log to an earlier day",
-    /** TODO copy: not in docs/COPY.md. */
-    logEarlierBody: "Did this lift on another day? Save it on that date. Sets you've ticked are saved with it.",
-    /** TODO copy: not in docs/COPY.md. */
-    logLift: "Log lift",
-    /** TODO copy: not in docs/COPY.md. Toast: workout title, then the date. */
-    loggedOn: "{…} logged on {…}",
-    /** TODO copy: not in docs/COPY.md. Toast second line when the date is in a closed week. */
-    countsThatWeek: "It counts toward that week.",
     keepPlan: "Keep plan",
     move: "Move to today",
     moved: "{…} moved to today",

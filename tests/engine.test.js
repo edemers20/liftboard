@@ -620,10 +620,10 @@ describe("logging a lift on an earlier day", () => {
   it("takes yesterday back to 8 weeks ago, not today or the future", () => {
     setup();
     const now = day(4, 12);
-    expect(E.backdateRange(now)).toEqual({ min: day(4 - 56), max: day(3) });
+    expect(E.backdateRange(now)).toEqual({ min: day(2 - 56), max: day(3) });
     expect(E.logLiftOn("fa", day(4), now)).toBeNull();
     expect(E.logLiftOn("fa", day(5), now)).toBeNull();
-    expect(E.logLiftOn("fa", day(4 - 57), now)).toBeNull();
+    expect(E.logLiftOn("fa", day(2 - 57), now)).toBeNull();
   });
 
   it("this week: finishes the lift on that date", () => {
@@ -656,13 +656,15 @@ describe("logging a lift on an earlier day", () => {
     const rec = E.wk.weeks.slice(-1)[0];
     expect(E.wk.upNext).toBe("");
     const now = day(11, 12);
+    expect(E.retroChoices(day(5), now)).toEqual({ next: ["fa", "fb", "fc"], other: [], closed: true });
     tick("fa");
-    expect(E.logLiftOn("fa", day(5), now)).toMatchObject({ closed: true });
+    expect(E.logLiftOn("fa", day(5), now, { 0: [{ w: 110, r: 8 }, { w: 110, r: 6 }] })).toMatchObject({ closed: true });
     expect(E.wk.done.fa).toBeFalsy();
-    expect(E.get("fa", 0).log).toEqual([]);
+    expect(E.get("fa", 0).log).toHaveLength(2);
     expect(rec).toMatchObject({ lifts: 1, sets: 2 });
     expect(rec.missed).not.toContain(E.DAYS[0].title);
     expect(E.weekActuals(day(2)).lifts).toBe(1);
+    expect(E.retroChoices(day(6), now)).toEqual({ next: ["fb", "fc"], other: ["fa"], closed: true });
     expect(E.wk.upNext).toBe("fb");
     E.logLiftOn("fb", day(6), now);
     expect(E.wk.upNext).toBe("fc");
@@ -671,5 +673,15 @@ describe("logging a lift on an earlier day", () => {
     expect(E.weekStreak()).toBe(1);
     expect(E.wk.upNext).toBe("");
     expect(E.wk.missedNote).toBeNull();
+  });
+
+  it("this week: offers the queue it is given, and given sets replace what was ticked", () => {
+    setup();
+    const now = day(4, 12);
+    expect(E.retroChoices(day(3), now, ["fb", "fc", "fa"])).toEqual({ next: ["fb", "fc", "fa"], other: [], closed: false });
+    tick("fa");
+    E.logLiftOn("fa", day(3), now, { 0: [{ w: 135, r: 5 }] });
+    expect(E.get("fa", 0).log).toEqual([{ w: "135", r: "5", d: true }]);
+    expect(E.retroChoices(day(3), now, ["fb", "fc", "fa"]).next).toEqual(["fb", "fc"]);
   });
 });

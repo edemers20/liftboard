@@ -1024,12 +1024,6 @@ html[data-vt="back"]::view-transition-new(lbview),html[data-vt="dayback"]::view-
 .wcard .wtop{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:32px}
 .swapbtn.sm{margin:0;min-height:32px;padding:0 12px;font-size:12.5px}
 .swapsheet{display:flex;flex-direction:column;gap:6px}
-.bdbox{display:flex;flex-direction:column;gap:6px}
-.bdrow{display:flex;align-items:center;margin-top:4px;border-radius:12px;background:rgba(0,0,0,.3)}
-.bdarrow{width:44px;height:48px;display:flex;align-items:center;justify-content:center;border:0;background:none;color:var(--fg);cursor:pointer}
-.bdarrow:disabled{opacity:.3;cursor:default}
-.bddate{flex:1;text-align:center;font-family:var(--mono);font-size:15px}
-.bdlog{margin-top:4px;min-height:48px}
 .swapsheet .shtop{margin:-6px -4px -6px 0}
 .swapsheet>p{margin:0}
 .swaph{display:block;margin-top:8px}

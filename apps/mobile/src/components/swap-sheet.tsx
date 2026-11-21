@@ -1,9 +1,7 @@
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react-native";
-import { useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { PressableScale } from "@/components/pressable-scale";
-import { copy, fill } from "@/copy";
+import { copy } from "@/copy";
 import { haptic } from "@/haptic";
 import { engine, useEngineStore } from "@/store";
 import { theme } from "@/theme";
@@ -46,21 +44,6 @@ export function canSwapDay(id: string) {
   return family.length > 0 || others.length > 0;
 }
 
-/** Any lift not finished yet can be logged on an earlier day, started or not. */
-export function canLogEarlier(id: string) {
-  return !(engine.wk.done || {})[id] && (engine.DAYS as Day[]).some((day) => day.id === id);
-}
-
-function dateText(t: number) {
-  return new Date(t).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
-}
-
-function shiftDay(t: number, by: number) {
-  const next = new Date(t);
-  next.setDate(next.getDate() + by);
-  return next.getTime();
-}
-
 /** Open the workout that was swapped in, from the workout screen. */
 export function openSwappedWorkout(nextId: string) {
   replaceWorkout(nextId);
@@ -70,26 +53,13 @@ export function SwapForm({
   id,
   onClose,
   onWorkout,
-  onLogged,
 }: {
   id: string;
   onClose: () => void;
   onWorkout?: (nextId: string) => void;
-  onLogged?: (lines: string[]) => void;
 }) {
   useEngineStore((state) => state.version);
-  const swappable = canSwapDay(id);
-  const choices = swappable ? swapChoices(id) : { family: [], others: [] };
-  const loggable = !!onLogged && canLogEarlier(id);
-  const range = engine.backdateRange();
-  const [when, setWhen] = useState(range.max);
-  const steps = [
-    { by: -7, label: copy.workouts.previousWeek, Icon: ChevronsLeft, can: when > range.min },
-    { by: -1, label: copy.workouts.previousDay, Icon: ChevronLeft, can: when > range.min },
-    { by: 0, label: "", Icon: ChevronLeft, can: false },
-    { by: 1, label: copy.workouts.nextDay, Icon: ChevronRight, can: when < range.max },
-    { by: 7, label: copy.workouts.nextWeek, Icon: ChevronsRight, can: when < range.max },
-  ];
+  const choices = swapChoices(id);
 
   function pickFamily(nextId: string) {
     onClose();
@@ -105,22 +75,12 @@ export function SwapForm({
     if (onWorkout) onWorkout(nextId);
   }
 
-  function logEarlier() {
-    const title = engine.wTitle((engine.DAYS as Day[]).find((day) => day.id === id)?.title || copy.workouts.lift);
-    const out = engine.logLiftOn(id, when);
-    onClose();
-    if (!out) return;
-    haptic.success();
-    const lines = [fill(copy.workouts.loggedOn, title, dateText(out.t)), ...(out.closed ? [copy.workouts.countsThatWeek] : [])];
-    onLogged?.(lines);
-  }
-
   return (
     <ScrollView keyboardShouldPersistTaps="handled" bounces={false} contentContainerStyle={styles.body}>
       <Text accessibilityRole="header" style={styles.title}>
-        {swappable ? copy.workouts.swapWorkout : copy.workouts.logEarlier}
+        {copy.workouts.swapWorkout}
       </Text>
-      {swappable ? <Text style={styles.note}>{copy.workouts.swapBody}</Text> : null}
+      <Text style={styles.note}>{copy.workouts.swapBody}</Text>
       {choices.family.length ? (
         <View style={styles.section}>
           <Text style={styles.label}>{copy.workouts.sameGroup}</Text>
@@ -141,39 +101,6 @@ export function SwapForm({
               <Text style={styles.rowDetail}>{preview(day)}</Text>
             </PressableScale>
           ))}
-        </View>
-      ) : null}
-      {loggable ? (
-        <View style={styles.section}>
-          {swappable ? <Text style={styles.label}>{copy.workouts.logEarlier}</Text> : null}
-          <Text style={styles.note}>{copy.workouts.logEarlierBody}</Text>
-          <View style={styles.dateRow}>
-            {steps.map((step) =>
-              step.by === 0 ? (
-                <Text key="date" accessibilityLiveRegion="polite" style={styles.date}>
-                  {dateText(when)}
-                </Text>
-              ) : (
-                <PressableScale
-                  key={step.by}
-                  kind="button"
-                  accessibilityRole="button"
-                  accessibilityLabel={step.label}
-                  disabled={!step.can}
-                  onPress={() => {
-                    haptic.selection();
-                    setWhen((t) => Math.min(range.max, Math.max(range.min, shiftDay(t, step.by))));
-                  }}
-                  style={[styles.arrow, step.can ? null : styles.off]}
-                >
-                  <step.Icon size={20} strokeWidth={2} color={theme.text} />
-                </PressableScale>
-              ),
-            )}
-          </View>
-          <PressableScale kind="button" accessibilityRole="button" onPress={logEarlier} style={styles.primary}>
-            <Text style={styles.primaryText}>{copy.workouts.logLift}</Text>
-          </PressableScale>
         </View>
       ) : null}
     </ScrollView>
@@ -202,24 +129,4 @@ const styles = StyleSheet.create({
   },
   rowTitle: { color: theme.text, fontFamily: theme.fonts.bodySemi, fontSize: 15 },
   rowDetail: { color: theme.muted, fontFamily: theme.fonts.body, fontSize: 13 },
-  dateRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "rgba(0,0,0,0.3)",
-    borderRadius: 12,
-    marginTop: 4,
-  },
-  arrow: { width: 44, height: 48, alignItems: "center", justifyContent: "center" },
-  off: { opacity: 0.3 },
-  date: { flex: 1, textAlign: "center", color: theme.text, fontFamily: theme.fonts.mono, fontSize: 15 },
-  primary: {
-    minHeight: 48,
-    borderRadius: theme.radii.tile,
-    backgroundColor: theme.green.accentFill,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 4,
-  },
-  primaryText: { color: theme.green.onAccent, fontFamily: theme.fonts.bodySemi, fontSize: 15 },
 });

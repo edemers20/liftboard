@@ -987,28 +987,52 @@ const day0=t=>{ const d=new Date(t); d.setHours(0,0,0,0); return d; };
 const plusD=(d,n)=>{ const x=new Date(d); x.setDate(x.getDate()+n); return x; };
 const weekOf=t=>{ const d=day0(t); return plusD(d,-(wk.wkStart==="Sun"?d.getDay():(d.getDay()+6)%7)).getTime(); };
 const BACK_DAYS=56;
-/** The days a lift can be logged on: yesterday back to 8 weeks ago (start of each day). */
-function backdateRange(now){ const today=day0(now||Date.now()); return {min:plusD(today,-BACK_DAYS).getTime(),max:plusD(today,-1).getTime()}; }
-/** Log a lift (with whatever sets are ticked) on an earlier day. In the plan's current week it is the same as
-    finishing it, dated that day. In a closed week it goes into history and that week's record (lifts, missed, sets,
-    records), its sets clear from this week, and if it was the week just closed the carried-over queue moves past it.
+/** The days a lift can be added on: yesterday back to the start of the week 8 weeks ago (the Workouts pager's reach). */
+function backdateRange(now){ const today=day0(now||Date.now()); return {min:plusD(new Date(weekOf(today.getTime())),-BACK_DAYS).getTime(),max:plusD(today,-1).getTime()}; }
+const weekRecordAt=bucket=>{ const W=wk.weeks||[], k=W.map(x=>weekOf(num(x.start,0))).lastIndexOf(bucket); return k; };
+/** Lifts that can be added on a past day. `next` is the order the plan would take them (`queue`, this week's queue
+    from the week model, or that week's missed lifts); `other` is every other lift in the plan. A lift already done
+    this week can't be added to this week again. */
+function retroChoices(day, now, queue){
+  now=now||Date.now();
+  const R=backdateRange(now), d0=day0(day).getTime(), ids=DAYS.map(d=>d.id);
+  if(!(d0>=R.min&&d0<=R.max)) return {next:[],other:[],closed:false};
+  const bucket=weekOf(d0), closed=bucket<weekOf(wk.weekStart||0);
+  if(!closed) return {next:(queue||ids).filter(id=>ids.includes(id)&&!(wk.done||{})[id]),other:[],closed};
+  const end=plusD(new Date(bucket),7).getTime(), logged=new Set((wk.sessions||[]).filter(s=>s.k==="lift"&&s.t>=bucket&&s.t<end).map(s=>s.id));
+  const k=weekRecordAt(bucket), rec=k>=0?wk.weeks[k]:null, miss=rec&&Array.isArray(rec.missed)?rec.missed:null;
+  const next=ids.filter(id=>!logged.has(id)&&(!miss||miss.includes(DAYS.find(d=>d.id===id).title)));
+  return {next,other:ids.filter(id=>!next.includes(id)),closed};
+}
+/** Add a lift on an earlier day. `sets` is {slotIndex: [{w, r}]} (weights in lb); left out, this week's ticked sets
+    are used. In the plan's current week it is the same as finishing it, dated that day. In a closed week it goes
+    into history and that week's record (lifts, missed, sets, records), this week's copy of the lift is left as it
+    is, and if it was the week just closed the carried-over queue moves past it.
     Returns {t, closed} or null when the day or lift can't be logged. */
-function logLiftOn(dayId, day, now){
+function logLiftOn(dayId, day, now, sets){
   now=now||Date.now();
   const d=DAYS.find(x=>x.id===dayId), R=backdateRange(now), d0=day0(day).getTime();
-  if(!d||(wk.done||{})[dayId]||!(d0>=R.min&&d0<=R.max)) return null;
+  if(!d||!(d0>=R.min&&d0<=R.max)) return null;
   const noon=new Date(d0); noon.setHours(12,0,0,0);
   let stamp=noon.getTime(); while((wk.sessions||[]).some(s=>s.t===stamp)) stamp++;
-  const bucket=weekOf(stamp);
-  if(bucket>=weekOf(wk.weekStart||0)){ markDone(dayId,stamp); return {t:stamp,closed:false}; }
-  const sets=d.slots.reduce((a,s,i)=>a+(s.cardio?0:(get(dayId,i).log||[]).filter(x=>x&&x.d).length),0);
+  const bucket=weekOf(stamp), closed=bucket<weekOf(wk.weekStart||0);
+  if(!closed&&(wk.done||{})[dayId]) return null;
+  const put=S=>{ slots[dayId]=slots[dayId]||{}; d.slots.forEach((s,i)=>{ const st={...(slots[dayId][i]||{})};
+    if(s.cardio){ if(closed){ delete st.cdone; delete st.act; } }
+    else st.log=(S[i]||[]).filter(x=>x&&num(x.r,0)>0).map(x=>({w:x.w==null||x.w===""?"":String(x.w),r:String(x.r),d:true}));
+    slots[dayId][i]=st; }); };
+  if(!closed){ if(sets) put(sets); markDone(dayId,stamp); return {t:stamp,closed:false}; }
+  const keep=slots[dayId]?JSON.parse(JSON.stringify(slots[dayId])):null;
+  put(sets||{});
+  const n=d.slots.reduce((a,s,i)=>a+(s.cardio?0:(get(dayId,i).log||[]).length),0);
   writeLift(d,stamp,plan(),true);
-  const W=wk.weeks||[], k=W.map(x=>weekOf(num(x.start,0))).lastIndexOf(bucket), rec=k>=0?W[k]:null;
+  if(keep) slots[dayId]=keep; else delete slots[dayId];
+  const W=wk.weeks||[], k=weekRecordAt(bucket), rec=k>=0?W[k]:null;
   if(rec){
     const planned=num(rec.planned,0), miss=(Array.isArray(rec.missed)?rec.missed:[]).slice(), j=miss.indexOf(d.title);
     if(j>=0) miss.splice(j,1);
     rec.missed=miss; rec.lifts=planned>0?Math.min(planned,num(rec.lifts,0)+1):num(rec.lifts,0)+1;
-    rec.sets=num(rec.sets,0)+sets;
+    rec.sets=num(rec.sets,0)+n;
     rec.prs=prsBetween(num(rec.start,0),W[k+1]?num(W[k+1].start,0):bucket+7*864e5).map(x=>({n:x.n,kind:x.kind,w:x.w,r:x.r,was:x.was}));
     if(k===W.length-1){
       /* the same carry-over newWeek works out, with this lift no longer missed */
@@ -1017,13 +1041,10 @@ function logLiftOn(dayId, day, now){
       else { wk.upNext=""; wk.missedNote=null; }
     }
   }
-  /* its sets now belong to that day, so this week's copy of the lift starts empty */
-  d.slots.forEach((s,i)=>{ const st=slots[dayId]&&slots[dayId][i]; if(!st) return; st.log=[]; delete st.cdone; delete st.act; });
-  if(wk.wt) delete wk.wt[dayId]; if(wk.active) delete wk.active[dayId];
   save();
   return {t:stamp,closed:true};
 }
-export { backdateRange, logLiftOn, timeByKind, hoursMoved, mostPlayed, seasonFrom, changeItems, watchItems, keepWeight, rowDone, countsInDay, wTitle, e1rm, prsBetween, weekComplete, weekStreak, countWeek, EFF_MULT, OWN_EFF, sessionKcal, liftKcal, refreshLiftK, LIFT_MET, weekActuals, swapOptions, swapDay, rateLb, isBW, yogaMet, pilMet, YOGA_EFF, PIL_EFF, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, MUSCLES, slotMuscles, musclePriority, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk };
+export { backdateRange, retroChoices, logLiftOn, timeByKind, hoursMoved, mostPlayed, seasonFrom, changeItems, watchItems, keepWeight, rowDone, countsInDay, wTitle, e1rm, prsBetween, weekComplete, weekStreak, countWeek, EFF_MULT, OWN_EFF, sessionKcal, liftKcal, refreshLiftK, LIFT_MET, weekActuals, swapOptions, swapDay, rateLb, isBW, yogaMet, pilMet, YOGA_EFF, PIL_EFF, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, MUSCLES, slotMuscles, musclePriority, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk };
 
 /* workout titles read "Lower (Glute & Hamstring)"; older saved titles used a middle dot */
 const wTitle=t=>String(t||"").replace(/^(Lower|Upper) · (.+)$/,"$1 ($2)");
