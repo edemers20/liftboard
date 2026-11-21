@@ -41,6 +41,7 @@ From step 1 on, a "Plan so far" card at the bottom updates live. Finishing write
   - **Planned (future) lift**: Move to today.
   - **Open day (today or future, nothing planned)**: "Nothing planned" + "View next lift".
   - **Past day, nothing logged**: "Rest · Nothing logged".
+  - **Past day without a lift** (back to the start of the week 8 weeks ago): an "Add workout" chip. It opens a sheet that lists Up next (the lifts that week still needed) and Other lifts; picking one shows its exercises with optional weight, reps and sets, then Save workout. The day then shows the Completed card and a lift dot.
   - **Activity logged**: pink card with minutes. Logging it expands the card inline: minutes, and Difficulty (Easy / Moderate / Hard, default Moderate). Spin, yoga and Pilates keep their own effort options. Deleting a one-off (logged from Other) removes that activity as well as the session. A regular activity only loses the session. Tap a card to open or close the details.
   - **Usual activity day**: a reminder card.
 - Activity chips: one pill per activity with "0 of 2" progress, plus "Other" to log anything. Only on today and past days of this week.

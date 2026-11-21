@@ -1024,6 +1024,13 @@ html[data-vt="back"]::view-transition-new(lbview),html[data-vt="dayback"]::view-
 .wcard .wtop{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:32px}
 .swapbtn.sm{margin:0;min-height:32px;padding:0 12px;font-size:12.5px}
 .swapsheet{display:flex;flex-direction:column;gap:6px}
+.rtsheet{max-height:80vh;overflow-y:auto}
+.rtdate{margin:0;font-size:15px}
+.rtex{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:12px;background:rgba(0,0,0,.3)}
+.rtex b{font-weight:600}
+.rtsheet .tbtns{margin-top:8px}
+.chip.act.lift{background:var(--surface)}
+.chip.act.lift i{color:var(--accent)}
 .swapsheet .shtop{margin:-6px -4px -6px 0}
 .swapsheet>p{margin:0}
 .swaph{display:block;margin-top:8px}
