@@ -1,8 +1,8 @@
 diff --git a/node_modules/expo-widgets/bundle/react-native-stub.ts b/node_modules/expo-widgets/bundle/react-native-stub.ts
-index 2e46e0f..37f960a 100644
+index 2e46e0f..fdc671a 100644
 --- a/node_modules/expo-widgets/bundle/react-native-stub.ts
 +++ b/node_modules/expo-widgets/bundle/react-native-stub.ts
-@@ -29,3 +29,14 @@ export const Image = { resolveAssetSource };
+@@ -29,3 +29,13 @@ export const Image = { resolveAssetSource };
  export const useColorScheme = (): 'light' | 'dark' | null => {
    return (globalThis.__expoWidgetEnvironment?.colorScheme as 'light' | 'dark' | undefined) ?? null;
  };
@@ -16,4 +16,82 @@ index 2e46e0f..37f960a 100644
 +  isRTL: false,
 +  doLeftAndRightSwapInRTL: true,
 +};
+diff --git a/node_modules/expo-widgets/ios/Widgets/Utils.swift b/node_modules/expo-widgets/ios/Widgets/Utils.swift
+index 76b2199..447f436 100644
+--- a/node_modules/expo-widgets/ios/Widgets/Utils.swift
++++ b/node_modules/expo-widgets/ios/Widgets/Utils.swift
+@@ -77,22 +77,44 @@ public func evaluateLayout(
+ }
+ 
+ func getLiveActivityNodes(forName name: String, props: String? = nil, environment: [String: Any]) -> [String: Any] {
+-  let layout = WidgetsStorage.getString(forKey: "__expo_widgets_live_activity_\(name)_layout") ?? ""
++  let layoutKey = "__expo_widgets_live_activity_\(name)_layout"
++  let layout = WidgetsStorage.getString(forKey: layoutKey) ?? ""
+   let propsDict = props.flatMap { props in
+     props.data(using: .utf8).flatMap {
+       try? JSONSerialization.jsonObject(with: $0, options: []) as? [String: Any]
+     }
+   }
+ 
++  // Empty layout → Dynamic Island would otherwise paint a blank outline (EmptyView per section).
++  if layout.isEmpty {
++    let message = "Missing Live Activity layout for \(name) (app group suite empty or unreadable)."
++    print("[ExpoWidgets] \(message) propsBytes=\(props?.utf8.count ?? -1)")
++    return liveActivityErrorNodes(message: message)
++  }
 +
+   switch evaluateWidgetLayout(layout: layout, props: propsDict, environment: environment) {
+   case .success(let result):
+     return result
+   case .failure(let error):
+-    print("[ExpoWidgets] Layout evaluation failed: \(error.message)")
+-    return ["banner": createRedBox(message: error.message)]
++    print("[ExpoWidgets] Layout evaluation failed: \(error.message) layoutBytes=\(layout.utf8.count) propsBytes=\(props?.utf8.count ?? -1)")
++    // Put the RedBox on island sections too; banner-only left a blank Dynamic Island outline.
++    return liveActivityErrorNodes(message: error.message)
+   }
+ }
+ 
++func liveActivityErrorNodes(message: String) -> [String: Any] {
++  let box = createRedBox(message: message)
++  return [
++    "banner": box,
++    "compactLeading": box,
++    "compactTrailing": box,
++    "minimal": box,
++    "expandedLeading": box,
++    "expandedTrailing": box,
++    "expandedBottom": box,
++  ]
++}
++
+ public func getWidgetEnvironment(environment: EnvironmentValues) -> [String: Any] {
+   var env: [String: Any] = [
+     "showsContainerBackground": environment.showsWidgetContainerBackground,
+diff --git a/node_modules/expo-widgets/ios/WidgetsStorage.swift b/node_modules/expo-widgets/ios/WidgetsStorage.swift
+index 86f9d6c..a744cde 100644
+--- a/node_modules/expo-widgets/ios/WidgetsStorage.swift
++++ b/node_modules/expo-widgets/ios/WidgetsStorage.swift
+@@ -1,6 +1,21 @@
+ public enum WidgetsStorage {
+   public static var appGroupIdentifier: String? = Bundle.main.object(forInfoDictionaryKey: "ExpoWidgetsAppGroupIdentifier") as? String
+-  static let defaults = UserDefaults(suiteName: appGroupIdentifier)
++
++  /// Re-resolve the suite each call. A one-shot `static let` can capture a nil suite if
++  /// Info.plist keys were not ready at first access in the appex.
++  static var defaults: UserDefaults? {
++    let id = appGroupIdentifier
++      ?? Bundle.main.object(forInfoDictionaryKey: "ExpoWidgetsAppGroupIdentifier") as? String
++    guard let id, !id.isEmpty else {
++      print("[ExpoWidgets] No ExpoWidgetsAppGroupIdentifier on Bundle.main (\(Bundle.main.bundleIdentifier ?? "?"))")
++      return nil
++    }
++    guard let suite = UserDefaults(suiteName: id) else {
++      print("[ExpoWidgets] UserDefaults(suiteName: \(id)) returned nil")
++      return nil
++    }
++    return suite
++  }
+ 
+   static func set(_ value: [String: Any], forKey key: String) {
+     guard let defaults else { return }
