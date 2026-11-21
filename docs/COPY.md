@@ -250,6 +250,12 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Open day | main.js:330 |
 |  | Rest | main.js:331 |
 |  | Nothing logged | main.js:331 |
+|  | Add workout | Past day chip, and the sheet title |
+|  | Select workout (sets are optional) | Add workout sheet, under the date |
+|  | Other lifts | Add workout sheet, lifts outside the suggested order |
+|  | Log your sets or save just the exercise. | Add workout sheet, above the sets form |
+|  | Save | Add workout sheet, saves the lift |
+|  | {…} logged on {…} | Toast after Add workout: lift, then the date |
 |  | Played or took a class? Log it below. | main.js:334 |
 |  | You usually play or take a class today. | main.js:334 |
 |  | Activity day | main.js:334 |

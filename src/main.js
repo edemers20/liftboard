@@ -440,15 +440,15 @@ function retroSheet(day){
     const C=retroChoices(day,Date.now(),weekQueue(wk.done||{})), d=picked?dayById(picked):null, U=KG()?"kg":"lb";
     const opt=t=>`<button type="button" class="swapopt" data-rpick="${t.id}"><b>${esc(wTitle(t.title))}</b><small>${esc(retroRows(t).slice(0,3).map(r=>r.n).join(", "))}</small></button>`;
     const list=ids=>ids.map(dayById).filter(Boolean).map(opt).join("");
-    const body=!d?`<p class="small">${C.next.length||C.other.length?"Pick the lift you did. Sets are optional.":"Every lift this week is done."}</p>
+    const body=!d?`<p class="small">${C.next.length||C.other.length?"Select workout (sets are optional)":"Every lift this week is done."}</p>
       ${C.next.length?`<span class="plab swaph">Up next</span><div class="swaplist">${list(C.next)}</div>`:""}
       ${C.other.length?`<span class="plab swaph">Other lifts</span><div class="swaplist">${list(C.other)}</div>`:""}`
-      :`<p class="small">Add what you lifted, or save it without sets.</p>
+      :`<p class="small">Log your sets or save just the exercise.</p>
       ${retroRows(d).map(r=>{ const x=drafts[r.i]||{}; return `<div class="rtex"><b>${esc(r.n)}</b><div class="nums">
         <label>${r.bw?"+"+U:U}<input data-rf="w" data-ri="${r.i}" inputmode="decimal" placeholder="${r.bw?"BW":""}" value="${esc(x.w||"")}"></label>
         <label>Reps<input data-rf="r" data-ri="${r.i}" inputmode="numeric" placeholder="${esc(r.reps)}" value="${esc(x.r||"")}"></label>
         <label>Sets<input data-rf="s" data-ri="${r.i}" inputmode="numeric" placeholder="1" value="${esc(x.s||"")}"></label></div></div>`; }).join("")}
-      <div class="tbtns two"><button type="button" class="tb ghost" data-rback>Back</button><button type="button" class="tb" data-rsave>Save workout</button></div>`;
+      <div class="tbtns two"><button type="button" class="tb ghost" data-rback>Back</button><button type="button" class="tb" data-rsave>Save</button></div>`;
     showSheet(`<div class="swapsheet rtsheet" role="dialog" aria-labelledby="rtTitle"><div class="shtop"><h3 class="swapt" id="rtTitle">${d?esc(wTitle(d.title)):"Add workout"}</h3>${XBTN}</div>
       <p class="rtdate">${fmtDate(new Date(day))}</p>${body}</div>`,el=>{
       el.querySelectorAll("[data-rpick]").forEach(b=>b.onclick=()=>{ picked=b.dataset.rpick; Object.keys(drafts).forEach(k=>delete drafts[k]); draw(); });
@@ -458,7 +458,7 @@ function retroSheet(day){
         const sets={}; Object.entries(drafts).forEach(([i,x])=>{ const r=parseInt(x.r,10); if(!(r>0)) return; const n=Math.min(10,Math.max(1,parseInt(x.s,10)||1));
           sets[i]=Array.from({length:n},()=>({w:fromU(String(x.w||"").trim()),r:String(r)})); });
         const t=wTitle(d.title), out=logLiftOn(d.id,day,undefined,sets); closeSheet(); if(!out) return; render();
-        toast([`${t} logged on ${new Date(out.t).toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"})}`,...(out.closed?["It counts toward that week."]:[])]); };
+        toast([`${t} logged on ${new Date(out.t).toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"})}`]); };
     },true);
   };
   draw();

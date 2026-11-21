@@ -377,22 +377,19 @@ export const copy = {
     swapWorkout: "Swap workout",
     swapBody: "The week will adjust to any swaps.",
     sameGroup: "Same muscle group",
-    /** TODO copy: not in docs/COPY.md. Button on past days, and the sheet title. */
+    /** Button on past days, and the sheet title. */
     addWorkout: "Add workout",
-    /** TODO copy: not in docs/COPY.md. Sheet note under the date. */
-    addWorkoutBody: "Pick the lift you did. Sets are optional.",
-    /** TODO copy: not in docs/COPY.md. Sheet section for lifts outside the suggested order. */
+    /** Sheet note under the date. */
+    addWorkoutBody: "Select workout (sets are optional)",
+    /** Sheet section for lifts outside the suggested order. */
     otherLifts: "Other lifts",
     /** TODO copy: not in docs/COPY.md. Sheet note when this week has no lifts left to add. */
     allLiftsDone: "Every lift this week is done.",
-    /** TODO copy: not in docs/COPY.md. Note above the sets form. */
-    setsOptional: "Add what you lifted, or save it without sets.",
-    /** TODO copy: not in docs/COPY.md. */
-    saveWorkout: "Save workout",
-    /** TODO copy: not in docs/COPY.md. Toast: workout title, then the date. */
+    /** Note above the sets form. */
+    setsOptional: "Log your sets or save just the exercise.",
+    saveWorkout: "Save",
+    /** Toast: workout title, then the date. */
     loggedOn: "{…} logged on {…}",
-    /** TODO copy: not in docs/COPY.md. Toast second line when the date is in a closed week. */
-    countsThatWeek: "It counts toward that week.",
     keepPlan: "Keep plan",
     move: "Move to today",
     moved: "{…} moved to today",

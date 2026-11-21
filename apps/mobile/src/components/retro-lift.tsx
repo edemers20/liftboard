@@ -111,9 +111,7 @@ export function RetroLiftForm({ day, onClose }: { day: number; onClose: () => vo
     haptic.success();
     useNotice
       .getState()
-      .show([fill(copy.workouts.loggedOn, engine.wTitle(lift.title), dateText(out.t)), ...(out.closed ? [copy.workouts.countsThatWeek] : [])], {
-        pulse: false,
-      });
+      .show([fill(copy.workouts.loggedOn, engine.wTitle(lift.title), dateText(out.t))], { pulse: false });
   }
 
   function option(item: Day) {
