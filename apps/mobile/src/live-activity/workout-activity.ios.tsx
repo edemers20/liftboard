@@ -1,6 +1,5 @@
 import { HStack, RoundedRectangle, Spacer, Text, VStack } from "@expo/ui/swift-ui";
 import {
-  activityBackgroundTint,
   background,
   fixedSize,
   font,
@@ -168,8 +167,9 @@ function WorkoutActivityLayout(props: WorkoutActivityProps, environment: LiveAct
       </HStack>
     ) : null;
 
+  // No activityBackgroundTint / plate here — the native PaintedBanner (9901 shape) owns Lock Screen chrome.
   const bannerBody = (
-    <VStack alignment="leading" spacing={4} modifiers={[padding({ all: 14 }), activityBackgroundTint(plate), background(plate)]}>
+    <VStack alignment="leading" spacing={4} modifiers={[padding({ top: 4 })]}>
       <Text modifiers={[font({ size: 11, weight: "bold" }), foregroundStyle("#c8e86a"), lineLimit(1)]}>LB JS TEXT</Text>
       <HStack alignment="top" spacing={12}>
         <VStack alignment="leading" spacing={2} modifiers={[layoutPriority(0), frame({ maxWidth: 9999, alignment: "leading" })]}>
