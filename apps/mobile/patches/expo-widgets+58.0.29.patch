@@ -467,7 +467,7 @@ index 68e376f..d803d2e 100644
 +  return nil
 +}
 diff --git a/node_modules/expo-widgets/ios/Widgets/WidgetLiveActivity.swift b/node_modules/expo-widgets/ios/Widgets/WidgetLiveActivity.swift
-index 4d135c4..47a251c 100644
+index 4d135c4..e0a61f1 100644
 --- a/node_modules/expo-widgets/ios/Widgets/WidgetLiveActivity.swift
 +++ b/node_modules/expo-widgets/ios/Widgets/WidgetLiveActivity.swift
 @@ -2,6 +2,9 @@ import SwiftUI
@@ -480,26 +480,24 @@ index 4d135c4..47a251c 100644
  
  struct LiveActivityAttributes: ActivityAttributes {
    // The deep link URL passed to start(). Stored in the static attributes so it is
-@@ -18,6 +21,9 @@ struct LiveActivityAttributes: ActivityAttributes {
+@@ -18,6 +21,8 @@ struct LiveActivityAttributes: ActivityAttributes {
    }
  }
  
-+/// Banner root matches the 9901 HardcodedBanner structure that painted on Lock Screen.
-+/// Native text is first; JS tree (if any) is appended inside the same VStack — never a
-+/// LiveActivityBanner wrapper that could replace or cover the root.
++/// Native SwiftUI Live Activity. Does **not** run expo-widgets JSC in the appex
++/// (JSC + full tree was jetsamming / blanking Lock Screen). Props JSON → views only.
  public struct WidgetLiveActivity: Widget {
    @Environment(\.self) var env
  
-@@ -27,45 +33,48 @@ public struct WidgetLiveActivity: Widget {
+@@ -27,45 +32,52 @@ public struct WidgetLiveActivity: Widget {
  
    public var body: some WidgetConfiguration {
      ActivityConfiguration(for: LiveActivityAttributes.self) { context in
 -      let nodes = getLiveActivityNodes(
-+      let report = diagnoseLiveActivity(
-         forName: context.state.name,
-         props: context.state.props,
-         environment: getLiveActivityEnvironment(for: env, in: context)
-       )
+-        forName: context.state.name,
+-        props: context.state.props,
+-        environment: getLiveActivityEnvironment(for: env, in: context)
+-      )
 -      // Only apply widgetURL when the activity has one: a hierarchy with more than one
 -      // widgetURL modifier is undefined behavior, and layouts can set their own through
 -      // the widgetURL modifier from @expo/ui.
@@ -509,186 +507,333 @@ index 4d135c4..47a251c 100644
 -      } else {
 -        banner
 -      }
-+      let lengths = PropLengthOverlay.lengths(from: context.state.props)
-+      let _ = Self.logRender(kind: "banner", context: context, report: report)
-+      // Same shape as 9901 HardcodedBanner (which painted). widgetURL on the root.
-+      PaintedBanner(
-+        lengthsLine: lengths.line,
-+        name: context.state.name,
-+        propsBytes: context.state.props?.utf8.count ?? -1,
-+        report: report,
-+        activityID: context.activityID
-+      )
-+      .widgetURL(context.attributes.url.flatMap(URL.init(string:)))
++      let props = WorkoutLAProps(json: context.state.props)
++      let _ = laDiagLog.notice("native banner propsBytes=\(context.state.props?.utf8.count ?? -1, privacy: .public)")
++      NativeWorkoutBanner(props: props)
++        .widgetURL(context.attributes.url.flatMap(URL.init(string:)))
      } dynamicIsland: { context in
 -      let nodes = getLiveActivityNodes(
-+      let report = diagnoseLiveActivity(
-         forName: context.state.name,
-         props: context.state.props,
-         environment: getLiveActivityEnvironment(for: env, in: context)
-       )
-+      let _ = Self.logRender(kind: "island", context: context, report: report)
+-        forName: context.state.name,
+-        props: context.state.props,
+-        environment: getLiveActivityEnvironment(for: env, in: context)
+-      )
++      let props = WorkoutLAProps(json: context.state.props)
++      let _ = laDiagLog.notice("native island propsBytes=\(context.state.props?.utf8.count ?? -1, privacy: .public)")
        let island = DynamicIsland {
-         DynamicIslandExpandedRegion(.center) {
+-        DynamicIslandExpandedRegion(.center) {
 -          LiveActivitySectionView(context: context, nodes: nodes, sectionName: "expandedCenter")
-+          LiveActivitySectionView(context: context, report: report, sectionName: "expandedCenter")
-         }
+-        }
          DynamicIslandExpandedRegion(.leading) {
 -          LiveActivitySectionView(context: context, nodes: nodes, sectionName: "expandedLeading")
-+          LiveActivitySectionView(context: context, report: report, sectionName: "expandedLeading")
++          Text(props.islandLeadFull)
++            .font(.system(size: 14, weight: .semibold))
++            .foregroundStyle(.white)
++            .lineLimit(2)
++            .minimumScaleFactor(0.7)
++            .padding(.leading, 4)
          }
          DynamicIslandExpandedRegion(.trailing) {
 -          LiveActivitySectionView(context: context, nodes: nodes, sectionName: "expandedTrailing")
-+          LiveActivitySectionView(context: context, report: report, sectionName: "expandedTrailing")
++          Text(props.islandTrail)
++            .font(.system(size: 16, weight: .medium, design: .monospaced))
++            .monospacedDigit()
++            .foregroundStyle(props.trailColor)
++            .lineLimit(1)
          }
          DynamicIslandExpandedRegion(.bottom) {
 -          LiveActivitySectionView(context: context, nodes: nodes, sectionName: "expandedBottom")
-+          LiveActivitySectionView(context: context, report: report, sectionName: "expandedBottom")
++          NativeExpandedBottom(props: props)
          }
        } compactLeading: {
 -        LiveActivitySectionView(context: context, nodes: nodes, sectionName: "compactLeading")
-+        LiveActivitySectionView(context: context, report: report, sectionName: "compactLeading")
++        Text(props.islandLeadShort)
++          .font(.system(size: 12, weight: .semibold))
++          .foregroundStyle(.white)
++          .lineLimit(1)
++          .minimumScaleFactor(0.55)
        } compactTrailing: {
 -        LiveActivitySectionView(context: context, nodes: nodes, sectionName: "compactTrailing")
-+        LiveActivitySectionView(context: context, report: report, sectionName: "compactTrailing")
++        Text(props.islandTrail)
++          .font(.system(size: 12, weight: .medium, design: .monospaced))
++          .monospacedDigit()
++          .foregroundStyle(props.trailColor)
++          .lineLimit(1)
++          .minimumScaleFactor(0.7)
        } minimal: {
 -        LiveActivitySectionView(context: context, nodes: nodes, sectionName: "minimal")
-+        LiveActivitySectionView(context: context, report: report, sectionName: "minimal")
++        Text(props.islandTrail)
++          .font(.system(size: 11, weight: .medium, design: .monospaced))
++          .monospacedDigit()
++          .foregroundStyle(props.trailColor)
++          .lineLimit(1)
++          .minimumScaleFactor(0.6)
        }
        if let url = context.attributes.url.flatMap(URL.init(string:)) {
          return island.widgetURL(url)
-@@ -74,35 +83,118 @@ public struct WidgetLiveActivity: Widget {
-     }
-     .supplementalActivityFamiliesIfAvailable()
+@@ -76,32 +88,246 @@ public struct WidgetLiveActivity: Widget {
    }
+ }
+ 
+-private struct LiveActivitySectionView: View {
+-  let context: ActivityViewContext<LiveActivityAttributes>
+-  let nodes: [String: Any]
+-  let sectionName: String
++// MARK: - Props (from ContentState JSON; lengths/values only for display)
 +
-+  private static func logRender(
-+    kind: String,
-+    context: ActivityViewContext<LiveActivityAttributes>,
-+    report: LiveActivityDiagReport
-+  ) {
-+    let keys = report.nodeKeys.joined(separator: ",")
-+    laDiagLog.notice(
-+      "\(kind, privacy: .public) name=\(context.state.name, privacy: .public) layout=\(report.layoutBytes) jsc=\(report.jscError ?? "ok", privacy: .public) nodes=\(report.nodeCount) keys=\(keys, privacy: .public) probe=\(report.propsProbe ?? "-", privacy: .public)"
-+    )
++private struct WorkoutLAProps {
++  var title = "Workout"
++  var exercise = ""
++  var setLine = ""
++  var weightCompact = ""
++  var workoutStart: TimeInterval = Date().timeIntervalSince1970
++  var restStart: TimeInterval = 0
++  var restEnd: TimeInterval = 0
++  var restUrgent = false
++  var setsDone = 0
++  var setsTotal = 0
++  var setNow = -1
++  var finished = false
++  var restLabel = "Rest"
++  var doneLabel = "Done"
++  var elapsedLabel = "Elapsed"
++
++  private let plate = Color(red: 0.10, green: 0.24, blue: 0.20)
++  private let limeSoft = Color(red: 0.62, green: 0.81, blue: 0.76)
++  private let limeA = Color(red: 0.44, green: 0.82, blue: 0.71)
++  private let warn = Color(red: 0.88, green: 0.48, blue: 0.42)
++  private let fillDone = Color(red: 0.14, green: 0.48, blue: 0.39)
++  private let track = Color.white.opacity(0.28)
++
++  init(json: String?) {
++    guard let json,
++          let data = json.data(using: .utf8),
++          let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
++      return
++    }
++    title = string(obj["title"]) ?? "Workout"
++    exercise = string(obj["exercise"]) ?? ""
++    setLine = string(obj["setLine"]) ?? ""
++    weightCompact = string(obj["weightCompact"]) ?? ""
++    workoutStart = ms(obj["workoutStart"]) / 1000.0
++    if workoutStart <= 0 { workoutStart = Date().timeIntervalSince1970 }
++    restStart = ms(obj["restStart"]) / 1000.0
++    restEnd = ms(obj["restEnd"]) / 1000.0
++    restUrgent = bool(obj["restUrgent"])
++    setsDone = max(0, int(obj["setsDone"]))
++    setsTotal = min(12, max(0, int(obj["setsTotal"])))
++    setNow = int(obj["setNow"])
++    finished = bool(obj["finished"])
++    restLabel = string(obj["restLabel"]) ?? "Rest"
++    doneLabel = string(obj["doneLabel"]) ?? "Done"
++    elapsedLabel = string(obj["elapsedLabel"]) ?? "Elapsed"
++  }
++
++  var plateColor: Color { plate }
++  var resting: Bool { !finished && restEnd > 0 }
++  var islandLeadFull: String {
++    let s = exercise.isEmpty ? title : exercise
++    return s.isEmpty ? "Lift" : s
++  }
++  var islandLeadShort: String { Self.shortName(islandLeadFull) }
++  var weightOnly: String {
++    weightCompact.hasPrefix("Set ") ? "" : weightCompact
++  }
++  var islandTrail: String {
++    if finished { return doneLabel }
++    if resting {
++      let left = max(0, restEnd - Date().timeIntervalSince1970)
++      return Self.clock(left)
++    }
++    if !weightOnly.isEmpty { return weightOnly }
++    return Self.clock(max(0, Date().timeIntervalSince1970 - workoutStart))
++  }
++  var trailColor: Color {
++    if finished { return limeSoft }
++    if resting { return restUrgent ? warn : limeSoft }
++    return limeSoft
++  }
++
++  var elapsedRange: ClosedRange<Date> {
++    let start = Date(timeIntervalSince1970: workoutStart)
++    return start...start.addingTimeInterval(8 * 3600)
++  }
++  var restRange: ClosedRange<Date> {
++    let lower = Date(timeIntervalSince1970: restStart > 0 ? restStart : restEnd)
++    let upper = Date(timeIntervalSince1970: restEnd)
++    return lower <= upper ? lower...upper : upper...upper
++  }
++
++  func barColor(index: Int) -> Color {
++    if index < setsDone { return fillDone }
++    if !finished && index == setNow { return limeA }
++    return track
++  }
++
++  private static func shortName(_ name: String) -> String {
++    let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
++    if trimmed.isEmpty { return "Lift" }
++    if trimmed.count <= 14 { return trimmed }
++    let words = trimmed.split(separator: " ").map(String.init)
++    if words.count >= 2 {
++      let two = "\(words[0]) \(words[1])"
++      if two.count <= 16 { return two }
++      if words[0].count <= 12 { return "\(words[0])…" }
++    }
++    return String(trimmed.prefix(12)) + "…"
++  }
++
++  private static func clock(_ total: TimeInterval) -> String {
++    let s = max(0, Int(total.rounded(.down)))
++    return String(format: "%02d:%02d", s / 60, s % 60)
++  }
++
++  private func string(_ value: Any?) -> String? {
++    value as? String
++  }
++  private func bool(_ value: Any?) -> Bool {
++    if let b = value as? Bool { return b }
++    if let n = value as? NSNumber { return n.boolValue }
++    return false
++  }
++  private func int(_ value: Any?) -> Int {
++    if let i = value as? Int { return i }
++    if let n = value as? NSNumber { return n.intValue }
++    if let d = value as? Double { return Int(d) }
++    return 0
++  }
++  private func ms(_ value: Any?) -> Double {
++    if let d = value as? Double { return d }
++    if let n = value as? NSNumber { return n.doubleValue }
++    if let i = value as? Int { return Double(i) }
++    return 0
 +  }
 +}
 +
-+/// 9901 HardcodedBanner layout: VStack → Texts → padding → green background.
-+/// Native lines always paint; JS banner node is appended only after that.
-+private struct PaintedBanner: View {
-+  let lengthsLine: String
-+  let name: String
-+  let propsBytes: Int
-+  let report: LiveActivityDiagReport
-+  let activityID: String
++// MARK: - Views
 +
-+  var body: some View {
-+    VStack(alignment: .leading, spacing: 6) {
-+      Text("LB NATIVE · Lock Screen")
-+        .font(.headline.weight(.semibold))
-+        .foregroundStyle(.white)
-+      Text(lengthsLine)
-+        .font(.system(size: 11, weight: .medium, design: .monospaced))
-+        .foregroundStyle(.white.opacity(0.9))
-+        .lineLimit(2)
-+      Text("\(name) · props \(propsBytes)b · layout \(report.layoutBytes)b · \(report.summaryLine)")
-+        .font(.caption.monospaced())
-+        .foregroundStyle(.white.opacity(0.85))
-+        .lineLimit(3)
-+
-+      if report.ok, let node = bridgedNode(report.nodes["banner"]) {
-+        WidgetsDynamicView(name: activityID, kind: .liveActivity, node: node)
-+      } else if !report.ok {
-+        Text(report.detailLine(name: name, propsBytes: propsBytes))
-+          .font(.system(size: 10, design: .monospaced))
-+          .foregroundStyle(.white.opacity(0.85))
-+          .lineLimit(4)
-+      }
-+    }
-+    .frame(maxWidth: .infinity, alignment: .leading)
-+    .padding(14)
-+    .background(Color.green.opacity(0.55))
-+  }
- }
- 
- private struct LiveActivitySectionView: View {
-   let context: ActivityViewContext<LiveActivityAttributes>
--  let nodes: [String: Any]
-+  let report: LiveActivityDiagReport
-   let sectionName: String
++private struct NativeWorkoutBanner: View {
++  let props: WorkoutLAProps
  
    var body: some View {
 -    if let node = nodes[sectionName] as? [String: Any] {
-+    if !report.ok {
-+      Text(sectionName == "compactLeading" ? "LB" : report.compactTrailingLabel)
-+        .font(.caption.weight(.semibold))
-+        .foregroundStyle(.white)
-+        .lineLimit(1)
-+        .minimumScaleFactor(0.6)
-+    } else if let node = bridgedNode(report.nodes[sectionName]) {
-       WidgetsDynamicView(name: context.activityID, kind: .liveActivity, node: node)
-     } else {
+-      WidgetsDynamicView(name: context.activityID, kind: .liveActivity, node: node)
+-    } else {
 -      EmptyView()
-+      Color.clear.frame(width: 1, height: 1)
++    VStack(alignment: .leading, spacing: 4) {
++      Text(props.title)
++        .font(.system(size: 12, weight: .medium))
++        .foregroundStyle(.white.opacity(0.85))
++        .lineLimit(1)
++      if !props.exercise.isEmpty {
++        Text(props.exercise)
++          .font(.system(size: 16, weight: .semibold))
++          .foregroundStyle(.white)
++          .lineLimit(2)
++      }
++      HStack(alignment: .top, spacing: 12) {
++        VStack(alignment: .leading, spacing: 2) {
++          if !props.setLine.isEmpty {
++            Text(props.setLine)
++              .font(.system(size: 12, weight: .medium))
++              .foregroundStyle(.white.opacity(0.85))
++              .lineLimit(1)
++          }
++        }
++        .frame(maxWidth: .infinity, alignment: .leading)
++        NativeTimeBlock(props: props)
++      }
++      NativeSetBars(props: props)
      }
++    .padding(14)
++    .frame(maxWidth: .infinity, alignment: .leading)
++    .background(props.plateColor)
++    .activityBackgroundTint(props.plateColor)
    }
  }
  
 -private struct LiveActivityBannerView: View {
 -  var context: ActivityViewContext<LiveActivityAttributes>
 -  let nodes: [String: Any]
-+/// Prop string lengths for Lock Screen diag. Lengths only — no health strings.
-+private enum PropLengthOverlay {
-+  struct Lengths {
-+    var title = 0
-+    var exercise = 0
-+    var setLine = 0
-+    var weight = 0
-+    var keys = 0
-+    var propsBytes = 0
++private struct NativeTimeBlock: View {
++  let props: WorkoutLAProps
  
--  var body: some View {
+   var body: some View {
 -    if #available(iOS 18.0, *) {
 -      LiveActivityBanner(context: context, nodes: nodes)
 -    } else if let node = nodes["banner"] as? [String: Any] {
 -      WidgetsDynamicView(name: context.activityID, kind: .liveActivity, node: node)
 -    } else {
 -      EmptyView()
-+    var line: String {
-+      "t\(title) e\(exercise) s\(setLine) w\(weight) k\(keys) b\(propsBytes)"
-     }
-   }
++    VStack(alignment: .trailing, spacing: 2) {
++      Group {
++        if props.finished {
++          Text(props.doneLabel)
++            .font(.system(size: 24, weight: .semibold))
++            .foregroundStyle(Color(red: 0.44, green: 0.82, blue: 0.71))
++        } else if props.resting {
++          Text(timerInterval: props.restRange, countsDown: true)
++            .font(.system(size: 24, weight: .medium, design: .monospaced))
++            .monospacedDigit()
++            .foregroundStyle(props.trailColor)
++        } else {
++          Text(timerInterval: props.elapsedRange, countsDown: false)
++            .font(.system(size: 24, weight: .medium, design: .monospaced))
++            .monospacedDigit()
++            .foregroundStyle(.white)
++        }
++      }
++      .lineLimit(1)
++      .minimumScaleFactor(0.75)
++      .multilineTextAlignment(.trailing)
 +
-+  static func lengths(from propsJSON: String?) -> Lengths {
-+    var out = Lengths()
-+    guard let propsJSON else { return out }
-+    out.propsBytes = propsJSON.utf8.count
-+    guard let data = propsJSON.data(using: .utf8),
-+          let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-+      return out
++      if !props.finished {
++        Text(props.resting ? props.restLabel : props.elapsedLabel)
++          .font(.system(size: 11, weight: .medium))
++          .foregroundStyle(.white.opacity(0.85))
++          .lineLimit(1)
++      }
 +    }
-+    out.keys = obj.count
-+    out.title = (obj["title"] as? String)?.utf8.count ?? 0
-+    out.exercise = (obj["exercise"] as? String)?.utf8.count ?? 0
-+    out.setLine = (obj["setLine"] as? String)?.utf8.count ?? 0
-+    out.weight = (obj["weightCompact"] as? String)?.utf8.count ?? 0
-+    return out
++    .fixedSize(horizontal: true, vertical: true)
 +  }
 +}
 +
-+private func bridgedNode(_ value: Any?) -> [String: Any]? {
-+  if let dict = value as? [String: Any] { return dict }
-+  guard let dict = value as? NSDictionary else { return nil }
-+  var out: [String: Any] = [:]
-+  for (key, nested) in dict {
-+    guard let key = key as? String else { continue }
-+    out[key] = nested
++private struct NativeSetBars: View {
++  let props: WorkoutLAProps
++
++  var body: some View {
++    if props.setsTotal > 0 {
++      HStack(spacing: 4) {
++        ForEach(0..<props.setsTotal, id: \.self) { index in
++          RoundedRectangle(cornerRadius: 2)
++            .fill(props.barColor(index: index))
++            .frame(minWidth: 0, maxWidth: .infinity, minHeight: 5, maxHeight: 5)
++        }
++      }
++      .padding(.top, 8)
++    }
 +  }
-+  return out
++}
++
++private struct NativeExpandedBottom: View {
++  let props: WorkoutLAProps
++
++  var body: some View {
++    VStack(alignment: .leading, spacing: 6) {
++      if !props.setLine.isEmpty {
++        Text(props.setLine)
++          .font(.system(size: 13, weight: .medium))
++          .foregroundStyle(.white)
++          .lineLimit(1)
++      }
++      NativeSetBars(props: props)
+     }
++    .padding(.horizontal, 6)
++    .padding(.top, 4)
++    .padding(.bottom, 10)
++    .frame(maxWidth: .infinity, alignment: .leading)
+   }
  }
  
- extension WidgetConfiguration {
 diff --git a/node_modules/expo-widgets/ios/WidgetsStorage.swift b/node_modules/expo-widgets/ios/WidgetsStorage.swift
 index 86f9d6c..a744cde 100644
 --- a/node_modules/expo-widgets/ios/WidgetsStorage.swift
