@@ -370,15 +370,33 @@ function Label({ live, inline }: { live: LiveWorkout; inline: boolean }) {
   }
   const primary = live.exercise || live.title;
   const secondary = live.exercise ? (live.detail ? `${live.title}: ${live.detail}` : live.title) : live.detail;
+  const widths = useRef({ row: 0, left: 0, right: 0, title: 0 });
+  const logWidths = (slot: keyof typeof widths.current, width: number) => {
+    if (widths.current[slot] === width) return;
+    widths.current[slot] = width;
+    if (!__DEV__) return;
+    // Widths only; never the exercise name (health data).
+    const { row, left, right, title } = widths.current;
+    if (row > 0 && left > 0 && right > 0) {
+      console.log(`[live-pill] row=${row} left=${left} right=${right} title=${title} gap≈${Math.max(0, row - left - right)}`);
+    }
+  };
   return (
-    <View style={styles.pillRow}>
-      <View style={styles.pillLeft}>
+    <View
+      style={styles.pillRow}
+      onLayout={(event) => logWidths("row", event.nativeEvent.layout.width)}
+    >
+      <View
+        style={styles.pillLeft}
+        onLayout={(event) => logWidths("left", event.nativeEvent.layout.width)}
+      >
         <Text
-          numberOfLines={1}
+          numberOfLines={2}
           adjustsFontSizeToFit
-          minimumFontScale={0.7}
+          minimumFontScale={0.85}
           ellipsizeMode="tail"
           style={styles.label}
+          onLayout={(event) => logWidths("title", event.nativeEvent.layout.width)}
         >
           {primary}
         </Text>
@@ -388,7 +406,10 @@ function Label({ live, inline }: { live: LiveWorkout; inline: boolean }) {
           </Text>
         ) : null}
       </View>
-      <View style={[styles.pillRight, live.resting ? null : styles.pillRightLift]}>
+      <View
+        style={[styles.pillRight, live.resting ? null : styles.pillRightLift]}
+        onLayout={(event) => logWidths("right", event.nativeEvent.layout.width)}
+      >
         {live.resting && live.restSeconds != null ? (
           <>
             <Text numberOfLines={1} style={[styles.bigTime, live.restUrgent ? styles.restWarn : styles.restOk]}>
@@ -519,7 +540,7 @@ function EndSheet({ live, visible, onClose }: { live: LiveWorkout; visible: bool
 
 const styles = StyleSheet.create({
   hit: { minHeight: 44, justifyContent: "center", paddingHorizontal: 16 },
-  label: { color: theme.text, fontFamily: theme.fonts.bodySemi, fontSize: 15 },
+  label: { color: theme.text, fontFamily: theme.fonts.bodySemi, fontSize: 15, lineHeight: 18 },
   sub: { color: MUTED_PILL, fontFamily: theme.fonts.bodyMedium, fontSize: 12, marginTop: 2 },
   compact: { color: theme.text, fontFamily: theme.fonts.monoMedium, fontSize: 15, textAlign: "center" },
   dock: { position: "absolute", left: 16, right: 16, zIndex: 80 },
@@ -544,11 +565,11 @@ const styles = StyleSheet.create({
     borderRadius: theme.radii.pill,
     opacity: 0.55,
   },
-  pillRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  /** Title shrinks; timer keeps intrinsic "00:00" width. */
-  pillLeft: { flexGrow: 1, flexShrink: 1, flexBasis: 0, minWidth: 0 },
-  pillRight: { flexGrow: 0, flexShrink: 0, alignItems: "flex-end", minWidth: 56 },
-  pillRightLift: { alignSelf: "stretch", justifyContent: "center", flexShrink: 0, minWidth: 56 },
+  pillRow: { flexDirection: "row", alignItems: "center", gap: 8, width: "100%" },
+  /** Name takes every leftover point; timer is intrinsic only (no flex grow). */
+  pillLeft: { flexGrow: 1, flexShrink: 1, flexBasis: 0, minWidth: 0, paddingRight: 2 },
+  pillRight: { flexGrow: 0, flexShrink: 0, alignItems: "flex-end" },
+  pillRightLift: { alignSelf: "center", justifyContent: "center" },
   bigTime: {
     color: theme.text,
     fontFamily: theme.fonts.monoMedium,
