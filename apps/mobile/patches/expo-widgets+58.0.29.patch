@@ -392,7 +392,7 @@ index 68e376f..4c18f76 100644
    }
  
 diff --git a/node_modules/expo-widgets/ios/Widgets/WidgetLiveActivity.swift b/node_modules/expo-widgets/ios/Widgets/WidgetLiveActivity.swift
-index 4d135c4..985adac 100644
+index 4d135c4..99ff730 100644
 --- a/node_modules/expo-widgets/ios/Widgets/WidgetLiveActivity.swift
 +++ b/node_modules/expo-widgets/ios/Widgets/WidgetLiveActivity.swift
 @@ -2,6 +2,9 @@ import SwiftUI
@@ -405,16 +405,17 @@ index 4d135c4..985adac 100644
  
  struct LiveActivityAttributes: ActivityAttributes {
    // The deep link URL passed to start(). Stored in the static attributes so it is
-@@ -18,6 +21,8 @@ struct LiveActivityAttributes: ActivityAttributes {
+@@ -18,6 +21,9 @@ struct LiveActivityAttributes: ActivityAttributes {
    }
  }
  
 +/// Live Activity configuration. On JS/layout failure, paints a native SwiftUI diag
 +/// (Release used to map RedBoxView → EmptyView, which blanked the Island).
++/// Missing section nodes also get native diag text (expanded center used to be EmptyView).
  public struct WidgetLiveActivity: Widget {
    @Environment(\.self) var env
  
-@@ -27,45 +32,44 @@ public struct WidgetLiveActivity: Widget {
+@@ -27,45 +33,44 @@ public struct WidgetLiveActivity: Widget {
  
    public var body: some WidgetConfiguration {
      ActivityConfiguration(for: LiveActivityAttributes.self) { context in
@@ -472,7 +473,7 @@ index 4d135c4..985adac 100644
        }
        if let url = context.attributes.url.flatMap(URL.init(string:)) {
          return island.widgetURL(url)
-@@ -74,15 +78,27 @@ public struct WidgetLiveActivity: Widget {
+@@ -74,37 +79,141 @@ public struct WidgetLiveActivity: Widget {
      }
      .supplementalActivityFamiliesIfAvailable()
    }
@@ -482,8 +483,9 @@ index 4d135c4..985adac 100644
 +    context: ActivityViewContext<LiveActivityAttributes>,
 +    report: LiveActivityDiagReport
 +  ) {
++    let keys = report.nodeKeys.joined(separator: ",")
 +    laDiagLog.notice(
-+      "\(kind, privacy: .public) name=\(context.state.name, privacy: .public) layout=\(report.layoutBytes) jsc=\(report.jscError ?? "ok", privacy: .public) nodes=\(report.nodeCount) probe=\(report.propsProbe ?? "-", privacy: .public)"
++      "\(kind, privacy: .public) name=\(context.state.name, privacy: .public) layout=\(report.layoutBytes) jsc=\(report.jscError ?? "ok", privacy: .public) nodes=\(report.nodeCount) keys=\(keys, privacy: .public) probe=\(report.propsProbe ?? "-", privacy: .public)"
 +    )
 +  }
  }
@@ -501,8 +503,12 @@ index 4d135c4..985adac 100644
 +    } else if let node = report.nodes[sectionName] as? [String: Any] {
        WidgetsDynamicView(name: context.activityID, kind: .liveActivity, node: node)
      } else {
-       EmptyView()
-@@ -92,12 +108,14 @@ private struct LiveActivitySectionView: View {
+-      EmptyView()
++      // JS succeeded but this region has no node — never EmptyView (hollow expanded Island).
++      MissingNodeChip(sectionName: sectionName, nodeKeys: report.nodeKeys)
+     }
+   }
+ }
  
  private struct LiveActivityBannerView: View {
    var context: ActivityViewContext<LiveActivityAttributes>
@@ -515,24 +521,42 @@ index 4d135c4..985adac 100644
 -    } else if let node = nodes["banner"] as? [String: Any] {
 +    if !report.ok {
 +      NativeDiagBanner(report: report, name: context.state.name, propsBytes: context.state.props?.utf8.count ?? -1)
++    } else if report.nodes["banner"] == nil {
++      NativeDiagBanner(
++        report: report,
++        name: context.state.name,
++        propsBytes: context.state.props?.utf8.count ?? -1,
++        overrideSummary: "no banner node"
++      )
 +    } else if #available(iOS 18.0, *) {
++      // Force a visible plate behind the JS tree so clear/translucent layouts cannot
++      // leave a hollow Lock Screen chrome if the JS background fails to paint.
 +      LiveActivityBanner(context: context, nodes: report.nodes)
++        .background(Color(red: 0.10, green: 0.24, blue: 0.20))
 +    } else if let node = report.nodes["banner"] as? [String: Any] {
        WidgetsDynamicView(name: context.activityID, kind: .liveActivity, node: node)
++        .background(Color(red: 0.10, green: 0.24, blue: 0.20))
      } else {
-       EmptyView()
-@@ -105,6 +123,55 @@ private struct LiveActivityBannerView: View {
-   }
- }
- 
+-      EmptyView()
++      NativeDiagBanner(
++        report: report,
++        name: context.state.name,
++        propsBytes: context.state.props?.utf8.count ?? -1,
++        overrideSummary: "no banner node"
++      )
++    }
++  }
++}
++
 +private struct NativeDiagBanner: View {
 +  let report: LiveActivityDiagReport
 +  let name: String
 +  let propsBytes: Int
++  var overrideSummary: String? = nil
 +
 +  var body: some View {
 +    VStack(alignment: .leading, spacing: 4) {
-+      Text("LB JS · \(report.summaryLine)")
++      Text("LB JS · \(overrideSummary ?? report.summaryLine)")
 +        .font(.headline.weight(.semibold))
 +        .foregroundStyle(.white)
 +        .lineLimit(2)
@@ -570,7 +594,29 @@ index 4d135c4..985adac 100644
 +    case "expandedBottom": return report.summaryLine
 +    case "expandedCenter": return report.jscError != nil ? "JSC" : "layout"
 +    default: return "diag"
-+    }
+     }
+   }
+ }
+ 
++private struct MissingNodeChip: View {
++  let sectionName: String
++  let nodeKeys: [String]
++
++  var body: some View {
++    Text(label)
++      .font(.caption2.weight(.semibold))
++      .foregroundStyle(.white)
++      .lineLimit(2)
++      .minimumScaleFactor(0.6)
++      .padding(.horizontal, 4)
++      .background(Color.orange.opacity(0.85))
++  }
++
++  private var label: String {
++    let short = sectionName
++      .replacingOccurrences(of: "expanded", with: "e")
++      .replacingOccurrences(of: "compact", with: "c")
++    return "no \(short)"
 +  }
 +}
 +

@@ -21,9 +21,10 @@ import type { WorkoutActivityProps } from "./state";
  * Lock Screen + Dynamic Island. Widget runtime only: every value used here is local
  * (module-scope constants blank / throw in the extension, as with the old LIME_A bug).
  *
- * Layout is stored in app-group UserDefaults and evaluated in JavaScriptCore. Missing
- * ContentState props produced: TypeError undefined is not an object (evaluating
- * 'props.restUrgent') → ExpoWidgets RedBox on the Lock Screen. Guard props/environment.
+ * Visibility note (9903): translucent lime wash + activityBackgroundTint("clear") painted a
+ * hollow Lock Screen / expanded chrome after JS succeeded. Force opaque bg + white text until
+ * a proven glass path lands. Compact leading gets a short name + aggressive scale; trailing
+ * stays a short timer/weight only.
  */
 function WorkoutActivityLayout(props: WorkoutActivityProps, environment: LiveActivityEnvironment) {
   "widget";
@@ -35,9 +36,11 @@ function WorkoutActivityLayout(props: WorkoutActivityProps, environment: LiveAct
   const limeSoft = "#9fcfc1";
   const fillDone = "#237a64";
   const warn = "#e07a6a";
-  const text = env.isLuminanceReduced ? "#ffffff" : "#edeae8";
-  const muted = env.isLuminanceReduced ? "rgba(255,255,255,0.78)" : "rgba(237,234,232,0.78)";
-  const track = "rgba(255,255,255,0.22)";
+  /** Forced-visible palette: opaque green plate + white type (diag for invisible paint). */
+  const plate = "#1a3d32";
+  const text = "#ffffff";
+  const muted = "rgba(255,255,255,0.85)";
+  const track = "rgba(255,255,255,0.28)";
   const white = "#ffffff";
   const lime = limeA;
   const limeBarGrad = {
@@ -45,12 +48,6 @@ function WorkoutActivityLayout(props: WorkoutActivityProps, environment: LiveAct
     colors: [limeA, limeB],
     startPoint: { x: 0, y: 0 },
     endPoint: { x: 1, y: 0 },
-  };
-  const limeWash = {
-    type: "linearGradient" as const,
-    colors: ["rgba(111,208,180,0.50)", "rgba(200,232,106,0.38)"],
-    startPoint: { x: 0, y: 0 },
-    endPoint: { x: 1, y: 1 },
   };
 
   const maxLiveMs = 8 * 3600e3;
@@ -84,8 +81,24 @@ function WorkoutActivityLayout(props: WorkoutActivityProps, environment: LiveAct
     const s = Math.max(0, Math.floor(total));
     return `${pad2(Math.floor(s / 60))}:${pad2(s % 60)}`;
   };
+  /** Compact Island leading is ~half the pill; keep names short enough to scale. */
+  const shortIslandName = (name: string) => {
+    const trimmed = (name || "").trim();
+    if (!trimmed) return "Lift";
+    if (trimmed.length <= 14) return trimmed;
+    const words = trimmed.split(/\s+/);
+    if (words.length >= 2) {
+      const two = `${words[0]} ${words[1]}`;
+      if (two.length <= 16) return two;
+      // "Single-Leg Romanian Deadlift" → "Single-Leg…"
+      if (words[0].length <= 12) return `${words[0]}…`;
+    }
+    return `${trimmed.slice(0, 12)}…`;
+  };
   const nowMs = Date.now();
-  const islandLead = exercise || title;
+  const islandLeadFull = exercise || title;
+  const islandLead = shortIslandName(islandLeadFull);
+  // Trailing: timer while resting, weight (or elapsed) while lifting — never a long string.
   const islandTrail = finished
     ? doneLabel
     : resting
@@ -177,11 +190,12 @@ function WorkoutActivityLayout(props: WorkoutActivityProps, environment: LiveAct
       </HStack>
     ) : null;
 
+  // Opaque plate (not clear / not translucent wash) so Lock Screen cannot paint hollow chrome.
   const bannerBody = (
     <VStack
       alignment="leading"
       spacing={0}
-      modifiers={[padding({ all: 14 }), activityBackgroundTint("clear"), background(limeWash)]}
+      modifiers={[padding({ all: 14 }), activityBackgroundTint(plate), background(plate)]}
     >
       <HStack alignment="top" spacing={12}>
         <VStack alignment="leading" spacing={2} modifiers={[layoutPriority(0), frame({ maxWidth: 9999, alignment: "leading" })]}>
@@ -200,34 +214,76 @@ function WorkoutActivityLayout(props: WorkoutActivityProps, environment: LiveAct
     </VStack>
   );
 
+  const compactLeadMods = [
+    font({ size: 12, weight: "semibold" }),
+    foregroundStyle(white),
+    lineLimit(1),
+    minimumScaleFactor(0.55),
+  ];
+  const compactTrailMods = [
+    font({ size: 12, weight: "medium", design: "monospaced" }),
+    monospacedDigit(),
+    foregroundStyle(islandTrailColor),
+    lineLimit(1),
+    minimumScaleFactor(0.7),
+    fixedSize({ horizontal: true, vertical: true }),
+  ];
+
   return {
     banner: bannerBody,
-    compactLeading: (
-      <Text modifiers={[font({ size: 13, weight: "semibold" }), foregroundStyle(white)]}>{islandLead}</Text>
-    ),
-    compactTrailing: (
-      <Text modifiers={[font({ size: 13, weight: "medium", design: "monospaced" }), monospacedDigit(), foregroundStyle(islandTrailColor)]}>
-        {islandTrail}
-      </Text>
-    ),
+    compactLeading: <Text modifiers={compactLeadMods}>{islandLead}</Text>,
+    compactTrailing: <Text modifiers={compactTrailMods}>{islandTrail}</Text>,
     minimal: (
-      <Text modifiers={[font({ size: 12, weight: "medium", design: "monospaced" }), monospacedDigit(), foregroundStyle(islandTrailColor)]}>
+      <Text
+        modifiers={[
+          font({ size: 11, weight: "medium", design: "monospaced" }),
+          monospacedDigit(),
+          foregroundStyle(islandTrailColor),
+          lineLimit(1),
+          minimumScaleFactor(0.6),
+        ]}
+      >
         {islandTrail}
       </Text>
     ),
     expandedLeading: (
-      <Text modifiers={[font({ size: 14, weight: "semibold" }), foregroundStyle(white), padding({ leading: 4 })]}>{islandLead}</Text>
+      <Text
+        modifiers={[
+          font({ size: 14, weight: "semibold" }),
+          foregroundStyle(white),
+          padding({ leading: 4 }),
+          lineLimit(2),
+          minimumScaleFactor(0.7),
+        ]}
+      >
+        {islandLeadFull}
+      </Text>
     ),
     expandedTrailing: (
-      <Text modifiers={[font({ size: 16, weight: "medium", design: "monospaced" }), monospacedDigit(), foregroundStyle(islandTrailColor)]}>
+      <Text
+        modifiers={[
+          font({ size: 16, weight: "medium", design: "monospaced" }),
+          monospacedDigit(),
+          foregroundStyle(islandTrailColor),
+          lineLimit(1),
+        ]}
+      >
         {islandTrail}
       </Text>
     ),
+    // Was missing → EmptyView center made the expanded Island feel hollow.
+    expandedCenter: (
+      <Text modifiers={[font({ size: 13, weight: "medium" }), foregroundStyle(muted), lineLimit(1)]}>
+        {setLine || title}
+      </Text>
+    ),
     expandedBottom: (
-      <VStack alignment="leading" spacing={4} modifiers={[padding({ horizontal: 4 })]}>
+      <VStack alignment="leading" spacing={4} modifiers={[padding({ horizontal: 4 }), background(plate)]}>
         {setLine ? (
-          <Text modifiers={[font({ size: 13, weight: "medium" }), foregroundStyle(muted)]}>{setLine}</Text>
-        ) : null}
+          <Text modifiers={[font({ size: 13, weight: "medium" }), foregroundStyle(text)]}>{setLine}</Text>
+        ) : (
+          <Text modifiers={[font({ size: 13, weight: "medium" }), foregroundStyle(text)]}>{islandLeadFull}</Text>
+        )}
         {setBars}
       </VStack>
     ),
