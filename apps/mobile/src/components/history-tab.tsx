@@ -10,7 +10,6 @@ import Svg, { Circle, Line, Polyline } from "react-native-svg";
 import Reanimated from "react-native-reanimated";
 
 import { GlassTrack } from "@/components/glass-track";
-import { LiveWorkoutBar } from "@/components/live-workout";
 import { StepButton } from "@/components/step-button";
 import { InfoTip } from "@/components/tip-popover";
 import { copy, fill as fillCopy } from "@/copy";
@@ -280,7 +279,6 @@ export function HistoryTab({ data }: { data: HistorySnapshot }) {
           </View>
         </Animated.View>
       </View>
-      <LiveWorkoutBar />
     </View>
   );
 }

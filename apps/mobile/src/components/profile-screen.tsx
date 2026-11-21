@@ -19,7 +19,6 @@ import Reanimated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Polyline } from "react-native-svg";
 
-import { LiveWorkoutBar } from "@/components/live-workout";
 import { copy } from "@/copy";
 import { useSolidGlass } from "@/glass";
 import { engine, useEngineStore } from "@/store";
@@ -482,7 +481,6 @@ export function ProfileScreen() {
         <Text style={styles.disclaimer}>{copy.you.disclaimer}</Text>
         <TabBarSpacer />
       </ScrollView>
-      <LiveWorkoutBar />
     </View>
   );
 }

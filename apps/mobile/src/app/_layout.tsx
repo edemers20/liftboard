@@ -18,7 +18,7 @@ import { SharedTransitionBoundary } from "react-native-reanimated";
 
 import { LaunchSplash, claimLaunchSplash } from "@/components/launch-splash";
 import { startCrashReports } from "@/crash/report";
-import { LiveWorkoutState, useLiveWorkout } from "@/components/live-workout";
+import { LiveWorkoutState, useLiveIdentity } from "@/components/live-workout";
 import { useLiveActivitySync } from "@/live-activity/sync";
 import { DialHost } from "@/components/number-dial";
 import { NoticeHost } from "@/components/motion";
@@ -102,7 +102,7 @@ export default function RootLayout() {
   const reduceMotion = useReduceMotion();
   const [enter, setEnter] = useState<WorkoutEnter>("plain");
   useEffect(() => subscribeWorkoutEnter(setEnter), []);
-  const live = useLiveWorkout();
+  const live = useLiveIdentity();
   useLiveActivitySync();
 
   return (

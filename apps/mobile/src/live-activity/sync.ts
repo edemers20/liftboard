@@ -77,23 +77,37 @@ export function syncLiveActivity(now = Date.now()) {
   }
 }
 
-/** Keeps the Live Activity in step with the workout. Mounted once at the root. */
+/**
+ * Keeps the Live Activity in step with the workout. Mounted once at the root.
+ * Syncs on engine version, app foreground, rest-urgent and rest-end — not every second
+ * (elapsed and rest countdown are Timeline dates on the widget).
+ */
 export function useLiveActivitySync() {
   const version = useEngineStore((state) => state.version);
   useEffect(() => {
     syncLiveActivity();
+    if (!WorkoutActivity || Platform.OS !== "ios") return;
+    const live = underway();
+    if (!live) return;
+    const now = Date.now();
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    const rest = engine.wk.rest as { end?: number } | null | undefined;
+    if (rest?.end && rest.end > now) {
+      const urgentAt = rest.end - 10_000;
+      if (urgentAt > now) timers.push(setTimeout(() => syncLiveActivity(), urgentAt - now));
+      timers.push(setTimeout(() => syncLiveActivity(), rest.end - now + 50));
+    }
+    const maxLeft = live.start + MAX_LIVE_MS - now;
+    if (maxLeft > 0 && maxLeft < 48 * 3600e3) {
+      timers.push(setTimeout(() => syncLiveActivity(), maxLeft));
+    }
+    return () => timers.forEach(clearTimeout);
   }, [version]);
   useEffect(() => {
     if (!WorkoutActivity || Platform.OS !== "ios") return;
     const sub = AppState.addEventListener("change", (next) => {
       if (next === "active") syncLiveActivity();
     });
-    const tick = setInterval(() => {
-      if (underway()) syncLiveActivity();
-    }, 1000);
-    return () => {
-      sub.remove();
-      clearInterval(tick);
-    };
+    return () => sub.remove();
   }, []);
 }

@@ -4,6 +4,7 @@ import { GlassContainer, GlassView, isGlassEffectAPIAvailable } from "expo-glass
 import { PressableScale } from "@/components/pressable-scale";
 import { useEffect, useRef, useState } from "react";
 import { Platform, StyleSheet, Text, View } from "react-native";
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
 import { copy, fill } from "@/copy";
 import { useSolidGlass } from "@/glass";
@@ -79,40 +80,66 @@ export function RestBar({
   const latest = useRef<Rest | null>(rest);
   if (rest) latest.current = rest;
   const open = rest != null;
-  const [mounted, setMounted] = useState(open);
-  const [glassOn, setGlassOn] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  /** Clock ticks here only; the workout screen does not re-render every second for rest. */
+  const [now, setNow] = useState(() => Date.now());
+  const opacity = useSharedValue(0);
   const gap = useRestGap(open && mounted, reduce);
+  const canGlass = !solid && glassApi();
 
   useEffect(() => {
     if (open) {
       setMounted(true);
-      const frame = requestAnimationFrame(() => setGlassOn(true));
-      return () => cancelAnimationFrame(frame);
+      // Glass is on from the first painted frame; fade chrome + words together (no words-before-glass).
+      opacity.value = reduce ? 1 : 0;
+      if (!reduce) {
+        opacity.value = withTiming(1, {
+          duration: MOVE_MS,
+          easing: Easing.out(Easing.cubic),
+        });
+      }
+      return;
     }
-    setGlassOn(false);
     if (reduce) {
+      opacity.value = 0;
       setMounted(false);
       return;
     }
+    opacity.value = withTiming(0, { duration: MOVE_MS, easing: Easing.in(Easing.cubic) });
     const timer = setTimeout(() => setMounted(false), MOVE_MS);
     return () => clearTimeout(timer);
-  }, [open, reduce]);
+  }, [open, reduce, opacity]);
 
-  const view = rest ?? latest.current;
-  if (!mounted || !view) return null;
+  useEffect(() => {
+    if (!rest?.end) return;
+    setNow(Date.now());
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [rest?.end]);
 
+  const fadeStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
+
+  const base = rest ?? latest.current;
+  if (!mounted || !base) return null;
+
+  const left = (base.end - now) / 1000;
+  const view: Rest = {
+    ...base,
+    over: left <= 0,
+    seconds: left <= 0 ? 0 : Math.round(left),
+  };
   const label = fill(copy.workout.rest, clock(view.over ? 0 : view.seconds));
   const soon = !view.over && view.seconds <= 10;
   const tint = view.over ? theme.fuel : soon ? SOON : undefined;
   const effect = {
-    style: glassOn ? ("regular" as const) : ("none" as const),
-    animate: true,
-    animationDuration: reduce ? 0.01 : MOVE_MS / 1000,
+    style: "regular" as const,
+    animate: false,
+    animationDuration: 0.01,
   };
 
   return (
-    <View pointerEvents="box-none" style={[styles.float, { bottom }]}>
-      {solid ? (
+    <Animated.View pointerEvents="box-none" style={[styles.float, { bottom }, fadeStyle]}>
+      {solid || !canGlass ? (
         <View style={[styles.solid, soon && styles.solidSoon, view.over && styles.solidGo]}>
           <Zones view={view} label={label} onMinus={onMinus} onPlus={onPlus} onSkip={onSkip} />
         </View>
@@ -129,7 +156,7 @@ export function RestBar({
           </GlassView>
         </GlassContainer>
       )}
-    </View>
+    </Animated.View>
   );
 }
 
