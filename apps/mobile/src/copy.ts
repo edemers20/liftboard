@@ -595,6 +595,10 @@ export const copy = {
     doneStretching: "Done stretching",
     dayDone: "✓ Day done",
     markDone: "Mark day done",
+    menuMarkDone: "Mark day as done",
+    menuReset: "Reset",
+    // TODO copy: screen reader label for the header menu button.
+    menu: "More",
     addExerciseBtn: "+ Add exercise",
     addExercise: "Add exercise",
     chooseExercise: "Choose an exercise…",

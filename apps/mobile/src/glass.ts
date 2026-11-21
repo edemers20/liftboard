@@ -2,6 +2,14 @@ import { isGlassEffectAPIAvailable } from "expo-glass-effect";
 import { useEffect, useState } from "react";
 import { AccessibilityInfo, Platform } from "react-native";
 
+/** Lime glass shared by the live workout pill and the workout header buttons. */
+export const LIME_GLASS = {
+  tint: "rgba(111,208,180,0.35)",
+  wash: ["rgba(111,208,180,0.42)", "rgba(200,232,106,0.28)"] as const,
+  washOpacity: 0.55,
+  edge: "rgba(200,232,106,0.32)",
+};
+
 /** True when Liquid Glass can draw. False on older iOS, other platforms and Reduce Transparency. */
 export function useSolidGlass(): boolean {
   const [reduce, setReduce] = useState(false);

@@ -356,6 +356,9 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Done stretching | main.js:845 |
 |  | ✓ Day done | main.js:846 |
 |  | Mark day done | main.js:846 |
+| Menu item | Mark day as done | Workout header menu (Emma, Nov 21) |
+| Menu item | Reset | Workout header menu (Emma, Nov 21). Opens the Reset {…} confirmation. |
+| Screen reader | More **TODO copy** | Workout header menu button. |
 |  | + Add exercise | main.js:851 |
 |  | Add exercise | main.js:856 |
 |  | Choose an exercise… | main.js:856 |
