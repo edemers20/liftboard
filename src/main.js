@@ -1671,17 +1671,26 @@ function bind(){
     if(!(wk.done||{})[cur]&&dayComplete(cur)){ const id=cur, n=setsLogged(id); markDone(id); render(); dayDone(id,n); return; }
     const d=DAYS.find(x=>x.id===cur), n=nextIdx(d,plan().days[cur],i); if(n!=null){ wk.active={...(wk.active||{}),[cur]:n}; save(); } render(); });
   v.querySelectorAll("input[data-set]").forEach(el=>{ el.oninput=()=>logSet(+el.dataset.i,+el.dataset.set,el.dataset.f,el.dataset.f==="w"?fromU(el.value):el.value); el.onchange=()=>render(); });
-  v.querySelectorAll("[data-zdel]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); const i=+b.dataset.zdel, k=+b.dataset.sk, snap=JSON.parse(JSON.stringify(slots[cur]||{}));
-    const log=(get(cur,i).log||[]).slice(); log.splice(k,1); set(cur,i,"log",log); if((wk.done||{})[cur]) resyncDone(cur); render();
-    toastUndo(()=>{ slots[cur]=snap; save(); if((wk.done||{})[cur]) resyncDone(cur); render(); }); });
-  v.querySelectorAll("[data-xdel]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); const i=+b.dataset.xdel, d=DAYS.find(x=>x.id===cur); if(!d) return;
-    const s=d.slots[i], st=get(cur,i), n=(s.cardio?!!st.cdone:(st.log||[]).filter(x=>x.d).length);
-    const go=()=>{ const snap={extra:JSON.parse(JSON.stringify((wk.extra||{})[cur]||[])), slots:JSON.parse(JSON.stringify(slots[cur]||{}))};
-      if(s.extra){ const extras=(wk.extra||{})[cur]||[]; removeExtra(cur, i-(d.slots.length-extras.length)); }
-      else { set(cur,i,"cut",true); set(cur,i,"log",[]); set(cur,i,"cdone",false); }
-      if((wk.done||{})[cur]) resyncDone(cur); render();
-      toastUndo(()=>{ wk.extra={...(wk.extra||{}),[cur]:snap.extra}; slots[cur]=snap.slots; syncDays(); save(); if((wk.done||{})[cur]) resyncDone(cur); render(); }); };
-    if(n>0){ if(window.confirm(`Delete ${exName(d,s,i)} and its ${n} sets?`)) go(); } else go(); });
+  /* Undo is bound to the day it was deleted on: the toast outlives leaving the workout. */
+  const daySnap=id=>({extra:JSON.parse(JSON.stringify((wk.extra||{})[id]||[])), slots:JSON.parse(JSON.stringify(slots[id]||{})), wt:(wk.wt||{})[id]});
+  const afterDel=id=>{ if(!(wk.done||{})[id]&&!dayHasSets(id)&&(wk.wt||{})[id]&&!wk.wt[id].end){ const t={...wk.wt}; delete t[id]; wk.wt=t; save(); }
+    if((wk.done||{})[id]) resyncDone(id); render(); };
+  const undoDel=(id,snap)=>toastUndo(()=>{ wk.extra={...(wk.extra||{}),[id]:snap.extra}; slots[id]=snap.slots; if(snap.wt) wk.wt={...(wk.wt||{}),[id]:snap.wt}; syncDays(); save(); if((wk.done||{})[id]) resyncDone(id); render(); });
+  const removeEx=(id,d,i)=>{ const s=d.slots[i], snap=daySnap(id);
+    if(s.extra){ const extras=(wk.extra||{})[id]||[]; removeExtra(id, i-(d.slots.length-extras.length)); }
+    else { set(id,i,"cut",true); set(id,i,"log",[]); set(id,i,"cdone",false); }
+    afterDel(id); undoDel(id,snap); };
+  /* A planned row, even an empty one, lowers this day's set count (st.drop); the last row removes the exercise. */
+  v.querySelectorAll("[data-zdel]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); const id=cur, i=+b.dataset.zdel, k=+b.dataset.sk, d=DAYS.find(x=>x.id===id); if(!d) return;
+    const planned=num(((plan().days[id]||{}).slots||[])[i]?.sets,0), st=get(id,i), log=(st.log||[]).slice();
+    if(Math.max(planned,log.length)<=1){ removeEx(id,d,i); return; }
+    const snap=daySnap(id);
+    if(k<planned) set(id,i,"drop",num(st.drop,0)+1);
+    if(k<log.length){ log.splice(k,1); set(id,i,"log",log); }
+    afterDel(id); undoDel(id,snap); });
+  v.querySelectorAll("[data-xdel]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); const id=cur, i=+b.dataset.xdel, d=DAYS.find(x=>x.id===id); if(!d) return;
+    const s=d.slots[i], st=get(id,i), n=(s.cardio?!!st.cdone:(st.log||[]).filter(x=>x.d).length);
+    if(n>0){ if(window.confirm(`Delete ${exName(d,s,i)} and its ${n} sets?`)) removeEx(id,d,i); } else removeEx(id,d,i); });
   v.querySelectorAll(".chk").forEach(b=>b.onclick=()=>{ const i=+b.dataset.i,k=+b.dataset.set, x=(get(cur,i).log||[])[k]||{};
     if(!x.w){ const ph=document.getElementById(`w-${cur}-${i}-${k}`).placeholder; if(+ph>0) logSet(i,k,"w",ph); }
     if(!x.r){ const ph=document.getElementById(`r-${cur}-${i}-${k}`).placeholder; if(+ph>0) logSet(i,k,"r",ph); }

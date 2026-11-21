@@ -983,3 +983,41 @@ describe("time moved", () => {
     expect(top).toMatchObject({ k: "pickle", n: 2, hours: 3 }); // 165 min
   });
 });
+
+describe("deleting a set in this workout (st.drop)", () => {
+  const firstLift = () => { const d = E.DAYS.find(day => day.slots.some(s => !s.cardio)); return { id: d.id, i: d.slots.findIndex(s => !s.cardio) }; };
+
+  it("lowers that day's set count only, and the plan can't refill it", () => {
+    fresh();
+    const { id, i } = firstLift();
+    const before = E.plan().days[id].slots[i].sets;
+    const others = E.DAYS.filter(d => d.id !== id).map(d => E.plan().days[d.id].slots.map(A => A && A.sets));
+    E.set(id, i, "drop", 1);
+    expect(E.plan().days[id].slots[i].sets).toBe(before - 1);
+    expect(E.DAYS.filter(d => d.id !== id).map(d => E.plan().days[d.id].slots.map(A => A && A.sets))).toEqual(others);
+    E.set(id, i, "drop", 0);
+    expect(E.plan().days[id].slots[i].sets).toBe(before);
+  });
+
+  it("never drops below the sets already ticked, and holds through the started-day lock", () => {
+    fresh();
+    const { id, i } = firstLift();
+    const before = E.plan().days[id].slots[i].sets;
+    E.wk.wt = { [id]: { start: Date.now() } };
+    E.plan();
+    E.set(id, i, "log", Array.from({ length: before - 1 }, () => ({ d: true, w: "100", r: "8" })));
+    E.set(id, i, "drop", before);
+    expect(E.plan().days[id].slots[i].sets).toBe(before - 1);
+  });
+
+  it("clears with the logs when a finished day rolls into a new week", () => {
+    fresh();
+    const { id, i } = firstLift();
+    const before = E.plan().days[id].slots[i].sets;
+    E.set(id, i, "drop", 1);
+    E.wk.done = { [id]: true };
+    E.newWeek(Date.now());
+    expect(E.get(id, i).drop).toBeUndefined();
+    expect(E.plan().days[id].slots[i].sets).toBe(before);
+  });
+});
