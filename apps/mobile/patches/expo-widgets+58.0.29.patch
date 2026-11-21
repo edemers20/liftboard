@@ -1,8 +1,8 @@
 diff --git a/node_modules/expo-widgets/bundle/react-native-stub.ts b/node_modules/expo-widgets/bundle/react-native-stub.ts
-index 2e46e0f..fdc671a 100644
+index 2e46e0f..37f960a 100644
 --- a/node_modules/expo-widgets/bundle/react-native-stub.ts
 +++ b/node_modules/expo-widgets/bundle/react-native-stub.ts
-@@ -29,3 +29,13 @@ export const Image = { resolveAssetSource };
+@@ -29,3 +29,14 @@ export const Image = { resolveAssetSource };
  export const useColorScheme = (): 'light' | 'dark' | null => {
    return (globalThis.__expoWidgetEnvironment?.colorScheme as 'light' | 'dark' | undefined) ?? null;
  };
@@ -16,6 +16,7 @@ index 2e46e0f..fdc671a 100644
 +  isRTL: false,
 +  doLeftAndRightSwapInRTL: true,
 +};
++
 diff --git a/node_modules/expo-widgets/ios/Widgets/Utils.swift b/node_modules/expo-widgets/ios/Widgets/Utils.swift
 index 76b2199..447f436 100644
 --- a/node_modules/expo-widgets/ios/Widgets/Utils.swift
@@ -68,6 +69,148 @@ index 76b2199..447f436 100644
  public func getWidgetEnvironment(environment: EnvironmentValues) -> [String: Any] {
    var env: [String: Any] = [
      "showsContainerBackground": environment.showsWidgetContainerBackground,
+diff --git a/node_modules/expo-widgets/ios/Widgets/WidgetLiveActivity.swift b/node_modules/expo-widgets/ios/Widgets/WidgetLiveActivity.swift
+index 4d135c4..12c1215 100644
+--- a/node_modules/expo-widgets/ios/Widgets/WidgetLiveActivity.swift
++++ b/node_modules/expo-widgets/ios/Widgets/WidgetLiveActivity.swift
+@@ -2,6 +2,9 @@ import SwiftUI
+ import WidgetKit
+ import ExpoModulesCore
+ import ActivityKit
++import OSLog
++
++private let laDiagLog = Logger(subsystem: "app.liftboard.widgets", category: "LADiag")
+ 
+ struct LiveActivityAttributes: ActivityAttributes {
+   // The deep link URL passed to start(). Stored in the static attributes so it is
+@@ -18,6 +21,9 @@ struct LiveActivityAttributes: ActivityAttributes {
+   }
+ }
+ 
++/// DIAGNOSTIC ONLY: hardcoded SwiftUI Text in every region, no expo-widgets JS layout.
++/// If Emma sees "LB DIAG" / "DIAG", the appex body runs and the blank was in the JS path.
++/// If still blank outline, the extension or system is not drawing our configuration.
+ public struct WidgetLiveActivity: Widget {
+   @Environment(\.self) var env
+ 
+@@ -27,45 +33,30 @@ public struct WidgetLiveActivity: Widget {
+ 
+   public var body: some WidgetConfiguration {
+     ActivityConfiguration(for: LiveActivityAttributes.self) { context in
+-      let nodes = getLiveActivityNodes(
+-        forName: context.state.name,
+-        props: context.state.props,
+-        environment: getLiveActivityEnvironment(for: env, in: context)
+-      )
+-      // Only apply widgetURL when the activity has one: a hierarchy with more than one
+-      // widgetURL modifier is undefined behavior, and layouts can set their own through
+-      // the widgetURL modifier from @expo/ui.
+-      let banner = LiveActivityBannerView(context: context, nodes: nodes)
+-      if let url = context.attributes.url.flatMap(URL.init(string:)) {
+-        banner.widgetURL(url)
+-      } else {
+-        banner
+-      }
++      let _ = Self.logRender(kind: "banner", context: context)
++      HardcodedBanner(name: context.state.name, propsBytes: context.state.props?.utf8.count ?? -1)
++        .widgetURL(context.attributes.url.flatMap(URL.init(string:)))
+     } dynamicIsland: { context in
+-      let nodes = getLiveActivityNodes(
+-        forName: context.state.name,
+-        props: context.state.props,
+-        environment: getLiveActivityEnvironment(for: env, in: context)
+-      )
++      let _ = Self.logRender(kind: "island", context: context)
+       let island = DynamicIsland {
+         DynamicIslandExpandedRegion(.center) {
+-          LiveActivitySectionView(context: context, nodes: nodes, sectionName: "expandedCenter")
++          HardcodedChip("DIAG center")
+         }
+         DynamicIslandExpandedRegion(.leading) {
+-          LiveActivitySectionView(context: context, nodes: nodes, sectionName: "expandedLeading")
++          HardcodedChip("DIAG lead")
+         }
+         DynamicIslandExpandedRegion(.trailing) {
+-          LiveActivitySectionView(context: context, nodes: nodes, sectionName: "expandedTrailing")
++          HardcodedChip("DIAG trail")
+         }
+         DynamicIslandExpandedRegion(.bottom) {
+-          LiveActivitySectionView(context: context, nodes: nodes, sectionName: "expandedBottom")
++          HardcodedChip("DIAG bottom · no JS layout")
+         }
+       } compactLeading: {
+-        LiveActivitySectionView(context: context, nodes: nodes, sectionName: "compactLeading")
++        HardcodedChip("LB")
+       } compactTrailing: {
+-        LiveActivitySectionView(context: context, nodes: nodes, sectionName: "compactTrailing")
++        HardcodedChip("DIAG")
+       } minimal: {
+-        LiveActivitySectionView(context: context, nodes: nodes, sectionName: "minimal")
++        HardcodedChip("D")
+       }
+       if let url = context.attributes.url.flatMap(URL.init(string:)) {
+         return island.widgetURL(url)
+@@ -74,34 +65,42 @@ public struct WidgetLiveActivity: Widget {
+     }
+     .supplementalActivityFamiliesIfAvailable()
+   }
++
++  private static func logRender(kind: String, context: ActivityViewContext<LiveActivityAttributes>) {
++    laDiagLog.notice("hardcoded \(kind, privacy: .public) name=\(context.state.name, privacy: .public) propsBytes=\(context.state.props?.utf8.count ?? -1, privacy: .public) stale=\(context.isStale, privacy: .public)")
++  }
+ }
+ 
+-private struct LiveActivitySectionView: View {
+-  let context: ActivityViewContext<LiveActivityAttributes>
+-  let nodes: [String: Any]
+-  let sectionName: String
++private struct HardcodedBanner: View {
++  let name: String
++  let propsBytes: Int
+ 
+   var body: some View {
+-    if let node = nodes[sectionName] as? [String: Any] {
+-      WidgetsDynamicView(name: context.activityID, kind: .liveActivity, node: node)
+-    } else {
+-      EmptyView()
++    VStack(alignment: .leading, spacing: 6) {
++      Text("LB DIAG · Lock Screen")
++        .font(.headline.weight(.semibold))
++        .foregroundStyle(.white)
++      Text("no JS layout · \(name) · props \(propsBytes)b")
++        .font(.caption.monospaced())
++        .foregroundStyle(.white.opacity(0.85))
++        .lineLimit(2)
+     }
++    .frame(maxWidth: .infinity, alignment: .leading)
++    .padding(14)
++    .background(Color.green.opacity(0.55))
+   }
+ }
+ 
+-private struct LiveActivityBannerView: View {
+-  var context: ActivityViewContext<LiveActivityAttributes>
+-  let nodes: [String: Any]
++private struct HardcodedChip: View {
++  let label: String
++  init(_ label: String) { self.label = label }
+ 
+   var body: some View {
+-    if #available(iOS 18.0, *) {
+-      LiveActivityBanner(context: context, nodes: nodes)
+-    } else if let node = nodes["banner"] as? [String: Any] {
+-      WidgetsDynamicView(name: context.activityID, kind: .liveActivity, node: node)
+-    } else {
+-      EmptyView()
+-    }
++    Text(label)
++      .font(.caption.weight(.semibold))
++      .foregroundStyle(.white)
++      .lineLimit(1)
++      .minimumScaleFactor(0.7)
+   }
+ }
+ 
 diff --git a/node_modules/expo-widgets/ios/WidgetsStorage.swift b/node_modules/expo-widgets/ios/WidgetsStorage.swift
 index 86f9d6c..a744cde 100644
 --- a/node_modules/expo-widgets/ios/WidgetsStorage.swift
