@@ -51,7 +51,8 @@ export function GlassIconButton({
           />
         </>
       )}
-      {children}
+      {/* A positioned wrapper keeps the icon above the absolute fill on web. */}
+      <View>{children}</View>
     </PressableScale>
   );
 }
