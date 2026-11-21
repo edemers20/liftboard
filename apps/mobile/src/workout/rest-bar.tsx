@@ -2,12 +2,13 @@
 
 import { GlassContainer, GlassView, isGlassEffectAPIAvailable } from "expo-glass-effect";
 import { PressableScale } from "@/components/pressable-scale";
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { Platform, StyleSheet, Text, View } from "react-native";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
 import { copy, fill } from "@/copy";
 import { useSolidGlass } from "@/glass";
+import { useSecondClock } from "@/second-clock";
 import { theme } from "@/theme";
 import { clock } from "@/units";
 import { useReduceMotion } from "@/use-reduce-motion";
@@ -20,6 +21,11 @@ const MOVE_MS = 320;
 /** Soft red wash for the last 10 seconds. Go replaces it at zero. */
 const SOON = "rgba(196, 72, 64, 0.45)";
 const SOON_SOLID = "#5c3836";
+const effect = {
+  style: "regular" as const,
+  animate: false,
+  animationDuration: 0.01,
+};
 
 function glassApi(): boolean {
   if (Platform.OS !== "ios") return false;
@@ -82,7 +88,10 @@ export function RestBar({
   const open = rest != null;
   const [mounted, setMounted] = useState(false);
   /** Clock ticks here only; the workout screen does not re-render every second for rest. */
-  const [now, setNow] = useState(() => Date.now());
+  useSecondClock(!!rest?.end);
+  const nowRef = useRef(Date.now());
+  if (rest?.end) nowRef.current = Date.now();
+  const now = nowRef.current;
   const opacity = useSharedValue(0);
   const gap = useRestGap(open && mounted, reduce);
   const canGlass = !solid && glassApi();
@@ -110,13 +119,6 @@ export function RestBar({
     return () => clearTimeout(timer);
   }, [open, reduce, opacity]);
 
-  useEffect(() => {
-    if (!rest?.end) return;
-    setNow(Date.now());
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, [rest?.end]);
-
   const fadeStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
 
   const base = rest ?? latest.current;
@@ -131,11 +133,6 @@ export function RestBar({
   const label = fill(copy.workout.rest, clock(view.over ? 0 : view.seconds));
   const soon = !view.over && view.seconds <= 10;
   const tint = view.over ? theme.fuel : soon ? SOON : undefined;
-  const effect = {
-    style: "regular" as const,
-    animate: false,
-    animationDuration: 0.01,
-  };
 
   return (
     <Animated.View pointerEvents="box-none" style={[styles.float, { bottom }, fadeStyle]}>
@@ -182,15 +179,16 @@ function Zones({
   );
 }
 
-function Side({ label, over, onPress }: { label: string; over: boolean; onPress: () => void }) {
+/** Memoized: the gap animation redraws the bar every frame, the buttons only when their text changes. */
+const Side = memo(function Side({ label, over, onPress }: { label: string; over: boolean; onPress: () => void }) {
   return (
     <PressableScale kind="button" accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={styles.hit}>
       <Text style={[styles.side, over && styles.onGo]}>{label}</Text>
     </PressableScale>
   );
-}
+});
 
-function Middle({ label, over, onSkip }: { label: string; over: boolean; onSkip: () => void }) {
+const Middle = memo(function Middle({ label, over, onSkip }: { label: string; over: boolean; onSkip: () => void }) {
   return (
     <View style={styles.mid}>
       <Text style={[styles.clock, over && styles.onGo]}>{label}</Text>
@@ -199,7 +197,7 @@ function Middle({ label, over, onSkip }: { label: string; over: boolean; onSkip:
       </PressableScale>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   float: {

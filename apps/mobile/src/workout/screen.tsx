@@ -17,14 +17,16 @@ import { DialValue, liftWeightDial, repsDial } from "@/components/number-dial";
 import { copy, fill } from "@/copy";
 import { haptic } from "@/haptic";
 import { engine } from "@/store";
+import { useEngineVersion } from "@/screen-version";
 import { theme } from "@/theme";
 import { clock, fromDisplay, toDisplay, unitWord, usingKg, weightText } from "@/units";
-import { useEngineStore } from "@/store";
 import { useReduceMotion } from "@/use-reduce-motion";
 import { useHideOnScroll } from "@/use-hide-on-scroll";
+import { useSecondClock } from "@/second-clock";
 
 import { canSwapDay, openSwappedWorkout } from "@/components/swap-sheet";
 import { Check, Close, Swap } from "@/icons";
+import { Probe } from "@/perf/probe";
 import { RestBar } from "@/workout/rest-bar";
 
 import { endLiveWorkout, liveWorkoutHeld, quietLiveWorkout, releaseEmptyLive, releaseLiveWorkout } from "@/components/live-workout";
@@ -54,14 +56,17 @@ function peekRest(now = Date.now()): Rest | null {
   return { over: false, seconds: Math.round(left), why: rest.why || "", end: rest.end };
 }
 
+/** Keeps the same rest while its end, Go state and reason hold, so a save doesn't redraw the screen twice. */
+function nextRest(previous: Rest | null): Rest | null {
+  const next = peekRest();
+  if (previous && next && previous.end === next.end && previous.over === next.over && previous.why === next.why) return previous;
+  return next;
+}
+
 /** Header elapsed clock; ticks locally so the workout tree is not re-rendered every second. */
 function ElapsedClock({ start, style }: { start: number; style: object }) {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, [start]);
-  return <Text style={style}>{clock((now - start) / 1000)}</Text>;
+  useSecondClock();
+  return <Text style={style}>{clock((Date.now() - start) / 1000)}</Text>;
 }
 
 const FEEL: { value: Feel; label: string; knob: string }[] = [
@@ -216,7 +221,7 @@ function loggedLine(name: string, weight: number, reps: number): string {
 }
 
 export function WorkoutScreen({ id }: { id: string }) {
-  const version = useEngineStore((state) => state.version);
+  const version = useEngineVersion();
   const reduceMotion = useReduceMotion();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
@@ -228,6 +233,12 @@ export function WorkoutScreen({ id }: { id: string }) {
   const offsets = useRef<Record<number, number>>({});
   const listY = useRef(0);
   const [rest, setRest] = useState<Rest | null>(() => peekRest());
+  // Read rest in the same pass as the save that changed it, not in a second redraw after it.
+  const [restVersion, setRestVersion] = useState(version);
+  if (restVersion !== version) {
+    setRestVersion(version);
+    setRest(nextRest(rest));
+  }
   const restOver = useRef<boolean | null>(null);
   const leftWhileCounting = useRef(false);
   const [sheet, setSheet] = useState<null | "done" | number>(null);
@@ -396,24 +407,23 @@ export function WorkoutScreen({ id }: { id: string }) {
   useEffect(() => {
     const expired = engine.wk.rest?.end && (engine.wk.rest.end - Date.now()) / 1000 < -300;
     if (expired) engine.restView();
-    setRest(peekRest());
   }, [version]);
 
   useEffect(() => {
     if (!rest?.end) return;
     const ms = rest.end - Date.now();
     if (ms <= 0) {
-      setRest(peekRest());
+      setRest(nextRest);
       return;
     }
-    const timer = setTimeout(() => setRest(peekRest()), ms + 30);
+    const timer = setTimeout(() => setRest(nextRest), ms + 30);
     return () => clearTimeout(timer);
   }, [rest?.end, version]);
 
   useEffect(() => {
     const sub = AppState.addEventListener("change", (state) => {
       if (state !== "active" && restOver.current === false) leftWhileCounting.current = true;
-      if (state === "active") setRest(peekRest());
+      if (state === "active") setRest(nextRest);
     });
     return () => sub.remove();
   }, []);
@@ -1037,19 +1047,21 @@ export function WorkoutScreen({ id }: { id: string }) {
             timer.end ? (
               <Text style={styles.timer}>{fill(copy.workout.minutes, Math.round((timer.end - timer.start) / 60000))}</Text>
             ) : (
-              <ElapsedClock start={timer.start} style={styles.timer} />
+              <Probe id="workout-clock"><ElapsedClock start={timer.start} style={styles.timer} /></Probe>
             )
           ) : null}
         </View>
       </Animated.View>
 
-      <RestBar
-        rest={rest}
-        bottom={insets.bottom + 8}
-        onMinus={() => void nudgeRest(-15)}
-        onPlus={() => void nudgeRest(15)}
-        onSkip={() => void skipRest()}
-      />
+      <Probe id="rest-bar">
+        <RestBar
+          rest={rest}
+          bottom={insets.bottom + 8}
+          onMinus={() => void nudgeRest(-15)}
+          onPlus={() => void nudgeRest(15)}
+          onSkip={() => void skipRest()}
+        />
+      </Probe>
 
       {undo ? (
         <View style={[styles.undo, { bottom: insets.bottom + 16 }]}>

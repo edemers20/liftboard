@@ -176,7 +176,12 @@ export async function armRest(seconds: number) {
   }
   currentId = id;
   engine.wk.rest.noteId = id;
-  engine.save();
+  // Stored for a relaunch only; nothing on screen shows it, so it skips the redraw a save brings.
+  try {
+    engine.persist();
+  } catch {
+    // Storage full or unavailable. The id is still held in memory for this run.
+  }
 }
 
 /** Cancel the locked-phone chime. Call this before clearing rest. */

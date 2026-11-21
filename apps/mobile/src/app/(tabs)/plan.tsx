@@ -49,7 +49,9 @@ import {
 } from "@/plan-model";
 import { storage } from "@/storage";
 import { TabBarSpacer, TabScrollMarker } from "@/tab-bar-inset";
-import { engine, useEngineStore } from "@/store";
+import { Probe } from "@/perf/probe";
+import { engine } from "@/store";
+import { useEngineVersion } from "@/screen-version";
 import { theme } from "@/theme";
 import { useReduceMotion } from "@/use-reduce-motion";
 import { useHideOnScroll, type HideOnScroll } from "@/use-hide-on-scroll";
@@ -84,7 +86,15 @@ function savedView(): ViewName {
 }
 
 export default function PlanScreen() {
-  const version = useEngineStore((state) => state.version);
+  return (
+    <Probe id="tab:plan">
+      <PlanScreenBody />
+    </Probe>
+  );
+}
+
+function PlanScreenBody() {
+  const version = useEngineVersion();
   const clock = usePlanClock();
   const reduceMotion = useReduceMotion();
   const insets = useSafeAreaInsets();

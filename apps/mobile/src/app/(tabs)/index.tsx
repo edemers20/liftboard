@@ -48,7 +48,9 @@ import { haptic } from "@/haptic";
 import { openPlan, takeWorkoutsDay } from "@/links";
 import { readPlan, usePlanClock } from "@/plan-model";
 import { workoutUnderway } from "@/components/live-workout";
-import { engine, useEngineStore } from "@/store";
+import { Probe } from "@/perf/probe";
+import { engine } from "@/store";
+import { useEngineVersion } from "@/screen-version";
 import { TabBarSpacer } from "@/tab-bar-inset";
 import { theme } from "@/theme";
 import { toDisplay } from "@/units";
@@ -75,7 +77,15 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 export default function WorkoutsScreen() {
-  const version = useEngineStore((state) => state.version);
+  return (
+    <Probe id="tab:workouts">
+      <WorkoutsScreenBody />
+    </Probe>
+  );
+}
+
+function WorkoutsScreenBody() {
+  const version = useEngineVersion();
   const reduce = useReduceMotion();
   const insets = useSafeAreaInsets();
   const hide = useHideOnScroll();
@@ -628,7 +638,7 @@ function DayPage({
 
 /** After logging past the weekly sessions: offer to make it a weekly session. Small, inline, asked once a week. */
 function AddWeeklyAsk() {
-  useEngineStore((state) => state.version);
+  useEngineVersion();
   const id = addAskId();
   if (!id) return null;
   return (
@@ -654,7 +664,7 @@ function AddWeeklyAsk() {
 }
 
 function FuelLink() {
-  const version = useEngineStore((state) => state.version);
+  const version = useEngineVersion();
   const clock = usePlanClock();
   const model = useMemo(() => readPlan(), [version, clock]);
   if (!engine.wk.setupDone) return null;
@@ -695,7 +705,7 @@ function RecoveryBit({ label, hours }: { label: string; hours: number | null }) 
 }
 
 function YesterdayBanner() {
-  useEngineStore((state) => state.version);
+  useEngineVersion();
   const open = yesterdayOpen();
   if (!open) return null;
   return (
@@ -814,7 +824,7 @@ function LiftCards({
   onJump: (offset: number) => void;
   onMoved: () => void;
 }) {
-  useEngineStore((state) => state.version);
+  useEngineVersion();
   const board = engine.dayBoard(offset);
   const lifts = (board.sessions as { t: number; k: string; id?: string; title?: string; ex?: any[] }[]).filter(
     (session) => session.k === "lift",
@@ -1261,7 +1271,7 @@ function ActivityChips({
   onToggle: () => void;
   onLog: (id: string, turnedOn: boolean) => void;
 }) {
-  useEngineStore((state) => state.version);
+  useEngineVersion();
   if (!canLogDay(offset)) return null;
   const mine = chipIds();
   const others = otherIds();
@@ -1297,7 +1307,7 @@ function ActivityChips({
 }
 
 function LogChip({ id, onPress }: { id: string; onPress: () => void }) {
-  useEngineStore((state) => state.version);
+  useEngineVersion();
   const name = activityName(id);
   return (
     <PressableScale style={styles.chip} onPress={onPress} accessibilityRole="button" accessibilityLabel={name}>
