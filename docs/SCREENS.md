@@ -52,6 +52,7 @@ From step 1 on, a "Plan so far" card at the bottom updates live. Finishing write
 [`23-workout-lift-day`, `24-workout-rest-timer`, `22-workout-completed`]
 
 - Back link "Back", which returns to the page that opened the workout. Then the workout title and a running timer once started.
+- "Swap workout" opens the swap sheet. Until the workout is finished it also has "Log to an earlier day": a date row (« week, ‹ day, the date, › day, » week) from yesterday back 8 weeks, and "Log lift". Once a set is ticked only this part shows. Logging returns to Workouts with a toast.
 - "How do you feel today?" slider: Thriving · Normal · Rough (stored values Good / Normal / Rough).
 - Exercise cards in order; the current one is expanded and outlined, others collapsed with a chevron. Each card: slot label, set count badge ("Set 2 of 4"), progress bar, exercise picker, rows of weight × reps with a ✓ per set, "+ Set".
 - Ticking a set starts the rest bar at the bottom: −15s zone, "Rest 2:59", +15s zone, Skip. It chimes at zero (local notification when the phone is locked).
