@@ -4,6 +4,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { PressableScale } from "@/components/pressable-scale";
+import { RetroLiftForm } from "@/components/retro-lift";
 import { SwapForm } from "@/components/swap-sheet";
 import { copy, fill } from "@/copy";
 import { clearSheet, currentSheet } from "@/form-sheet";
@@ -12,7 +13,7 @@ import { Close } from "@/icons";
 import { theme } from "@/theme";
 import { toDisplay, weightText } from "@/units";
 
-/** Swap, the leg-day offer and the weight suggestion. One small detent, fitted to the content. */
+/** Swap, adding a lift on a past day, the leg-day offer and the weight suggestion. One small detent, fitted to the content. */
 export default function FitSheet() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
@@ -42,6 +43,7 @@ export default function FitSheet() {
   return (
     <View style={[styles.sheet, { backgroundColor: solid ? theme.green.surface : "transparent", paddingBottom: Math.max(insets.bottom, 12) }]}>
       {job.kind === "swap" ? <SwapForm id={job.id} onWorkout={job.onWorkout} onClose={() => leave()} /> : null}
+      {job.kind === "retro" ? <RetroLiftForm day={job.day} onClose={() => leave()} /> : null}
       {job.kind === "leg" ? (
         <View style={styles.pad}>
           <Text accessibilityRole="header" style={styles.title}>

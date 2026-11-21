@@ -1,6 +1,6 @@
 import "./styles.css";
 import { attachDials } from "./dial.js";
-import { timeByKind, hoursMoved, mostPlayed, seasonFrom, changeItems, watchItems, keepWeight, rowDone, countsInDay, wTitle, e1rm, prsBetween, weekComplete, weekStreak, countWeek, EFF_MULT, OWN_EFF, weekActuals, swapOptions, swapDay, isBW, yogaMet, pilMet, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk } from "./engine.js";
+import { backdateRange, retroChoices, logLiftOn, timeByKind, hoursMoved, mostPlayed, seasonFrom, changeItems, watchItems, keepWeight, rowDone, countsInDay, wTitle, e1rm, prsBetween, weekComplete, weekStreak, countWeek, EFF_MULT, OWN_EFF, weekActuals, swapOptions, swapDay, isBW, yogaMet, pilMet, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk } from "./engine.js";
 
 const storage=(()=>{ try{ const k="__t"; localStorage.setItem(k,"1"); localStorage.removeItem(k); return localStorage; }catch(e){ const m=new Map(); return {getItem:k=>m.get(k)??null,setItem:(k,v)=>m.set(k,String(v))}; } })();
 init(storage);
@@ -424,7 +424,44 @@ function dayBody(P,o){
   const logH=canLog&&(acts.length||others.length)?`<div class="wlog"><div class="chips" role="group" aria-label="Log activity">${acts.map(a=>`<button type="button" class="chip act" data-log="${a}"><i aria-hidden="true">+</i>${esc(actName(a))} ${plannedOf(a)>0?`<small>${loggedOf(a)} of ${plannedOf(a)}</small>`:loggedOf(a)?`<small>${loggedOf(a)}</small>`:""}</button>`).join("")}${others.length?`<button type="button" class="chip act ghost2" data-logmore aria-expanded="${logMore}"><i aria-hidden="true">${logMore?"−":"+"}</i>Other</button>`:""}</div>
     ${logMore&&others.length?`<div class="chips more">${others.map(a=>`<button type="button" class="chip act" data-logx="${a}"><i aria-hidden="true">+</i>${esc(ACT[a].name)}</button>`).join("")}</div>`:""}</div>`:"";
   const Mth=P.math, food=isToday&&wk.setupDone?`<button type="button" class="wfood" data-nav2="plan" aria-label="Fuel and recovery: open Plan"><div class="fr"><span class="frl">Fuel today</span><b>${r5(Mth.intake).toLocaleString()}<small>kcal</small></b></div>${recovHTML()}</button>`:"";
-  return `${banners.join("")}<div class="wcards">${cards.join("")}</div>${logH}${food}`;
+  const addW=canAddWorkout(sel,ss)?`<div class="wlog"><div class="chips"><button type="button" class="chip act lift" data-addw="${DAY0(sel).getTime()}"><i aria-hidden="true">+</i>Add workout</button></div></div>`:"";
+  return `${banners.join("")}<div class="wcards">${cards.join("")}</div>${addW}${logH}${food}`;
+}
+/* ---------- Add a lift on a past day (like logging an activity there) ---------- */
+function canAddWorkout(sel,ss){
+  if(!wk.setupDone||!DAYS.length||ss.some(x=>x.k==="lift")) return false;
+  const R=backdateRange(), t=DAY0(sel).getTime(); return t>=R.min&&t<=R.max;
+}
+const retroRows=d=>slotOrder(d).filter(i=>!d.slots[i].cardio).map(i=>{ const n=exName(d,d.slots[i],i); return {i,n,bw:isBW(n),reps:String(d.slots[i].reps||"")}; });
+/* pick the lift (her queue first, then any other lift), optionally its sets, and save it on that day */
+function retroSheet(day){
+  let picked=null; const drafts={};
+  const draw=()=>{
+    const C=retroChoices(day,Date.now(),weekQueue(wk.done||{})), d=picked?dayById(picked):null, U=KG()?"kg":"lb";
+    const opt=t=>`<button type="button" class="swapopt" data-rpick="${t.id}"><b>${esc(wTitle(t.title))}</b><small>${esc(retroRows(t).slice(0,3).map(r=>r.n).join(", "))}</small></button>`;
+    const list=ids=>ids.map(dayById).filter(Boolean).map(opt).join("");
+    const body=!d?`<p class="small">${C.next.length||C.other.length?"Select workout (sets are optional)":"Every lift this week is done."}</p>
+      ${C.next.length?`<span class="plab swaph">Up next</span><div class="swaplist">${list(C.next)}</div>`:""}
+      ${C.other.length?`<span class="plab swaph">Other lifts</span><div class="swaplist">${list(C.other)}</div>`:""}`
+      :`<p class="small">Log your sets or save just the exercise.</p>
+      ${retroRows(d).map(r=>{ const x=drafts[r.i]||{}; return `<div class="rtex"><b>${esc(r.n)}</b><div class="nums">
+        <label>${r.bw?"+"+U:U}<input data-rf="w" data-ri="${r.i}" inputmode="decimal" placeholder="${r.bw?"BW":""}" value="${esc(x.w||"")}"></label>
+        <label>Reps<input data-rf="r" data-ri="${r.i}" inputmode="numeric" placeholder="${esc(r.reps)}" value="${esc(x.r||"")}"></label>
+        <label>Sets<input data-rf="s" data-ri="${r.i}" inputmode="numeric" placeholder="1" value="${esc(x.s||"")}"></label></div></div>`; }).join("")}
+      <div class="tbtns two"><button type="button" class="tb ghost" data-rback>Back</button><button type="button" class="tb" data-rsave>Save</button></div>`;
+    showSheet(`<div class="swapsheet rtsheet" role="dialog" aria-labelledby="rtTitle"><div class="shtop"><h3 class="swapt" id="rtTitle">${d?esc(wTitle(d.title)):"Add workout"}</h3>${XBTN}</div>
+      <p class="rtdate">${fmtDate(new Date(day))}</p>${body}</div>`,el=>{
+      el.querySelectorAll("[data-rpick]").forEach(b=>b.onclick=()=>{ picked=b.dataset.rpick; Object.keys(drafts).forEach(k=>delete drafts[k]); draw(); });
+      el.querySelectorAll("[data-rf]").forEach(inp=>inp.oninput=()=>{ const k=inp.dataset.ri; drafts[k]={...(drafts[k]||{}),[inp.dataset.rf]:inp.value}; });
+      const back=el.querySelector("[data-rback]"); if(back) back.onclick=()=>{ picked=null; draw(); };
+      const sv=el.querySelector("[data-rsave]"); if(sv) sv.onclick=()=>{
+        const sets={}; Object.entries(drafts).forEach(([i,x])=>{ const r=parseInt(x.r,10); if(!(r>0)) return; const n=Math.min(10,Math.max(1,parseInt(x.s,10)||1));
+          sets[i]=Array.from({length:n},()=>({w:fromU(String(x.w||"").trim()),r:String(r)})); });
+        const t=wTitle(d.title), out=logLiftOn(d.id,day,undefined,sets); closeSheet(); if(!out) return; render();
+        toast([`${t} logged on ${new Date(out.t).toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"})}`]); };
+    },true);
+  };
+  draw();
 }
 /* ---------- Plan: this week and the season ---------- */
 function ckSummary(){ const s={None:"no soreness",Legs:"sore legs","Upper body":"sore upper body",Everything:"sore all over"}[wk.sore]||"";
@@ -1702,6 +1739,7 @@ function bind(){
   v.querySelectorAll(".addset").forEach(b=>b.onclick=()=>{ const i=+b.dataset.i, log=(get(cur,i).log||[]).slice(), A=plan().days[cur].slots[i]; while(log.length<A.sets) log.push({}); log.push({}); set(cur,i,"log",log); render(); });
   const db=document.getElementById("doneBtn"); if(db) db.onclick=()=>{ const id=cur; if((wk.done||{})[id]) return; const n=setsLogged(id); markDone(id); render(); dayDone(id,n); };
   v.querySelectorAll("[data-swap]").forEach(b=>b.onclick=()=>swapSheet(b.dataset.swap));
+  v.querySelectorAll("[data-addw]").forEach(b=>b.onclick=()=>retroSheet(+b.dataset.addw));
   v.querySelectorAll("[data-share]").forEach(bindShare);
   const fw=document.getElementById("finishWeek"); if(fw) fw.onclick=()=>askSure({title:"Finish this week?",text:"This week's numbers are saved to history and next week's plan starts now. Lifts you didn't get to come first next week. You can undo until next week begins.",ok:"Finish week",onOk:finishWeek});
   const uf=document.getElementById("undoFinish"); if(uf) uf.onclick=undoFinish;

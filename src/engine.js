@@ -794,8 +794,29 @@ function daySummary(dayId){ const d=DAYS.find(x=>x.id===dayId); if(!d) return []
     const log=(get(dayId,i).log||[]).map(x=>({w:num(x.w,0),r:num(x.r,0),d:x.d})).filter(x=>x.d&&x.r>0); if(!log.length) return null;
     const top=log.reduce((a,x)=>x.w>a.w||(x.w===a.w&&x.r>a.r)?x:a); return {n:exName(d,s,i),w:top.w,r:top.r,sets:log.length,extra:!!s.extra}; }).filter(Boolean); }
 function stampNotes(items,t){ wk.next={...(wk.next||{})}; items.forEach(r=>{ wk.next[r.n]={w:r.w,why:r.why,tag:r.tag,t,...(r.bw?{bw:1}:{})}; }); }
-/** Mark a day done: logs history, detects fatigue, stores the next-time review. Returns toast lines. */
-function markDone(dayId){
+/* Write one finished lift into lift history, the session log and next-time notes, dated `stamp`.
+   A dated (earlier-day) lift slots in by time, counts as your session length, and only leaves
+   next-time notes on exercises it is now the latest entry for. */
+function writeLift(d,stamp,P0,dated){
+  const dayId=d.id, items=[]; let drops=0;
+  d.slots.forEach((s,i)=>{ if(s.cardio||P0.days[dayId].slots[i].skip) return; const r=review(d,s,i,P0); if(r) items.push(r); });
+  d.slots.forEach((s,i)=>{ if(s.cardio) return; const n=exName(d,s,i), L=lastSet(get(dayId,i).log,isBW(n)); if(!L) return; const h=exHist[n]||[];
+    const at=dated?h.findIndex(x=>x.t>stamp):-1, pv=at<0?h[h.length-1]:h[at-1];
+    const rv=items.find(x=>x.n===n);
+    if((pv&&wk.deload!=="Yes"&&L.w>=pv.w&&L.r<=pv.r-2)||(rv&&rv.tag==="collapse")) drops++;
+    const sd=get(dayId,i).side||sideDefault(n), row={w:L.w,r:L.r,t:stamp,season:inSeason()?"In-season":"Off-season",...(UNI_RE.test(n)?{side:sd}:{})};
+    if(at<0) h.push(row); else h.splice(at,0,row); exHist[n]=h.slice(-24); });
+  /* how long it took, rounded to 15 min (timer start to Day done), else the session length setting */
+  const T=(wk.wt||{})[dayId]||{}, raw=!dated&&T.start?(stamp-T.start)/6e4:0, liftMin=raw>=10&&raw<=240?Math.max(30,Math.round(raw/15)*15):num(wk.time,60);
+  const S=(wk.sessions||[]).slice(), row={t:stamp,k:"lift",id:dayId,title:d.title,ex:daySummary(dayId),min:liftMin}, at=dated?S.findIndex(x=>x.t>stamp):-1;
+  if(at<0) S.push(row); else S.splice(at,0,row);
+  wk.sessions=S.slice(-500);
+  stampNotes(dated?items.filter(r=>{ const h=exHist[r.n]||[]; return !h.length||h[h.length-1].t===stamp; }):items,stamp);
+  return {items,drops};
+}
+/** Mark a day done: logs history, detects fatigue, stores the next-time review. Returns toast lines.
+    `at` dates it on an earlier day of this week (see logLiftOn); left out, it is now. */
+function markDone(dayId,at){
   wk.done=wk.done||{};
   if(wk.done[dayId]){
     /* reopening a day takes back the history it wrote, so finishing it again doesn't double-count */
@@ -803,21 +824,12 @@ function markDone(dayId){
     if(t) wk.sessions=(wk.sessions||[]).filter(s=>s.t!==t);
     if(t&&wk.next) Object.keys(wk.next).forEach(n=>{ if(wk.next[n].t===t) delete wk.next[n]; });
     delete wk.done[dayId]; if(wk.review) delete wk.review[dayId]; if(wk.doneT) delete wk.doneT[dayId]; if(wk.wt&&wk.wt[dayId]) delete wk.wt[dayId].end; save(); return []; }
-  const stamp=Date.now();
-  const d=DAYS.find(x=>x.id===dayId); let drops=0;
-  const P0=plan(), items=[];
-  d.slots.forEach((s,i)=>{ if(s.cardio||P0.days[dayId].slots[i].skip) return; const r=review(d,s,i,P0); if(r) items.push(r); });
-  d.slots.forEach((s,i)=>{ if(s.cardio) return; const n=exName(d,s,i), L=lastSet(get(dayId,i).log,isBW(n)); if(!L) return; const h=exHist[n]||[], pv=h[h.length-1];
-    const rv=items.find(x=>x.n===n);
-    if((pv&&wk.deload!=="Yes"&&L.w>=pv.w&&L.r<=pv.r-2)||(rv&&rv.tag==="collapse")) drops++;
-    const sd=get(dayId,i).side||sideDefault(n); h.push({w:L.w,r:L.r,t:stamp,season:inSeason()?"In-season":"Off-season",...(UNI_RE.test(n)?{side:sd}:{})}); exHist[n]=h.slice(-24); });
+  const now=Date.now(), stamp=at||now;
+  const d=DAYS.find(x=>x.id===dayId);
+  const {items,drops}=writeLift(d,stamp,plan(),!!at);
   /* the day's set logs stay on screen until a new week starts */
   wk.doneT={...(wk.doneT||{}),[dayId]:stamp};
-  /* how long it took, rounded to 15 min (timer start to Day done), else the session length setting */
-  const T=(wk.wt||{})[dayId]||{}, raw=T.start?(stamp-T.start)/6e4:0, liftMin=raw>=10&&raw<=240?Math.max(30,Math.round(raw/15)*15):num(wk.time,60);
-  wk.sessions=(wk.sessions||[]).concat([{t:stamp,k:"lift",id:dayId,title:d.title,ex:daySummary(dayId),min:liftMin}]).slice(-500);
-  stampNotes(items,stamp);
-  if(wk.wt&&wk.wt[dayId]&&wk.wt[dayId].start&&!wk.wt[dayId].end) wk.wt[dayId].end=stamp;
+  if(wk.wt&&wk.wt[dayId]&&wk.wt[dayId].start&&!wk.wt[dayId].end) wk.wt[dayId].end=now;
   wk.fatigue=(wk.fatigue||[]).concat([{t:Date.now(),day:dayId,drops}]).slice(-10);
   const P=plan(); let k=0;
   P.days[dayId].slots.forEach((A,i)=>{ if(d.slots[i].cardio&&!A.skip&&A.kcal){ const a=num(get(dayId,i).act,0); k+=a>0?a*A.rate:A.kcal; } });
@@ -970,7 +982,69 @@ function newWeek(start){
   save(); return ["New week started. Check-in reset to normal."];
 }
 
-export { timeByKind, hoursMoved, mostPlayed, seasonFrom, changeItems, watchItems, keepWeight, rowDone, countsInDay, wTitle, e1rm, prsBetween, weekComplete, weekStreak, countWeek, EFF_MULT, OWN_EFF, sessionKcal, liftKcal, refreshLiftK, LIFT_MET, weekActuals, swapOptions, swapDay, rateLb, isBW, yogaMet, pilMet, YOGA_EFF, PIL_EFF, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, MUSCLES, slotMuscles, musclePriority, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk };
+/* ---------- Log a lift on an earlier day ---------- */
+const day0=t=>{ const d=new Date(t); d.setHours(0,0,0,0); return d; };
+const plusD=(d,n)=>{ const x=new Date(d); x.setDate(x.getDate()+n); return x; };
+const weekOf=t=>{ const d=day0(t); return plusD(d,-(wk.wkStart==="Sun"?d.getDay():(d.getDay()+6)%7)).getTime(); };
+const BACK_DAYS=56;
+/** The days a lift can be added on: yesterday back to the start of the week 8 weeks ago (the Workouts pager's reach). */
+function backdateRange(now){ const today=day0(now||Date.now()); return {min:plusD(new Date(weekOf(today.getTime())),-BACK_DAYS).getTime(),max:plusD(today,-1).getTime()}; }
+const weekRecordAt=bucket=>{ const W=wk.weeks||[], k=W.map(x=>weekOf(num(x.start,0))).lastIndexOf(bucket); return k; };
+/** Lifts that can be added on a past day. `next` is the order the plan would take them (`queue`, this week's queue
+    from the week model, or that week's missed lifts); `other` is every other lift in the plan. A lift already done
+    this week can't be added to this week again. */
+function retroChoices(day, now, queue){
+  now=now||Date.now();
+  const R=backdateRange(now), d0=day0(day).getTime(), ids=DAYS.map(d=>d.id);
+  if(!(d0>=R.min&&d0<=R.max)) return {next:[],other:[],closed:false};
+  const bucket=weekOf(d0), closed=bucket<weekOf(wk.weekStart||0);
+  if(!closed) return {next:(queue||ids).filter(id=>ids.includes(id)&&!(wk.done||{})[id]),other:[],closed};
+  const end=plusD(new Date(bucket),7).getTime(), logged=new Set((wk.sessions||[]).filter(s=>s.k==="lift"&&s.t>=bucket&&s.t<end).map(s=>s.id));
+  const k=weekRecordAt(bucket), rec=k>=0?wk.weeks[k]:null, miss=rec&&Array.isArray(rec.missed)?rec.missed:null;
+  const next=ids.filter(id=>!logged.has(id)&&(!miss||miss.includes(DAYS.find(d=>d.id===id).title)));
+  return {next,other:ids.filter(id=>!next.includes(id)),closed};
+}
+/** Add a lift on an earlier day. `sets` is {slotIndex: [{w, r}]} (weights in lb); left out, this week's ticked sets
+    are used. In the plan's current week it is the same as finishing it, dated that day. In a closed week it goes
+    into history and that week's record (lifts, missed, sets, records), this week's copy of the lift is left as it
+    is, and if it was the week just closed the carried-over queue moves past it.
+    Returns {t, closed} or null when the day or lift can't be logged. */
+function logLiftOn(dayId, day, now, sets){
+  now=now||Date.now();
+  const d=DAYS.find(x=>x.id===dayId), R=backdateRange(now), d0=day0(day).getTime();
+  if(!d||!(d0>=R.min&&d0<=R.max)) return null;
+  const noon=new Date(d0); noon.setHours(12,0,0,0);
+  let stamp=noon.getTime(); while((wk.sessions||[]).some(s=>s.t===stamp)) stamp++;
+  const bucket=weekOf(stamp), closed=bucket<weekOf(wk.weekStart||0);
+  if(!closed&&(wk.done||{})[dayId]) return null;
+  const put=S=>{ slots[dayId]=slots[dayId]||{}; d.slots.forEach((s,i)=>{ const st={...(slots[dayId][i]||{})};
+    if(s.cardio){ if(closed){ delete st.cdone; delete st.act; } }
+    else st.log=(S[i]||[]).filter(x=>x&&num(x.r,0)>0).map(x=>({w:x.w==null||x.w===""?"":String(x.w),r:String(x.r),d:true}));
+    slots[dayId][i]=st; }); };
+  if(!closed){ if(sets) put(sets); markDone(dayId,stamp); return {t:stamp,closed:false}; }
+  const keep=slots[dayId]?JSON.parse(JSON.stringify(slots[dayId])):null;
+  put(sets||{});
+  const n=d.slots.reduce((a,s,i)=>a+(s.cardio?0:(get(dayId,i).log||[]).length),0);
+  writeLift(d,stamp,plan(),true);
+  if(keep) slots[dayId]=keep; else delete slots[dayId];
+  const W=wk.weeks||[], k=weekRecordAt(bucket), rec=k>=0?W[k]:null;
+  if(rec){
+    const planned=num(rec.planned,0), miss=(Array.isArray(rec.missed)?rec.missed:[]).slice(), j=miss.indexOf(d.title);
+    if(j>=0) miss.splice(j,1);
+    rec.missed=miss; rec.lifts=planned>0?Math.min(planned,num(rec.lifts,0)+1):num(rec.lifts,0)+1;
+    rec.sets=num(rec.sets,0)+n;
+    rec.prs=prsBetween(num(rec.start,0),W[k+1]?num(W[k+1].start,0):bucket+7*864e5).map(x=>({n:x.n,kind:x.kind,w:x.w,r:x.r,was:x.was}));
+    if(k===W.length-1){
+      /* the same carry-over newWeek works out, with this lift no longer missed */
+      const left=DAYS.filter(x=>miss.includes(x.title));
+      if(left.length&&left.length<DAYS.length){ wk.upNext=left[0].id; wk.missedNote={why:`${left.map(x=>x.tab).join(" and ")} didn't fit last week`,txt:`start with ${left[0].tab}, then continue in order`}; }
+      else { wk.upNext=""; wk.missedNote=null; }
+    }
+  }
+  save();
+  return {t:stamp,closed:true};
+}
+export { backdateRange, retroChoices, logLiftOn, timeByKind, hoursMoved, mostPlayed, seasonFrom, changeItems, watchItems, keepWeight, rowDone, countsInDay, wTitle, e1rm, prsBetween, weekComplete, weekStreak, countWeek, EFF_MULT, OWN_EFF, sessionKcal, liftKcal, refreshLiftK, LIFT_MET, weekActuals, swapOptions, swapDay, rateLb, isBW, yogaMet, pilMet, YOGA_EFF, PIL_EFF, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, MUSCLES, slotMuscles, musclePriority, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk };
 
 /* workout titles read "Lower (Glute & Hamstring)"; older saved titles used a middle dot */
 const wTitle=t=>String(t||"").replace(/^(Lower|Upper) · (.+)$/,"$1 ($2)");

@@ -111,6 +111,14 @@ export function keepWeight(dayId: string, slotIndex: number, weight: number): vo
 export function rowDone(dayId: string, slotIndex: number, plan?: any): boolean;
 export function countsInDay(dayId: string, slotIndex: number, plan?: any): boolean;
 export function swapWeek(currentId: string, otherId: string): boolean;
+export function backdateRange(now?: number): { min: number; max: number };
+export function retroChoices(day: number, now?: number): { next: string[]; other: string[]; closed: boolean };
+export function logLiftOn(
+  dayId: string,
+  day: number,
+  now?: number,
+  sets?: Record<number, { w?: number | string; r: number | string }[]>,
+): { t: number; closed: boolean } | null;
 export function dayComplete(dayId: string): boolean;
 export function e1rm(w: number, r: number): number;
 export function weekTops(name: string): { start: number; w: number; r: number; t: number; e1: number | null; pr: "" | "top" | "reps"; wasW: number | null; wasR: number | null }[];

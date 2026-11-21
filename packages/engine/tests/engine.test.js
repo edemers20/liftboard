@@ -983,3 +983,151 @@ describe("time moved", () => {
     expect(top).toMatchObject({ k: "pickle", n: 2, hours: 3 }); // 165 min
   });
 });
+
+describe("logging a lift on an earlier day", () => {
+  const day = (d, h = 0) => new Date(2026, 10, d, h).getTime();
+  const tick = (id) => E.set(id, 0, "log", [{ w: "100", r: "8", d: true }, { w: "100", r: "8", d: true }]);
+  const setup = () => fresh({ focus: "Balanced", days: 3, weekStart: day(2) });
+  const name0 = (id) => { const d = E.DAYS.find((x) => x.id === id); return E.exName(d, d.slots[0], 0); };
+
+  it("takes yesterday back to the start of the week 8 weeks ago, not today or the future", () => {
+    setup();
+    const now = day(4, 12);
+    expect(E.backdateRange(now)).toEqual({ min: day(2 - 56), max: day(3) });
+    expect(E.logLiftOn("fa", day(4), now)).toBeNull();
+    expect(E.logLiftOn("fa", day(5), now)).toBeNull();
+    expect(E.logLiftOn("fa", day(2 - 57), now)).toBeNull();
+    expect(E.retroChoices(day(4), now).next).toEqual([]);
+    expect(E.wk.sessions || []).toEqual([]);
+  });
+
+  it("this week: finishes the lift on that date and the queue moves on", () => {
+    setup();
+    const now = day(4, 12);
+    expect(E.dayBoard(0, now).plannedId).toBe("fa");
+    expect(E.weekModel(1, now).plan[0]).toBe("fc");
+    tick("fa");
+    const out = E.logLiftOn("fa", day(2), now);
+    expect(out).toMatchObject({ closed: false });
+    expect(new Date(out.t).getDate()).toBe(2);
+    expect(E.wk.done.fa).toBeTruthy();
+    expect(E.wk.doneT.fa).toBe(out.t);
+    expect(E.wk.sessions.filter((s) => s.k === "lift")).toEqual([expect.objectContaining({ t: out.t, id: "fa" })]);
+    expect(E.weekModel(0, now).byDay[0].map((s) => s.id)).toEqual(["fa"]);
+    expect(E.exHist[name0("fa")].slice(-1)[0]).toMatchObject({ w: 100, r: 8, t: out.t });
+    // today still gets a lift, the rest of the queue shifts up and next week continues the rotation
+    expect(E.dayBoard(0, now).plannedId).toBe("fb");
+    expect(E.weekModel(0, now).plan).toEqual({ 2: "fb", 4: "fc" });
+    expect(E.weekModel(1, now).plan[0]).toBe("fa");
+    expect(E.weekActuals(day(2)).lifts).toBe(1);
+    // the week rollover counts it like any finished lift
+    E.newWeek(day(9));
+    const rec = E.wk.weeks.slice(-1)[0];
+    expect(rec.lifts).toBe(1);
+    expect(rec.miss).toEqual(E.DAYS.filter((d) => d.id !== "fa").map((d) => d.title));
+  });
+
+  it("reopening a dated lift takes its history back", () => {
+    setup();
+    tick("fa");
+    const out = E.logLiftOn("fa", day(3), day(4, 12));
+    E.markDone("fa");
+    expect(E.wk.done.fa).toBeUndefined();
+    expect((E.wk.sessions || []).some((s) => s.t === out.t)).toBe(false);
+    expect((E.exHist[name0("fa")] || []).some((x) => x.t === out.t)).toBe(false);
+  });
+
+  it("slots in behind newer history and leaves the newer next-time note alone", () => {
+    setup();
+    const n = name0("fa");
+    E.exHist[n] = [{ w: 120, r: 6, t: day(3, 18) }];
+    E.wk.next = { [n]: { w: 125, tag: "up", t: day(3, 18) } };
+    tick("fa");
+    const out = E.logLiftOn("fa", day(2), day(4, 12));
+    expect(E.exHist[n].map((x) => x.t)).toEqual([out.t, day(3, 18)]);
+    expect(E.wk.next[n]).toMatchObject({ w: 125, t: day(3, 18) });
+  });
+
+  it("two lifts on the same day get their own timestamps", () => {
+    setup();
+    const a = E.logLiftOn("fa", day(3), day(4, 12));
+    const b = E.logLiftOn("fb", day(3), day(4, 12));
+    expect(a.t).not.toBe(b.t);
+    E.markDone("fa");
+    expect(E.wk.sessions.map((s) => s.id)).toEqual(["fb"]);
+  });
+
+  it("a closed week: counts in that week's record and streak, and the carried-over queue moves past it", () => {
+    setup();
+    E.newWeek(day(9));
+    const rec = E.wk.weeks.slice(-1)[0];
+    expect(rec).toMatchObject({ lifts: 0, planned: 3 });
+    expect(E.wk.upNext).toBe("");
+    const now = day(11, 12);
+    expect(E.dayBoard(0, now).plannedId).toBe("fa");
+    expect(E.retroChoices(day(5), now)).toEqual({ next: ["fa", "fb", "fc"], other: [], closed: true });
+    tick("fa");
+    const out = E.logLiftOn("fa", day(5), now, { 0: [{ w: 110, r: 8 }, { w: 110, r: 7 }, { w: 110, r: 6 }] });
+    expect(out).toMatchObject({ closed: true });
+    expect(E.wk.done.fa).toBeFalsy();
+    // this week's ticked sets are left alone
+    expect(E.get("fa", 0).log).toHaveLength(2);
+    expect(E.exHist[name0("fa")].slice(-1)[0]).toMatchObject({ w: 110, r: 6, t: out.t });
+    expect(E.wk.sessions[0].ex[0]).toMatchObject({ w: 110, r: 8, sets: 3 });
+    expect(rec.lifts).toBe(1);
+    expect(rec.sets).toBe(3);
+    expect(rec.miss).not.toContain(E.DAYS[0].title);
+    expect(E.weekActuals(day(2)).lifts).toBe(1);
+    expect(E.weekActuals(day(9)).lifts).toBe(0);
+    expect(E.weekModel(-1, now).byDay[3].map((s) => s.id)).toEqual(["fa"]);
+    expect(E.retroChoices(day(6), now)).toEqual({ next: ["fb", "fc"], other: ["fa"], closed: true });
+    expect(E.wk.upNext).toBe("fb");
+    expect(E.dayBoard(0, now).plannedId).toBe("fb");
+    expect(E.weekModel(0, now).todo).toEqual(["fb", "fc", "fa"]);
+    expect(E.weekStreak()).toBe(0);
+    E.logLiftOn("fb", day(6), now);
+    expect(E.wk.upNext).toBe("fc");
+    E.logLiftOn("fc", day(7), now);
+    expect(rec.lifts).toBe(3);
+    expect(E.weekCompleted(rec)).toBe(true);
+    expect(E.weekStreak()).toBe(1);
+    expect(E.wk.upNext).toBe("");
+    expect(E.wk.missedNote).toBeNull();
+    expect(E.dayBoard(0, now).plannedId).toBe("fa");
+  });
+
+  it("this week: offers the queue in order, and given sets replace what was ticked", () => {
+    setup();
+    const now = day(4, 12);
+    expect(E.retroChoices(day(3), now)).toEqual({ next: ["fa", "fb", "fc"], other: [], closed: false });
+    tick("fa");
+    E.logLiftOn("fa", day(3), now, { 0: [{ w: 135, r: 5 }] });
+    expect(E.get("fa", 0).log).toEqual([{ w: "135", r: "5", d: true }]);
+    expect(E.retroChoices(day(3), now).next).toEqual(["fb", "fc"]);
+    expect(E.logLiftOn("fa", day(2), now)).toBeNull();
+  });
+
+  it("a lift done this week can still be added to a closed week", () => {
+    setup();
+    E.newWeek(day(9));
+    const now = day(11, 12);
+    tick("fa");
+    E.markDone("fa");
+    expect(E.logLiftOn("fa", day(5), now, {})).toMatchObject({ closed: true });
+    expect(E.wk.done.fa).toBeTruthy();
+    expect(E.get("fa", 0).log).toHaveLength(2);
+    expect(E.wk.sessions.filter((s) => s.id === "fa")).toHaveLength(2);
+  });
+
+  it("an older closed week updates its record but leaves this week's queue alone", () => {
+    setup();
+    E.newWeek(day(9));
+    E.newWeek(day(16));
+    const [older, last] = E.wk.weeks.slice(-2);
+    E.wk.upNext = "fb";
+    E.logLiftOn("fa", day(3), day(18, 12));
+    expect(older.lifts).toBe(1);
+    expect(last.lifts).toBe(0);
+    expect(E.wk.upNext).toBe("fb");
+  });
+});

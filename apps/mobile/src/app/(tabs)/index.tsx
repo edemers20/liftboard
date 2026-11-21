@@ -53,6 +53,7 @@ import { nativeDriver, useReduceMotion } from "@/use-reduce-motion";
 import { useHideOnScroll, type HideOnScroll } from "@/use-hide-on-scroll";
 import { SheetFrame } from "@/components/motion";
 import { StepButton } from "@/components/step-button";
+import { AddWorkoutButton } from "@/components/retro-lift";
 import { canSwapDay } from "@/components/swap-sheet";
 import { TodayButton } from "@/components/today-button";
 import { Swap } from "@/icons";
@@ -617,6 +618,7 @@ function DayPage({
           </View>
         ) : null}
       </View>
+      <AddWorkoutButton offset={offset} />
       <ActivityChips offset={offset} otherOpen={otherOpen} onToggle={onToggleOther} onLog={logOnDay} />
       {offset === 0 ? <FuelLink /> : null}
       <TabBarSpacer />

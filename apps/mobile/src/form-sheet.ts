@@ -13,6 +13,7 @@ export type LegOffer = { activity: string; from: string; toId: string; to: strin
 
 type Job =
   | { kind: "swap"; id: string; onWorkout?: (id: string) => void }
+  | { kind: "retro"; day: number }
   | { kind: "leg"; offer: LegOffer; onSwap: (id: string, title: string) => void }
   | { kind: "nudge"; ask: NudgeAsk; onUse: () => void; onKeep?: () => void };
 
@@ -26,7 +27,7 @@ export function clearSheet() {
   job = null;
 }
 
-/** Small native form sheet: swap, the leg-day offer, or the weight suggestion. */
+/** Small native form sheet: swap, adding a lift on a past day, the leg-day offer, or the weight suggestion. */
 export function openFitSheet(next: Job) {
   job = next;
   router.push("/sheet-fit");
