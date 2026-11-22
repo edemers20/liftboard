@@ -388,60 +388,36 @@ function Label({ live, inline }: { live: LiveWorkout; inline: boolean }) {
   }
   const primary = live.exercise || live.title;
   const secondary = live.exercise ? (live.detail ? `${live.title}: ${live.detail}` : live.title) : live.detail;
-  const widths = useRef({ row: 0, left: 0, right: 0, title: 0 });
-  const logWidths = (slot: keyof typeof widths.current, width: number) => {
-    if (widths.current[slot] === width) return;
-    widths.current[slot] = width;
-    if (!__DEV__) return;
-    // Widths only; never the exercise name (health data).
-    const { row, left, right, title } = widths.current;
-    if (row > 0 && left > 0 && right > 0) {
-      console.log(`[live-pill] row=${row} left=${left} right=${right} title=${title} gap≈${Math.max(0, row - left - right)}`);
-    }
-  };
   return (
-    <View
-      style={styles.pillRow}
-      onLayout={(event) => logWidths("row", event.nativeEvent.layout.width)}
-    >
-      <View
-        style={styles.pillLeft}
-        onLayout={(event) => logWidths("left", event.nativeEvent.layout.width)}
-      >
-        <Text
-          numberOfLines={2}
-          adjustsFontSizeToFit
-          minimumFontScale={0.85}
-          ellipsizeMode="tail"
-          style={styles.label}
-          onLayout={(event) => logWidths("title", event.nativeEvent.layout.width)}
-        >
-          {primary}
-        </Text>
-        {secondary ? (
-          <Text numberOfLines={1} ellipsizeMode="tail" style={styles.sub}>
-            {secondary}
+    <View style={styles.pillBody}>
+      <View style={styles.pillRow}>
+        {/* flex:1 + minWidth:0 so the name owns every point the timer does not. */}
+        <View style={styles.pillLeft}>
+          <Text numberOfLines={2} ellipsizeMode="tail" style={styles.label}>
+            {primary}
           </Text>
-        ) : null}
-      </View>
-      <View
-        style={[styles.pillRight, live.resting ? null : styles.pillRightLift]}
-        onLayout={(event) => logWidths("right", event.nativeEvent.layout.width)}
-      >
-        {live.resting && live.restSeconds != null ? (
-          <>
-            <Text numberOfLines={1} style={[styles.bigTime, live.restUrgent ? styles.restWarn : styles.restOk]}>
-              {clock(live.restSeconds)}
+          {secondary ? (
+            <Text numberOfLines={1} ellipsizeMode="tail" style={styles.sub}>
+              {secondary}
             </Text>
-            <Text numberOfLines={1} style={styles.timeLabel}>
+          ) : null}
+        </View>
+        <View style={[styles.pillRight, live.resting ? null : styles.pillRightLift]}>
+          {live.resting && live.restSeconds != null ? (
+            <>
+              <Text numberOfLines={1} style={[styles.bigTime, live.restUrgent ? styles.restWarn : styles.restOk]}>
+                {clock(live.restSeconds)}
+              </Text>
+              <Text numberOfLines={1} style={styles.timeLabel}>
+                {clock(live.elapsed)}
+              </Text>
+            </>
+          ) : (
+            <Text numberOfLines={1} style={[styles.bigTime, styles.elapsedOk]}>
               {clock(live.elapsed)}
             </Text>
-          </>
-        ) : (
-          <Text numberOfLines={1} style={[styles.bigTime, styles.elapsedOk]}>
-            {clock(live.elapsed)}
-          </Text>
-        )}
+          )}
+        </View>
       </View>
     </View>
   );
@@ -558,19 +534,28 @@ function EndSheet({ live, visible, onClose }: { live: LiveWorkout; visible: bool
 
 const styles = StyleSheet.create({
   hit: { minHeight: 44, justifyContent: "center", paddingHorizontal: 16 },
-  label: { color: theme.text, fontFamily: theme.fonts.bodySemi, fontSize: 15, lineHeight: 18 },
-  sub: { color: MUTED_PILL, fontFamily: theme.fonts.bodyMedium, fontSize: 12, marginTop: 2 },
+  label: {
+    color: theme.text,
+    fontFamily: theme.fonts.bodySemi,
+    fontSize: 15,
+    lineHeight: 18,
+    width: "100%",
+    flexShrink: 1,
+  },
+  sub: { color: MUTED_PILL, fontFamily: theme.fonts.bodyMedium, fontSize: 12, marginTop: 2, width: "100%" },
   compact: { color: theme.text, fontFamily: theme.fonts.monoMedium, fontSize: 15, textAlign: "center" },
   dock: { position: "absolute", left: 16, right: 16, zIndex: 80 },
   shell: {
-    minHeight: 56,
+    // Tall enough for 2-line title + sub (~18*2 + 14) without clipping.
+    minHeight: 72,
     borderRadius: theme.radii.pill,
     borderWidth: 1,
     borderColor: "rgba(200,232,106,0.32)",
     justifyContent: "center",
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    overflow: "hidden",
+    // Gym feedback: a touch more L/R inset; more top/bottom breathing room.
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    alignSelf: "stretch",
   },
   solidShell: {
     borderRadius: theme.radii.pill,
@@ -583,16 +568,36 @@ const styles = StyleSheet.create({
     borderRadius: theme.radii.pill,
     opacity: 0.55,
   },
-  pillRow: { flexDirection: "row", alignItems: "center", gap: 8, width: "100%" },
-  /** Name takes every leftover point; timer is intrinsic only (no flex grow). */
-  pillLeft: { flexGrow: 1, flexShrink: 1, flexBasis: 0, minWidth: 0, paddingRight: 2 },
-  pillRight: { flexGrow: 0, flexShrink: 0, alignItems: "flex-end" },
+  pillBody: { width: "100%", alignSelf: "stretch" },
+  pillRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: "100%",
+    alignSelf: "stretch",
+  },
+  /** Name column: take all leftover width; never a fixed/max width. */
+  pillLeft: {
+    flex: 1,
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 0,
+    minWidth: 0,
+    maxWidth: "100%",
+    marginRight: 8,
+  },
+  /** Timer: intrinsic width only; must not steal flex from the name. */
+  pillRight: {
+    flexGrow: 0,
+    flexShrink: 0,
+    flexBasis: "auto",
+    alignItems: "flex-end",
+  },
   pillRightLift: { alignSelf: "center", justifyContent: "center" },
   bigTime: {
     color: theme.text,
     fontFamily: theme.fonts.monoMedium,
     fontSize: 16,
-    lineHeight: 20,
+    lineHeight: 18,
     fontVariant: ["tabular-nums"],
   },
   restOk: { color: TIMER_LIME },
@@ -602,7 +607,9 @@ const styles = StyleSheet.create({
     color: MUTED_PILL,
     fontFamily: theme.fonts.monoMedium,
     fontSize: 10,
-    marginTop: 1,
+    // Pull rest + elapsed lines closer; shell padding carries the breathing room.
+    marginTop: 0,
+    lineHeight: 12,
     fontVariant: ["tabular-nums"],
   },
   pressed: { opacity: 0.7 },

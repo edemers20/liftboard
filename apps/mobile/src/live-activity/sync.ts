@@ -37,6 +37,18 @@ function finish(props?: WorkoutActivityProps, policy: LiveActivityDismissalPolic
   ending.activity.end(policy, props).catch(() => {});
 }
 
+/** End every Live Activity instance. Clears Lock Screen chrome left by an older build. */
+function endAllInstances() {
+  const factory = WorkoutActivity;
+  if (!factory) return;
+  try {
+    factory.getInstances().forEach((activity) => activity.end("immediate").catch(() => {}));
+  } catch {
+    // Live Activities unavailable.
+  }
+  current = null;
+}
+
 /** Start, update or end the workout's Live Activity so it matches the engine. Safe to call often. */
 export function syncLiveActivity(now = Date.now()) {
   perfTime("la:sync", () => syncNow(now));
@@ -49,8 +61,7 @@ function syncNow(now: number) {
     if (!adopted) {
       adopted = true;
       // Orphans from a previous run or build are ended; this run starts fresh from the engine.
-      factory.getInstances().forEach((activity) => activity.end("immediate").catch(() => {}));
-      current = null;
+      endAllInstances();
     }
 
     const live = underway();
@@ -135,7 +146,11 @@ export function useLiveActivitySync() {
   useEffect(() => {
     if (!WorkoutActivity || Platform.OS !== "ios") return;
     const sub = AppState.addEventListener("change", (next) => {
-      if (next === "active") syncLiveActivity();
+      if (next !== "active") return;
+      // Over-installs leave a Lock Screen activity on the old appex UI until it is ended.
+      endAllInstances();
+      adopted = true;
+      syncLiveActivity();
     });
     return () => sub.remove();
   }, []);
