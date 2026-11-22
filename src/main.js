@@ -1,6 +1,6 @@
 import "./styles.css";
 import { attachDials } from "./dial.js";
-import { strengthTrend, LDEF, ldays, onActs, noteAct, plannedActs, trimActivityDays, addWeekly, askedWeekly, markAskedWeekly, setActivityDay, fitActivityDays, capSports, timeByKind, hoursMoved, mostPlayed, seasonFrom, changeItems, watchItems, keepWeight, rowDone, countsInDay, wTitle, e1rm, prsBetween, weekComplete, weekStreak, countWeek, EFF_MULT, OWN_EFF, weekActuals, swapOptions, swapDay, isBW, yogaMet, pilMet, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk } from "./engine.js";
+import { strengthTrend, LDEF, ldays, onActs, noteAct, plannedActs, trimActivityDays, addWeekly, askedWeekly, markAskedWeekly, setActivityDay, fitActivityDays, capSports, timeByKind, hoursMoved, mostPlayed, seasonFrom, changeItems, watchItems, keepWeight, offerNudge, carryNote, rowDone, countsInDay, wTitle, e1rm, prsBetween, weekComplete, weekStreak, countWeek, EFF_MULT, OWN_EFF, weekActuals, swapOptions, swapDay, isBW, yogaMet, pilMet, cutting, XCAT, XGROUPS, catOf, addExtra, removeExtra, slotOrder, daySummary, logAct, defChoice, seasonSports, fixSports, resyncDone, ACT, ACT_IDS, ALL, CARDIO, CLIMB_MET, CUSTOM, DAYS, DEF, INTERVAL, KEY, KEY2, KEY3, L, PICKLE_MET, SPIN_MET, SPIN_MIN, SPORTS, STEADY, SUP, TAGTXT, YOGA_MET, actKey, cnt, dayDiff, deloadInfo, diffFx, enabled, esc, exHist, exName, fem, fx, get, hasSport, inSeason, incFor, init, isDB, isIso, kg, lastSet, markDone, minKey, newWeek, num, perMin, persist, plan, plannedMin, r5, range, review, roundW, save, set, setSaveHook, slots, split, suggest, syncDays, wk } from "./engine.js";
 
 const storage=(()=>{ try{ const k="__t"; localStorage.setItem(k,"1"); localStorage.removeItem(k); return localStorage; }catch(e){ const m=new Map(); return {getItem:k=>m.get(k)??null,setItem:(k,v)=>m.set(k,String(v))}; } })();
 init(storage);
@@ -1083,14 +1083,11 @@ function renderDayHTML(d,P){
     }else{
       const today=suggest(d,s,i,false,P), nm=exName(d,s,i), est=today?null:estW(nm);
       if(est&&!D.done) html+=`<p class="carry"><span>New exercise: starting guess <b>${toU(est.w)}${KG()?"kg":"lb"}</b> from ${esc(est.from)} @ ${toU(est.fromW)}${KG()?"kg":"lb"}</span></p>`;
-      const carry=(wk.next||{})[nm];
-      if(carry&&carry.t!==(wk.doneT||{})[d.id]) html+=`<p class="carry"><span>${isBW(nm)?(carry.w>0?`${{up:"Go up to",down:"Ease to"}[carry.tag]||"Stay at"}: <b>BW+${carry.w} lb</b>`:carry.tag==="up"?"<b>Up</b>":"<b>Same</b>"):`${{up:"Go up to",down:"Ease to"}[carry.tag]||"Stay at"}: <b>${carry.w} lb</b>`}</span></p>`;
-      const [lo,hi]=range(s.reps), top=(s.upperAcc||s.support||s.label==="Glute med")?hi+3:hi;
-      const lastT=log.slice(0,ticks).reverse().find(x=>x.d&&+x.w>0&&+x.r>0);
-      if(!D.done&&!fin&&lastT&&st.nudged!==ticks){ const w0=+lastT.w, r0=+lastT.r, inc=incFor(nm,s,w0);
-        /* asked in a popup right after the set is ticked (see askNudge), not inline */
-        if(!pendNudge&&r0>=top+2) pendNudge={i,ticks,up:true,r0,w0,w:w0+inc,nm};
-        else if(!pendNudge&&r0<lo) pendNudge={i,ticks,up:false,r0,w0,w:Math.max(0,w0-inc),nm}; }
+      /* asked in a popup right after the set is ticked (see askNudge), not inline */
+      const offer=!pendNudge&&!fin?offerNudge(d.id,i,P):null;
+      if(offer){ const lastT=log.slice(0,ticks).reverse().find(x=>x.d&&+x.w>0&&+x.r>0); pendNudge={i,ticks,up:offer.dir==="up",r0:offer.reps,w0:+lastT.w,w:offer.weight,nm}; }
+      const carry=offer?null:carryNote(d.id,i), verb=carry&&({up:"Go up to:",down:"Ease to:"}[carry.tag]||"Stay @");
+      if(carry) html+=`<p class="carry"><span>${isBW(nm)?(carry.w>0?`${verb} <b>BW+${carry.w} lb</b>`:carry.tag==="up"?"<b>Up</b>":"<b>Same</b>"):`${verb} <b>${carry.w} lb</b>`}</span></p>`;
       if(UNI.test(nm)){ const sd=sideToday(d,s,i), ls=lastSide(nm);
         html+=`<div class="side"><span>Start on</span><button type="button" class="btn mini sidebtn" data-side="${sd==="Left"?"Right":"Left"}" data-i="${i}" aria-label="Starting side: ${sd}. Tap to switch">${sd}</button>${ls?`<small>last time: ${ls}</small>`:""}</div>`; }
       html+=`<div class="sets">`;

@@ -610,3 +610,45 @@ describe("time moved", () => {
     expect(top).toMatchObject({ k: "pickle", n: 2, hours: 3 }); // 165 min
   });
 });
+
+describe("one weight recommendation in a workout", () => {
+  const lift = () => { const d = E.DAYS[0], i = d.slots.findIndex(s => !s.cardio); const [lo, hi] = E.range(d.slots[i].reps); return { d, i, lo, top: E.isIso(d.slots[i]) ? hi + 3 : hi }; };
+  const easySet = ({ d, i, top }) => E.set(d.id, i, "log", [{ w: "75", r: String(top + 2), d: true }]);
+  it("offers to go up after an easy set when nothing holds the weight", () => {
+    fresh({ focus: "Lower" });
+    const x = lift(); easySet(x);
+    expect(E.offerNudge(x.d.id, x.i)).toMatchObject({ dir: "up" });
+  });
+  it("never offers to go up while weights are held", () => {
+    for (const patch of [{ acts: { lift: true, pickle: true }, mainSport: "pickle", season: "In-season", days: 2 }, { deload: "Yes" }]) {
+      fresh({ focus: "Lower", ...patch });
+      const x = lift(); easySet(x);
+      expect(E.offerNudge(x.d.id, x.i)).toBeNull();
+    }
+    fresh({ focus: "Lower" });
+    const x = lift(); E.wk.today = { [x.d.id]: "Rough" }; easySet(x);
+    expect(E.offerNudge(x.d.id, x.i)).toBeNull();
+  });
+  it("still offers to drop after a tough set while weights are held", () => {
+    fresh({ focus: "Lower", deload: "Yes" });
+    const x = lift(); E.set(x.d.id, x.i, "log", [{ w: "75", r: String(Math.max(1, x.lo - 2)), d: true }]);
+    expect(E.offerNudge(x.d.id, x.i)).toMatchObject({ dir: "down" });
+  });
+  it("shows last time's note until a set today prompts its own suggestion", () => {
+    fresh({ focus: "Lower" });
+    const x = lift(), n = E.exName(x.d, x.d.slots[x.i], x.i);
+    E.wk.next = { [n]: { w: 75, why: "hold", tag: "hold", t: 1 } };
+    expect(E.carryNote(x.d.id, x.i)).toMatchObject({ w: 75, tag: "hold" });
+    easySet(x);
+    expect(E.carryNote(x.d.id, x.i)).toMatchObject({ w: 75 });
+    expect(E.offerNudge(x.d.id, x.i)).toMatchObject({ dir: "up" });
+    E.set(x.d.id, x.i, "nudged", 1);
+    expect(E.carryNote(x.d.id, x.i)).toBeNull();
+  });
+  it("hides the note on the day that wrote it", () => {
+    fresh({ focus: "Lower" });
+    const x = lift(), n = E.exName(x.d, x.d.slots[x.i], x.i);
+    E.wk.doneT = { [x.d.id]: 5 }; E.wk.next = { [n]: { w: 75, why: "hold", tag: "hold", t: 5 } };
+    expect(E.carryNote(x.d.id, x.i)).toBeNull();
+  });
+});

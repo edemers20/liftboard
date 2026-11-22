@@ -329,9 +329,9 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Keep going | workout |
 |  | Switch | workout |
 |  | End workout | live pill |
-|  | Go up to | main.js:822 |
-|  | Ease to | main.js:822 |
-|  | Stay at | main.js:822 |
+|  | Go up to: | main.js:822 |
+|  | Ease to: | main.js:822 |
+|  | Stay @ | main.js:822 (no colon: "Stay @ 75 lb", Emma, Nov 22) |
 |  | BW+{…} lb | main.js:822 |
 |  | <b>Up</b> | main.js:822 |
 |  | <b>Same</b> | main.js:822 |

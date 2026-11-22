@@ -1360,8 +1360,7 @@ function ExerciseCard(props: {
   const choice = state.choice ?? engine.defChoice(day, slot, index);
   const suggestion = slot.cardio ? null : engine.suggest(day, slot, index, false, plan);
   const guess = suggestion ? null : engine.startingGuess(name);
-  const carry = (engine.wk.next || {})[name];
-  const showCarry = carry && carry.t !== (engine.wk.doneT || {})[id];
+  const carry = engine.carryNote(id, index);
   const bodyweight = engine.isBW(name);
   const side = state.side || engine.sideDefault(name);
   const previousSide = engine.lastSide(name);
@@ -1527,7 +1526,7 @@ function ExerciseCard(props: {
               {` ${fill(copy.workout.fromAt, guess.from, weightText(copy.workout.atWeight, guess.fromW))}`}
             </Text>
           ) : null}
-          {showCarry ? <Carry name={name} carry={carry} /> : null}
+          {carry ? <Carry name={name} carry={carry} /> : null}
           {engine.showsSide(name) ? (
             <View style={styles.sideRow}>
               <Text style={styles.body}>{copy.workout.startOn}</Text>
@@ -1595,7 +1594,7 @@ function Carry({ name, carry }: { name: string; carry: any }) {
   const weight = engine.isBW(name) ? weightText(copy.workout.bwPlus, carry.w) : weightText(copy.workout.pounds, carry.w);
   return (
     <Text style={styles.carry}>
-      {`${verb}: `}
+      {`${verb} `}
       <Text style={styles.carryStrong}>{weight}</Text>
     </Text>
   );
