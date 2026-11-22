@@ -892,6 +892,7 @@ function LiftCards({
           id={board.plannedId}
           today={board.isToday}
           thisWeek={board.wOff === 0}
+          wOff={board.wOff}
           started={workoutUnderway(board.plannedId)}
           onMoved={onMoved}
           onSwap={() => {
@@ -899,6 +900,7 @@ function LiftCards({
             openFitSheet({
               kind: "swap",
               id: cur,
+              wOff: board.wOff,
               onWorkout: (nextId) => {
                 if (workoutUnderway(cur)) replaceWorkout(nextId);
               },
@@ -914,6 +916,7 @@ function PlannedLift({
   id,
   today,
   thisWeek,
+  wOff,
   started,
   onMoved,
   onSwap,
@@ -921,13 +924,14 @@ function PlannedLift({
   id: string;
   today: boolean;
   thisWeek: boolean;
+  wOff: number;
   started: boolean;
   onMoved: () => void;
   onSwap: () => void;
 }) {
   const title = openTitle(id);
   const rows = previewRows(id);
-  const swap = canSwapDay(id) ? (
+  const swap = canSwapDay(id, wOff) ? (
     <PressableScale
       kind="button"
       accessibilityRole="button"

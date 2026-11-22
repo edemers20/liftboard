@@ -610,3 +610,39 @@ describe("time moved", () => {
     expect(top).toMatchObject({ k: "pickle", n: 2, hours: 3 }); // 165 min
   });
 });
+
+describe("an order chosen for a later week", () => {
+  const start = new Date(2026, 10, 23).getTime();
+  const later = new Date(2026, 10, 30).getTime();
+
+  it("becomes that week's order when it starts, and orders for weeks up to it go", () => {
+    fresh({ focus: "Lower", days: 4, done: { d1: 1, d2: 1, d3: 1, x: 1 }, futureOrder: { [start]: ["x", "d2", "d3", "d1"], [later]: ["d2", "d1"], 1: ["d1", "d2"] } });
+    E.newWeek(start);
+    expect(E.wk.weekOrder).toEqual(["x", "d2", "d3", "d1"]);
+    expect(E.wk.futureOrder).toEqual({ [later]: ["d2", "d1"] });
+  });
+
+  it("the carried-over lift only leads if the chosen order still puts it first", () => {
+    fresh({ focus: "Lower", days: 4, done: { d1: 1, d2: 1, d3: 1 }, futureOrder: { [start]: ["d2", "d1", "d3", "x"] } });
+    E.newWeek(start);
+    expect(E.wk.weekOrder).toEqual(["d2", "d1", "d3", "x"]);
+    expect(E.wk.upNext).toBe("");
+    expect(E.wk.missedNote).toBeNull();
+  });
+
+  it("drops lifts no longer planned and ignores an order with fewer than two left", () => {
+    fresh({ focus: "Lower", days: 3, done: { d1: 1, d2: 1, d3: 1 }, futureOrder: { [start]: ["x", "d3", "d1"] } });
+    E.newWeek(start);
+    expect(E.wk.weekOrder).toEqual(["d3", "d1", "d2"]);
+    fresh({ focus: "Balanced", days: 3, done: { fa: 1, fb: 1, fc: 1 }, futureOrder: { [start]: ["d3", "d1"] } });
+    E.newWeek(start);
+    expect(E.wk.weekOrder).toBeNull();
+  });
+
+  it("a same-group swap renames the lift inside saved orders", () => {
+    fresh({ focus: "Lower", days: 4, weekOrder: ["d3", "d1", "d2", "x"], futureOrder: { [later]: ["d3", "d2", "d1", "x"] } });
+    expect(E.swapDay("d3", "g2")).toBe(true);
+    expect(E.wk.weekOrder).toEqual(["g2", "d1", "d2", "x"]);
+    expect(E.wk.futureOrder[later]).toEqual(["g2", "d2", "d1", "x"]);
+  });
+});

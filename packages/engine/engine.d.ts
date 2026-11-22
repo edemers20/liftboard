@@ -123,7 +123,10 @@ export function offerNudge(dayId: string, slotIndex: number): any;
 export function keepWeight(dayId: string, slotIndex: number, weight: number): void;
 export function rowDone(dayId: string, slotIndex: number, plan?: any): boolean;
 export function countsInDay(dayId: string, slotIndex: number, plan?: any): boolean;
-export function swapWeek(currentId: string, otherId: string): boolean;
+/** Swap two lifts within one week: the plan's open week by default, or the later week `wOff`. */
+export function swapWeek(currentId: string, otherId: string, wOff?: number, now?: number): boolean;
+/** Lifts a card in week `wOff` can swapWeek with (that week's other lifts); empty for past weeks. */
+export function plannedSwaps(id: string, wOff?: number, now?: number): string[];
 export function dayComplete(dayId: string): boolean;
 export function e1rm(w: number, r: number): number;
 export function weekTops(name: string): { start: number; w: number; r: number; t: number; e1: number | null; pr: "" | "top" | "reps"; wasW: number | null; wasR: number | null }[];

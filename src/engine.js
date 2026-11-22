@@ -304,13 +304,12 @@ function withAlt(ids){ const alt=wk.alt||{}, used=new Set(ids);
 function swapOptions(curId){ const ids=withAlt(split()), base=split()[ids.indexOf(curId)], fam=famOf(base||curId); if(!fam) return [];
   return fam.filter(x=>x===curId||!ids.includes(x)).map(x=>ALL.find(t=>t.id===x)); }
 function swapDay(curId,newId){ const sp=split(), ids=withAlt(sp), k=ids.indexOf(curId); if(k<0||curId===newId) return false;
-  const todayLift=dayBoard(0).plannedId;
   const base=sp[k], alt={...(wk.alt||{})}; if(newId===base) delete alt[base]; else alt[base]=newId; wk.alt=alt;
   if(wk.upNext===curId) wk.upNext=newId;
   if(wk.pinToday&&wk.pinToday.id===curId) wk.pinToday={...wk.pinToday,id:newId};
-  syncDays();
-  if(todayLift===curId) wk.pinToday={d:dayKey(),id:newId};
-  save(); return true; }
+  const ren=L=>Array.isArray(L)?L.map(x=>x===curId?newId:x):L;
+  wk.weekOrder=ren(wk.weekOrder); wk.futureOrder=Object.fromEntries(Object.entries(wk.futureOrder||{}).map(([t,L])=>[t,ren(L)]));
+  syncDays(); save(); return true; }
 function syncDays(){ DAYS=withAlt(split()).map((id,i)=>{ const t=ALL.find(x=>x.id===id); return {...t,slots:[...t.slots,...(((wk.extra||{})[id])||[]).map(extraSlot)],tab:`Day ${i+1}`}; }); buildDefaults(); }
 /* ---------- Muscles: what each slot trains, and how much each muscle matters to this person ----------
    Direct work counts 1 set, helper work ½ (a row is back work that also trains biceps and rear delts). */
@@ -976,6 +975,11 @@ function newWeek(start){
   /* exercises you added belong to that week */
   Object.keys(wk.extra||{}).forEach(id=>{ const b=tplLen(id), st=slots[id]; if(st) Object.keys(st).forEach(i=>{ if(+i>=b) delete st[i]; }); });
   wk.extra={}; syncDays();
+  /* an order chosen for this week while it was projected becomes its order; the carried-over lift only leads if that order still puts it first */
+  const d0=new Date(wk.weekStart); d0.setHours(0,0,0,0); const k=d0.getTime(), ids=DAYS.map(d=>d.id), F=wk.futureOrder||{};
+  const o=Array.isArray(F[k])?F[k].filter((id,i)=>ids.includes(id)&&F[k].indexOf(id)===i):[];
+  if(o.length>=2){ ids.forEach(id=>{ if(!o.includes(id)) o.push(id); }); wk.weekOrder=o; if(wk.upNext&&o[0]!==wk.upNext){ wk.upNext=""; wk.missedNote=null; } }
+  wk.futureOrder=Object.fromEntries(Object.entries(F).filter(([t])=>+t>k));
   wk.doneT={};
   wk.lastChanges=Object.fromEntries(Object.entries(P.G||{}).map(([c,l])=>[c,(l||[]).slice()]));
   save(); return ["New week started. Check-in reset to normal."];
