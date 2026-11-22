@@ -872,7 +872,8 @@ function keepWeight(dayId,i,w){
 }
 /** Easy or tough set: one increment up or down for the sets still open. Null when there is nothing to offer.
     Never up while weights are held (in-season, deload, recovery load 3+ or a rough day), or when last time's
-    note held the weight because reps fell off across sets: a strong first set is expected then. */
+    note held the weight because reps fell off across sets: a strong first set is expected then.
+    On a cut a missed rep keeps the weight, so down only from 2+ reps under the range. */
 function offerNudge(dayId, i, Pin){
   const d=DAYS.find(x=>x.id===dayId); if(!d) return null;
   const s=d.slots[i]; if(!s||s.cardio) return null;
@@ -885,7 +886,7 @@ function offerNudge(dayId, i, Pin){
   const w0=+lastT.w, r0=+lastT.r, inc=incFor(exName(d,s,i),s,w0);
   const held=inSeason()||wk.deload==="Yes"||D.cutD||(lastNote(dayId,i)||{}).tag==="collapse";
   if(r0>=top+2&&!held) return {dir:"up",reps:r0,weight:w0+inc};
-  if(r0<lo) return {dir:"down",reps:r0,weight:Math.max(0,w0-inc)};
+  if(r0<(cutting()?lo-1:lo)) return {dir:"down",reps:r0,weight:Math.max(0,w0-inc)};
   return null;
 }
 /** Last session's next-time note for this exercise; null on the day that wrote it. */

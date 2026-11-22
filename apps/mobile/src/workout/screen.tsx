@@ -1583,21 +1583,18 @@ function ExerciseCard(props: {
 }
 
 function Carry({ name, carry }: { name: string; carry: any }) {
-  const verb = carry.tag === "up" ? copy.workout.goUp : carry.tag === "down" ? copy.workout.dropTo : copy.workout.stayAt;
   if (engine.isBW(name) && !(carry.w > 0)) {
     return (
       <Text style={styles.carry}>
         <Text style={styles.carryStrong}>{carry.tag === "up" ? copy.workout.up : copy.workout.same}</Text>
-        {` ${copy.workout.fromLastTime}`}
       </Text>
     );
   }
   const weight = engine.isBW(name) ? weightText(copy.workout.bwPlus, carry.w) : weightText(copy.workout.pounds, carry.w);
   return (
     <Text style={styles.carry}>
-      {`${verb} `}
+      {`${copy.workout.startAt} `}
       <Text style={styles.carryStrong}>{weight}</Text>
-      {` ${copy.workout.fromLastTime}`}
     </Text>
   );
 }

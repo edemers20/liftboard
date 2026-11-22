@@ -1364,6 +1364,15 @@ describe("one weight recommendation in a workout", () => {
     E.set(x.d.id, x.i, "log", [{ w: "75", r: String(Math.max(1, x.lo - 2)), d: true }]);
     expect(E.offerNudge(x.d.id, x.i)).toMatchObject({ dir: "down" });
   });
+  it("on a cut, offers to drop only 2+ reps under the range", () => {
+    fresh({ focus: "Lower", mode: "Deficit only" });
+    expect(E.cutting()).toBe(true);
+    const x = lift();
+    E.set(x.d.id, x.i, "log", [{ w: "75", r: String(x.lo - 1), d: true }]);
+    expect(E.offerNudge(x.d.id, x.i)).toBeNull();
+    E.set(x.d.id, x.i, "log", [{ w: "75", r: String(x.lo - 2), d: true }]);
+    expect(E.offerNudge(x.d.id, x.i)).toMatchObject({ dir: "down" });
+  });
   it("hides the note on the day that wrote it", () => {
     fresh({ focus: "Lower" });
     const x = lift(), n = E.exName(x.d, x.d.slots[x.i], x.i);

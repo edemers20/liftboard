@@ -565,11 +565,7 @@ export const copy = {
     keepGoing: "Keep going",
     switchWorkout: "Switch",
     endWorkout: "End workout",
-    goUp: "Go up to:",
-    dropTo: "Drop to:",
-    stayAt: "Stay @",
-    // TODO copy: placeholder until Emma picks the last-time wording (options in PR #13).
-    fromLastTime: "(from last time)",
+    startAt: "Start @",
     bwPlus: "BW+{…} lb",
     bwPlusShort: "BW+{…}",
     up: "Up",

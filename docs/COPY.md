@@ -329,10 +329,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Keep going | workout |
 |  | Switch | workout |
 |  | End workout | live pill |
-|  | Go up to: | main.js:822 |
-|  | Drop to: | main.js:822 (was "Ease to:", Emma, Nov 22) |
-|  | Stay @ | main.js:822 (no colon: "Stay @ 75 lb", Emma, Nov 22) |
-|  | (from last time) **TODO copy** | main.js:822. After the next-time note so it reads as carried over from last session ("Stay @ 75 lb (from last time)"). Placeholder; Emma to pick. |
+|  | Start @ | main.js:822. Last time's note, whatever it said (up, same or drop): the weight to start at today, "Start @ 75 lb". No colon (Emma, Nov 22; replaces "Go up to:", "Ease to:" and "Stay at:"). |
 |  | BW+{…} lb | main.js:822 |
 |  | <b>Up</b> | main.js:822 |
 |  | <b>Same</b> | main.js:822 |
