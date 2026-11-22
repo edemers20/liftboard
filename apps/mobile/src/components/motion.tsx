@@ -7,6 +7,7 @@ import { Modal, PanResponder, StyleSheet, Text, View, type StyleProp, type ViewS
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, {
   Easing,
+  ReduceMotion,
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
@@ -259,6 +260,57 @@ export function BottomToast({
   );
 }
 
+/** Delete toast with an action. Slides up 16px and fades in; slides back down and fades out. Reduce Motion fades in place. */
+export function UndoToast({
+  open,
+  label,
+  action,
+  bottom,
+  onAction,
+}: {
+  open: boolean;
+  label: string;
+  action: string;
+  bottom: number;
+  onAction: () => void;
+}) {
+  const reduce = useReduceMotion();
+  const [shown, setShown] = useState(open);
+  const progress = useSharedValue(0);
+  if (open && !shown) setShown(true);
+
+  useEffect(() => {
+    // Reanimated would skip the whole timing under Reduce Motion; the fade still plays, the slide is dropped below.
+    if (open) {
+      progress.value = withTiming(1, { duration: reduce ? 160 : 220, easing: ease, reduceMotion: ReduceMotion.Never });
+      return;
+    }
+    progress.value = withTiming(
+      0,
+      { duration: reduce ? 120 : 180, easing: Easing.in(Easing.cubic), reduceMotion: ReduceMotion.Never },
+      (finished) => {
+        if (finished) runOnJS(setShown)(false);
+      },
+    );
+  }, [open, progress, reduce]);
+
+  const anim = useAnimatedStyle(() => ({
+    opacity: progress.value,
+    transform: [{ translateY: reduce ? 0 : (1 - progress.value) * 16 }],
+  }));
+
+  if (!shown && !open) return null;
+
+  return (
+    <Animated.View pointerEvents={open ? "auto" : "none"} style={[styles.undo, { bottom }, anim]}>
+      <Text accessibilityLiveRegion="polite" style={styles.undoText}>{label}</Text>
+      <PressableScale accessibilityRole="button" onPress={onAction} hitSlop={{ top: 4, bottom: 4 }} style={styles.undoButton}>
+        <Text style={styles.undoAction}>{action}</Text>
+      </PressableScale>
+    </Animated.View>
+  );
+}
+
 /** One bottom toast for plan changes, logged activities and moves. */
 export function NoticeHost() {
   const id = useNotice((state) => state.id);
@@ -306,4 +358,20 @@ const styles = StyleSheet.create({
   },
   planStrong: { color: theme.text, fontFamily: theme.fonts.bodySemi, fontSize: 15, lineHeight: 20 },
   toastBody: { color: theme.text, fontFamily: theme.fonts.body, fontSize: 15, lineHeight: 20 },
+  undo: {
+    position: "absolute",
+    left: 16,
+    right: 16,
+    zIndex: 40,
+    minHeight: 48,
+    borderRadius: theme.radii.pill,
+    backgroundColor: "#2f2a27",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingLeft: 20,
+  },
+  undoText: { color: theme.text, fontFamily: theme.fonts.bodySemi, fontSize: 15 },
+  undoButton: { minHeight: 48, paddingHorizontal: 20, borderRadius: theme.radii.pill, justifyContent: "center" },
+  undoAction: { color: theme.green.accent, fontFamily: theme.fonts.bodySemi, fontSize: 15 },
 });

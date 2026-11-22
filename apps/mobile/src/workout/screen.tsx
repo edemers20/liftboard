@@ -11,7 +11,7 @@ import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withTimi
 
 import { useNotice } from "@/activity-log";
 import { openFitSheet } from "@/form-sheet";
-import { Rise, SetBounce, SheetFrame } from "@/components/motion";
+import { Rise, SetBounce, SheetFrame, UndoToast } from "@/components/motion";
 import { InfoTip } from "@/components/tip-popover";
 import { DialValue, liftWeightDial, repsDial } from "@/components/number-dial";
 import { copy, fill } from "@/copy";
@@ -1022,22 +1022,16 @@ export function WorkoutScreen({ id }: { id: string }) {
         />
       </Probe>
 
-      {undo ? (
-        <View style={[styles.undo, { bottom: insets.bottom + 16 }]}>
-          <Text accessibilityLiveRegion="polite" style={styles.undoText}>{copy.workout.deleted}</Text>
-          <PressableScale
-            accessibilityRole="button"
-            onPress={() => {
-              undo.run();
-              setUndo(null);
-            }}
-            hitSlop={{ top: 4, bottom: 4 }}
-            style={styles.undoButton}
-          >
-            <Text style={styles.undoAction}>{copy.workout.undoDelete}</Text>
-          </PressableScale>
-        </View>
-      ) : null}
+      <UndoToast
+        open={!!undo}
+        label={copy.workout.deleted}
+        action={copy.workout.undoDelete}
+        bottom={insets.bottom + 16}
+        onAction={() => {
+          undo?.run();
+          setUndo(null);
+        }}
+      />
 
       <SheetFrame visible={resetAsk} onClose={() => setResetAsk(false)} label={copy.you.cancel}>
           <GlassSheet style={[styles.sheet, { marginBottom: insets.bottom + 12 }]}>
@@ -1716,22 +1710,6 @@ function PickerModal({
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.green.background, borderRadius: 0, overflow: "hidden" },
   reveal: { flex: 1 },
-  undo: {
-    position: "absolute",
-    left: 16,
-    right: 16,
-    zIndex: 40,
-    minHeight: 48,
-    borderRadius: theme.radii.pill,
-    backgroundColor: "#2f2a27",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingLeft: 20,
-  },
-  undoText: { color: theme.text, fontFamily: theme.fonts.bodySemi, fontSize: 15 },
-  undoButton: { minHeight: 48, paddingHorizontal: 20, borderRadius: theme.radii.pill, justifyContent: "center" },
-  undoAction: { color: theme.green.accent, fontFamily: theme.fonts.bodySemi, fontSize: 15 },
   statusStrip: {
     position: "absolute",
     top: 0,
