@@ -336,11 +336,12 @@ describe("cut-aware overload", () => {
     const t = E.suggest(d, s, 0, false, E.plan());
     expect(t.w).toBe(145); expect(t.why).toMatch(/hold/);
   });
-  it("on a cut, three misses ease 5%", () => {
+  it("on a cut, three misses drop 5%", () => {
     const d = setup("Deficit only", 0.5), s = d.slots[0], n = E.exName(d, s, 0);
     hist(n, [{ w: 140, r: 5 }, { w: 140, r: 5 }, { w: 140, r: 5 }]);
     expect(E.suggest(d, s, 0, false, E.plan()).w).toBeLessThan(140);
     expect(E.suggest(d, s, 0, false, E.plan()).w).toBeGreaterThanOrEqual(130);
+    expect(E.suggest(d, s, 0, false, E.plan()).why).toBe("3 misses: drop 5%");
   });
   it("not cutting (recomp at 0.5 lb): two misses still rebuild 10%", () => {
     const d = setup("Recomp", 0.5), s = d.slots[0], n = E.exName(d, s, 0);
@@ -644,6 +645,15 @@ describe("one weight recommendation in a workout", () => {
     expect(E.offerNudge(x.d.id, x.i)).toMatchObject({ dir: "up" });
     E.set(x.d.id, x.i, "nudged", 1);
     expect(E.carryNote(x.d.id, x.i)).toBeNull();
+  });
+  it("no go-up offer when last time held the weight because reps fell off; a drop is still offered", () => {
+    fresh({ focus: "Lower" });
+    const x = lift(), n = E.exName(x.d, x.d.slots[x.i], x.i);
+    E.wk.next = { [n]: { w: 75, why: "reps fell off across sets; rest longer, same weight", tag: "collapse", t: 1 } };
+    easySet(x);
+    expect(E.offerNudge(x.d.id, x.i)).toBeNull();
+    E.set(x.d.id, x.i, "log", [{ w: "75", r: String(Math.max(1, x.lo - 2)), d: true }]);
+    expect(E.offerNudge(x.d.id, x.i)).toMatchObject({ dir: "down" });
   });
   it("hides the note on the day that wrote it", () => {
     fresh({ focus: "Lower" });

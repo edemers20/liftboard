@@ -496,7 +496,7 @@ export const copy = {
     ],
     [
       'What does "hold" mean on a cut?',
-      "When you're losing more than about 0.5% of your body weight a week, keeping your numbers is the win. A missed rep keeps the weight. It only eases 5% after three misses in a row, and accessories lose a set before any weight comes off.",
+      "When you're losing more than about 0.5% of your body weight a week, keeping your numbers is the win. A missed rep keeps the weight. It only drops 5% after three misses in a row, and accessories lose a set before any weight comes off.",
     ],
     [
       "How is fuel calculated?",
@@ -568,6 +568,8 @@ export const copy = {
     goUp: "Go up to:",
     dropTo: "Drop to:",
     stayAt: "Stay @",
+    // TODO copy: placeholder until Emma picks the last-time wording (options in PR #13).
+    fromLastTime: "(from last time)",
     bwPlus: "BW+{…} lb",
     bwPlusShort: "BW+{…}",
     up: "Up",

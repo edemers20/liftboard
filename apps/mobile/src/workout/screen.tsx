@@ -1588,6 +1588,7 @@ function Carry({ name, carry }: { name: string; carry: any }) {
     return (
       <Text style={styles.carry}>
         <Text style={styles.carryStrong}>{carry.tag === "up" ? copy.workout.up : copy.workout.same}</Text>
+        {` ${copy.workout.fromLastTime}`}
       </Text>
     );
   }
@@ -1596,6 +1597,7 @@ function Carry({ name, carry }: { name: string; carry: any }) {
     <Text style={styles.carry}>
       {`${verb} `}
       <Text style={styles.carryStrong}>{weight}</Text>
+      {` ${copy.workout.fromLastTime}`}
     </Text>
   );
 }

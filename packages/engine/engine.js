@@ -632,7 +632,7 @@ function plan(){ buildDefaults(); const cut=cutting();
   if(fast&&recomp) P.notes.push("At this pace, expect to hold muscle and strength rather than build.");
   if(cut) P.notes.push("On a cut, preserving strength is the goal.");
   if(fast&&fem()) P.notes.push("On a faster cut, a late, missed or changed period is a sign to slow down.");
-  if(fast&&lastHard) P.notes.push("Reps are dropping on a faster cut. Easing the rate usually brings them back.");
+  if(fast&&lastHard) P.notes.push("Reps are falling on a faster cut. Dropping the rate usually brings them back.");
   const fastRun=(()=>{ let n=0; for(const w of (wk.weeks||[]).slice().reverse()){ if(w.fast) n++; else break; } return n; })();
   if(fast&&fastRun>=8) P.notes.push(`${fastRun} weeks at a faster pace. A few weeks at Maintain lets training and recovery catch up.`);
   if(recomp&&num(wk.share,25)>25) P.notes.push("Recomp caps cardio at 25%.");
@@ -715,10 +715,10 @@ function suggest(d,s,i,useLog,P){
   if(last.r>=top){ if(inSeason()) return {w:last.w,r:top,why:"same weight in-season"}; if(D.cutD) return {w:last.w,r:top,why:"same weight, "+D.dayCause}; return {w:last.w+incFor(n,s,last.w),r:lo,why:`~${lo} reps`}; }
   if(last.r>=lo) return {w:last.w,r:Math.min(top,last.r+1),why:`${Math.min(top,last.r+1)} reps`};
   if(cutting()){
-    /* on a cut, missing the range is expected fatigue: keep the load; only ease 5% after three misses in a row */
+    /* on a cut, missing the range is expected fatigue: keep the load; only drop 5% after three misses in a row */
     const seq=h.slice(); if(now) seq.push(now); let miss=0;
     for(let k=seq.length-1;k>=0&&seq[k].w===last.w&&seq[k].r<lo;k--) miss++;
-    if(miss>=3) return {w:roundW(n,last.w*0.95),r:lo,why:"3 misses: ease 5%"};
+    if(miss>=3) return {w:roundW(n,last.w*0.95),r:lo,why:"3 misses: drop 5%"};
     return {w:last.w,r:lo,why:"hold"};
   }
   if(prev&&prev.w===last.w&&prev.r<lo) return {w:roundW(n,last.w*0.9),r:lo,why:"rebuild"};
@@ -860,7 +860,7 @@ function markDone(dayId){
   const note=drops>=2?`Reps dropped on ${drops} lifts, so ${nxt?nxt.tab:"your next session"} is shortened.`:"";
   wk.review={...(wk.review||{}),[dayId]:{items,note}};
   save();
-  const parts=[c("up")&&`${c("up")} moving up`,(c("down")+c("collapse"))&&`${c("down")+c("collapse")} easing off`].filter(Boolean);
+  const parts=[c("up")&&`${c("up")} moving up`,(c("down")+c("collapse"))&&`${c("down")+c("collapse")} dropping`].filter(Boolean);
   return [`${d.tab} done`,...(parts.length?[`Next time: ${parts.join(", ")}.`]:[]),...(note?[note]:[]),...(items.some(x=>x.why.startsWith("too light"))?["Some lifts were too light; they get a bigger jump."]:[])];
 }
 /** After editing sets on a finished day, rewrite that day's history entries and next-time review. */
@@ -1200,7 +1200,8 @@ function keepWeight(dayId,i,w){
 }
 
 /** Easy or tough set: one increment up or down for the sets still open. Null when there is nothing to offer.
-    Never up while weights are held (in-season, deload, recovery load 3+ or a rough day). */
+    Never up while weights are held (in-season, deload, recovery load 3+ or a rough day), or when last time's
+    note held the weight because reps fell off across sets: a strong first set is expected then. */
 function offerNudge(dayId, i, Pin){
   const d=DAYS.find(x=>x.id===dayId); if(!d) return null;
   const s=d.slots[i]; if(!s||s.cardio) return null;
@@ -1211,19 +1212,21 @@ function offerNudge(dayId, i, Pin){
   const lastT=log.slice(0,ticks).slice().reverse().find(x=>x.d&&+x.w>0&&+x.r>0); if(!lastT) return null;
   const [lo,hi]=range(s.reps), top=isIso(s)?hi+3:hi;
   const w0=+lastT.w, r0=+lastT.r, inc=incFor(exName(d,s,i),s,w0);
-  const held=inSeason()||wk.deload==="Yes"||D.cutD;
+  const held=inSeason()||wk.deload==="Yes"||D.cutD||(lastNote(dayId,i)||{}).tag==="collapse";
   if(r0>=top+2&&!held) return {dir:"up",reps:r0,weight:w0+inc};
   if(r0<lo) return {dir:"down",reps:r0,weight:Math.max(0,w0-inc)};
   return null;
 }
-/** Last session's next-time note for this exercise, while it is still the workout's advice.
-    Null on the day that wrote it, and once a set today has prompted its own weight suggestion. */
-function carryNote(dayId, i){
+/** Last session's next-time note for this exercise; null on the day that wrote it. */
+function lastNote(dayId, i){
   const d=DAYS.find(x=>x.id===dayId); if(!d||!d.slots[i]||d.slots[i].cardio) return null;
   const note=(wk.next||{})[exName(d,d.slots[i],i)];
-  if(!note||note.t===(wk.doneT||{})[dayId]) return null;
+  return note&&note.t!==(wk.doneT||{})[dayId]?note:null;
+}
+/** The last-time note while it is still the workout's advice: hidden once a set today has prompted its own weight suggestion. */
+function carryNote(dayId, i){
   if(get(dayId,i).nudged!=null) return null;
-  return note;
+  return lastNote(dayId,i);
 }
 /** Est. 1RM from a top set. Epley, rounded. Bodyweight work has none; callers skip it. */
 function e1rm(w, r){ return Math.round(num(w, 0) * (1 + num(r, 0) / 30)); }
