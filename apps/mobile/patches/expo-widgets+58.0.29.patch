@@ -467,7 +467,7 @@ index 68e376f..d803d2e 100644
 +  return nil
 +}
 diff --git a/node_modules/expo-widgets/ios/Widgets/WidgetLiveActivity.swift b/node_modules/expo-widgets/ios/Widgets/WidgetLiveActivity.swift
-index 4d135c4..e0a61f1 100644
+index 4d135c4..503ce41 100644
 --- a/node_modules/expo-widgets/ios/Widgets/WidgetLiveActivity.swift
 +++ b/node_modules/expo-widgets/ios/Widgets/WidgetLiveActivity.swift
 @@ -2,6 +2,9 @@ import SwiftUI
@@ -489,7 +489,7 @@ index 4d135c4..e0a61f1 100644
  public struct WidgetLiveActivity: Widget {
    @Environment(\.self) var env
  
-@@ -27,45 +32,52 @@ public struct WidgetLiveActivity: Widget {
+@@ -27,45 +32,41 @@ public struct WidgetLiveActivity: Widget {
  
    public var body: some WidgetConfiguration {
      ActivityConfiguration(for: LiveActivityAttributes.self) { context in
@@ -530,15 +530,12 @@ index 4d135c4..e0a61f1 100644
 +            .foregroundStyle(.white)
 +            .lineLimit(2)
 +            .minimumScaleFactor(0.7)
-+            .padding(.leading, 4)
++            .padding(.leading, 6)
          }
          DynamicIslandExpandedRegion(.trailing) {
 -          LiveActivitySectionView(context: context, nodes: nodes, sectionName: "expandedTrailing")
-+          Text(props.islandTrail)
-+            .font(.system(size: 16, weight: .medium, design: .monospaced))
-+            .monospacedDigit()
-+            .foregroundStyle(props.trailColor)
-+            .lineLimit(1)
++          NativeIslandTrail(props: props, size: 16)
++            .padding(.trailing, 4)
          }
          DynamicIslandExpandedRegion(.bottom) {
 -          LiveActivitySectionView(context: context, nodes: nodes, sectionName: "expandedBottom")
@@ -551,26 +548,18 @@ index 4d135c4..e0a61f1 100644
 +          .foregroundStyle(.white)
 +          .lineLimit(1)
 +          .minimumScaleFactor(0.55)
++          .padding(.leading, 6)
        } compactTrailing: {
 -        LiveActivitySectionView(context: context, nodes: nodes, sectionName: "compactTrailing")
-+        Text(props.islandTrail)
-+          .font(.system(size: 12, weight: .medium, design: .monospaced))
-+          .monospacedDigit()
-+          .foregroundStyle(props.trailColor)
-+          .lineLimit(1)
-+          .minimumScaleFactor(0.7)
++        NativeIslandTrail(props: props, size: 12)
++          .padding(.trailing, 6)
        } minimal: {
 -        LiveActivitySectionView(context: context, nodes: nodes, sectionName: "minimal")
-+        Text(props.islandTrail)
-+          .font(.system(size: 11, weight: .medium, design: .monospaced))
-+          .monospacedDigit()
-+          .foregroundStyle(props.trailColor)
-+          .lineLimit(1)
-+          .minimumScaleFactor(0.6)
++        NativeIslandTrail(props: props, size: 11)
        }
        if let url = context.attributes.url.flatMap(URL.init(string:)) {
          return island.widgetURL(url)
-@@ -76,32 +88,246 @@ public struct WidgetLiveActivity: Widget {
+@@ -76,32 +77,273 @@ public struct WidgetLiveActivity: Widget {
    }
  }
  
@@ -719,6 +708,8 @@ index 4d135c4..e0a61f1 100644
 -      WidgetsDynamicView(name: context.activityID, kind: .liveActivity, node: node)
 -    } else {
 -      EmptyView()
++    // Match 9901 HardcodedBanner modifier order: frame → padding → background.
++    // activityBackgroundTint keeps Lock Screen chrome the same plate color.
 +    VStack(alignment: .leading, spacing: 4) {
 +      Text(props.title)
 +        .font(.system(size: 12, weight: .medium))
@@ -744,8 +735,8 @@ index 4d135c4..e0a61f1 100644
 +      }
 +      NativeSetBars(props: props)
      }
-+    .padding(14)
 +    .frame(maxWidth: .infinity, alignment: .leading)
++    .padding(14)
 +    .background(props.plateColor)
 +    .activityBackgroundTint(props.plateColor)
    }
@@ -754,8 +745,10 @@ index 4d135c4..e0a61f1 100644
 -private struct LiveActivityBannerView: View {
 -  var context: ActivityViewContext<LiveActivityAttributes>
 -  let nodes: [String: Any]
-+private struct NativeTimeBlock: View {
++/// Live-ticking Island trail. Static `Text(clock)` freezes until the next content update.
++private struct NativeIslandTrail: View {
 +  let props: WorkoutLAProps
++  let size: CGFloat
  
    var body: some View {
 -    if #available(iOS 18.0, *) {
@@ -764,6 +757,29 @@ index 4d135c4..e0a61f1 100644
 -      WidgetsDynamicView(name: context.activityID, kind: .liveActivity, node: node)
 -    } else {
 -      EmptyView()
++    Group {
++      if props.finished {
++        Text(props.doneLabel)
++      } else if props.resting {
++        Text(timerInterval: props.restRange, countsDown: true)
++      } else if !props.weightOnly.isEmpty {
++        Text(props.weightOnly)
++      } else {
++        Text(timerInterval: props.elapsedRange, countsDown: false)
++      }
++    }
++    .font(.system(size: size, weight: props.finished ? .semibold : .medium, design: .monospaced))
++    .monospacedDigit()
++    .foregroundStyle(props.trailColor)
++    .lineLimit(1)
++    .minimumScaleFactor(0.55)
++  }
++}
++
++private struct NativeTimeBlock: View {
++  let props: WorkoutLAProps
++
++  var body: some View {
 +    VStack(alignment: .trailing, spacing: 2) {
 +      Group {
 +        if props.finished {

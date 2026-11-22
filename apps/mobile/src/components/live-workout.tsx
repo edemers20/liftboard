@@ -552,8 +552,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(200,232,106,0.32)",
     justifyContent: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    // Gym feedback: a touch more L/R inset; more top/bottom breathing room.
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     alignSelf: "stretch",
   },
   solidShell: {
@@ -596,7 +597,7 @@ const styles = StyleSheet.create({
     color: theme.text,
     fontFamily: theme.fonts.monoMedium,
     fontSize: 16,
-    lineHeight: 20,
+    lineHeight: 18,
     fontVariant: ["tabular-nums"],
   },
   restOk: { color: TIMER_LIME },
@@ -606,7 +607,9 @@ const styles = StyleSheet.create({
     color: MUTED_PILL,
     fontFamily: theme.fonts.monoMedium,
     fontSize: 10,
-    marginTop: 1,
+    // Pull rest + elapsed lines closer; shell padding carries the breathing room.
+    marginTop: 0,
+    lineHeight: 12,
     fontVariant: ["tabular-nums"],
   },
   pressed: { opacity: 0.7 },
