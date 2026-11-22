@@ -22,7 +22,6 @@ import { useEngineVersion } from "@/screen-version";
 import { theme } from "@/theme";
 import { clock, fromDisplay, toDisplay, unitWord, usingKg, weightText } from "@/units";
 import { useReduceMotion } from "@/use-reduce-motion";
-import { useHideOnScroll } from "@/use-hide-on-scroll";
 import { useSecondClock } from "@/second-clock";
 
 import { canSwapDay, openSwappedWorkout } from "@/components/swap-sheet";
@@ -37,6 +36,9 @@ import { closeOpenSwipe, SwipeDelete, swipeCloseCapture } from "@/components/swi
 import { armRest, cancelRestChime, claimRestChime } from "./notify";
 import { markWorkoutClose, openWorkout, ShareBox, WORKOUT_OPEN_MS, workoutEnter } from "./share-box";
 import { ShareWorkoutActions } from "./share-card";
+
+/** Pinned row of glass buttons; content scrolls under it. */
+const TOOLBAR_HEIGHT = 54;
 
 type Feel = "Good" | "Normal" | "Rough";
 type NudgeAsk = {
@@ -228,7 +230,6 @@ export function WorkoutScreen({ id }: { id: string }) {
   const reduceMotion = useReduceMotion();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const hide = useHideOnScroll();
   const expand = useRef(workoutEnter() === "expand").current;
   const bodyOpacity = useSharedValue(reduceMotion || !expand ? 1 : 0);
   const bodyStyle = useAnimatedStyle(() => ({ opacity: bodyOpacity.value }));
@@ -723,17 +724,28 @@ export function WorkoutScreen({ id }: { id: string }) {
         style={styles.reveal}
         keyboardShouldPersistTaps="handled"
         onScrollBeginDrag={closeOpenSwipe}
-        onScroll={hide.onScroll}
-        scrollEventThrottle={16}
         scrollsToTop
         contentInsetAdjustmentBehavior="never"
         contentContainerStyle={{
-          paddingTop: hide.space + 8,
+          paddingTop: insets.top + TOOLBAR_HEIGHT,
           paddingBottom: (rest ? 96 : 32) + insets.bottom,
           paddingHorizontal: 16,
           gap: 14,
         }}
       >
+        <View style={styles.dayHead}>
+          <Text accessibilityRole="header" style={styles.title}>
+            {day.tab ? `${day.tab}: ${day.title}` : day.title}
+          </Text>
+          {timer?.start ? (
+            timer.end ? (
+              <Text style={styles.timer}>{fill(copy.workout.minutes, Math.round((timer.end - timer.start) / 60000))}</Text>
+            ) : (
+              <Probe id="workout-clock"><ElapsedClock start={timer.start} style={styles.timer} /></Probe>
+            )
+          ) : null}
+        </View>
+
         <View style={styles.panel}>
           <View style={styles.feelHead}>
             <Text style={styles.question}>{feelQuestion}</Text>
@@ -1010,13 +1022,8 @@ export function WorkoutScreen({ id }: { id: string }) {
         <Text style={styles.footerSaved}>{copy.workout.saved}</Text>
       </Animated.ScrollView>
 
-      <Animated.View
-        accessibilityElementsHidden={!hide.blocks}
-        importantForAccessibility={hide.blocks ? "auto" : "no-hide-descendants"}
-        pointerEvents={hide.blocks ? "box-none" : "none"}
-        onLayout={hide.onHeaderLayout}
-        style={[styles.chrome, { paddingTop: insets.top }, hide.chromeStyle, hide.headerStyle]}
-      >
+      <View pointerEvents="none" style={[styles.statusStrip, { height: insets.top }]} />
+      <View pointerEvents="box-none" style={[styles.chrome, { top: insets.top }]}>
         <View style={styles.toolbar}>
           <GlassIconButton label={copy.workouts.back} onPress={leave}>
             <ArrowLeft size={22} color={theme.text} strokeWidth={2} />
@@ -1032,21 +1039,9 @@ export function WorkoutScreen({ id }: { id: string }) {
             </GlassIconButton>
           </View>
         </View>
-        <View style={styles.dayHead}>
-          <Text accessibilityRole="header" style={styles.title}>
-            {day.tab ? `${day.tab}: ${day.title}` : day.title}
-          </Text>
-          {timer?.start ? (
-            timer.end ? (
-              <Text style={styles.timer}>{fill(copy.workout.minutes, Math.round((timer.end - timer.start) / 60000))}</Text>
-            ) : (
-              <Probe id="workout-clock"><ElapsedClock start={timer.start} style={styles.timer} /></Probe>
-            )
-          ) : null}
-        </View>
-      </Animated.View>
+      </View>
 
-      <HeaderMenu open={menuOpen} top={insets.top + 50} items={menuItems} onClose={() => setMenuOpen(false)} />
+      <HeaderMenu open={menuOpen} top={insets.top + TOOLBAR_HEIGHT - 4} items={menuItems} onClose={() => setMenuOpen(false)} />
 
       <Probe id="rest-bar">
         <RestBar
@@ -1778,27 +1773,20 @@ const styles = StyleSheet.create({
   },
   chrome: {
     position: "absolute",
-    top: 0,
     left: 0,
     right: 0,
     zIndex: 20,
-    backgroundColor: theme.green.background,
   },
   toolbar: {
+    height: TOOLBAR_HEIGHT,
     paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingTop: 4,
-    paddingBottom: 6,
   },
   toolbarEnd: { flexDirection: "row", gap: 8 },
   header: { gap: 0 },
-  dayHead: {
-    gap: 4,
-    paddingHorizontal: 16,
-    paddingBottom: 8,
-  },
+  dayHead: { gap: 4 },
   title: {
     color: theme.text,
     fontFamily: theme.fonts.display,
