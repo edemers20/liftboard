@@ -1,6 +1,8 @@
 "use no memo";
 
+import * as Clipboard from "expo-clipboard";
 import * as Sharing from "expo-sharing";
+import { Copy as CopyIcon } from "lucide-react-native";
 import { PressableScale } from "@/components/pressable-scale";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
@@ -106,8 +108,8 @@ function CountValue({
   );
 }
 
-/** The shared image, in the workout share card's style. 1080 wide; the height follows the content. */
-function ReportShare({ report }: { report: Report }) {
+/** The shared image, in the workout share card's style. 1080 wide; the height follows the content. `clear` drops the background fill so the copied PNG keeps its alpha. */
+function ReportShare({ report, clear = false }: { report: Report; clear?: boolean }) {
   const tiles = [
     { label: copy.you.lifts, value: String(report.lifts), unit: ` / ${report.planned}`, color: TILE_LIFTS },
     { label: copy.workout.sharePrs, value: String(report.prs.length), unit: "", color: TILE_PRS },
@@ -115,7 +117,7 @@ function ReportShare({ report }: { report: Report }) {
     { label: copy.report.exerciseCalories, value: report.burn.toLocaleString("en-US"), unit: ` ${copy.report.kcal}`, color: TILE_KCAL },
   ];
   return (
-    <View style={styles.shareCard}>
+    <View style={[styles.shareCard, clear && styles.shareClear]}>
       <Text style={styles.shareBrand}>{copy.workout.liftBoard}</Text>
       <Text style={styles.shareTitle}>{rangeLabel(report.start)}</Text>
       <View style={styles.shareTiles}>
@@ -160,7 +162,10 @@ export function ReportSheet({ report }: { report: Report }) {
   const insets = useSafeAreaInsets();
   const progress = useCountUp(1);
   const shot = useRef<any>(null);
+  const clearShot = useRef<any>(null);
   const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const muscles = report.muscles ? shownMuscles(report.muscles) : null;
   const range = rangeLabel(report.start);
   const width = windowW > 0 ? windowW : 390;
@@ -185,6 +190,27 @@ export function ReportSheet({ report }: { report: Report }) {
       setBusy(false);
     }
   }
+
+  async function copyImage() {
+    if (!clearShot.current || busy) return;
+    setBusy(true);
+    try {
+      const base64 = await captureRef(clearShot, { format: "png", quality: 1, result: "base64" });
+      await Clipboard.setImageAsync(base64);
+      haptic.success();
+      setCopied(true);
+      if (copiedTimer.current) clearTimeout(copiedTimer.current);
+      copiedTimer.current = setTimeout(() => setCopied(false), 1600);
+    } catch {
+      // Nothing is copied if capture or the clipboard is unavailable.
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  useEffect(() => () => {
+    if (copiedTimer.current) clearTimeout(copiedTimer.current);
+  }, []);
 
   const summary = (
     <>
@@ -336,6 +362,16 @@ export function ReportSheet({ report }: { report: Report }) {
         </PressableScale>
         <PressableScale
           accessibilityRole="button"
+          accessibilityLabel={copied ? copy.report.imageCopied : copy.report.copyImage}
+          disabled={busy}
+          onPress={() => void copyImage()}
+          style={[styles.share, busy && styles.busy]}
+        >
+          {copied ? <Check size={18} color={theme.green.accent} /> : <CopyIcon size={18} color={theme.text} strokeWidth={2} />}
+          <Text style={styles.shareText}>{copy.report.copyImage}</Text>
+        </PressableScale>
+        <PressableScale
+          accessibilityRole="button"
           onPress={() => {
             engine.dismissWeekReport();
             router.back();
@@ -348,6 +384,9 @@ export function ReportSheet({ report }: { report: Report }) {
       </View>
       <View ref={shot} collapsable={false} pointerEvents="none" style={styles.offscreen}>
         <ReportShare report={report} />
+      </View>
+      <View ref={clearShot} collapsable={false} pointerEvents="none" style={styles.offscreen}>
+        <ReportShare report={report} clear />
       </View>
     </View>
   );
@@ -481,6 +520,7 @@ const styles = StyleSheet.create({
   busy: { opacity: 0.5 },
   offscreen: { position: "absolute", left: -4000, top: 0 },
   shareCard: { width: 1080, backgroundColor: theme.orange.background, padding: 72, paddingBottom: 80, gap: 36 },
+  shareClear: { backgroundColor: "transparent" },
   shareBrand: { color: theme.green.accent, fontFamily: theme.fonts.display, fontSize: 44 },
   shareTitle: { color: theme.text, fontFamily: theme.fonts.display, fontSize: 104, lineHeight: 108, textTransform: "uppercase" },
   shareTiles: { flexDirection: "row", flexWrap: "wrap", gap: 24 },
