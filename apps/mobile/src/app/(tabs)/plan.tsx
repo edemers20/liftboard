@@ -2,6 +2,8 @@
 
 import { router, useFocusEffect } from "expo-router";
 import { GlassTrack } from "@/components/glass-track";
+import { useSolidGlass } from "@/glass";
+import { LinearGradient } from "expo-linear-gradient";
 import { PressableScale } from "@/components/pressable-scale";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import { Keyboard, StyleSheet, type ScrollViewInstance, Text, useWindowDimensions, View } from "react-native";
@@ -57,6 +59,9 @@ import { useReduceMotion } from "@/use-reduce-motion";
 import { useHideOnScroll, type HideOnScroll } from "@/use-hide-on-scroll";
 
 const VIEW_KEY = "liftboard.v1.pv";
+const HEADER_GAP = 12;
+/** Solid under the status bar, clear by the bottom edge, so scrolled cards show through the glass tabs. */
+const SCRIM = [theme.orange.background, "rgba(24,21,19,0.88)", "rgba(24,21,19,0)"] as const;
 
 type ViewName = "week" | "season";
 type CheckKey = "ready" | "sore" | "cycle" | "drink";
@@ -99,6 +104,7 @@ function PlanScreenBody() {
   const reduceMotion = useReduceMotion();
   const insets = useSafeAreaInsets();
   const hide = useHideOnScroll();
+  const solidGlass = useSolidGlass();
   const model = useMemo(() => readPlan(), [version, clock]);
   const { width } = useWindowDimensions();
   const [view, setView] = useState<ViewName>(savedView);
@@ -334,8 +340,16 @@ function PlanScreenBody() {
         importantForAccessibility={hide.blocks ? "auto" : "no-hide-descendants"}
         pointerEvents={hide.blocks ? "auto" : "none"}
         onLayout={hide.onHeaderLayout}
-        style={[styles.chrome, { top: 0, paddingTop: insets.top }, hide.chromeStyle, hide.headerStyle]}
+        style={[styles.chrome, solidGlass && styles.chromeSolid, { top: 0, paddingTop: insets.top }, hide.chromeStyle, hide.headerStyle]}
       >
+      {solidGlass ? null : (
+        <LinearGradient
+          pointerEvents="none"
+          colors={SCRIM}
+          locations={[0, 0.5, 1]}
+          style={StyleSheet.absoluteFill}
+        />
+      )}
       <Header
         weekTitle={model.weekTitle}
         view={view}
@@ -433,10 +447,14 @@ function Header({
   onSeason: () => void;
 }) {
   const [titleW, setTitleW] = useState(0);
+  const [tabsW, setTabsW] = useState(0);
   const widthSv = useSharedValue(0);
   const titleSlide = useAnimatedStyle(() => ({
     transform: [{ translateX: -progress.value * widthSv.value }],
   }));
+  // The slot runs under the floating tabs so a sliding title passes through the glass; at rest it stops short of them.
+  const restW = Math.max(0, titleW - (tabsW ? tabsW + HEADER_GAP : 0));
+  const measured = titleW > 0 && tabsW > 0;
 
   return (
     <View style={styles.header}>
@@ -452,7 +470,7 @@ function Header({
           <>
             <Animated.Text
               accessibilityRole="header"
-              style={[styles.title, StyleSheet.absoluteFill, weekFade]}
+              style={[styles.title, styles.titleFade, { width: restW }, weekFade]}
               numberOfLines={1}
               adjustsFontSizeToFit
               minimumFontScale={0.6}
@@ -461,27 +479,38 @@ function Header({
             </Animated.Text>
             <Animated.Text
               accessibilityRole="header"
-              style={[styles.title, StyleSheet.absoluteFill, seasonFade]}
+              style={[styles.title, styles.titleFade, { width: restW }, seasonFade]}
               numberOfLines={1}
             >
               {copy.plan.season}
             </Animated.Text>
           </>
-        ) : titleW > 0 ? (
+        ) : measured ? (
           <Animated.View style={[styles.titleRow, { width: titleW * 2 }, titleSlide]}>
-            <Text accessibilityRole="header" style={[styles.title, { width: titleW }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
-              {weekTitle}
-            </Text>
-            <Text accessibilityRole="header" style={[styles.title, { width: titleW }]} numberOfLines={1}>
-              {copy.plan.season}
-            </Text>
+            <View style={{ width: titleW }}>
+              <Text accessibilityRole="header" style={[styles.title, { width: restW }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
+                {weekTitle}
+              </Text>
+            </View>
+            <View style={{ width: titleW }}>
+              <Text accessibilityRole="header" style={[styles.title, { width: restW }]} numberOfLines={1}>
+                {copy.plan.season}
+              </Text>
+            </View>
           </Animated.View>
         ) : (
-          <Text accessibilityRole="header" style={styles.title} numberOfLines={1}>
+          <Text
+            accessibilityRole="header"
+            style={[styles.title, tabsW ? { marginRight: tabsW + HEADER_GAP } : null]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.6}
+          >
             {view === "week" ? weekTitle : copy.plan.season}
           </Text>
         )}
       </View>
+      <View style={styles.tabsFloat} onLayout={(event) => setTabsW(event.nativeEvent.layout.width)}>
       <GlassTrack>
         <PressableScale kind="button" brighten={view === "week"} accessibilityRole="tab" accessibilityState={{ selected: view === "week" }} aria-selected={view === "week"} hitSlop={{ top: 6, bottom: 6 }} onPress={onWeek} style={[styles.switchBtn, view === "week" && styles.switchOn]}>
           <Text style={[styles.switchText, view === "week" && styles.switchTextOn]}>{copy.plan.week}</Text>
@@ -490,6 +519,7 @@ function Header({
           <Text style={[styles.switchText, view === "season" && styles.switchTextOn]}>{copy.plan.season}</Text>
         </PressableScale>
       </GlassTrack>
+      </View>
     </View>
   );
 }
@@ -1149,19 +1179,19 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 10,
-    backgroundColor: theme.orange.background,
   },
+  chromeSolid: { backgroundColor: theme.orange.background },
   header: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
     paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 8,
-    backgroundColor: theme.orange.background,
   },
-  titleSlot: { flex: 1, overflow: "hidden", minHeight: 40, justifyContent: "center" },
+  titleSlot: { flex: 1, overflow: "hidden", minHeight: 44, justifyContent: "center" },
   titleRow: { flexDirection: "row" },
+  titleFade: { position: "absolute", left: 0, top: 2 },
+  tabsFloat: { position: "absolute", right: 16, top: 8, bottom: 8, justifyContent: "center" },
   title: {
     color: theme.text,
     fontFamily: theme.fonts.display,
