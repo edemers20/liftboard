@@ -330,7 +330,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Switch | workout |
 |  | End workout | live pill |
 |  | Go up to: | main.js:822 |
-|  | Ease to: | main.js:822 |
+|  | Drop to: | main.js:822 (was "Ease to:", Emma, Nov 22) |
 |  | Stay @ | main.js:822 (no colon: "Stay @ 75 lb", Emma, Nov 22) |
 |  | BW+{…} lb | main.js:822 |
 |  | <b>Up</b> | main.js:822 |

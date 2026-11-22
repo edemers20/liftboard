@@ -1086,7 +1086,7 @@ function renderDayHTML(d,P){
       /* asked in a popup right after the set is ticked (see askNudge), not inline */
       const offer=!pendNudge&&!fin?offerNudge(d.id,i,P):null;
       if(offer){ const lastT=log.slice(0,ticks).reverse().find(x=>x.d&&+x.w>0&&+x.r>0); pendNudge={i,ticks,up:offer.dir==="up",r0:offer.reps,w0:+lastT.w,w:offer.weight,nm}; }
-      const carry=offer?null:carryNote(d.id,i), verb=carry&&({up:"Go up to:",down:"Ease to:"}[carry.tag]||"Stay @");
+      const carry=offer?null:carryNote(d.id,i), verb=carry&&({up:"Go up to:",down:"Drop to:"}[carry.tag]||"Stay @");
       if(carry) html+=`<p class="carry"><span>${isBW(nm)?(carry.w>0?`${verb} <b>BW+${carry.w} lb</b>`:carry.tag==="up"?"<b>Up</b>":"<b>Same</b>"):`${verb} <b>${carry.w} lb</b>`}</span></p>`;
       if(UNI.test(nm)){ const sd=sideToday(d,s,i), ls=lastSide(nm);
         html+=`<div class="side"><span>Start on</span><button type="button" class="btn mini sidebtn" data-side="${sd==="Left"?"Right":"Left"}" data-i="${i}" aria-label="Starting side: ${sd}. Tap to switch">${sd}</button>${ls?`<small>last time: ${ls}</small>`:""}</div>`; }

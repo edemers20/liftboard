@@ -566,7 +566,7 @@ export const copy = {
     switchWorkout: "Switch",
     endWorkout: "End workout",
     goUp: "Go up to:",
-    easeTo: "Ease to:",
+    dropTo: "Drop to:",
     stayAt: "Stay @",
     bwPlus: "BW+{…} lb",
     bwPlusShort: "BW+{…}",

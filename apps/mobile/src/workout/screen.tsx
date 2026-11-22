@@ -1583,7 +1583,7 @@ function ExerciseCard(props: {
 }
 
 function Carry({ name, carry }: { name: string; carry: any }) {
-  const verb = carry.tag === "up" ? copy.workout.goUp : carry.tag === "down" ? copy.workout.easeTo : copy.workout.stayAt;
+  const verb = carry.tag === "up" ? copy.workout.goUp : carry.tag === "down" ? copy.workout.dropTo : copy.workout.stayAt;
   if (engine.isBW(name) && !(carry.w > 0)) {
     return (
       <Text style={styles.carry}>
