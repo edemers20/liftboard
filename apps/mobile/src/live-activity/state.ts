@@ -108,7 +108,7 @@ export function activityProps(id: string, now = Date.now()): WorkoutActivityProp
   const finished = !!engine.wk.done?.[id];
   const index = finished ? -1 : currentSlot(id, day, planned);
   const slot = index >= 0 ? day.slots[index] : null;
-  const total = slot ? planned.slots[index]?.sets || 0 : 0;
+  const total = slot ? engine.setTotal(id, index, { days: { [id]: planned } }) : 0;
   const done = index >= 0 ? Math.min(ticks(id, index), total) : 0;
   const rest = engine.wk.rest as { end?: number; name?: string } | null | undefined;
   const resting = !finished && !!rest?.end && rest.end > now;

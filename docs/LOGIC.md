@@ -130,6 +130,7 @@ Per lift, from your last logged set:
   - Resets the check-in.
   - Native (Nov 16): the week also rolls while the app stays open. A day clock wakes just after local midnight (and at least hourly), rolls the week if it's due and redraws every screen for the new date; returning to the app runs the same check.
 - **Deleted sets (native, Nov 16):** deleting a set row within the planned sets lowers that exercise's count for this workout only (`st.drop` on the day's slot), never below the sets already ticked; the weekly plan, other days and later weeks don't change. It clears with the logs when a finished day rolls into a new week; Undo restores it. "+ Set" adds a row after the lowered count.
+- **Added sets count (Nov 22):** an exercise has as many sets as rows on its list, the plan's count or more after "+ Set" (`setTotal`). It is done, and the day completes, only when every row is ticked. Rest, the lock screen "Set N of M" line, the Live Activity bars and the exercise's "Set N of M" pill all follow that count, so an added set comes before the next exercise. Web: same rule in `src/engine.js`.
 - **Set counts during a workout (native):** a started day keeps the set counts it started with (`wk.lockSets`), retaken when the day's feel changes. `engine.plan()` is read while screens draw, so it never saves; Start, the first ticked set and the feel switch save the snapshot.
 
 ## 8. Feedback

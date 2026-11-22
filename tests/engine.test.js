@@ -563,6 +563,20 @@ describe("section 20 logic", () => {
     expect(E.rowDone(d.id, opt, P)).toBe(false);
     expect(E.countsInDay(d.id, opt, P)).toBe(false);
   });
+  it("counts a set added mid-exercise: the exercise isn't done until it is ticked", () => {
+    const P = fresh({ focus: "Lower" });
+    const d = E.DAYS[0];
+    const i = d.slots.findIndex((s, k) => !s.cardio && P.days[d.id].slots[k] && !P.days[d.id].slots[k].skip);
+    const n = P.days[d.id].slots[i].sets;
+    const tick = { w: 100, r: 8, d: true };
+    E.set(d.id, i, "log", [tick]);
+    expect(E.setTotal(d.id, i, P)).toBe(n);
+    E.set(d.id, i, "log", [...Array.from({ length: n }, () => tick), {}]);
+    expect(E.setTotal(d.id, i, P)).toBe(n + 1);
+    expect(E.rowDone(d.id, i, P)).toBe(false);
+    E.set(d.id, i, "log", Array.from({ length: n + 1 }, () => tick));
+    expect(E.rowDone(d.id, i, P)).toBe(true);
+  });
   it("Rough keeps an accessory and the sets already logged", () => {
     fresh({ focus: "Lower", time: 60 });
     const d = E.DAYS[0];

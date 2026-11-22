@@ -6,6 +6,7 @@ import { haptic } from "@/haptic";
 import { engine, useEngineStore } from "@/store";
 
 import { restCueDue, restCueWait } from "./rest-cue";
+import { restUpNext } from "./up-next";
 
 type NotificationsModule = typeof import("expo-notifications");
 
@@ -84,40 +85,9 @@ async function ensureChannel(N: NotificationsModule) {
 }
 
 function restLine(): string {
-  const name = engine.wk.rest?.name as string | undefined;
-  if (!name) return "";
-  const timers = (engine.wk.wt || {}) as Record<string, { start?: number; end?: number }>;
-  const open = Object.keys(timers).filter((id) => timers[id]?.start && !timers[id]?.end);
-  const day = (engine.DAYS as { id: string; slots: unknown[] }[]).find((item) => {
-    if (open.length && !open.includes(item.id)) return false;
-    return item.slots.some((slot, index) => {
-      const row = slot as { cardio?: boolean };
-      return !row.cardio && engine.exName(item, slot, index) === name;
-    });
-  });
-  if (!day) return name;
-  const planned = engine.plan().days[day.id];
-  if (!planned) return name;
-  const order = engine.slotOrder(day) as number[];
-  const index = order.find((slotIndex) => engine.exName(day, day.slots[slotIndex], slotIndex) === name);
-  if (index == null) return name;
-  const total = planned.slots[index]?.sets || 0;
-  const ticks = ((engine.get(day.id, index).log || []) as { d?: boolean }[]).filter((row) => row.d).length;
-  if (total > ticks) return fill(copy.workout.restUpBody, ticks + 1, total, name);
-  const next = order.slice(order.indexOf(index) + 1).find((slotIndex) => {
-    const slot = day.slots[slotIndex] as { cardio?: boolean } | undefined;
-    const planSlot = planned.slots[slotIndex];
-    if (!slot || slot.cardio || !planSlot || planSlot.skip) return false;
-    const done = ((engine.get(day.id, slotIndex).log || []) as { d?: boolean }[]).filter((row) => row.d).length;
-    return done < (planSlot.sets || 0);
-  });
-  if (next == null) return name;
-  return fill(
-    copy.workout.restUpBody,
-    1,
-    planned.slots[next]?.sets || 1,
-    engine.exName(day, day.slots[next], next),
-  );
+  const next = restUpNext(engine.wk.rest?.name as string | undefined);
+  if (!next) return "";
+  return next.set ? fill(copy.workout.restUpBody, next.set, next.total, next.name) : next.name;
 }
 
 /**

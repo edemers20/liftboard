@@ -571,9 +571,8 @@ export function WorkoutScreen({ id }: { id: string }) {
       }
     }
     if (!was) {
-      const sets = engine.plan().days[id].slots[index].sets;
       const ticks = (engine.get(id, index).log || []).filter((row: any) => row.d).length;
-      if (ticks === sets) setSheet(index);
+      if (ticks === engine.setTotal(id, index)) setSheet(index);
     }
   }
 
@@ -1315,8 +1314,8 @@ function ExerciseCard(props: {
   const name = engine.exName(day, slot, index);
   const log = state.log || [];
   const ticks = log.filter((row: any) => row.d).length;
-  const finished = slot.cardio ? !!state.cdone || readOnly : ticks >= planSlot.sets;
-  const rows = Math.max(planSlot.sets || 0, log.length);
+  const rows = engine.setTotal(id, index, plan) as number;
+  const finished = slot.cardio ? !!state.cdone || readOnly : ticks >= rows;
   const choice = state.choice ?? engine.defChoice(day, slot, index);
   const suggestion = slot.cardio ? null : engine.suggest(day, slot, index, false, plan);
   const guess = suggestion ? null : engine.startingGuess(name);
@@ -1338,7 +1337,7 @@ function ExerciseCard(props: {
         : copy.workout.optional
     : finished
       ? copy.workout.done
-      : fill(copy.workout.setOf, Math.min(ticks + 1, planSlot.sets), planSlot.sets);
+      : fill(copy.workout.setOf, Math.min(ticks + 1, rows), rows);
 
   const label = slot.extra
     ? fill(copy.workout.added, slot.label)
