@@ -228,7 +228,7 @@ function NumberDial({ request, onClose }: { request: Request; onClose: () => voi
               request.onCommit(picked == null ? "" : formatValue(picked, request.step));
               onClose();
             }}
-            style={[styles.done, { backgroundColor: request.accent }]}
+            style={[styles.done, { backgroundColor: greenDial(request.accent) ? theme.green.accentFill : request.accent }]}
           >
             <Text style={styles.doneText}>{copy.workout.done}</Text>
           </PressableScale>
@@ -289,5 +289,4 @@ const styles = StyleSheet.create({
   valueText: { color: theme.text, fontFamily: theme.fonts.mono, fontSize: 16 },
   placeholder: { color: theme.muted },
   done: { minHeight: 52, borderRadius: 14, alignItems: "center", justifyContent: "center" },
-  doneText: { color: "#ffffff", fontFamily: theme.fonts.bodySemi, fontSize: 15 },
-});
+  doneText: { color: "#ffffff", fontFamily: theme.fonts.bodySemi, fontSize: 15 },});
