@@ -23,6 +23,7 @@ import { theme } from "@/theme";
 import { clock, fromDisplay, toDisplay, unitWord, usingKg, weightText } from "@/units";
 import { useReduceMotion } from "@/use-reduce-motion";
 import { useSecondClock } from "@/second-clock";
+import { useHideOnScroll } from "@/use-hide-on-scroll";
 
 import { canSwapDay, openSwappedWorkout } from "@/components/swap-sheet";
 import { Check, Close } from "@/icons";
@@ -37,7 +38,7 @@ import { armRest, cancelRestChime, claimRestChime } from "./notify";
 import { markWorkoutClose, openWorkout, ShareBox, WORKOUT_OPEN_MS, workoutEnter } from "./share-box";
 import { ShareWorkoutActions } from "./share-card";
 
-/** Pinned row of glass buttons; content scrolls under it. */
+/** Row of glass buttons; slides up under the status bar on scroll down and back on scroll up. */
 const TOOLBAR_HEIGHT = 54;
 
 type Feel = "Good" | "Normal" | "Rough";
@@ -230,6 +231,7 @@ export function WorkoutScreen({ id }: { id: string }) {
   const reduceMotion = useReduceMotion();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const hide = useHideOnScroll();
   const expand = useRef(workoutEnter() === "expand").current;
   const bodyOpacity = useSharedValue(reduceMotion || !expand ? 1 : 0);
   const bodyStyle = useAnimatedStyle(() => ({ opacity: bodyOpacity.value }));
@@ -724,6 +726,8 @@ export function WorkoutScreen({ id }: { id: string }) {
         style={styles.reveal}
         keyboardShouldPersistTaps="handled"
         onScrollBeginDrag={closeOpenSwipe}
+        onScroll={hide.onScroll}
+        scrollEventThrottle={16}
         scrollsToTop
         contentInsetAdjustmentBehavior="never"
         contentContainerStyle={{
@@ -1023,7 +1027,13 @@ export function WorkoutScreen({ id }: { id: string }) {
       </Animated.ScrollView>
 
       <View pointerEvents="none" style={[styles.statusStrip, { height: insets.top }]} />
-      <View pointerEvents="box-none" style={[styles.chrome, { top: insets.top }]}>
+      <Animated.View
+        accessibilityElementsHidden={!hide.blocks}
+        importantForAccessibility={hide.blocks ? "auto" : "no-hide-descendants"}
+        pointerEvents={hide.blocks ? "box-none" : "none"}
+        onLayout={hide.onHeaderLayout}
+        style={[styles.chrome, { top: insets.top }, hide.chromeStyle, hide.headerStyle]}
+      >
         <View style={styles.toolbar}>
           <GlassIconButton label={copy.workouts.back} onPress={leave}>
             <ArrowLeft size={22} color={theme.text} strokeWidth={2} />
@@ -1039,7 +1049,7 @@ export function WorkoutScreen({ id }: { id: string }) {
             </GlassIconButton>
           </View>
         </View>
-      </View>
+      </Animated.View>
 
       <HeaderMenu open={menuOpen} top={insets.top + TOOLBAR_HEIGHT - 4} items={menuItems} onClose={() => setMenuOpen(false)} />
 
