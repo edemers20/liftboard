@@ -604,14 +604,102 @@ describe("swapping with another planned lift", () => {
     expect(E.dayBoard(6, mon).plannedId).toBe("d2");
   });
 
-  it("a card next week offers no planned swaps, because only this week's order can change", () => {
+  const cards = (off, now) => [0, 2, 4, 6].map(i => E.weekModel(off, now).plan[i]);
+
+  it("a card next week swaps within next week only, and it survives a reload", () => {
+    const now = new Date(2026, 10, 16, 9).getTime();
+    const store = setup(now);
+    const thisWeek = E.weekModel(0, now).todo.slice();
+    expect(cards(1, now)).toEqual(["d1", "d2", "d3", "x"]);
+    expect(E.plannedSwaps("d1", 1, now)).toEqual(["d2", "d3", "x"]);
+    expect(E.swapWeek("d1", "d3", 1, now)).toBe(true);
+    expect(E.dayBoard(7, now).plannedId).toBe("d3");
+    expect(cards(1, now)).toEqual(["d3", "d2", "d1", "x"]);
+    expect(E.weekModel(0, now).todo).toEqual(thisWeek);
+    expect(E.wk.weekOrder).toBeFalsy();
+    expect(cards(2, now)).toEqual(["d1", "d2", "d3", "x"]);
+    E.init(store);
+    expect(cards(1, now)).toEqual(["d3", "d2", "d1", "x"]);
+  });
+
+  it("each later week keeps its own order", () => {
+    const now = new Date(2026, 10, 16, 9).getTime();
+    setup(now);
+    E.swapWeek("d2", "x", 2, now);
+    expect(cards(1, now)).toEqual(["d1", "d2", "d3", "x"]);
+    expect(cards(2, now)).toEqual(["d1", "x", "d3", "d2"]);
+    expect(cards(3, now)).toEqual(["d1", "d2", "d3", "x"]);
+  });
+
+  it("swapping back to the usual order stores nothing", () => {
+    const now = new Date(2026, 10, 16, 9).getTime();
+    setup(now);
+    E.swapWeek("d1", "d3", 1, now);
+    E.swapWeek("d3", "d1", 1, now);
+    expect(E.wk.futureOrder).toEqual({});
+  });
+
+  it("when that week starts, its order becomes the week's order and older orders go", () => {
+    const now = new Date(2026, 10, 16, 9).getTime();
+    const store = setup(now);
+    E.swapWeek("d1", "x", 1, now);
+    E.swapWeek("d1", "d2", 2, now);
+    const mon = new Date(2026, 10, 23, 9).getTime();
+    vi.setSystemTime(mon);
+    E.wk.done = { d1: 1, d2: 1, d3: 1, x: 1 };
+    E.newWeek(E.weekStartOf(mon).getTime());
+    E.init(store);
+    expect(cards(0, mon)).toEqual(["x", "d2", "d3", "d1"]);
+    const after = E.weekStartOf(mon); after.setDate(after.getDate() + 7);
+    expect(Object.keys(E.wk.futureOrder)).toEqual([String(after.getTime())]);
+    expect(cards(1, mon)).toEqual(["d2", "d1", "d3", "x"]);
+  });
+
+  it("a lift carried over from last week only leads if the chosen order still puts it first", () => {
+    const now = new Date(2026, 10, 16, 9).getTime();
+    setup(now);
+    E.swapWeek("d1", "d2", 1, now);
+    const mon = new Date(2026, 10, 23, 9).getTime();
+    vi.setSystemTime(mon);
+    E.wk.done = { d1: 1, d2: 1, d3: 1 };
+    E.newWeek(E.weekStartOf(mon).getTime());
+    expect(E.weekModel(0, mon).todo).toEqual(["d2", "d1", "d3", "x"]);
+    expect(E.wk.upNext).toBe("");
+    expect(E.wk.missedNote).toBeNull();
+  });
+
+  it("a same-group swap renames the lift inside saved orders", () => {
+    const now = new Date(2026, 10, 16, 9).getTime();
+    setup(now);
+    E.swapWeek("d1", "d3", 1, now);
+    expect(E.swapDay("d3", "g2")).toBe(true);
+    expect(cards(1, now)).toEqual(["g2", "d2", "d1", "x"]);
+  });
+
+  it("a changed plan reconciles the order, and a different split drops it", () => {
+    const now = new Date(2026, 10, 16, 9).getTime();
+    setup(now);
+    E.swapWeek("d1", "x", 1, now);
+    Object.assign(E.wk, { days: 3 }); E.syncDays();
+    expect(E.DAYS.map(d => d.id)).toEqual(["d1", "d2", "d3"]);
+    expect(E.weekModel(1, now).todo).toEqual(["d2", "d3", "d1"]);
+    Object.assign(E.wk, { focus: "Balanced", days: 3 }); E.syncDays();
+    expect(E.weekModel(1, now).todo).toEqual(["fa", "fb", "fc"]);
+  });
+
+  it("changing the week's start day clears orders for later weeks", () => {
+    const now = new Date(2026, 10, 16, 9).getTime();
+    setup(now);
+    E.swapWeek("d1", "x", 1, now);
+    E.setWeekStart("Sun");
+    expect(E.wk.futureOrder).toEqual({});
+  });
+
+  it("past weeks can't be swapped", () => {
     const sun = new Date(2026, 10, 22, 9).getTime();
     setup(sun);
-    const next = E.dayBoard(1, sun);
-    expect(next.wOff).toBe(1);
-    expect(next.plannedId).toBeTruthy();
-    expect(E.plannedSwaps(next.plannedId, next.wOff, sun)).toEqual([]);
-    expect(E.plannedSwaps("x", 0, sun)).toEqual(["d1", "d2", "d3"]);
+    expect(E.plannedSwaps("d1", -1, sun)).toEqual([]);
+    expect(E.swapWeek("d1", "d2", -1, sun)).toBe(false);
   });
 
   it("after Mark week as finished, next week's cards are the plan's week and can swap", () => {

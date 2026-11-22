@@ -50,9 +50,22 @@ function preview(day: Day) {
     .join(", ");
 }
 
-/** `wOff` is the week of the card being swapped; left out, the plan's open week. */
+/** Done or started in the plan's open week. */
+function underway(id: string) {
+  return !!(engine.wk.done || {})[id] || started(id);
+}
+
+/** A card in a week after the plan's open week; its lifts haven't happened yet. */
+function laterWeek(wOff: number) {
+  return wOff > engine.planOff();
+}
+
+/**
+ * `wOff` is the week of the card being swapped; left out, the plan's open week. A same-group swap changes
+ * the lift in every week, so it's held back while this week's copy is underway.
+ */
 export function swapChoices(id: string, wOff: number = engine.planOff()) {
-  const family = ((engine.swapOptions(id) || []) as Day[]).filter((day) => day.id !== id);
+  const family = underway(id) ? [] : ((engine.swapOptions(id) || []) as Day[]).filter((day) => day.id !== id);
   const others = engine
     .plannedSwaps(id, wOff)
     .map((next) => (engine.DAYS as Day[]).find((day) => day.id === next))
@@ -60,9 +73,8 @@ export function swapChoices(id: string, wOff: number = engine.planOff()) {
   return { family, others };
 }
 
-export function canSwapDay(id: string, wOff?: number) {
-  if ((engine.wk.done || {})[id]) return false;
-  if (started(id)) return false;
+export function canSwapDay(id: string, wOff: number = engine.planOff()) {
+  if (!laterWeek(wOff) && underway(id)) return false;
   const { family, others } = swapChoices(id, wOff);
   return family.length > 0 || others.length > 0;
 }
@@ -96,9 +108,12 @@ export function SwapForm({
 
   function pickPlanned(nextId: string) {
     onClose();
-    if (!engine.swapWeek(id, nextId)) return;
-    moveOpenWorkout(id, nextId);
+    const week = wOff ?? engine.planOff();
+    if (!engine.swapWeek(id, nextId, week)) return;
     haptic.medium();
+    // A later week's swap leaves this week's live workout alone.
+    if (laterWeek(week)) return;
+    moveOpenWorkout(id, nextId);
     onWorkout?.(nextId);
   }
 

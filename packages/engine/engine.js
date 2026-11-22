@@ -326,6 +326,9 @@ function swapDay(curId,newId){ const sp=split(), ids=withAlt(sp), k=ids.indexOf(
   const base=sp[k], alt={...(wk.alt||{})}; if(newId===base) delete alt[base]; else alt[base]=newId; wk.alt=alt;
   if(wk.upNext===curId) wk.upNext=newId;
   if(wk.pinToday&&wk.pinToday.id===curId) wk.pinToday={...wk.pinToday,id:newId};
+  const ren=L=>Array.isArray(L)?L.map(x=>x===curId?newId:x):L;
+  wk.weekOrder=ren(wk.weekOrder);
+  wk.futureOrder=Object.fromEntries(Object.entries(wk.futureOrder||{}).map(([t,L])=>[t,ren(L)]));
   syncDays();
   if(todayLift===curId) wk.pinToday={d:dayKey(),id:newId};
   save(); return true; }
@@ -913,6 +916,11 @@ function newWeek(start){
   /* exercises you added belong to that week */
   Object.keys(wk.extra||{}).forEach(id=>{ const b=tplLen(id), st=slots[id]; if(st) Object.keys(st).forEach(i=>{ if(+i>=b) delete st[i]; }); });
   wk.extra={}; syncDays();
+  /* An order chosen for this week while it was projected becomes its order; the carried-over lift
+     only leads if that order still puts it first. */
+  const k=DAY0(begin).getTime(), ids=DAYS.map(d=>d.id), mine=inOrder(ids,((wk.futureOrder||{})[k]));
+  if(mine!==ids){ wk.weekOrder=mine; if(wk.upNext&&mine[0]!==wk.upNext){ wk.upNext=""; wk.missedNote=null; } }
+  wk.futureOrder=Object.fromEntries(Object.entries(wk.futureOrder||{}).filter(([t])=>+t>k));
   wk.doneT={};
   wk.lastChanges=Object.fromEntries(Object.entries(P.G||{}).map(([c,l])=>[c,(l||[]).slice()]));
   wk.reportPending=record.start;
@@ -952,7 +960,7 @@ function setWeekStart(rule){
   const current=weekRuleAt(now);
   const boundary=addD(startOfWeek(now, current),7).getTime();
   const kept=weekRules().filter(item=>item.t<=now);
-  if(next!==current) kept.push({t:boundary,rule:next});
+  if(next!==current){ kept.push({t:boundary,rule:next}); wk.futureOrder={}; }
   wk.wkStart=next;
   wk.wkStartAt=kept;
   save();
@@ -1011,6 +1019,14 @@ function pinnedToday(todo, now){ const p=wk.pinToday; return p&&p.d===dayKey(now
 /** The plan's week has moved ahead of the calendar week (Mark week as finished). */
 function earlyDone(now){ now=now||Date.now(); return !!(wk.weekStart&&wk.weekStart>weekStartOf(now).getTime()); }
 function planOff(now){ return earlyDone(now)?1:0; }
+/** A saved order laid over a projected week: lifts no longer planned drop out, new ones go last.
+   Fewer than two of its lifts left means it no longer says anything. */
+function inOrder(base, order){
+  if(!Array.isArray(order)) return base;
+  const o=order.filter((id,i)=>base.includes(id)&&order.indexOf(id)===i); if(o.length<2) return base;
+  base.forEach(id=>{ if(!o.includes(id)) o.push(id); });
+  return o;
+}
 function queueTodo(done){
   const ids=DAYS.map(d=>d.id), first=wk.upNext&&!done[wk.upNext]?wk.upNext:(ids.find(id=>!done[id])||ids[0]);
   const base=rotation(first).filter(id=>!done[id]);
@@ -1044,7 +1060,7 @@ function weekModel(off, now){
   const E=earlyDone(now);
   if(off>=0&&!(E&&off===0)){
     const cur0=weekModel0(now);
-    todo=off===(E?1:0)?cur0.todo:rotation(cur0.left[0]||cur0.next0);
+    todo=off===(E?1:0)?cur0.todo:inOrder(rotation(cur0.left[0]||cur0.next0),(wk.futureOrder||{})[W.getTime()]);
     const from=off===0?tIdx:0, liftToday=off===0&&byDay[tIdx]&&byDay[tIdx].some(s=>s.k==="lift");
     const pin=off===0&&!liftToday?pinnedToday(todo, now):null, slotsI=[];
     if(pin!=null) plan0[tIdx]=pin;
@@ -1076,15 +1092,35 @@ function dayStarted(id){
   const d=DAYS.find(x=>x.id===id); if(!d) return true;
   return d.slots.some((s,i)=>loggedCount(id,i,!!s.cardio)>0);
 }
-/** Lifts a card in week `wOff` can trade places with via swapWeek. Only the plan's open week has an order
-   to change; later weeks are projected from it, so a card there gets none. */
+/** Lifts a card in week `wOff` can trade places with via swapWeek: the other lifts of that same week.
+   Past weeks get none. */
 function plannedSwaps(id, wOff, now){
-  if((wOff||0)!==planOff(now)) return [];
-  return queueTodo(wk.done||{}).filter(x=>x!==id&&!dayStarted(x));
+  const p=planOff(now); wOff=wOff||0;
+  if(wOff<p) return [];
+  if(wOff===p) return queueTodo(wk.done||{}).filter(x=>x!==id&&!dayStarted(x));
+  return weekModel(wOff, now).todo.filter(x=>x!==id);
 }
-/** Swap two lifts in this week's order only. Next week goes back to the usual order. */
-function swapWeek(curId, otherId){
+/** Start of the plan's open week; orders for weeks up to it are spent. */
+function pruneOrders(F, now){ const from=addD(weekStartOf(now||Date.now()),7*planOff(now)).getTime();
+  return Object.fromEntries(Object.entries(F||{}).filter(([t,L])=>+t>from&&Array.isArray(L))); }
+/* A later week is projected, so only its order is stored (wk.futureOrder, keyed by the week's start). */
+function swapLater(curId, otherId, wOff, now){
+  const M=weekModel(wOff, now), a=M.todo.indexOf(curId), b=M.todo.indexOf(otherId);
+  if(a<0||b<0) return false;
+  const next=M.todo.slice(); next[a]=otherId; next[b]=curId;
+  const F={...(wk.futureOrder||{})}; delete F[M.W]; wk.futureOrder=F;
+  if(next.join()!==weekModel(wOff, now).todo.join()) F[M.W]=next;
+  wk.futureOrder=pruneOrders(F, now);
+  save();
+  return true;
+}
+/** Swap two lifts within one week: the plan's open week by default, or a later week (`wOff`).
+   A swap never moves a lift into another week. */
+function swapWeek(curId, otherId, wOff, now){
   if(!curId||!otherId||curId===otherId) return false;
+  const p=planOff(now); wOff=wOff==null?p:wOff;
+  if(wOff<p) return false;
+  if(wOff>p) return swapLater(curId, otherId, wOff, now);
   if(dayStarted(curId)||dayStarted(otherId)) return false;
   const todayLift=dayBoard(0).plannedId;
   const todo=queueTodo(wk.done||{});
