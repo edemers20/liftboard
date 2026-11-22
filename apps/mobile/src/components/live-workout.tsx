@@ -20,6 +20,7 @@ import { engine, useEngineStore } from "@/store";
 import { theme } from "@/theme";
 import { clock } from "@/units";
 import { useReduceMotion } from "@/use-reduce-motion";
+import { cancelRestChime } from "@/workout/notify";
 import { openWorkout } from "@/workout/share-box";
 
 const FLASH_MS = 2500;
@@ -55,6 +56,7 @@ export function endLiveWorkout(id: string) {
   if (!dayHasWork(id)) delete timers[id];
   else timers[id] = { ...current, end: Date.now() };
   engine.wk.wt = timers;
+  void cancelRestChime();
   engine.wk.rest = null;
   engine.save();
 }

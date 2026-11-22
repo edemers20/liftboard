@@ -122,6 +122,7 @@ export function lastSide(name: string): string;
 export function offerNudge(dayId: string, slotIndex: number): any;
 export function keepWeight(dayId: string, slotIndex: number, weight: number): void;
 export function rowDone(dayId: string, slotIndex: number, plan?: any): boolean;
+export function setTotal(dayId: string, slotIndex: number, plan?: any): number;
 export function countsInDay(dayId: string, slotIndex: number, plan?: any): boolean;
 export function swapWeek(currentId: string, otherId: string): boolean;
 export function dayComplete(dayId: string): boolean;

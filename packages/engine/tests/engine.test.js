@@ -504,6 +504,20 @@ describe("rest, starting weights and the day queue", () => {
     if (ci >= 0 && !E.plan().days[d.id].slots[ci].skip) E.set(d.id, ci, "cdone", true);
     expect(E.dayComplete(d.id)).toBe(true);
   });
+  it("counts a set added mid-exercise: the exercise isn't done until it is ticked", () => {
+    const d = lower();
+    const P = E.plan();
+    const i = d.slots.findIndex((s, k) => !s.cardio && P.days[d.id].slots[k] && !P.days[d.id].slots[k].skip);
+    const n = P.days[d.id].slots[i].sets;
+    const tick = { w: "100", r: "8", d: true };
+    E.set(d.id, i, "log", [tick]);
+    expect(E.setTotal(d.id, i, P)).toBe(n);
+    E.set(d.id, i, "log", [...Array.from({ length: n }, () => tick), {}]);
+    expect(E.setTotal(d.id, i, P)).toBe(n + 1);
+    expect(E.rowDone(d.id, i, P)).toBe(false);
+    E.set(d.id, i, "log", Array.from({ length: n + 1 }, () => tick));
+    expect(E.rowDone(d.id, i, P)).toBe(true);
+  });
 });
 
 describe("week start", () => {

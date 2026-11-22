@@ -3,7 +3,7 @@ import { AccessibilityInfo, Platform } from "react-native";
 
 /**
  * Every haptic in the app goes through here.
- * `haptic.setEnabled(false)` silences them, and so does Reduce Motion.
+ * `haptic.setEnabled(false)` silences them, and so does Reduce Motion (except the rest-end alert).
  */
 let enabled = true;
 let reduceMotion = false;
@@ -18,8 +18,8 @@ const reduceMotionWatch = AccessibilityInfo.addEventListener("reduceMotionChange
 });
 void reduceMotionWatch;
 
-function fire(run: () => Promise<void>) {
-  if (!enabled || reduceMotion || Platform.OS === "web") return;
+function fire(run: () => Promise<void>, alert = false) {
+  if (!enabled || (reduceMotion && !alert) || Platform.OS === "web") return;
   void run().catch(() => {});
 }
 
@@ -45,5 +45,9 @@ export const haptic = {
   },
   warning() {
     fire(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning));
+  },
+  /** Rest is over. Information, not motion, so Reduce Motion keeps it; it is the backup when sound is muted. */
+  alert() {
+    fire(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success), true);
   },
 };
