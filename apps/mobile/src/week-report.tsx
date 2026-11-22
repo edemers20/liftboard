@@ -20,6 +20,7 @@ import { openPlan } from "@/links";
 import { engine, useEngineStore } from "@/store";
 import { theme } from "@/theme";
 import { toDisplay } from "@/units";
+import { readWeekImage, WeekImage } from "@/week-image";
 
 const TRACK = "#34302c";
 const SHORT = "#e7b94a";
@@ -108,8 +109,8 @@ function CountValue({
   );
 }
 
-/** The shared image, in the workout share card's style. 1080 wide; the height follows the content. `clear` drops the background fill so the copied PNG keeps its alpha. */
-function ReportShare({ report, clear = false }: { report: Report; clear?: boolean }) {
+/** The shared image, in the workout share card's style. 1080 wide; the height follows the content. */
+function ReportShare({ report }: { report: Report }) {
   const tiles = [
     { label: copy.you.lifts, value: String(report.lifts), unit: ` / ${report.planned}`, color: TILE_LIFTS },
     { label: copy.workout.sharePrs, value: String(report.prs.length), unit: "", color: TILE_PRS },
@@ -117,7 +118,7 @@ function ReportShare({ report, clear = false }: { report: Report; clear?: boolea
     { label: copy.report.exerciseCalories, value: report.burn.toLocaleString("en-US"), unit: ` ${copy.report.kcal}`, color: TILE_KCAL },
   ];
   return (
-    <View style={[styles.shareCard, clear && styles.shareClear]}>
+    <View style={styles.shareCard}>
       <Text style={styles.shareBrand}>{copy.workout.liftBoard}</Text>
       <Text style={styles.shareTitle}>{rangeLabel(report.start)}</Text>
       <View style={styles.shareTiles}>
@@ -386,7 +387,7 @@ export function ReportSheet({ report }: { report: Report }) {
         <ReportShare report={report} />
       </View>
       <View ref={clearShot} collapsable={false} pointerEvents="none" style={styles.offscreen}>
-        <ReportShare report={report} clear />
+        <WeekImage data={readWeekImage(report)} />
       </View>
     </View>
   );
@@ -520,7 +521,6 @@ const styles = StyleSheet.create({
   busy: { opacity: 0.5 },
   offscreen: { position: "absolute", left: -4000, top: 0 },
   shareCard: { width: 1080, backgroundColor: theme.orange.background, padding: 72, paddingBottom: 80, gap: 36 },
-  shareClear: { backgroundColor: "transparent" },
   shareBrand: { color: theme.green.accent, fontFamily: theme.fonts.display, fontSize: 44 },
   shareTitle: { color: theme.text, fontFamily: theme.fonts.display, fontSize: 104, lineHeight: 108, textTransform: "uppercase" },
   shareTiles: { flexDirection: "row", flexWrap: "wrap", gap: 24 },

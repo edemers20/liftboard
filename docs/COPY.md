@@ -969,7 +969,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | {…} × {…} | Week done sheet, an activity and how many times it was logged. |
 | Button | See next week | Week done sheet. Closes it and opens Plan, Week. |
 |  | kcal | Week done sheet, after the exercise calories number. |
-| Button | Copy **TODO copy** | Week done sheet. Copies the shared image, without its background, to the clipboard as a transparent PNG. |
+| Button | Copy **TODO copy** | Week done sheet. Copies the week image (Day strip: week range, day capsules, PR and streak chips, Upper body / Lower body trends; no new words) to the clipboard as a transparent PNG. |
 | Screen reader | Image copied **TODO copy** | Week done sheet, the Copy button just after copying (the icon turns to a check). Same words as the web share card toast (main.js:1545). |
 
 ## Change popups
