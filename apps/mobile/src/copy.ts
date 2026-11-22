@@ -496,7 +496,7 @@ export const copy = {
     ],
     [
       'What does "hold" mean on a cut?',
-      "When you're losing more than about 0.5% of your body weight a week, keeping your numbers is the win. A missed rep keeps the weight. It only eases 5% after three misses in a row, and accessories lose a set before any weight comes off.",
+      "When you're losing more than about 0.5% of your body weight a week, keeping your numbers is the win. A missed rep keeps the weight. It only drops 5% after three misses in a row, and accessories lose a set before any weight comes off.",
     ],
     [
       "How is fuel calculated?",
@@ -565,9 +565,7 @@ export const copy = {
     keepGoing: "Keep going",
     switchWorkout: "Switch",
     endWorkout: "End workout",
-    goUp: "Go up to",
-    easeTo: "Ease to",
-    stayAt: "Stay at",
+    startAt: "Start @",
     bwPlus: "BW+{…} lb",
     bwPlusShort: "BW+{…}",
     up: "Up",

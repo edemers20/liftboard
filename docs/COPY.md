@@ -329,9 +329,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Keep going | workout |
 |  | Switch | workout |
 |  | End workout | live pill |
-|  | Go up to | main.js:822 |
-|  | Ease to | main.js:822 |
-|  | Stay at | main.js:822 |
+|  | Start @ | main.js:822. Last time's note, whatever it said (up, same or drop): the weight to start at today, "Start @ 75 lb". No colon (Emma, Nov 22; replaces "Go up to:", "Ease to:" and "Stay at:"). |
 |  | BW+{…} lb | main.js:822 |
 |  | <b>Up</b> | main.js:822 |
 |  | <b>Same</b> | main.js:822 |
@@ -643,7 +641,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | Why did my weights change? | main.js:431 |
 |  | Hit the top of your rep range and the weight goes up next time. Land inside the range and you aim for one more rep. Miss the range and you hold the weight. Miss twice when you're not on a cut and it drops about 10% so you can build back up. A new exercise starts from a guess based on a similar one you've done. | main.js:431 |
 |  | What does "hold" mean on a cut? | main.js:431 |
-|  | When you're losing more than about 0.5% of your body weight a week, keeping your numbers is the win. A missed rep keeps the weight. It only eases 5% after three misses in a row, and accessories lose a set before any weight comes off. | main.js:431 |
+|  | When you're losing more than about 0.5% of your body weight a week, keeping your numbers is the win. A missed rep keeps the weight. It only drops 5% after three misses in a row, and accessories lose a set before any weight comes off. | main.js:431 |
 |  | How is fuel calculated? | main.js:431 |
 |  | Your base is what you'd burn on a day with no training: resting burn, light movement, steps and digestion. Fuel today is your base plus this week's training, minus the gap your goal sets. After three weigh-ins the app checks its estimate against how your weight is actually moving. Food never drops so low that there isn't energy left for training. | main.js:431 |
 |  | How is recovery counted? | main.js:431 |
@@ -695,7 +693,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 | ⓘ Supersets | No: exercises run as straight sets. At 60 min or less, optional accessories are cut to fit the time. | main.js:51 |
 | ⓘ How do you feel today | Good: −1 recovery load and a push-your-top-set cue. Normal: plan as written. Rough gives a shortened day: −1 set on everything, optional accessories cut, easy-pace finisher, no weight increases. | main.js:52 |
 | ⓘ Heated | Heated adds roughly a third more calories. | main.js:53 |
-|  | How hard the class usually is. Sets calories burned. Light classes don't count toward your core work; moderate and hard ones do, so the app eases off core accessories. | main.js:54 |
+|  | How hard the class usually is. Sets calories burned. Light classes don't count toward your core work; moderate and hard ones do, so the app drops a set of core work. | main.js:54 |
 | ⓘ Progress | ↑ Up: hit the top of the range, ~5% more on lower lifts, ~2.5% on upper. = Hold: same weight, one more rep. ↓ Down: missed the bottom twice, rebuild at −10%. ! Fatigue: reps fell 4+ across sets; rest longer. | main.js:56 |
 | ⓘ This week's changes | Everything this week's check-in and activities changed, grouped by cause. | main.js:57 |
 |  | Sets done this week against a target set by your focus and sports. Direct work counts 1 set; helper work counts ½ (a row also trains biceps and rear delts). The faint bar is what's still planned. Skip something and a later day brings back a trimmed exercise or adds a set; when a smaller muscle is already covered, its repeat on a later day becomes optional. | main.js:58 |
@@ -872,7 +870,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 |  | At this pace, expect to hold muscle and strength rather than build. | engine.js:551 |
 |  | On a cut, preserving strength is the goal. | engine.js:552 |
 |  | On a faster cut, a late, missed or changed period is a sign to slow down. | engine.js:553 |
-|  | Reps are dropping on a faster cut. Easing the rate usually brings them back. | engine.js:554 |
+|  | Reps are falling on a faster cut. Dropping the rate usually brings them back. | engine.js:554 |
 |  | {…} weeks at a faster pace. A few weeks at Maintain lets training and recovery catch up. | engine.js:556 |
 |  | Recomp caps cardio at 25%. | engine.js:557 |
 |  | {…} lb/week is aggressive; strength will stall. | engine.js:558 |
@@ -909,7 +907,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 | Reason | deload, easy reps | engine.js:630 |
 | Reason | same weight, | engine.js:631 |
 | Reason | ~{…} reps | engine.js:631 |
-| Reason | 3 misses: ease 5% | engine.js:637 |
+| Reason | 3 misses: drop 5% | engine.js:637 |
 |  | too light, bigger jump | engine.js:653 |
 |  | reps fell off across sets; rest longer, same weight | engine.js:654 |
 |  | ({…}/{…} sets) | engine.js:656 |
@@ -928,7 +926,7 @@ To change wording: edit it here first, then update `copy.ts` to match.
 | Where | Copy | Ref |
 | --- | --- | --- |
 |  | {…} moving up | engine.js:751 |
-|  | {…} easing off | engine.js:751 |
+|  | {…} dropping | engine.js:751 |
 | Title | Day done | main.js:1197 |
 | Button | Finish & close | Finished lift. Returns to the page that opened it. |
 | Button | Share | Day done sheet and completed workout. Icon only. |
