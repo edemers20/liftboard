@@ -7,6 +7,7 @@ import { Modal, PanResponder, StyleSheet, Text, View, type StyleProp, type ViewS
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, {
   Easing,
+  ReduceMotion,
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
@@ -279,13 +280,18 @@ export function UndoToast({
   if (open && !shown) setShown(true);
 
   useEffect(() => {
+    // Reanimated would skip the whole timing under Reduce Motion; the fade still plays, the slide is dropped below.
     if (open) {
-      progress.value = withTiming(1, { duration: reduce ? 160 : 220, easing: ease });
+      progress.value = withTiming(1, { duration: reduce ? 160 : 220, easing: ease, reduceMotion: ReduceMotion.Never });
       return;
     }
-    progress.value = withTiming(0, { duration: reduce ? 120 : 180, easing: Easing.in(Easing.cubic) }, (finished) => {
-      if (finished) runOnJS(setShown)(false);
-    });
+    progress.value = withTiming(
+      0,
+      { duration: reduce ? 120 : 180, easing: Easing.in(Easing.cubic), reduceMotion: ReduceMotion.Never },
+      (finished) => {
+        if (finished) runOnJS(setShown)(false);
+      },
+    );
   }, [open, progress, reduce]);
 
   const anim = useAnimatedStyle(() => ({
