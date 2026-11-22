@@ -11,7 +11,7 @@ import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { copy, fill } from "@/copy";
-import { useSolidGlass } from "@/glass";
+import { LIME_GLASS, useSolidGlass } from "@/glass";
 import { currentSlot, exerciseProgress } from "@/live-activity/state";
 import { perfTime } from "@/perf/probe";
 import { useScreenShown } from "@/screen-version";
@@ -515,12 +515,12 @@ export function LiveWorkoutDock({ live, bottom }: { live: LiveWorkout; bottom: n
             <GlassView
               isInteractive
               colorScheme="dark"
-              tintColor={live.restUrgent ? "rgba(224,122,106,0.4)" : "rgba(111,208,180,0.35)"}
+              tintColor={live.restUrgent ? "rgba(224,122,106,0.4)" : LIME_GLASS.tint}
               glassEffectStyle={{ style: "regular", animate: false }}
               style={[StyleSheet.absoluteFill, styles.glass]}
             />
             <LinearGradient
-              colors={["rgba(111,208,180,0.42)", "rgba(200,232,106,0.28)"]}
+              colors={LIME_GLASS.wash}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={[StyleSheet.absoluteFill, styles.glassWash]}
@@ -566,7 +566,7 @@ const styles = StyleSheet.create({
     minHeight: 56,
     borderRadius: theme.radii.pill,
     borderWidth: 1,
-    borderColor: "rgba(200,232,106,0.32)",
+    borderColor: LIME_GLASS.edge,
     justifyContent: "center",
     paddingHorizontal: 10,
     paddingVertical: 8,
@@ -581,7 +581,7 @@ const styles = StyleSheet.create({
   },
   glassWash: {
     borderRadius: theme.radii.pill,
-    opacity: 0.55,
+    opacity: LIME_GLASS.washOpacity,
   },
   pillRow: { flexDirection: "row", alignItems: "center", gap: 8, width: "100%" },
   /** Name takes every leftover point; timer is intrinsic only (no flex grow). */

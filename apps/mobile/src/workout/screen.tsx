@@ -1,6 +1,7 @@
 "use no memo";
 
 import { useEffect, useRef, useState } from "react";
+import { GlassIconButton } from "@/components/glass-icon-button";
 import { GlassSheet } from "@/components/glass-sheet";
 import { PressableScale } from "@/components/pressable-scale";
 import { LinearGradient } from "expo-linear-gradient";
@@ -21,12 +22,14 @@ import { useEngineVersion } from "@/screen-version";
 import { theme } from "@/theme";
 import { clock, fromDisplay, toDisplay, unitWord, usingKg, weightText } from "@/units";
 import { useReduceMotion } from "@/use-reduce-motion";
-import { useHideOnScroll } from "@/use-hide-on-scroll";
 import { useSecondClock } from "@/second-clock";
+import { useHideOnScroll } from "@/use-hide-on-scroll";
 
 import { canSwapDay, openSwappedWorkout } from "@/components/swap-sheet";
-import { Check, Close, Swap } from "@/icons";
+import { Check, Close } from "@/icons";
+import { ArrowLeft, Ellipsis, Plus } from "lucide-react-native";
 import { Probe } from "@/perf/probe";
+import { HeaderMenu, type MenuItem } from "@/workout/header-menu";
 import { RestBar } from "@/workout/rest-bar";
 
 import { endLiveWorkout, liveWorkoutHeld, quietLiveWorkout, releaseEmptyLive, releaseLiveWorkout } from "@/components/live-workout";
@@ -34,6 +37,9 @@ import { closeOpenSwipe, SwipeDelete, swipeCloseCapture } from "@/components/swi
 import { armRest, cancelRestChime, claimRestChime } from "./notify";
 import { markWorkoutClose, openWorkout, ShareBox, WORKOUT_OPEN_MS, workoutEnter } from "./share-box";
 import { ShareWorkoutActions } from "./share-card";
+
+/** Row of glass buttons; slides up under the status bar on scroll down and back on scroll up. */
+const TOOLBAR_HEIGHT = 54;
 
 type Feel = "Good" | "Normal" | "Rough";
 type NudgeAsk = {
@@ -248,6 +254,7 @@ export function WorkoutScreen({ id }: { id: string }) {
   const [cat, setCat] = useState("");
   const [picker, setPicker] = useState<null | { index: number } | "add" | "cat">(null);
   const [resetAsk, setResetAsk] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [switchAsk, setSwitchAsk] = useState<string | null>(null);
   const [deleteAsk, setDeleteAsk] = useState<null | { index: number; name: string; sets: number }>(null);
   /** Bumped when rows are removed or restored, so no row keeps another row's open swipe. */
@@ -454,9 +461,11 @@ export function WorkoutScreen({ id }: { id: string }) {
   if (!day || !plan.days[id]) {
     return (
       <View style={[styles.screen, { paddingTop: insets.top }]}>
-        <PressableScale accessibilityRole="button" onPress={leave} style={styles.back}>
-          <Text style={styles.backText}>{copy.workouts.back}</Text>
-        </PressableScale>
+        <View style={styles.toolbar}>
+          <GlassIconButton label={copy.workouts.back} onPress={leave}>
+            <ArrowLeft size={22} color={theme.text} strokeWidth={2} />
+          </GlassIconButton>
+        </View>
       </View>
     );
   }
@@ -686,6 +695,19 @@ export function WorkoutScreen({ id }: { id: string }) {
     ]);
   }
 
+  function openAdd() {
+    setAdding(true);
+    setTimeout(() => scroll.current?.scrollToEnd({ animated: !reduceMotion }), 50);
+  }
+
+  const menuItems: MenuItem[] = [
+    { key: "done", label: readOnly ? copy.workout.dayDone : copy.workout.menuMarkDone, onPress: finishDay, disabled: readOnly },
+    ...(canSwapDay(id)
+      ? [{ key: "swap", label: copy.workouts.swapWorkout, onPress: () => openFitSheet({ kind: "swap", id, onWorkout: openSwappedWorkout }) }]
+      : []),
+    { key: "reset", label: copy.workout.menuReset, onPress: () => setResetAsk(true) },
+  ];
+
   const feelQuestion = copy.workout.feel.split("{…}")[0];
 
   const summary = engine.daySummary(id) as any[];
@@ -709,12 +731,25 @@ export function WorkoutScreen({ id }: { id: string }) {
         scrollsToTop
         contentInsetAdjustmentBehavior="never"
         contentContainerStyle={{
-          paddingTop: hide.space + 8,
+          paddingTop: insets.top + TOOLBAR_HEIGHT,
           paddingBottom: (rest ? 96 : 32) + insets.bottom,
           paddingHorizontal: 16,
           gap: 14,
         }}
       >
+        <View style={styles.dayHead}>
+          <Text accessibilityRole="header" style={styles.title}>
+            {day.tab ? `${day.tab}: ${day.title}` : day.title}
+          </Text>
+          {timer?.start ? (
+            timer.end ? (
+              <Text style={styles.timer}>{fill(copy.workout.minutes, Math.round((timer.end - timer.start) / 60000))}</Text>
+            ) : (
+              <Probe id="workout-clock"><ElapsedClock start={timer.start} style={styles.timer} /></Probe>
+            )
+          ) : null}
+        </View>
+
         <View style={styles.panel}>
           <View style={styles.feelHead}>
             <Text style={styles.question}>{feelQuestion}</Text>
@@ -937,7 +972,7 @@ export function WorkoutScreen({ id }: { id: string }) {
           </View>
         ) : null}
 
-        {readOnly ? null : adding ? (
+        {!readOnly && adding ? (
           <View style={styles.card}>
             <View style={styles.cardHead}>
               <Text style={styles.slotLabel}>{copy.workout.addExercise}</Text>
@@ -984,74 +1019,39 @@ export function WorkoutScreen({ id }: { id: string }) {
               <Text style={styles.primaryText}>{fill(copy.workout.addTo, day.tab)}</Text>
             </PressableScale>
           </View>
-        ) : (
-          <PressableScale
-            kind="text"
-            accessibilityRole="button"
-            onPress={() => setAdding(true)}
-            style={styles.addExercise}
-          >
-            <Text style={styles.addExerciseText}>{copy.workout.addExerciseBtn}</Text>
-          </PressableScale>
-        )}
+        ) : null}
 
-        <PressableScale
-          kind="surface"
-          accessibilityRole="button"
-          disabled={readOnly}
-          onPress={finishDay}
-          style={[styles.primary, readOnly ? styles.doneButton : null]}
-        >
-          <Text style={[styles.primaryText, readOnly ? styles.doneButtonText : null]}>
-            {readOnly ? copy.workout.dayDone : copy.workout.markDone}
-          </Text>
-        </PressableScale>
         {readOnly ? <ShareWorkoutActions id={id} /> : null}
 
-        <View style={styles.footer}>
-          <PressableScale accessibilityRole="button" onPress={() => setResetAsk(true)} style={styles.resetBtn}>
-            <Text style={styles.resetBtnText}>{copy.workout.resetDay}</Text>
-          </PressableScale>
-          <Text style={styles.footerSaved}>{copy.workout.saved}</Text>
-        </View>
+        <Text style={styles.footerSaved}>{copy.workout.saved}</Text>
       </Animated.ScrollView>
 
+      <View pointerEvents="none" style={[styles.statusStrip, { height: insets.top }]} />
       <Animated.View
         accessibilityElementsHidden={!hide.blocks}
         importantForAccessibility={hide.blocks ? "auto" : "no-hide-descendants"}
         pointerEvents={hide.blocks ? "box-none" : "none"}
         onLayout={hide.onHeaderLayout}
-        style={[styles.chrome, { paddingTop: insets.top }, hide.chromeStyle, hide.headerStyle]}
+        style={[styles.chrome, { top: insets.top }, hide.chromeStyle, hide.headerStyle]}
       >
         <View style={styles.toolbar}>
-          <PressableScale kind="text" accessibilityRole="button" onPress={leave} style={styles.back}>
-            <Text style={styles.backText}>{copy.workouts.back}</Text>
-          </PressableScale>
-          {canSwapDay(id) ? (
-            <PressableScale
-              kind="button"
-              accessibilityRole="button"
-              onPress={() => openFitSheet({ kind: "swap", id, onWorkout: openSwappedWorkout })}
-              style={styles.swapPill}
-            >
-              <Swap size={16} color={theme.text} />
-              <Text style={styles.swapPillText}>{copy.workouts.swapWorkout}</Text>
-            </PressableScale>
-          ) : null}
-        </View>
-        <View style={styles.dayHead}>
-          <Text accessibilityRole="header" style={styles.title}>
-            {day.tab ? `${day.tab}: ${day.title}` : day.title}
-          </Text>
-          {timer?.start ? (
-            timer.end ? (
-              <Text style={styles.timer}>{fill(copy.workout.minutes, Math.round((timer.end - timer.start) / 60000))}</Text>
-            ) : (
-              <Probe id="workout-clock"><ElapsedClock start={timer.start} style={styles.timer} /></Probe>
-            )
-          ) : null}
+          <GlassIconButton label={copy.workouts.back} onPress={leave}>
+            <ArrowLeft size={22} color={theme.text} strokeWidth={2} />
+          </GlassIconButton>
+          <View style={styles.toolbarEnd}>
+            {readOnly ? null : (
+              <GlassIconButton label={copy.workout.addExercise} onPress={openAdd}>
+                <Plus size={22} color={theme.text} strokeWidth={2} />
+              </GlassIconButton>
+            )}
+            <GlassIconButton label={copy.workout.menu} expanded={menuOpen} onPress={() => setMenuOpen((open) => !open)}>
+              <Ellipsis size={22} color={theme.text} strokeWidth={2} />
+            </GlassIconButton>
+          </View>
         </View>
       </Animated.View>
+
+      <HeaderMenu open={menuOpen} top={insets.top + TOOLBAR_HEIGHT - 4} items={menuItems} onClose={() => setMenuOpen(false)} />
 
       <Probe id="rest-bar">
         <RestBar
@@ -1783,26 +1783,20 @@ const styles = StyleSheet.create({
   },
   chrome: {
     position: "absolute",
-    top: 0,
     left: 0,
     right: 0,
     zIndex: 20,
-    backgroundColor: theme.green.background,
   },
   toolbar: {
+    height: TOOLBAR_HEIGHT,
     paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
+  toolbarEnd: { flexDirection: "row", gap: 8 },
   header: { gap: 0 },
-  back: { minHeight: 40, paddingVertical: 6, justifyContent: "center", alignSelf: "flex-start" },
-  backText: { color: theme.green.accent, fontFamily: theme.fonts.bodySemi, fontSize: 14 },
-  dayHead: {
-    gap: 4,
-    paddingHorizontal: 16,
-    paddingBottom: 8,
-  },
+  dayHead: { gap: 4 },
   title: {
     color: theme.text,
     fontFamily: theme.fonts.display,
@@ -2021,9 +2015,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   secondaryText: { color: theme.text, fontFamily: theme.fonts.bodySemi, fontSize: 14 },
-  addExercise: { minHeight: 44, alignItems: "center", justifyContent: "center" },
-  addExercisePressed: { opacity: 0.7 },
-  addExerciseText: { color: theme.green.accent, fontFamily: theme.fonts.bodySemi, fontSize: 15 },
   addSet: {
     alignSelf: "flex-start",
     borderRadius: theme.radii.small,
@@ -2031,21 +2022,11 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     paddingHorizontal: 10,
   },
-  footer: { flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" },
-  resetBtn: {
-    backgroundColor: "rgba(0,0,0,0.3)",
-    borderRadius: theme.radii.small,
-    paddingVertical: 7,
-    paddingHorizontal: 12,
-  },
-  resetBtnText: { color: theme.text, fontFamily: theme.fonts.bodySemi, fontSize: 13 },
-  footerSaved: { color: theme.muted, fontFamily: theme.fonts.body, fontSize: 12 },
+  footerSaved: { color: theme.muted, fontFamily: theme.fonts.body, fontSize: 12, textAlign: "center" },
   confirmTitle: { color: theme.text, fontFamily: theme.fonts.bodySemi, fontSize: 20 },
   confirmRow: { flexDirection: "row", gap: 8 },
   confirmBtn: { flex: 1 },
   disabled: { opacity: 0.4 },
-  doneButton: { backgroundColor: theme.green.surface },
-  doneButtonText: { color: theme.muted },
   stretchFolded: {
     minHeight: 64,
     paddingHorizontal: 12,
@@ -2073,17 +2054,6 @@ const styles = StyleSheet.create({
   mono: { color: theme.text, fontFamily: theme.fonts.mono, fontSize: 14 },
   monoMuted: { color: theme.muted, fontFamily: theme.fonts.mono, fontSize: 13 },
   up: { color: theme.fuel },
-  swapPill: {
-    minHeight: 36,
-    borderRadius: theme.radii.pill,
-    backgroundColor: "rgba(0,0,0,0.3)",
-    paddingHorizontal: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-  },
-  swapPillText: { color: theme.text, fontFamily: theme.fonts.bodySemi, fontSize: 13 },
   doneActions: { gap: 10 },
   toast: {
     position: "absolute",
