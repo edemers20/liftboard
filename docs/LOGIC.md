@@ -140,7 +140,7 @@ Per lift, from your last logged set:
 - Completion sheets appear after setup, after each day and at week's end.
 
 ## Session tools (added)
-- **Rest timer:** 2:00 after main lifts, 1:15 after everything else. −15s / +15s on the running timer adjusts it and is remembered per exercise (30s–5:00). It runs from a saved end time, so locking the phone doesn't pause it; on return it shows the real time left or how long you've been over (up to 5 min).
+- **Rest timer:** main lifts 2:30 (3:00 at 5 reps or fewer), other compounds 1:30, isolation 1:15; +15s for one-side work; +30s after the first set of a main or compound lift; +15s each for a cut, in-season or low recovery on compound and main lifts (capped at +30s); 20s after the first half of a superset. No overall cap (kept by Emma, Nov 22). −15s / +15s on the running timer adjusts it and is remembered as that exercise's base (30s–5:00). It runs from a saved end time, so locking the phone doesn't pause it; on return it shows the real time left. At zero it reads Done and stops; the bar clears 5 min after.
 - **Workout timer:** starts on the first ticked set of a day, stops when the day is marked done. Shown under the day title and on the Day done sheet.
 - **Easy / tough set nudge:** after a ticked set, reps at least 2 above the top of the range suggest going up one increment for the remaining sets; reps below the bottom suggest dropping one increment. Dismissable; "Use" fills the remaining sets' weight.
 - **Starting weight:** with no history, the weight dial starts from an equipment-based guess (barbell 95 main / 65 accessory, dumbbell 30 / 20, small-muscle dumbbell 10, cable 40, machine 90 / 60, bodyweight 0). Later sets start from the set before.
