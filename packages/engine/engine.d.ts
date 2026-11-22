@@ -124,6 +124,8 @@ export function keepWeight(dayId: string, slotIndex: number, weight: number): vo
 export function rowDone(dayId: string, slotIndex: number, plan?: any): boolean;
 export function countsInDay(dayId: string, slotIndex: number, plan?: any): boolean;
 export function swapWeek(currentId: string, otherId: string): boolean;
+/** Lifts a card in week `wOff` can swapWeek with; empty outside the plan's open week. */
+export function plannedSwaps(id: string, wOff?: number, now?: number): string[];
 export function dayComplete(dayId: string): boolean;
 export function e1rm(w: number, r: number): number;
 export function weekTops(name: string): { start: number; w: number; r: number; t: number; e1: number | null; pr: "" | "top" | "reps"; wasW: number | null; wasR: number | null }[];

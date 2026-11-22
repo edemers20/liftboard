@@ -50,19 +50,20 @@ function preview(day: Day) {
     .join(", ");
 }
 
-export function swapChoices(id: string) {
+/** `wOff` is the week of the card being swapped; left out, the plan's open week. */
+export function swapChoices(id: string, wOff: number = engine.planOff()) {
   const family = ((engine.swapOptions(id) || []) as Day[]).filter((day) => day.id !== id);
-  const others = ((engine.weekModel(0).todo || []) as string[])
-    .filter((next) => next !== id && !started(next))
+  const others = engine
+    .plannedSwaps(id, wOff)
     .map((next) => (engine.DAYS as Day[]).find((day) => day.id === next))
     .filter((day): day is Day => !!day);
   return { family, others };
 }
 
-export function canSwapDay(id: string) {
+export function canSwapDay(id: string, wOff?: number) {
   if ((engine.wk.done || {})[id]) return false;
   if (started(id)) return false;
-  const { family, others } = swapChoices(id);
+  const { family, others } = swapChoices(id, wOff);
   return family.length > 0 || others.length > 0;
 }
 
@@ -73,15 +74,17 @@ export function openSwappedWorkout(nextId: string) {
 
 export function SwapForm({
   id,
+  wOff,
   onClose,
   onWorkout,
 }: {
   id: string;
+  wOff?: number;
   onClose: () => void;
   onWorkout?: (nextId: string) => void;
 }) {
   useEngineVersion();
-  const choices = swapChoices(id);
+  const choices = swapChoices(id, wOff);
 
   function pickFamily(nextId: string) {
     onClose();

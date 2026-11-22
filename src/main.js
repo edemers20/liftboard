@@ -336,9 +336,9 @@ function exPreview(id){ const d=dayById(id); if(!d) return ""; const P=plan(), D
     if(sl.cardio) return [n,A.min?`${A.min} min`:""];
     const t=suggest(d,sl,i,false,P); return [n,`${A.sets} × ${sl.reps}${t&&t.w?` (${isBW(n)?"BW":toU(t.w)})`:""}`]; });
   return rows.length?`<div class="wex">${rows.map(([n,v])=>`<div><span>${esc(n)}</span><b>${esc(v)}</b></div>`).join("")}</div>`:""; }
-function liftCard(eyebrow,id,body,kind){ const d=dayById(id); if(!d) return "";
-  const canSwap=canSwapDay(id);
-  return `<section class="wcard lift ${kind||""}"><div class="wtop"><span class="weye">${eyebrow}</span>${canSwap?`<button type="button" class="swapbtn sm" data-swap="${id}" aria-label="Swap ${esc(d.title)} for another workout"><svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13l-3-3M20 16H7l3 3"/></svg>Swap</button>`:""}</div><h3>${esc(d.title)}</h3>${exPreview(id)}${body||""}</section>`; }
+function liftCard(eyebrow,id,body,kind,wOff){ const d=dayById(id); if(!d) return "";
+  const canSwap=canSwapDay(id,wOff);
+  return `<section class="wcard lift ${kind||""}"><div class="wtop"><span class="weye">${eyebrow}</span>${canSwap?`<button type="button" class="swapbtn sm" data-swap="${id}"${wOff!=null?` data-woff="${wOff}"`:""} aria-label="Swap ${esc(d.title)} for another workout"><svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13l-3-3M20 16H7l3 3"/></svg>Swap</button>`:""}</div><h3>${esc(d.title)}</h3>${exPreview(id)}${body||""}</section>`; }
 /* played a leg-heavy sport today with a lower day queued: offer an upper day instead, once a day, as a sheet */
 let justOpened=null;
 function afterLog(){ const c=document.querySelector(".wpage:not([inert]) .wcard.act.open"); if(c){ c.classList.add("grow"); c.scrollIntoView({block:"nearest",behavior:reduceMotion()?"auto":"smooth"}); } justOpened=null; setTimeout(offerLegSwap,450); }
@@ -409,8 +409,8 @@ function dayBody(P,o){
   ss.filter(s=>s.k==="lift").forEach(s=>cards.push(sessCard(s)));
   if(pid&&!liftDone){
     const d=dayById(pid), started=((wk.wt||{})[pid]||{}).start, other=M.todo.find(id=>id!==pid);
-    if(isToday) cards.push(liftCard("Today",pid,`<button type="button" class="btn primary wgo" data-open="${pid}">${started?"Continue workout":"Start workout"}</button>`));
-    else cards.push(liftCard("Planned",pid,wOff===0?`<button type="button" class="btn wgo" data-move="${pid}">Move to today</button>`:"","planned"));
+    if(isToday) cards.push(liftCard("Today",pid,`<button type="button" class="btn primary wgo" data-open="${pid}">${started?"Continue workout":"Start workout"}</button>`,"",wOff));
+    else cards.push(liftCard("Planned",pid,wOff===0?`<button type="button" class="btn wgo" data-move="${pid}">Move to today</button>`:"","planned",wOff));
   }
   if(!pid&&!liftDone){
     const nk=Object.keys(M.plan).map(Number).find(k=>k>i), nextId=isToday?(M.todo[0]||null):null;
@@ -1140,11 +1140,12 @@ function showSheet(html,bindFn,dim){
 /* pick another workout from the same family (lower, upper, full body) */
 /* today's planned lift, and the other lifts still to do this week */
 function todayLift(){ if(earlyDone()) return null; const M=weekModel(0); return M.plan[M.tIdx]||null; }
-function plannedOthers(id){ return weekModel(0).todo.filter(x=>x!==id&&!dayHasSets(x)&&!(wk.done||{})[x]); }
-const canSwapDay=id=>!(wk.done||{})[id]&&!dayHasSets(id)&&(swapOptions(id).length>1||plannedOthers(id).length>0);
+/* only the plan's open week has an order to change; later weeks are projected from it */
+function plannedOthers(id,wOff=planOff()){ if(wOff!==planOff()) return []; return weekQueue(wk.done||{}).filter(x=>x!==id&&!dayHasSets(x)&&!(wk.done||{})[x]); }
+const canSwapDay=(id,wOff)=>!(wk.done||{})[id]&&!dayHasSets(id)&&(swapOptions(id).length>1||plannedOthers(id,wOff).length>0);
 /* Swap: another workout from the same family (sticks in that spot), or, for today's lift, one of this week's other planned lifts */
-function swapSheet(id){
-  const fam=swapOptions(id).filter(t=>t.id!==id), others=plannedOthers(id).map(dayById).filter(Boolean);
+function swapSheet(id,wOff){
+  const fam=swapOptions(id).filter(t=>t.id!==id), others=plannedOthers(id,wOff).map(dayById).filter(Boolean);
   if(!fam.length&&!others.length) return;
   const ex=t=>t.slots.map((sl,i)=>[sl,i]).filter(([sl])=>!sl.cardio).slice(0,3).map(([sl,i])=>exName(t,sl,i)).join(", ");
   const opt=(t,attr)=>`<button type="button" class="swapopt" ${attr}="${t.id}"><b>${esc(t.tab?`${t.tab}: ${t.title}`:t.title)}</b><small>${esc(ex(t))}</small></button>`;
@@ -1734,7 +1735,7 @@ function bind(){
   v.querySelectorAll(".sidebtn").forEach(b=>b.onclick=()=>{ set(cur,+b.dataset.i,"side",b.dataset.side); render(); });
   v.querySelectorAll(".addset").forEach(b=>b.onclick=()=>{ const i=+b.dataset.i, log=(get(cur,i).log||[]).slice(), A=plan().days[cur].slots[i]; while(log.length<A.sets) log.push({}); log.push({}); set(cur,i,"log",log); render(); });
   const db=document.getElementById("doneBtn"); if(db) db.onclick=()=>{ const id=cur; if((wk.done||{})[id]) return; const n=setsLogged(id); markDone(id); render(); dayDone(id,n); };
-  v.querySelectorAll("[data-swap]").forEach(b=>b.onclick=()=>swapSheet(b.dataset.swap));
+  v.querySelectorAll("[data-swap]").forEach(b=>b.onclick=()=>swapSheet(b.dataset.swap,b.dataset.woff!=null?+b.dataset.woff:undefined));
   v.querySelectorAll("[data-share]").forEach(bindShare);
   const fw=document.getElementById("finishWeek"); if(fw) fw.onclick=()=>askSure({title:"Finish this week?",text:"This week's numbers are saved to history and next week's plan starts now. Lifts you didn't get to come first next week. You can undo until next week begins.",ok:"Finish week",onOk:finishWeek});
   const uf=document.getElementById("undoFinish"); if(uf) uf.onclick=undoFinish;

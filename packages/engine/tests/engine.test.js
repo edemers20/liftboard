@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import * as E from "../engine.js";
 
 const mem = (seed = {}) => { const m = new Map(Object.entries(seed)); return { getItem: k => m.get(k) ?? null, setItem: (k, v) => m.set(k, String(v)), _m: m }; };
@@ -574,6 +574,64 @@ describe("swapping a workout within its family", () => {
     expect(E.swapDay(id, alt)).toBe(true);
     expect(E.wk.pinToday).toEqual({ d: E.dayKey(), id: alt });
     expect(E.dayBoard(0).plannedId).toBe(alt);
+  });
+});
+
+describe("swapping with another planned lift", () => {
+  const mem2 = () => { const m = new Map(); return { getItem: k => m.get(k) ?? null, setItem: (k, v) => m.set(k, String(v)) }; };
+  /** Lower 4 days lifts on Mon, Wed, Fri and Sun: d1, d2, d3, x. */
+  function setup(now) {
+    vi.useFakeTimers();
+    vi.setSystemTime(now);
+    const store = mem2();
+    E.init(store);
+    Object.assign(E.wk, { setupDone: true, focus: "Lower", days: 4, wkStart: "Mon", weekStart: E.weekStartOf(now).getTime() });
+    E.syncDays();
+    E.save();
+    return store;
+  }
+  afterEach(() => vi.useRealTimers());
+
+  it("a swap on a card this week sticks after the app reopens", () => {
+    const mon = new Date(2026, 10, 16, 9).getTime();
+    const store = setup(mon);
+    expect(E.dayBoard(2, mon).plannedId).toBe("d2");
+    expect(E.plannedSwaps("d2", 0, mon)).toEqual(["d1", "d3", "x"]);
+    expect(E.swapWeek("d2", "x")).toBe(true);
+    expect(E.dayBoard(2, mon).plannedId).toBe("x");
+    E.init(store);
+    expect(E.dayBoard(2, mon).plannedId).toBe("x");
+    expect(E.dayBoard(6, mon).plannedId).toBe("d2");
+  });
+
+  it("a card next week offers no planned swaps, because only this week's order can change", () => {
+    const sun = new Date(2026, 10, 22, 9).getTime();
+    setup(sun);
+    const next = E.dayBoard(1, sun);
+    expect(next.wOff).toBe(1);
+    expect(next.plannedId).toBeTruthy();
+    expect(E.plannedSwaps(next.plannedId, next.wOff, sun)).toEqual([]);
+    expect(E.plannedSwaps("x", 0, sun)).toEqual(["d1", "d2", "d3"]);
+  });
+
+  it("after Mark week as finished, next week's cards are the plan's week and can swap", () => {
+    const mon = new Date(2026, 10, 16, 9).getTime();
+    setup(mon);
+    E.finishWeek(mon);
+    expect(E.plannedSwaps("d1", 0, mon)).toEqual([]);
+    const card = E.dayBoard(7, mon);
+    expect(card.wOff).toBe(1);
+    expect(card.plannedId).toBe("d1");
+    expect(E.plannedSwaps("d1", 1, mon)).toEqual(["d2", "d3", "x"]);
+    expect(E.swapWeek("d1", "d3")).toBe(true);
+    expect(E.dayBoard(7, mon).plannedId).toBe("d3");
+  });
+
+  it("skips lifts already started", () => {
+    const mon = new Date(2026, 10, 16, 9).getTime();
+    setup(mon);
+    E.set("d3", 0, "log", [{ w: "100", r: "5", d: true }]);
+    expect(E.plannedSwaps("d2", 0, mon)).toEqual(["d1", "x"]);
   });
 });
 
