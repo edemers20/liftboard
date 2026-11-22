@@ -29,7 +29,7 @@ import { watchTabTipPath } from "@/tab-tips";
 import { WeekReportHost } from "@/week-report";
 import { theme } from "@/theme";
 import { useReduceMotion } from "@/use-reduce-motion";
-import { prepareRestAlerts } from "@/workout/notify";
+import { prepareRestAlerts, startRestCue } from "@/workout/notify";
 import { subscribeWorkoutEnter, WORKOUT_CLOSE_MS, type WorkoutEnter } from "@/workout/share-box";
 import { startDayClock } from "@/day-clock";
 import { onNewDay, rollWeekIfDue } from "@/week-roll";
@@ -78,6 +78,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     let clock: ReturnType<typeof startDayClock> | null = null;
+    let stopRestCue: (() => void) | null = null;
   const sub = AppState.addEventListener("change", (next) => {
       if (next !== "active") return;
       rollWeekIfDue();
@@ -88,6 +89,7 @@ export default function RootLayout() {
       requestAnimationFrame(() => {
         if (cancelled) return;
         prepareRestAlerts();
+        stopRestCue = startRestCue();
         rollWeekIfDue();
         clock = startDayClock(onNewDay);
       });
@@ -97,6 +99,7 @@ export default function RootLayout() {
       cancelAnimationFrame(id);
       sub.remove();
       clock?.stop();
+      stopRestCue?.();
     };
   }, []);
 

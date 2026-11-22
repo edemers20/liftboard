@@ -2,7 +2,10 @@ import { AppState, Platform } from "react-native";
 
 import { playChime } from "@/chime";
 import { copy, fill } from "@/copy";
-import { engine } from "@/store";
+import { haptic } from "@/haptic";
+import { engine, useEngineStore } from "@/store";
+
+import { restCueDue, restCueWait } from "./rest-cue";
 
 type NotificationsModule = typeof import("expo-notifications");
 
@@ -11,9 +14,11 @@ const CHANNEL = "rest-chime";
 
 let notifications: NotificationsModule | null = null;
 let currentId: string | null = null;
+/** Rest end the scheduled alert in `currentId` belongs to. */
+let currentEnd = 0;
 let ticket = 0;
 let channelReady = false;
-let chimedEnd = 0;
+let cuedEnd = 0;
 
 function lib(): NotificationsModule | null {
   if (Platform.OS === "web") return null;
@@ -25,7 +30,7 @@ function lib(): NotificationsModule | null {
         const foreground = AppState.currentState === "active";
         if (foreground) {
           const end = Number(notification.request.content.data?.end || engine.wk.rest?.end || 0);
-          claimRestChime(end);
+          cueRestEnd(end);
           return {
             shouldPlaySound: false,
             shouldSetBadge: false,
@@ -116,15 +121,52 @@ function restLine(): string {
 }
 
 /**
- * Play the in-app chime once for this rest end, and only while the app is open.
- * Returns true the first time this end is claimed in the foreground.
+ * Buzz and chime once for this rest end, only while the app is open, then drop its lock screen
+ * alert so it doesn't sound a second time. Returns true the first time this end is cued.
+ * The chime plays even with Rest timer sound off; that switch only skips the lock screen alert.
  */
-export function claimRestChime(end: number): boolean {
-  if (!end || chimedEnd === end) return false;
+export function cueRestEnd(end: number): boolean {
+  if (!end || cuedEnd === end) return false;
   if (AppState.currentState !== "active") return false;
-  chimedEnd = end;
+  cuedEnd = end;
+  haptic.alert();
   playChime();
+  if (currentEnd === end) {
+    const id = currentId;
+    currentId = null;
+    currentEnd = 0;
+    if (engine.wk.rest?.end === end) engine.wk.rest.noteId = null;
+    void cancelId(id);
+  }
   return true;
+}
+
+/**
+ * Watches the rest end from the app root, so the cue plays on any tab, not only on the workout
+ * screen. Re-arms after every save and on return to the app. Returns a stop function.
+ */
+export function startRestCue(): () => void {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  const check = () => {
+    if (timer) clearTimeout(timer);
+    timer = null;
+    const end = Number(engine.wk.rest?.end) || 0;
+    const now = Date.now();
+    if (restCueDue(end, now, AppState.currentState === "active", cuedEnd)) {
+      cueRestEnd(end);
+      return;
+    }
+    const wait = restCueWait(end, now);
+    if (wait != null) timer = setTimeout(check, wait);
+  };
+  check();
+  const unsubscribe = useEngineStore.subscribe(check);
+  const sub = AppState.addEventListener("change", check);
+  return () => {
+    if (timer) clearTimeout(timer);
+    unsubscribe();
+    sub.remove();
+  };
 }
 
 /** Schedule the lock screen alert for the end of rest. Cancels the previous one. No alert when the sound setting is off. */
@@ -132,6 +174,7 @@ export async function armRest(seconds: number) {
   const my = ++ticket;
   const previous = currentId || engine.wk.rest?.noteId || null;
   currentId = null;
+  currentEnd = 0;
   await cancelId(previous);
   const N = lib();
   if (my !== ticket || !engine.wk.rest) return;
@@ -157,12 +200,16 @@ export async function armRest(seconds: number) {
   }
   await ensureChannel(N);
   if (my !== ticket || !engine.wk.rest) return;
+  const scheduledEnd = engine.wk.rest.end as number;
   const id = await N.scheduleNotificationAsync({
     content: {
       title: copy.workout.restUp,
       body: restLine(),
       sound: CHIME_FILE,
-      data: { end: engine.wk.rest.end },
+      // Breaks through Focus (Fitness Focus turns on with a watch workout). Needs the
+      // time-sensitive entitlement in app.json; without it iOS delivers it as a normal alert.
+      interruptionLevel: "timeSensitive",
+      data: { end: scheduledEnd },
     },
     trigger: {
       type: N.SchedulableTriggerInputTypes.TIME_INTERVAL,
@@ -175,6 +222,7 @@ export async function armRest(seconds: number) {
     return;
   }
   currentId = id;
+  currentEnd = scheduledEnd;
   engine.wk.rest.noteId = id;
   // Stored for a relaunch only; nothing on screen shows it, so it skips the redraw a save brings.
   try {
@@ -184,11 +232,16 @@ export async function armRest(seconds: number) {
   }
 }
 
-/** Cancel the locked-phone chime. Call this before clearing rest. */
+/**
+ * Cancel the locked-phone chime. Reads the alert id before its first await, so call it (without
+ * awaiting) right before clearing rest; awaiting first leaves a gap where a newly ticked set's rest
+ * gets cleared.
+ */
 export async function cancelRestChime() {
   ticket += 1;
   const id = currentId || engine.wk.rest?.noteId || null;
   currentId = null;
+  currentEnd = 0;
   if (engine.wk.rest) engine.wk.rest.noteId = null;
   await cancelId(id);
 }

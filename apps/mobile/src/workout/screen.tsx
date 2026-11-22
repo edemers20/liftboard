@@ -31,7 +31,8 @@ import { RestBar } from "@/workout/rest-bar";
 
 import { endLiveWorkout, liveWorkoutHeld, quietLiveWorkout, releaseEmptyLive, releaseLiveWorkout } from "@/components/live-workout";
 import { closeOpenSwipe, SwipeDelete, swipeCloseCapture } from "@/components/swipe-delete";
-import { armRest, cancelRestChime, claimRestChime } from "./notify";
+import { armRest, cancelRestChime } from "./notify";
+import { peekRest } from "./rest-cue";
 import { markWorkoutClose, openWorkout, ShareBox, WORKOUT_OPEN_MS, workoutEnter } from "./share-box";
 import { ShareWorkoutActions } from "./share-card";
 
@@ -44,23 +45,8 @@ type NudgeAsk = {
   current: number;
   name: string;
 };
-type Rest = { over: boolean; seconds: number; why: string; end: number };
-
-/** Same numbers as engine.restView, without clearing an expired timer during render. */
-function peekRest(now = Date.now()): Rest | null {
-  const rest = engine.wk.rest as { end?: number; why?: string } | null | undefined;
-  if (!rest?.end) return null;
-  const left = (rest.end - now) / 1000;
-  if (left < -300) return null;
-  if (left <= 0) return { over: true, seconds: 0, why: rest.why || "", end: rest.end };
-  return { over: false, seconds: Math.round(left), why: rest.why || "", end: rest.end };
-}
-
-/** Keeps the same rest while its end, Go state and reason hold, so a save doesn't redraw the screen twice. */
-function nextRest(previous: Rest | null): Rest | null {
-  const next = peekRest();
-  if (previous && next && previous.end === next.end && previous.over === next.over && previous.why === next.why) return previous;
-  return next;
+function readRest() {
+  return peekRest(engine.wk.rest, Date.now());
 }
 
 /** Header elapsed clock; ticks locally so the workout tree is not re-rendered every second. */
@@ -232,15 +218,10 @@ export function WorkoutScreen({ id }: { id: string }) {
   const scroll = useRef<ScrollViewInstance>(null);
   const offsets = useRef<Record<number, number>>({});
   const listY = useRef(0);
-  const [rest, setRest] = useState<Rest | null>(() => peekRest());
-  // Read rest in the same pass as the save that changed it, not in a second redraw after it.
-  const [restVersion, setRestVersion] = useState(version);
-  if (restVersion !== version) {
-    setRestVersion(version);
-    setRest(nextRest(rest));
-  }
-  const restOver = useRef<boolean | null>(null);
-  const leftWhileCounting = useRef(false);
+  // Read from the engine on every render, not cached per store version, so any redraw that shows a
+  // ticked set also shows its rest. The tick only redraws at rest end and on return to the app.
+  const rest = readRest();
+  const [, setRestTick] = useState(0);
   const [sheet, setSheet] = useState<null | "done" | number>(null);
   const [adding, setAdding] = useState(false);
   const [pick, setPick] = useState("");
@@ -412,40 +393,20 @@ export function WorkoutScreen({ id }: { id: string }) {
   useEffect(() => {
     if (!rest?.end) return;
     const ms = rest.end - Date.now();
-    if (ms <= 0) {
-      setRest(nextRest);
-      return;
-    }
-    const timer = setTimeout(() => setRest(nextRest), ms + 30);
+    if (ms <= 0) return;
+    const timer = setTimeout(() => setRestTick((n) => n + 1), ms + 30);
     return () => clearTimeout(timer);
   }, [rest?.end, version]);
 
   useEffect(() => {
     const sub = AppState.addEventListener("change", (state) => {
-      if (state !== "active" && restOver.current === false) leftWhileCounting.current = true;
-      if (state === "active") setRest(nextRest);
+      if (state === "active") setRestTick((n) => n + 1);
     });
     return () => sub.remove();
   }, []);
 
   useEffect(() => {
-    if (!rest) {
-      restOver.current = null;
-      leftWhileCounting.current = false;
-      return;
-    }
-    if (restOver.current === false && rest.over) {
-      haptic.success();
-      if (!leftWhileCounting.current && AppState.currentState === "active" && claimRestChime(rest.end)) {
-        void cancelRestChime();
-      }
-    }
-    if (!rest.over) leftWhileCounting.current = false;
-    restOver.current = rest.over;
-  }, [rest]);
-
-  useEffect(() => {
-    const view = peekRest();
+    const view = readRest();
     if (view && !view.over && !engine.wk.rest?.noteId) void armRest(view.seconds);
   }, [id]);
 
@@ -498,9 +459,9 @@ export function WorkoutScreen({ id }: { id: string }) {
     showLines(engine.dayDiff(before, after, id), false);
   }
 
-  async function skipRest() {
+  function skipRest() {
     haptic.selection();
-    await cancelRestChime();
+    void cancelRestChime();
     engine.clearRest();
   }
 
@@ -529,7 +490,6 @@ export function WorkoutScreen({ id }: { id: string }) {
     void cancelRestChime();
     engine.clearRest();
     engine.save();
-    setRest(null);
     setResetAsk(false);
     showLines([copy.workout.dayReset, copy.workout.logsCleared], false);
   }
@@ -1059,7 +1019,7 @@ export function WorkoutScreen({ id }: { id: string }) {
           bottom={insets.bottom + 8}
           onMinus={() => void nudgeRest(-15)}
           onPlus={() => void nudgeRest(15)}
-          onSkip={() => void skipRest()}
+          onSkip={skipRest}
         />
       </Probe>
 
