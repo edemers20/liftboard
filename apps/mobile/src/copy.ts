@@ -1045,6 +1045,10 @@ export const copy = {
     activity: (name: string, n: number) => `${name} × ${n}`,
     seeNext: "See next week",
     kcal: "kcal",
+    /** TODO copy: not in docs/COPY.md. Copies the week image, without its background, to the clipboard. */
+    copyImage: "Copy",
+    /** TODO copy: not in docs/COPY.md. Read by VoiceOver after Copy while the button shows a check; matches the web share card's toast (main.js:1545). */
+    imageCopied: "Image copied",
   },
 } as const;
 

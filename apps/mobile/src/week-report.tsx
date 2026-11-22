@@ -1,6 +1,8 @@
 "use no memo";
 
+import * as Clipboard from "expo-clipboard";
 import * as Sharing from "expo-sharing";
+import { Copy as CopyIcon } from "lucide-react-native";
 import { PressableScale } from "@/components/pressable-scale";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
@@ -18,6 +20,7 @@ import { openPlan } from "@/links";
 import { engine, useEngineStore } from "@/store";
 import { theme } from "@/theme";
 import { toDisplay } from "@/units";
+import { readWeekImage, WeekImage } from "@/week-image";
 
 const TRACK = "#34302c";
 const SHORT = "#e7b94a";
@@ -160,7 +163,10 @@ export function ReportSheet({ report }: { report: Report }) {
   const insets = useSafeAreaInsets();
   const progress = useCountUp(1);
   const shot = useRef<any>(null);
+  const clearShot = useRef<any>(null);
   const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const muscles = report.muscles ? shownMuscles(report.muscles) : null;
   const range = rangeLabel(report.start);
   const width = windowW > 0 ? windowW : 390;
@@ -185,6 +191,27 @@ export function ReportSheet({ report }: { report: Report }) {
       setBusy(false);
     }
   }
+
+  async function copyImage() {
+    if (!clearShot.current || busy) return;
+    setBusy(true);
+    try {
+      const base64 = await captureRef(clearShot, { format: "png", quality: 1, result: "base64" });
+      await Clipboard.setImageAsync(base64);
+      haptic.success();
+      setCopied(true);
+      if (copiedTimer.current) clearTimeout(copiedTimer.current);
+      copiedTimer.current = setTimeout(() => setCopied(false), 1600);
+    } catch {
+      // Nothing is copied if capture or the clipboard is unavailable.
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  useEffect(() => () => {
+    if (copiedTimer.current) clearTimeout(copiedTimer.current);
+  }, []);
 
   const summary = (
     <>
@@ -336,6 +363,16 @@ export function ReportSheet({ report }: { report: Report }) {
         </PressableScale>
         <PressableScale
           accessibilityRole="button"
+          accessibilityLabel={copied ? copy.report.imageCopied : copy.report.copyImage}
+          disabled={busy}
+          onPress={() => void copyImage()}
+          style={[styles.share, busy && styles.busy]}
+        >
+          {copied ? <Check size={18} color={theme.green.accent} /> : <CopyIcon size={18} color={theme.text} strokeWidth={2} />}
+          <Text style={styles.shareText}>{copy.report.copyImage}</Text>
+        </PressableScale>
+        <PressableScale
+          accessibilityRole="button"
           onPress={() => {
             engine.dismissWeekReport();
             router.back();
@@ -348,6 +385,9 @@ export function ReportSheet({ report }: { report: Report }) {
       </View>
       <View ref={shot} collapsable={false} pointerEvents="none" style={styles.offscreen}>
         <ReportShare report={report} />
+      </View>
+      <View ref={clearShot} collapsable={false} pointerEvents="none" style={styles.offscreen}>
+        <WeekImage data={readWeekImage(report)} />
       </View>
     </View>
   );
